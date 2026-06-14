@@ -198,15 +198,16 @@ async function setujui(id, adminId, catatan) {
     });
   });
 
-  // Tahap 2: generate QR Code (operasi file di luar transaksi)
+  // Tahap 2: generate QR Code (opsional — tidak membatalkan persetujuan bila gagal)
   const full = await getRawById(id);
-  const qrPath = await qrcodeService.generateUntukPeminjaman(full);
-  const updated = await prisma.peminjaman.update({
-    where: { id },
-    data: { qrCodeUrl: qrPath },
-    include: includeLengkap,
-  });
+  try {
+    const qrPath = await qrcodeService.generateUntukPeminjaman(full);
+    await prisma.peminjaman.update({ where: { id }, data: { qrCodeUrl: qrPath } });
+  } catch {
+    // QR generation gagal; persetujuan tetap valid, QR bisa di-generate ulang nanti
+  }
 
+  const updated = await prisma.peminjaman.findUnique({ where: { id }, include: includeLengkap });
   return serialisasi(updated);
 }
 
