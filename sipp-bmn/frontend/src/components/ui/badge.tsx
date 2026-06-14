@@ -1,0 +1,23 @@
+// ============================================================
+//  Komponen Badge — label status berwarna.
+// ============================================================
+
+import * as React from 'react';
+import { cn } from '@/lib/utils';
+
+// Kelas warna dikirim lewat className (mis. dari konstanta status)
+export type BadgeProps = React.HTMLAttributes<HTMLSpanElement>;
+
+function Badge({ className, ...props }: BadgeProps) {
+  return (
+    <span
+      className={cn(
+        'inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold transition-colors',
+        className
+      )}
+      {...props}
+    />
+  );
+}
+
+export { Badge };
