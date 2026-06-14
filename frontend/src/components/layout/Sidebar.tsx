@@ -68,12 +68,16 @@ export function Sidebar() {
     <>
       {/* Overlay untuk mobile */}
       {sidebarTerbuka && (
-        <div className="fixed inset-0 z-30 bg-black/40 lg:hidden" onClick={tutupSidebar} aria-hidden />
+        <div
+          className="fixed inset-0 z-30 bg-brand-900/50 backdrop-blur-sm lg:hidden"
+          onClick={tutupSidebar}
+          aria-hidden
+        />
       )}
 
       <aside
         className={cn(
-          'fixed inset-y-0 left-0 z-40 flex w-72 flex-col bg-brand-700 text-white transition-transform duration-300 lg:static lg:translate-x-0',
+          'bg-brand-gradient fixed inset-y-0 left-0 z-40 flex w-[17rem] max-w-[85vw] flex-col text-white shadow-elevated transition-transform duration-300 ease-out lg:static lg:max-w-none lg:translate-x-0 lg:shadow-none',
           sidebarTerbuka ? 'translate-x-0' : '-translate-x-full'
         )}
       >
@@ -109,12 +113,18 @@ export function Sidebar() {
                 key={item.href}
                 href={item.href}
                 onClick={tutupSidebar}
+                aria-current={aktif ? 'page' : undefined}
                 className={cn(
-                  'flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors',
-                  aktif ? 'bg-white text-brand-700 shadow' : 'text-white/85 hover:bg-white/10'
+                  'group relative flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-200',
+                  aktif
+                    ? 'bg-white text-brand-700 shadow-soft'
+                    : 'text-white/85 hover:bg-white/10 hover:text-white'
                 )}
               >
-                <Ikon className="h-5 w-5 shrink-0" />
+                {aktif && (
+                  <span className="absolute -left-3 top-1/2 h-6 w-1 -translate-y-1/2 rounded-r-full bg-white" />
+                )}
+                <Ikon className={cn('h-5 w-5 shrink-0 transition-transform', !aktif && 'group-hover:scale-110')} />
                 {item.label}
               </Link>
             );
@@ -126,8 +136,10 @@ export function Sidebar() {
             href={RUTE.bantuan}
             onClick={tutupSidebar}
             className={cn(
-              'flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors',
-              pathname === RUTE.bantuan ? 'bg-white text-brand-700 shadow' : 'text-white/85 hover:bg-white/10'
+              'flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-200',
+              pathname === RUTE.bantuan
+                ? 'bg-white text-brand-700 shadow-soft'
+                : 'text-white/85 hover:bg-white/10 hover:text-white'
             )}
           >
             <BookOpen className="h-5 w-5 shrink-0" />

@@ -7,7 +7,7 @@
    ============================================================ */
 @layer base {
   :root {
-    --background: 0 0% 100%;
+    --background: 210 40% 98%;
     --foreground: 222 47% 11%;
 
     --card: 0 0% 100%;
@@ -36,7 +36,7 @@
     --input: 214 32% 91%;
     --ring: 214 84% 40%;
 
-    --radius: 0.625rem;
+    --radius: 0.75rem;
   }
 }
 
@@ -44,9 +44,67 @@
   * {
     @apply border-border;
   }
+  html {
+    /* Cegah penyesuaian ukuran teks otomatis di mobile & gulir mulus */
+    -webkit-text-size-adjust: 100%;
+    scroll-behavior: smooth;
+  }
   body {
     @apply bg-background text-foreground;
     -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+    /* Hilangkan kilatan biru saat menyentuh elemen di perangkat sentuh */
+    -webkit-tap-highlight-color: transparent;
+  }
+  /* Target sentuh lebih nyaman di perangkat layar sentuh */
+  @media (pointer: coarse) {
+    button,
+    a[role='button'],
+    [type='button'],
+    [type='submit'] {
+      min-height: 2.75rem;
+    }
+  }
+  /* Hormati preferensi gerak minimal pengguna */
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
+}
+
+/* ============================================================
+   Utilitas tambahan
+   ============================================================ */
+@layer utilities {
+  /* Area aman untuk perangkat dengan notch / gesture bar */
+  .pb-safe {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+  .pt-safe {
+    padding-top: env(safe-area-inset-top);
+  }
+  /* Lebar maksimum konten yang konsisten & nyaman dibaca */
+  .content-wrap {
+    @apply mx-auto w-full max-w-7xl;
+  }
+  /* Latar gradien lembut khas instansi */
+  .bg-brand-gradient {
+    background-image: linear-gradient(135deg, #1e3a5f 0%, #1e3a8a 55%, #172554 100%);
+  }
+  /* Sembunyikan scrollbar namun tetap bisa digulir (mis. tab di mobile) */
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
   }
 }
 
@@ -60,13 +118,20 @@
 
 /* Scrollbar lebih halus */
 ::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  background: hsl(214 20% 80%);
+  background: hsl(214 20% 82%);
+  border: 2px solid transparent;
+  background-clip: padding-box;
   border-radius: 9999px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: hsl(214 20% 70%);
+  background: hsl(214 25% 68%);
+  border: 2px solid transparent;
+  background-clip: padding-box;
 }

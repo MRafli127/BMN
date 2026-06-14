@@ -51,29 +51,37 @@ export default function LoginPage() {
   return (
     <div className="grid min-h-screen lg:grid-cols-2">
       {/* Panel branding */}
-      <div className="hidden flex-col justify-between bg-brand-700 p-12 text-white lg:flex">
-        <Link href={RUTE.beranda} className="flex items-center gap-2">
-          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-white/15">
+      <div className="bg-brand-gradient relative hidden flex-col justify-between overflow-hidden p-12 text-white lg:flex">
+        <div
+          aria-hidden
+          className="pointer-events-none absolute -right-20 -top-20 h-72 w-72 rounded-full bg-white/10 blur-3xl"
+        />
+        <div
+          aria-hidden
+          className="pointer-events-none absolute -bottom-24 -left-16 h-72 w-72 rounded-full bg-brand-400/20 blur-3xl"
+        />
+        <Link href={RUTE.beranda} className="relative flex items-center gap-2">
+          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-white/15 ring-1 ring-white/20">
             <ShieldCheck className="h-6 w-6" />
           </div>
           <span className="text-xl font-bold">SIPP-BMN</span>
         </Link>
-        <div>
-          <h1 className="text-3xl font-bold leading-tight">
+        <div className="relative">
+          <h1 className="text-3xl font-bold leading-tight xl:text-4xl">
             Sistem Informasi Peminjaman & Pengembalian Barang Milik Negara
           </h1>
-          <p className="mt-4 text-white/80">
+          <p className="mt-4 max-w-md text-white/80">
             Kelola peminjaman BMN secara digital — cepat, transparan, dan akuntabel.
           </p>
         </div>
-        <p className="text-sm text-white/60">© {new Date().getFullYear()} SIPP-BMN</p>
+        <p className="relative text-sm text-white/60">© {new Date().getFullYear()} SIPP-BMN</p>
       </div>
 
       {/* Form login */}
-      <div className="flex items-center justify-center p-6">
-        <div className="w-full max-w-md">
+      <div className="flex items-center justify-center bg-gradient-to-b from-brand-50/60 to-white p-6 lg:bg-none">
+        <div className="w-full max-w-md animate-fade-up">
           <div className="mb-8 text-center lg:hidden">
-            <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-xl bg-primary text-primary-foreground">
+            <div className="bg-brand-gradient mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-xl text-white shadow-soft">
               <ShieldCheck className="h-7 w-7" />
             </div>
             <h1 className="text-xl font-bold">SIPP-BMN</h1>

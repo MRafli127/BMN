@@ -198,7 +198,7 @@ export function FormPeminjaman({ daftarBarang, onAjukan, praPilihId }: Props) {
         </div>
 
         {/* Tanggal */}
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 gap-3 xs:grid-cols-2">
           <div>
             <Label htmlFor="tglPinjam">2. Tanggal Pinjam</Label>
             <Input id="tglPinjam" type="date" value={tglPinjam} onChange={(e) => setTglPinjam(e.target.value)} className="mt-1" />
@@ -224,8 +224,8 @@ export function FormPeminjaman({ daftarBarang, onAjukan, praPilihId }: Props) {
         {/* Dokumen */}
         <div>
           <Label>4. Unggah Dokumen Peminjaman</Label>
-          <label className="mt-1 flex cursor-pointer items-center gap-2 rounded-md border border-dashed px-4 py-3 text-sm text-muted-foreground hover:bg-muted">
-            {dokumen ? <FileText className="h-4 w-4 text-primary" /> : <Upload className="h-4 w-4" />}
+          <label className="mt-1 flex cursor-pointer items-center gap-2 rounded-lg border border-dashed px-4 py-3 text-sm text-muted-foreground transition-colors hover:border-primary/50 hover:bg-primary/5">
+            {dokumen ? <FileText className="h-4 w-4 shrink-0 text-primary" /> : <Upload className="h-4 w-4 shrink-0" />}
             <span className="truncate">{dokumen ? dokumen.name : 'Pilih file (PDF/JPG/PNG, maks 5 MB)'}</span>
             <input type="file" accept="application/pdf,image/*" className="hidden" onChange={pilihDokumen} />
           </label>

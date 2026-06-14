@@ -14,9 +14,9 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(({ className, type,
     <input
       type={type}
       className={cn(
-        'flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background',
+        'flex h-11 w-full rounded-lg border border-input bg-background px-3 py-2 text-base transition-colors ring-offset-background sm:h-10 sm:text-sm',
         'file:border-0 file:bg-transparent file:text-sm file:font-medium file:text-foreground',
-        'placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
+        'placeholder:text-muted-foreground focus-visible:border-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/30',
         'disabled:cursor-not-allowed disabled:opacity-50',
         className
       )}
@@ -34,8 +34,8 @@ const Textarea = React.forwardRef<HTMLTextAreaElement, TextareaProps>(({ classNa
   return (
     <textarea
       className={cn(
-        'flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background',
-        'placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
+        'flex min-h-[80px] w-full rounded-lg border border-input bg-background px-3 py-2 text-base transition-colors ring-offset-background sm:text-sm',
+        'placeholder:text-muted-foreground focus-visible:border-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/30',
         'disabled:cursor-not-allowed disabled:opacity-50',
         className
       )}
@@ -53,8 +53,8 @@ const Select = React.forwardRef<HTMLSelectElement, SelectProps>(({ className, ch
   return (
     <select
       className={cn(
-        'flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background',
-        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
+        'flex h-11 w-full rounded-lg border border-input bg-background px-3 py-2 text-base transition-colors ring-offset-background sm:h-10 sm:text-sm',
+        'focus-visible:border-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/30',
         'disabled:cursor-not-allowed disabled:opacity-50',
         className
       )}
