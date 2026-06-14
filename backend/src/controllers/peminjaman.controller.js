@@ -1,18 +1,18 @@
-// ============================================================
-//  Controller Peminjaman
-// ============================================================
-
+const path = require('path');
 const peminjamanService = require('../services/peminjaman.service');
+const { uploadKeBlob } = require('../utils/blob');
 const { responsSukses } = require('../utils/apiResponse');
 const { asyncHandler } = require('../middleware/error.middleware');
 
-// Path relatif dokumen yang diunggah
-function pathDokumen(file) {
-  return file ? `/uploads/dokumen/${file.filename}` : null;
+async function pathDokumen(file) {
+  if (!file) return null;
+  const ext = path.extname(file.originalname).toLowerCase();
+  const namaFile = `dokumen/dokumen-${Date.now()}-${Math.round(Math.random() * 1e9)}${ext}`;
+  return uploadKeBlob(namaFile, file.buffer, file.mimetype);
 }
 
 const create = asyncHandler(async (req, res) => {
-  const peminjaman = await peminjamanService.create(req.user.id, req.body, pathDokumen(req.file));
+  const peminjaman = await peminjamanService.create(req.user.id, req.body, await pathDokumen(req.file));
   return responsSukses(res, {
     pesan: 'Pengajuan peminjaman berhasil dikirim. Menunggu persetujuan admin.',
     data: peminjaman,
@@ -74,7 +74,6 @@ const kembalikan = asyncHandler(async (req, res) => {
   });
 });
 
-// Scan QR untuk pengembalian: cari peminjaman berdasarkan kode lalu tampilkan detail
 const scan = asyncHandler(async (req, res) => {
   const peminjaman = await peminjamanService.getByKode(req.body.kodePeminjaman);
   return responsSukses(res, { pesan: 'Data peminjaman ditemukan.', data: peminjaman });
