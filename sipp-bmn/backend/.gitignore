@@ -1,0 +1,26 @@
+# Dependencies
+node_modules/
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# Prisma
+prisma/migrations/dev.db*
+
+# Log
+*.log
+logs/
+npm-debug.log*
+
+# File upload yang dihasilkan saat runtime (jangan di-commit)
+uploads/dokumen/*
+uploads/stempel/*
+uploads/qrcode/*
+uploads/foto-barang/*
+!uploads/**/.gitkeep
+
+# OS
+.DS_Store
+Thumbs.db

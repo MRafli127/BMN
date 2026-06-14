@@ -1,0 +1,146 @@
+// ============================================================
+//  SKEMA DATABASE PRISMA — SIPP-BMN
+//  Sistem Informasi Peminjaman & Pengembalian Barang Milik Negara
+// ============================================================
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ------------------------------------------------------------
+//  ENUM
+// ------------------------------------------------------------
+
+// Peran pengguna dalam sistem
+enum Role {
+  ADMIN
+  PEMINJAM
+}
+
+// Jenis/kategori barang milik negara
+enum JenisBarang {
+  ELEKTRONIK
+  FURNITUR
+  KENDARAAN
+  ATK
+  LAINNYA
+}
+
+// Kondisi fisik barang
+enum KondisiBarang {
+  BAIK
+  RUSAK_RINGAN
+  RUSAK_BERAT
+}
+
+// Status alur peminjaman
+enum StatusPeminjaman {
+  MENUNGGU // Pengajuan baru, menunggu persetujuan admin
+  DISETUJUI // Disetujui admin, barang siap diambil
+  DITOLAK // Ditolak admin
+  DIPINJAM // Barang sedang dipinjam
+  DIKEMBALIKAN // Barang sudah dikembalikan
+  TERLAMBAT // Melewati tanggal rencana kembali
+}
+
+// Status tiap item barang pada satu peminjaman
+enum StatusItem {
+  DIPINJAM
+  DIKEMBALIKAN
+}
+
+// ------------------------------------------------------------
+//  MODEL
+// ------------------------------------------------------------
+
+// 1) Pengguna sistem (admin & peminjam)
+model User {
+  id        String   @id @default(uuid())
+  nama      String
+  nip       String   @unique // Nomor Induk Pegawai (unik)
+  email     String   @unique
+  password  String // Disimpan dalam bentuk hash bcrypt
+  jabatan   String?
+  unitKerja String?
+  role      Role     @default(PEMINJAM)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relasi: peminjaman yang diajukan oleh user ini
+  peminjaman Peminjaman[] @relation("PeminjamanOlehPeminjam")
+  // Relasi: peminjaman yang disetujui oleh user ini (sebagai admin)
+  persetujuan Peminjaman[] @relation("PeminjamanDisetujuiAdmin")
+
+  @@map("users")
+}
+
+// 2) Barang Milik Negara
+model Barang {
+  id                String        @id @default(uuid())
+  kodeBarang        String        @unique // Format: BMN-2026-0001
+  nama              String
+  jenis             JenisBarang   @default(LAINNYA)
+  jumlahTotal       Int           @default(0)
+  jumlahTersedia    Int           @default(0)
+  kondisi           KondisiBarang @default(BAIK)
+  lokasiPenyimpanan String?
+  deskripsi         String?
+  fotoUrl           String?
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
+
+  // Relasi: detail peminjaman yang memuat barang ini
+  detailPeminjaman DetailPeminjaman[]
+
+  @@map("barang")
+}
+
+// 3) Peminjaman (transaksi pengajuan peminjaman)
+model Peminjaman {
+  id                    String           @id @default(uuid())
+  kodePeminjaman        String           @unique // Format: PJM-2026-0001
+  userId                String
+  tanggalPengajuan      DateTime         @default(now())
+  tanggalPinjamRencana  DateTime
+  tanggalKembaliRencana DateTime
+  tanggalKembaliAktual  DateTime?
+  status                StatusPeminjaman @default(MENUNGGU)
+  alasanPeminjaman      String
+  dokumenUrl            String? // Dokumen yang diunggah peminjam
+  dokumenStempelUrl     String? // Dokumen yang sudah distempel admin
+  qrCodeUrl             String? // Gambar QR Code peminjaman
+  catatanAdmin          String? // Catatan admin (wajib saat menolak)
+  disetujuiOleh         String? // userId admin yang menyetujui
+  createdAt             DateTime         @default(now())
+  updatedAt             DateTime         @updatedAt
+
+  // Relasi
+  peminjam User               @relation("PeminjamanOlehPeminjam", fields: [userId], references: [id])
+  admin    User?              @relation("PeminjamanDisetujuiAdmin", fields: [disetujuiOleh], references: [id])
+  detail   DetailPeminjaman[]
+
+  @@index([userId])
+  @@index([status])
+  @@map("peminjaman")
+}
+
+// 4) Detail peminjaman — relasi banyak-ke-banyak Barang <-> Peminjaman
+model DetailPeminjaman {
+  id           String     @id @default(uuid())
+  peminjamanId String
+  barangId     String
+  jumlahPinjam Int        @default(1)
+  statusItem   StatusItem @default(DIPINJAM)
+
+  peminjaman Peminjaman @relation(fields: [peminjamanId], references: [id], onDelete: Cascade)
+  barang     Barang     @relation(fields: [barangId], references: [id])
+
+  @@index([peminjamanId])
+  @@index([barangId])
+  @@map("detail_peminjaman")
+}
