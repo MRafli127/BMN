@@ -1,5 +1,4 @@
 const QRCode = require('qrcode');
-const { uploadKeBlob } = require('../utils/blob');
 
 function bangunPayload(peminjaman) {
   const namaBarang = (peminjaman.detail || [])
@@ -15,19 +14,16 @@ function bangunPayload(peminjaman) {
   });
 }
 
+// Generate QR Code sebagai data URL (base64 PNG) untuk disimpan di DB
 async function generateUntukPeminjaman(peminjaman) {
   const payload = bangunPayload(peminjaman);
 
-  const buffer = await QRCode.toBuffer(payload, {
+  return QRCode.toDataURL(payload, {
     errorCorrectionLevel: 'M',
     margin: 2,
     width: 400,
     color: { dark: '#1e3a5f', light: '#ffffff' },
   });
-
-  const namaFile = `qrcode/qr-${peminjaman.kodePeminjaman}.png`;
-  const url = await uploadKeBlob(namaFile, buffer, 'image/png');
-  return url;
 }
 
 module.exports = { generateUntukPeminjaman, bangunPayload };

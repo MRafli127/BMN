@@ -1,19 +1,17 @@
 const { PDFDocument, rgb, StandardFonts, degrees } = require('pdf-lib');
 const path = require('path');
 const fs = require('fs');
-const { uploadKeBlob } = require('../utils/blob');
+const { dataUrlKeBuffer, bufferKeDataUrl } = require('../utils/fileData');
 const { formatTanggalSaja } = require('../utils/formatTanggal');
 const { AppError } = require('../middleware/error.middleware');
 
 async function muatSebagaiPdf(dokumenUrl) {
-  const response = await fetch(dokumenUrl);
-  if (!response.ok) throw new AppError('Gagal mengambil file dokumen.', 404);
-  const bytes = await response.arrayBuffer();
+  const file = dataUrlKeBuffer(dokumenUrl);
+  if (!file) throw new AppError('Format dokumen sumber tidak dikenali.', 400);
+  const bytes = file.buffer;
+  const mime = file.mime;
 
-  const pathname = new URL(dokumenUrl).pathname;
-  const ext = path.extname(pathname).toLowerCase();
-
-  if (ext === '.pdf') {
+  if (mime === 'application/pdf') {
     return PDFDocument.load(bytes);
   }
 
@@ -21,7 +19,7 @@ async function muatSebagaiPdf(dokumenUrl) {
   const pdf = await PDFDocument.create();
   const page = pdf.addPage([595.28, 841.89]);
   let img;
-  if (ext === '.png') img = await pdf.embedPng(bytes);
+  if (mime === 'image/png') img = await pdf.embedPng(bytes);
   else img = await pdf.embedJpg(bytes);
 
   const { width: pw, height: ph } = page.getSize();
@@ -117,10 +115,7 @@ async function stempelDokumen(peminjaman, adminNama) {
   }
 
   const hasilBytes = await pdf.save();
-  const namaFile = `stempel/stempel-${peminjaman.kodePeminjaman}.pdf`;
-  const url = await uploadKeBlob(namaFile, Buffer.from(hasilBytes), 'application/pdf');
-
-  return url;
+  return bufferKeDataUrl(Buffer.from(hasilBytes), 'application/pdf');
 }
 
 module.exports = { stempelDokumen };
