@@ -23,7 +23,7 @@ export function KartuStatus({ peminjaman, hrefDetail, tampilkanPeminjam }: Props
   const jumlahBarang = peminjaman.detail?.length ?? 0;
 
   return (
-    <Card className="transition-shadow hover:shadow-md">
+    <Card className="transition-all duration-300 hover:-translate-y-0.5 hover:shadow-elevated">
       <CardContent className="p-4">
         <div className="flex items-start justify-between gap-2">
           <div>

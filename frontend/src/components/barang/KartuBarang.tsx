@@ -21,12 +21,16 @@ export function KartuBarang({ barang, aksi }: Props) {
   const kondisi = KONDISI_BARANG[barang.kondisi];
 
   return (
-    <Card className="flex flex-col overflow-hidden transition-shadow hover:shadow-md">
+    <Card className="group flex flex-col overflow-hidden transition-all duration-300 hover:-translate-y-1 hover:shadow-elevated">
       {/* Foto */}
-      <div className="relative h-40 w-full bg-muted">
+      <div className="relative h-40 w-full overflow-hidden bg-muted">
         {barang.fotoUrl ? (
           // eslint-disable-next-line @next/next/no-img-element
-          <img src={urlFile(barang.fotoUrl)} alt={barang.nama} className="h-full w-full object-cover" />
+          <img
+            src={urlFile(barang.fotoUrl)}
+            alt={barang.nama}
+            className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+          />
         ) : (
           <div className="flex h-full w-full items-center justify-center text-muted-foreground">
             <Package className="h-12 w-12" />

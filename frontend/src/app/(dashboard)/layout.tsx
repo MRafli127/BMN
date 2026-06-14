@@ -8,7 +8,7 @@
 'use client';
 
 import { useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 import { Sidebar } from '@/components/layout/Sidebar';
 import { Header } from '@/components/layout/Header';
 import { Footer } from '@/components/layout/Footer';
@@ -19,6 +19,7 @@ import { RUTE } from '@/constants/routes';
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const { user, sedangMemuat } = useAuth();
   const router = useRouter();
+  const pathname = usePathname();
 
   useEffect(() => {
     if (!sedangMemuat && !user) {
@@ -36,7 +37,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       <Sidebar />
       <div className="flex min-w-0 flex-1 flex-col">
         <Header />
-        <main className="flex-1 p-4 md:p-6">{children}</main>
+        <main className="flex-1 p-4 sm:p-6 lg:p-8">
+          <div key={pathname} className="content-wrap animate-fade-up">{children}</div>
+        </main>
         <Footer />
       </div>
     </div>

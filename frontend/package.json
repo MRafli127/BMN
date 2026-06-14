@@ -4,7 +4,7 @@
   "description": "Frontend Next.js SIPP-BMN — Sistem Informasi Peminjaman & Pengembalian Barang Milik Negara",
   "private": true,
   "scripts": {
-    "dev": "next dev",
+    "dev": "next dev -p 3000",
     "build": "next build",
     "start": "next start",
     "lint": "next lint"
