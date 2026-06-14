@@ -6,7 +6,8 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
-import { ChevronLeft, ChevronRight, History, PlusCircle } from 'lucide-react';
+import { ChevronLeft, ChevronRight, History } from 'lucide-react';
+import { Icon } from '@/components/ui/icon';
 import { Select } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { TabelPeminjaman } from '@/components/peminjaman/TabelPeminjaman';
@@ -44,20 +45,20 @@ export default function RiwayatPage() {
   }, [muat]);
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-gutter">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-bold text-foreground">Riwayat Peminjaman</h1>
-          <p className="text-muted-foreground">Daftar seluruh pengajuan peminjaman Anda.</p>
+          <h1 className="font-jakarta text-headline-lg text-primary">Riwayat Peminjaman</h1>
+          <p className="text-on-surface-variant">Daftar seluruh pengajuan peminjaman Anda.</p>
         </div>
         <Button asChild>
           <Link href={RUTE.peminjamAjukan}>
-            <PlusCircle className="h-4 w-4" /> Ajukan Peminjaman
+            <Icon name="add" className="text-[18px]" /> Ajukan Peminjaman
           </Link>
         </Button>
       </div>
 
-      <div className="rounded-xl border bg-card p-4">
+      <div className="glass-card rounded-2xl p-stack-md">
         <Select
           value={filter.status || ''}
           onChange={(e) => setFilter((f) => ({ ...f, status: (e.target.value || undefined) as never, page: 1 }))}
@@ -82,7 +83,7 @@ export default function RiwayatPage() {
           aksi={
             <Button asChild>
               <Link href={RUTE.peminjamAjukan}>
-                <PlusCircle className="h-4 w-4" /> Ajukan Sekarang
+                <Icon name="add" className="text-[18px]" /> Ajukan Sekarang
               </Link>
             </Button>
           }

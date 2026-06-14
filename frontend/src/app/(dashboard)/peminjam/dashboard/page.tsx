@@ -6,7 +6,8 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { ClipboardCheck, Hourglass, CheckCircle2, History, Boxes, PlusCircle } from 'lucide-react';
+import { PlusCircle } from 'lucide-react';
+import { Icon } from '@/components/ui/icon';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -19,6 +20,19 @@ import { ambilPesanError, cn } from '@/lib/utils';
 import { STATUS_PEMINJAMAN } from '@/constants/status';
 import { RUTE } from '@/constants/routes';
 import { useAuth } from '@/hooks/useAuth';
+
+interface GayaWarna {
+  orb: string;
+  ikonBox: string;
+  nilai: string;
+}
+
+// Kelas literal per warna (agar terdeteksi JIT Tailwind)
+const GAYA: Record<string, GayaWarna> = {
+  primary: { orb: 'bg-primary/10 group-hover:bg-primary/20', ikonBox: 'bg-primary/10 text-primary', nilai: 'text-primary' },
+  tertiary: { orb: 'bg-tertiary/10 group-hover:bg-tertiary/20', ikonBox: 'bg-tertiary/10 text-tertiary', nilai: 'text-tertiary' },
+  secondary: { orb: 'bg-secondary/10 group-hover:bg-secondary/20', ikonBox: 'bg-secondary/10 text-secondary', nilai: 'text-secondary' },
+};
 
 export default function PeminjamDashboardPage() {
   const { user } = useAuth();
@@ -38,50 +52,51 @@ export default function PeminjamDashboardPage() {
 
   const s = data.statistik;
   const kartu = [
-    { label: 'Peminjaman Aktif', nilai: s.peminjamanAktif, ikon: ClipboardCheck, warna: 'bg-indigo-500' },
-    { label: 'Menunggu Persetujuan', nilai: s.menunggu, ikon: Hourglass, warna: 'bg-amber-500' },
-    { label: 'Sudah Dikembalikan', nilai: s.dikembalikan, ikon: CheckCircle2, warna: 'bg-emerald-500' },
-    { label: 'Total Riwayat', nilai: s.totalRiwayat, ikon: History, warna: 'bg-blue-500' },
-  ];
+    { label: 'Peminjaman Aktif', nilai: s.peminjamanAktif, ikon: 'sync_alt', warna: 'secondary', keterangan: 'Sedang berjalan' },
+    { label: 'Menunggu Persetujuan', nilai: s.menunggu, ikon: 'pending_actions', warna: 'tertiary', keterangan: 'Dalam verifikasi' },
+    { label: 'Sudah Dikembalikan', nilai: s.dikembalikan, ikon: 'task_alt', warna: 'secondary', keterangan: 'Selesai dengan baik' },
+    { label: 'Total Riwayat', nilai: s.totalRiwayat, ikon: 'history', warna: 'primary', keterangan: 'Seluruh aktivitas' },
+  ] as const;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-gutter">
       {/* Sapaan + aksi cepat */}
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-bold text-foreground">Halo, {user?.nama?.split(' ')[0]} 👋</h1>
-          <p className="text-muted-foreground">Berikut ringkasan aktivitas peminjaman Anda.</p>
+          <h1 className="font-jakarta text-headline-lg text-primary">Halo, {user?.nama?.split(' ')[0]} 👋</h1>
+          <p className="text-on-surface-variant">Berikut ringkasan aktivitas peminjaman Anda.</p>
         </div>
         <div className="flex gap-2">
           <Button asChild variant="outline">
             <Link href={RUTE.peminjamKatalog}>
-              <Boxes className="h-4 w-4" /> Katalog
+              <Icon name="inventory_2" className="text-[18px]" /> Katalog
             </Link>
           </Button>
           <Button asChild>
             <Link href={RUTE.peminjamAjukan}>
-              <PlusCircle className="h-4 w-4" /> Ajukan Peminjaman
+              <Icon name="add" className="text-[18px]" /> Ajukan Peminjaman
             </Link>
           </Button>
         </div>
       </div>
 
       {/* Statistik */}
-      <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+      <div className="grid grid-cols-1 gap-gutter sm:grid-cols-2 lg:grid-cols-4">
         {kartu.map((k) => {
-          const Ikon = k.ikon;
+          const g = GAYA[k.warna];
           return (
-            <Card key={k.label}>
-              <CardContent className="flex items-center gap-3 p-4">
-                <div className={cn('flex h-11 w-11 items-center justify-center rounded-lg text-white', k.warna)}>
-                  <Ikon className="h-5 w-5" />
-                </div>
-                <div>
-                  <p className="text-2xl font-bold leading-none text-foreground">{k.nilai}</p>
-                  <p className="mt-1 text-xs text-muted-foreground">{k.label}</p>
-                </div>
-              </CardContent>
-            </Card>
+            <div
+              key={k.label}
+              className="glass-card group relative overflow-hidden rounded-2xl p-stack-lg transition-all duration-300 hover:-translate-y-1"
+            >
+              <div className={cn('absolute -right-4 -top-4 h-24 w-24 rounded-full blur-2xl transition-colors', g.orb)} />
+              <div className={cn('mb-4 flex h-12 w-12 items-center justify-center rounded-xl', g.ikonBox)}>
+                <Icon name={k.ikon} fill />
+              </div>
+              <p className="font-label-md uppercase tracking-wider text-on-surface-variant">{k.label}</p>
+              <h3 className={cn('mt-1 font-jakarta text-headline-lg', g.nilai)}>{k.nilai}</h3>
+              <p className="mt-2 font-label-sm text-on-surface-variant">{k.keterangan}</p>
+            </div>
           );
         })}
       </div>
@@ -106,7 +121,7 @@ export default function PeminjamDashboardPage() {
 
       {/* Peminjaman aktif */}
       <div>
-        <h2 className="mb-3 text-lg font-semibold text-foreground">Peminjaman Aktif</h2>
+        <h2 className="mb-3 font-jakarta text-headline-md text-primary">Peminjaman Aktif</h2>
         {data.daftarAktif.length === 0 ? (
           <EmptyState
             judul="Tidak ada peminjaman aktif"

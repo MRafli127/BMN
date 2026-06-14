@@ -5,7 +5,8 @@
 'use client';
 
 import { useState } from 'react';
-import { ScanLine, Undo2, Loader2, CheckCircle2, RotateCcw, User as UserIcon } from 'lucide-react';
+import { Undo2, Loader2, CheckCircle2, RotateCcw, User as UserIcon } from 'lucide-react';
+import { Icon } from '@/components/ui/icon';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -54,12 +55,12 @@ export default function ScanPage() {
   return (
     <div className="mx-auto max-w-xl space-y-5">
       <div className="text-center">
-        <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10 text-primary">
-          <ScanLine className="h-7 w-7" />
+        <div className="mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+          <Icon name="qr_code_scanner" className="text-[32px]" />
         </div>
-        <h1 className="text-2xl font-bold text-foreground">Scan Pengembalian</h1>
-        <p className="text-muted-foreground">
-          Pindai via kamera, <span className="font-medium text-foreground">unggah gambar QR</span>, atau masukkan kode untuk memproses pengembalian.
+        <h1 className="font-jakarta text-headline-lg text-primary">Scan Pengembalian</h1>
+        <p className="text-on-surface-variant">
+          Pindai via kamera, <span className="font-bold text-on-surface">unggah gambar QR</span>, atau masukkan kode untuk memproses pengembalian.
         </p>
       </div>
 

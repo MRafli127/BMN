@@ -5,12 +5,18 @@
 export function Footer() {
   const tahun = new Date().getFullYear();
   return (
-    <footer className="border-t bg-white px-4 py-4 text-center text-xs text-muted-foreground md:px-6">
-      <p>
-        © {tahun} <span className="font-semibold text-foreground">SIPP-BMN</span> — Sistem Informasi Peminjaman &
-        Pengembalian Barang Milik Negara.
-      </p>
-      <p className="mt-1">Dikelola oleh Bagian Umum & Pengelolaan BMN.</p>
+    <footer className="border-t border-outline-variant bg-surface-container-low px-margin-mobile py-stack-md md:px-margin-desktop">
+      <div className="mx-auto flex max-w-container-max flex-col items-center justify-between gap-2 text-center md:flex-row md:text-left">
+        <p className="font-label-sm text-on-surface-variant">
+          © {tahun} <span className="font-bold text-primary">SIPP-BMN</span> — Kementerian Keuangan RI.
+          All Rights Reserved.
+        </p>
+        <div className="flex gap-6 font-label-sm text-on-surface-variant">
+          <a href="#" className="transition-colors hover:text-primary">Kebijakan Privasi</a>
+          <a href="#" className="transition-colors hover:text-primary">Syarat &amp; Ketentuan</a>
+          <a href="#" className="transition-colors hover:text-primary">Kontak Kami</a>
+        </div>
+      </div>
     </footer>
   );
 }

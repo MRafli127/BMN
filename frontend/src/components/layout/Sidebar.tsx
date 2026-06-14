@@ -6,19 +6,7 @@
 
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import {
-  LayoutDashboard,
-  Package,
-  ClipboardList,
-  ScanLine,
-  BookOpen,
-  LogOut,
-  Boxes,
-  History,
-  PlusCircle,
-  ShieldCheck,
-  X,
-} from 'lucide-react';
+import { Icon } from '@/components/ui/icon';
 import { cn } from '@/lib/utils';
 import { RUTE } from '@/constants/routes';
 import { useAuth } from '@/hooks/useAuth';
@@ -27,21 +15,21 @@ import { useUIStore } from '@/store/uiStore';
 interface ItemMenu {
   label: string;
   href: string;
-  ikon: typeof LayoutDashboard;
+  ikon: string;
 }
 
 const menuAdmin: ItemMenu[] = [
-  { label: 'Dashboard', href: RUTE.adminDashboard, ikon: LayoutDashboard },
-  { label: 'Manajemen Barang', href: RUTE.adminBarang, ikon: Package },
-  { label: 'Manajemen Peminjaman', href: RUTE.adminPeminjaman, ikon: ClipboardList },
-  { label: 'Scan Pengembalian', href: RUTE.adminScan, ikon: ScanLine },
+  { label: 'Dashboard', href: RUTE.adminDashboard, ikon: 'dashboard' },
+  { label: 'Manajemen Barang', href: RUTE.adminBarang, ikon: 'inventory_2' },
+  { label: 'Manajemen Peminjaman', href: RUTE.adminPeminjaman, ikon: 'sync_alt' },
+  { label: 'Scan Pengembalian', href: RUTE.adminScan, ikon: 'qr_code_scanner' },
 ];
 
 const menuPeminjam: ItemMenu[] = [
-  { label: 'Dashboard', href: RUTE.peminjamDashboard, ikon: LayoutDashboard },
-  { label: 'Katalog Barang', href: RUTE.peminjamKatalog, ikon: Boxes },
-  { label: 'Ajukan Peminjaman', href: RUTE.peminjamAjukan, ikon: PlusCircle },
-  { label: 'Riwayat Peminjaman', href: RUTE.peminjamRiwayat, ikon: History },
+  { label: 'Dashboard', href: RUTE.peminjamDashboard, ikon: 'dashboard' },
+  { label: 'Katalog Barang', href: RUTE.peminjamKatalog, ikon: 'inventory_2' },
+  { label: 'Ajukan Peminjaman', href: RUTE.peminjamAjukan, ikon: 'post_add' },
+  { label: 'Riwayat Peminjaman', href: RUTE.peminjamRiwayat, ikon: 'history' },
 ];
 
 export function Sidebar() {
@@ -62,14 +50,15 @@ export function Sidebar() {
   };
 
   const isAktif = (href: string) =>
-    pathname === href || (href !== RUTE.adminDashboard && href !== RUTE.peminjamDashboard && pathname.startsWith(href));
+    pathname === href ||
+    (href !== RUTE.adminDashboard && href !== RUTE.peminjamDashboard && pathname.startsWith(href));
 
   return (
     <>
       {/* Overlay untuk mobile */}
       {sidebarTerbuka && (
         <div
-          className="fixed inset-0 z-30 bg-brand-900/50 backdrop-blur-sm lg:hidden"
+          className="fixed inset-0 z-30 bg-on-surface/50 backdrop-blur-sm lg:hidden"
           onClick={tutupSidebar}
           aria-hidden
         />
@@ -77,36 +66,35 @@ export function Sidebar() {
 
       <aside
         className={cn(
-          'bg-brand-gradient fixed inset-y-0 left-0 z-40 flex w-[17rem] max-w-[85vw] flex-col text-white shadow-elevated transition-transform duration-300 ease-out lg:static lg:max-w-none lg:translate-x-0 lg:shadow-none',
+          'fixed inset-y-0 left-0 z-40 flex w-[17rem] max-w-[85vw] flex-col bg-primary py-stack-lg text-white shadow-xl transition-transform duration-300 ease-out lg:static lg:max-w-none lg:translate-x-0',
           sidebarTerbuka ? 'translate-x-0' : '-translate-x-full'
         )}
       >
         {/* Header logo */}
-        <div className="flex items-center justify-between gap-2 border-b border-white/10 px-5 py-4">
-          <Link href={berandaHref} className="flex items-center gap-2">
-            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-white/15">
-              <ShieldCheck className="h-6 w-6" />
+        <div className="mb-8 flex items-center justify-between gap-2 px-6">
+          <Link href={berandaHref} className="flex items-center gap-3 overflow-hidden">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-white/20 backdrop-blur-md">
+              <Icon name="account_balance" className="text-white" />
             </div>
-            <div>
-              <p className="text-base font-bold leading-tight">SIPP-BMN</p>
-              <p className="text-[11px] text-white/70">Peminjaman Barang Milik Negara</p>
+            <div className="whitespace-nowrap">
+              <h1 className="font-jakarta text-headline-md leading-none text-white">SIPP-BMN</h1>
+              <p className="font-label-sm text-white/60">Manajemen Aset Negara</p>
             </div>
           </Link>
           <button onClick={tutupSidebar} className="rounded-md p-1 hover:bg-white/10 lg:hidden">
-            <X className="h-5 w-5" />
+            <Icon name="close" className="text-white" />
           </button>
         </div>
 
         {/* Identitas pengguna */}
-        <div className="mx-4 mt-4 rounded-lg bg-white/10 px-4 py-3">
-          <p className="truncate text-sm font-semibold">{user?.nama || 'Pengguna'}</p>
+        <div className="mx-4 mb-2 rounded-xl bg-white/10 px-4 py-3 backdrop-blur-md">
+          <p className="truncate text-sm font-bold">{user?.nama || 'Pengguna'}</p>
           <p className="text-xs text-white/70">{isAdmin ? 'Administrator' : 'Peminjam'}</p>
         </div>
 
         {/* Menu navigasi */}
-        <nav className="mt-4 flex-1 space-y-1 overflow-y-auto px-3">
+        <nav className="custom-scrollbar mt-4 flex flex-1 flex-col gap-1 overflow-y-auto">
           {menu.map((item) => {
-            const Ikon = item.ikon;
             const aktif = isAktif(item.href);
             return (
               <Link
@@ -115,46 +103,42 @@ export function Sidebar() {
                 onClick={tutupSidebar}
                 aria-current={aktif ? 'page' : undefined}
                 className={cn(
-                  'group relative flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-200',
+                  'flex items-center gap-4 px-6 py-4 transition-all hover:translate-x-1',
                   aktif
-                    ? 'bg-white text-brand-700 shadow-soft'
-                    : 'text-white/85 hover:bg-white/10 hover:text-white'
+                    ? 'border-l-4 border-secondary bg-white/10 font-bold text-white backdrop-blur-lg'
+                    : 'text-white/70 hover:bg-white/5'
                 )}
               >
-                {aktif && (
-                  <span className="absolute -left-3 top-1/2 h-6 w-1 -translate-y-1/2 rounded-r-full bg-white" />
-                )}
-                <Ikon className={cn('h-5 w-5 shrink-0 transition-transform', !aktif && 'group-hover:scale-110')} />
-                {item.label}
+                <Icon name={item.ikon} fill={aktif} />
+                <span className="font-label-md">{item.label}</span>
               </Link>
             );
           })}
 
-          <div className="my-3 border-t border-white/10" />
-
           <Link
             href={RUTE.bantuan}
             onClick={tutupSidebar}
+            aria-current={pathname === RUTE.bantuan ? 'page' : undefined}
             className={cn(
-              'flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-200',
+              'flex items-center gap-4 px-6 py-4 transition-all hover:translate-x-1',
               pathname === RUTE.bantuan
-                ? 'bg-white text-brand-700 shadow-soft'
-                : 'text-white/85 hover:bg-white/10 hover:text-white'
+                ? 'border-l-4 border-secondary bg-white/10 font-bold text-white backdrop-blur-lg'
+                : 'text-white/70 hover:bg-white/5'
             )}
           >
-            <BookOpen className="h-5 w-5 shrink-0" />
-            Panduan Penggunaan
+            <Icon name="menu_book" fill={pathname === RUTE.bantuan} />
+            <span className="font-label-md">Panduan Penggunaan</span>
           </Link>
         </nav>
 
         {/* Tombol keluar */}
-        <div className="border-t border-white/10 p-3">
+        <div className="mt-auto border-t border-white/10 pt-4">
           <button
             onClick={tanganiKeluar}
-            className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-white/85 transition-colors hover:bg-red-500/80 hover:text-white"
+            className="flex w-full items-center gap-4 px-6 py-4 text-white/70 transition-all hover:translate-x-1 hover:bg-white/5"
           >
-            <LogOut className="h-5 w-5 shrink-0" />
-            Keluar
+            <Icon name="logout" className="text-error-container" />
+            <span className="font-label-md">Keluar Sesi</span>
           </button>
         </div>
       </aside>
