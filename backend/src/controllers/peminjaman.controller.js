@@ -1,18 +1,14 @@
-const path = require('path');
 const peminjamanService = require('../services/peminjaman.service');
-const { uploadKeBlob } = require('../utils/blob');
+const { bufferKeDataUrl } = require('../utils/fileData');
 const { responsSukses } = require('../utils/apiResponse');
 const { asyncHandler } = require('../middleware/error.middleware');
 
-async function pathDokumen(file) {
-  if (!file) return null;
-  const ext = path.extname(file.originalname).toLowerCase();
-  const namaFile = `dokumen/dokumen-${Date.now()}-${Math.round(Math.random() * 1e9)}${ext}`;
-  return uploadKeBlob(namaFile, file.buffer, file.mimetype);
+function pathDokumen(file) {
+  return file ? bufferKeDataUrl(file.buffer, file.mimetype) : null;
 }
 
 const create = asyncHandler(async (req, res) => {
-  const peminjaman = await peminjamanService.create(req.user.id, req.body, await pathDokumen(req.file));
+  const peminjaman = await peminjamanService.create(req.user.id, req.body, pathDokumen(req.file));
   return responsSukses(res, {
     pesan: 'Pengajuan peminjaman berhasil dikirim. Menunggu persetujuan admin.',
     data: peminjaman,

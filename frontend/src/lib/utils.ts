@@ -39,6 +39,7 @@ export function jarakWaktu(tanggal?: string | Date | null): string {
 // Ubah path file menjadi URL absolut bila masih relatif
 export function urlFile(path?: string | null): string {
   if (!path) return '';
+  if (/^data:/i.test(path)) return path; // data URL (base64) — pakai langsung
   if (/^https?:\/\//i.test(path)) return path;
   const base = (process.env.NEXT_PUBLIC_BACKEND_URL || '').replace(/\/$/, '');
   return `${base}${path.startsWith('/') ? '' : '/'}${path}`;

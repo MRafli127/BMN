@@ -21,6 +21,7 @@ function responsGagal(res, { pesan = 'Terjadi kesalahan', errors = null, status 
 // menjadi URL absolut berdasarkan APP_URL. Aman untuk nilai null.
 function urlPublik(pathRelatif) {
   if (!pathRelatif) return null;
+  if (/^data:/i.test(pathRelatif)) return pathRelatif; // data URL (base64) — kirim apa adanya
   if (/^https?:\/\//i.test(pathRelatif)) return pathRelatif; // sudah absolut
   const env = require('../config/env');
   const base = env.appUrl.replace(/\/$/, '');
