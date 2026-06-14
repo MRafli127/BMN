@@ -5,9 +5,9 @@
 
 'use client';
 
-import { Clock } from 'lucide-react';
 import { format } from 'date-fns';
 import { id } from 'date-fns/locale';
+import { Icon } from '@/components/ui/icon';
 import { useJamRealtime } from '@/hooks/useJamRealtime';
 import { cn } from '@/lib/utils';
 
@@ -15,17 +15,17 @@ export function JamRealtime({ className }: { className?: string }) {
   const waktu = useJamRealtime();
 
   return (
-    <div className={cn('flex items-center gap-2 text-sm text-muted-foreground', className)}>
-      <Clock className="h-4 w-4 text-primary" />
+    <div className={cn('flex items-center gap-2 font-jakarta text-sm font-bold text-primary', className)}>
+      <Icon name="schedule" className="text-[20px]" />
       {waktu ? (
-        <span className="font-medium tabular-nums">
+        <span className="tabular-nums">
           {format(waktu, 'EEEE, dd MMMM yyyy', { locale: id })}
-          <span className="mx-1 text-primary">•</span>
+          <span className="mx-1 text-secondary">•</span>
           {format(waktu, 'HH:mm:ss', { locale: id })} WIB
         </span>
       ) : (
         // Placeholder agar tidak terjadi mismatch hidrasi
-        <span className="font-medium text-muted-foreground/50">Memuat waktu...</span>
+        <span className="text-primary/40">Memuat waktu...</span>
       )}
     </div>
   );

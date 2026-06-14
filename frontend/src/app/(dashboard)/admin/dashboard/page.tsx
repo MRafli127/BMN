@@ -5,8 +5,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Package, Hourglass, ClipboardCheck, AlertTriangle, Users } from 'lucide-react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Icon } from '@/components/ui/icon';
 import { LoadingSpinner } from '@/components/shared/LoadingSpinner';
 import { EmptyState } from '@/components/shared/EmptyState';
 import { TabelPeminjaman } from '@/components/peminjaman/TabelPeminjaman';
@@ -15,6 +14,28 @@ import { dashboardService, type DashboardAdmin } from '@/services/dashboard.serv
 import { ambilPesanError, cn } from '@/lib/utils';
 import { STATUS_PEMINJAMAN } from '@/constants/status';
 import { RUTE } from '@/constants/routes';
+
+interface GayaWarna {
+  orb: string;
+  ikonBox: string;
+  nilai: string;
+}
+
+// Kelas literal per warna (agar terdeteksi JIT Tailwind, bukan dirakit runtime)
+const GAYA: Record<string, GayaWarna> = {
+  primary: { orb: 'bg-primary/10 group-hover:bg-primary/20', ikonBox: 'bg-primary/10 text-primary', nilai: 'text-primary' },
+  tertiary: { orb: 'bg-tertiary/10 group-hover:bg-tertiary/20', ikonBox: 'bg-tertiary/10 text-tertiary', nilai: 'text-tertiary' },
+  secondary: { orb: 'bg-secondary/10 group-hover:bg-secondary/20', ikonBox: 'bg-secondary/10 text-secondary', nilai: 'text-secondary' },
+  error: { orb: 'bg-error/10 group-hover:bg-error/20', ikonBox: 'bg-error/10 text-error', nilai: 'text-error' },
+};
+
+interface KartuStat {
+  label: string;
+  nilai: number;
+  ikon: string;
+  warna: keyof typeof GAYA;
+  keterangan: string;
+}
 
 export default function AdminDashboardPage() {
   const [data, setData] = useState<DashboardAdmin | null>(null);
@@ -32,78 +53,142 @@ export default function AdminDashboardPage() {
   if (!data) return null;
 
   const s = data.statistik;
-  const kartu = [
-    { label: 'Total Barang', nilai: s.totalBarang, ikon: Package, warna: 'bg-blue-500' },
-    { label: 'Pengajuan Menunggu', nilai: s.pengajuanMenunggu, ikon: Hourglass, warna: 'bg-amber-500' },
-    { label: 'Peminjaman Aktif', nilai: s.peminjamanAktif, ikon: ClipboardCheck, warna: 'bg-indigo-500' },
-    { label: 'Barang Terlambat', nilai: s.barangTerlambat, ikon: AlertTriangle, warna: 'bg-rose-500' },
-    { label: 'Total Peminjam', nilai: s.totalPeminjam, ikon: Users, warna: 'bg-emerald-500' },
+  const kartu: KartuStat[] = [
+    { label: 'Total Barang', nilai: s.totalBarang, ikon: 'inventory', warna: 'primary', keterangan: 'Aset terdaftar aktif' },
+    { label: 'Pengajuan Menunggu', nilai: s.pengajuanMenunggu, ikon: 'pending_actions', warna: 'tertiary', keterangan: 'Menunggu persetujuan' },
+    { label: 'Peminjaman Aktif', nilai: s.peminjamanAktif, ikon: 'sync_alt', warna: 'secondary', keterangan: 'Sedang digunakan' },
+    { label: 'Barang Terlambat', nilai: s.barangTerlambat, ikon: 'report', warna: 'error', keterangan: 'Melebihi batas tempo' },
+    { label: 'Total Peminjam', nilai: s.totalPeminjam, ikon: 'group', warna: 'primary', keterangan: 'Pengguna terdaftar' },
   ];
 
   const maxGrafik = Math.max(1, ...data.grafikStatus.map((g) => g.jumlah));
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-foreground">Dashboard Admin</h1>
-        <p className="text-muted-foreground">Ringkasan pengelolaan Barang Milik Negara.</p>
-      </div>
+    <div className="space-y-gutter">
+      {/* Header eksekutif */}
+      <section className="flex flex-col items-start justify-between gap-4 md:flex-row md:items-center">
+        <div>
+          <h1 className="font-jakarta text-headline-lg text-primary">Ringkasan Eksekutif</h1>
+          <p className="text-on-surface-variant">
+            Monitoring real-time aset dan inventaris Kementerian Keuangan.
+          </p>
+        </div>
+        <div className="flex gap-3">
+          <button className="flex items-center gap-2 rounded-lg border border-outline-variant bg-white px-4 py-2 font-label-md transition-all hover:bg-surface-container-low">
+            <Icon name="calendar_today" className="text-[18px] text-primary" />
+            <span>Rentang Waktu</span>
+          </button>
+          <button className="flex items-center gap-2 rounded-lg bg-primary px-4 py-2 font-label-md text-white transition-all hover:brightness-110">
+            <Icon name="download" className="text-[18px]" />
+            <span>Ekspor Laporan</span>
+          </button>
+        </div>
+      </section>
 
       {/* Kartu statistik */}
-      <div className="grid grid-cols-2 gap-4 lg:grid-cols-5">
+      <section className="grid grid-cols-1 gap-gutter sm:grid-cols-2 lg:grid-cols-5">
         {kartu.map((k) => {
-          const Ikon = k.ikon;
+          const g = GAYA[k.warna];
           return (
-            <Card key={k.label}>
-              <CardContent className="flex items-center gap-3 p-4">
-                <div className={cn('flex h-11 w-11 items-center justify-center rounded-lg text-white', k.warna)}>
-                  <Ikon className="h-5 w-5" />
+            <div
+              key={k.label}
+              className="glass-card group relative overflow-hidden rounded-2xl p-stack-lg transition-all duration-300 hover:-translate-y-1"
+            >
+              <div className={cn('absolute -right-4 -top-4 h-24 w-24 rounded-full blur-2xl transition-colors', g.orb)} />
+              <div className="mb-4 flex items-start justify-between">
+                <div className={cn('flex h-12 w-12 items-center justify-center rounded-xl', g.ikonBox)}>
+                  <Icon name={k.ikon} fill />
                 </div>
-                <div>
-                  <p className="text-2xl font-bold leading-none text-foreground">{k.nilai}</p>
-                  <p className="mt-1 text-xs text-muted-foreground">{k.label}</p>
-                </div>
-              </CardContent>
-            </Card>
+              </div>
+              <p className="font-label-md uppercase tracking-wider text-on-surface-variant">{k.label}</p>
+              <h3 className={cn('mt-1 font-jakarta text-headline-lg', g.nilai)}>{k.nilai}</h3>
+              <p className="mt-2 font-label-sm text-on-surface-variant">{k.keterangan}</p>
+            </div>
           );
         })}
-      </div>
+      </section>
 
-      {/* Grafik ringkasan per status */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Ringkasan Peminjaman per Status</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-3">
-          {data.grafikStatus.map((g) => {
-            const info = STATUS_PEMINJAMAN[g.status];
-            return (
-              <div key={g.status} className="flex items-center gap-3">
-                <span className="w-40 shrink-0 text-sm text-muted-foreground">{info.label}</span>
-                <div className="h-6 flex-1 overflow-hidden rounded-md bg-muted">
-                  <div
-                    className="flex h-full items-center justify-end rounded-md bg-primary px-2 text-xs font-semibold text-primary-foreground transition-all"
-                    style={{ width: `${(g.jumlah / maxGrafik) * 100}%` }}
-                  >
-                    {g.jumlah > 0 && g.jumlah}
+      {/* Grafik & info */}
+      <div className="grid grid-cols-1 gap-gutter lg:grid-cols-3">
+        {/* Grafik ringkasan per status */}
+        <section className="glass-card flex flex-col gap-6 rounded-2xl p-stack-lg lg:col-span-2">
+          <div>
+            <h3 className="font-jakarta text-headline-md text-primary">Ringkasan Aktivitas</h3>
+            <p className="text-on-surface-variant">Distribusi peminjaman berdasarkan status</p>
+          </div>
+          <div className="flex flex-1 flex-col justify-end gap-4 pt-4">
+            {data.grafikStatus.map((g) => {
+              const info = STATUS_PEMINJAMAN[g.status];
+              return (
+                <div key={g.status} className="flex items-center gap-3">
+                  <span className="w-40 shrink-0 font-label-md text-on-surface-variant">{info.label}</span>
+                  <div className="h-6 flex-1 overflow-hidden rounded-full bg-surface-container">
+                    <div
+                      className="flex h-full items-center justify-end rounded-full bg-primary px-2 text-xs font-bold text-white transition-all"
+                      style={{ width: `${Math.max((g.jumlah / maxGrafik) * 100, g.jumlah > 0 ? 8 : 0)}%` }}
+                    >
+                      {g.jumlah > 0 && g.jumlah}
+                    </div>
                   </div>
+                  <span className="w-8 text-right text-sm font-bold text-primary">{g.jumlah}</span>
                 </div>
-                <span className="w-8 text-right text-sm font-semibold">{g.jumlah}</span>
+              );
+            })}
+          </div>
+        </section>
+
+        {/* Ringkasan cepat */}
+        <section className="glass-card rounded-2xl p-stack-lg">
+          <h3 className="mb-6 font-jakarta text-headline-md text-primary">Status Sistem</h3>
+          <div className="space-y-4">
+            <div className="flex gap-4 rounded-xl p-3 transition-all hover:bg-primary/5">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-tertiary/10 text-tertiary">
+                <Icon name="pending_actions" className="text-[20px]" />
               </div>
-            );
-          })}
-        </CardContent>
-      </Card>
+              <div>
+                <p className="font-label-md font-bold text-on-surface">{s.pengajuanMenunggu} Pengajuan Baru</p>
+                <p className="font-label-sm text-on-surface-variant">Menunggu verifikasi admin.</p>
+              </div>
+            </div>
+            <div className="flex gap-4 rounded-xl p-3 transition-all hover:bg-primary/5">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-error/10 text-error">
+                <Icon name="priority_high" className="text-[20px]" />
+              </div>
+              <div>
+                <p className="font-label-md font-bold text-on-surface">{s.barangTerlambat} Barang Terlambat</p>
+                <p className="font-label-sm text-on-surface-variant">Melebihi batas waktu pengembalian.</p>
+              </div>
+            </div>
+            <div className="flex gap-4 rounded-xl p-3 transition-all hover:bg-primary/5">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-secondary/10 text-secondary">
+                <Icon name="task_alt" className="text-[20px]" />
+              </div>
+              <div>
+                <p className="font-label-md font-bold text-on-surface">{s.peminjamanAktif} Peminjaman Aktif</p>
+                <p className="font-label-sm text-on-surface-variant">Aset sedang digunakan.</p>
+              </div>
+            </div>
+          </div>
+        </section>
+      </div>
 
       {/* Peminjaman terbaru */}
-      <div>
-        <h2 className="mb-3 text-lg font-semibold text-foreground">Peminjaman Terbaru</h2>
-        {data.peminjamanTerbaru.length === 0 ? (
-          <EmptyState judul="Belum ada peminjaman" deskripsi="Pengajuan peminjaman akan tampil di sini." />
-        ) : (
-          <TabelPeminjaman data={data.peminjamanTerbaru} hrefDetail={RUTE.adminPeminjamanDetail} tampilkanPeminjam />
-        )}
-      </div>
+      <section className="glass-card overflow-hidden rounded-2xl">
+        <div className="flex items-center justify-between border-b border-outline-variant bg-white/40 p-stack-lg">
+          <h3 className="font-jakarta text-headline-md text-primary">Peminjaman Terbaru</h3>
+        </div>
+        <div className="p-stack-md">
+          {data.peminjamanTerbaru.length === 0 ? (
+            <EmptyState judul="Belum ada peminjaman" deskripsi="Pengajuan peminjaman akan tampil di sini." />
+          ) : (
+            <TabelPeminjaman
+              data={data.peminjamanTerbaru}
+              hrefDetail={RUTE.adminPeminjamanDetail}
+              tampilkanPeminjam
+            />
+          )}
+        </div>
+      </section>
     </div>
   );
 }

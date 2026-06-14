@@ -5,7 +5,8 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
-import { Search, ChevronLeft, ChevronRight, ClipboardList } from 'lucide-react';
+import { ChevronLeft, ChevronRight, ClipboardList } from 'lucide-react';
+import { Icon } from '@/components/ui/icon';
 import { Input, Select } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { TabelPeminjaman } from '@/components/peminjaman/TabelPeminjaman';
@@ -50,55 +51,65 @@ export default function AdminPeminjamanPage() {
   }, [cari]);
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-gutter">
       <div>
-        <h1 className="text-2xl font-bold text-foreground">Manajemen Peminjaman</h1>
-        <p className="text-muted-foreground">Tinjau, setujui, atau tolak pengajuan peminjaman.</p>
+        <h1 className="font-jakarta text-headline-lg text-primary">Manajemen Peminjaman</h1>
+        <p className="text-on-surface-variant">Tinjau, setujui, atau tolak pengajuan peminjaman.</p>
       </div>
 
-      {/* Filter */}
-      <div className="grid grid-cols-1 gap-3 rounded-xl border bg-card p-4 sm:grid-cols-2">
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-          <Input value={cari} onChange={(e) => setCari(e.target.value)} placeholder="Cari kode / nama peminjam..." className="pl-9" />
+      {/* Panel tabel */}
+      <div className="glass-card overflow-hidden rounded-2xl border border-outline-variant">
+        {/* Filter */}
+        <div className="grid grid-cols-1 gap-3 border-b border-outline-variant p-stack-md sm:grid-cols-2">
+          <div className="relative">
+            <Icon
+              name="search"
+              className="absolute left-3 top-1/2 -translate-y-1/2 text-[20px] text-on-surface-variant"
+            />
+            <Input value={cari} onChange={(e) => setCari(e.target.value)} placeholder="Cari kode / nama peminjam..." className="pl-10" />
+          </div>
+          <Select
+            value={filter.status || ''}
+            onChange={(e) => setFilter((f) => ({ ...f, status: (e.target.value || undefined) as never, page: 1 }))}
+          >
+            <option value="">Semua Status</option>
+            {OPSI_STATUS.map((o) => (
+              <option key={o.value} value={o.value}>
+                {o.label}
+              </option>
+            ))}
+          </Select>
         </div>
-        <Select
-          value={filter.status || ''}
-          onChange={(e) => setFilter((f) => ({ ...f, status: (e.target.value || undefined) as never, page: 1 }))}
-        >
-          <option value="">Semua Status</option>
-          {OPSI_STATUS.map((o) => (
-            <option key={o.value} value={o.value}>
-              {o.label}
-            </option>
-          ))}
-        </Select>
-      </div>
 
-      {memuat ? (
-        <LoadingSpinner />
-      ) : data.length === 0 ? (
-        <EmptyState ikon={ClipboardList} judul="Belum ada peminjaman" deskripsi="Tidak ada data peminjaman yang cocok dengan filter." />
-      ) : (
-        <>
-          <TabelPeminjaman data={data} hrefDetail={RUTE.adminPeminjamanDetail} tampilkanPeminjam />
-          {meta && meta.totalHalaman > 1 && (
-            <div className="flex items-center justify-between">
-              <p className="text-sm text-muted-foreground">
-                Halaman {meta.page} dari {meta.totalHalaman} • {meta.total} data
-              </p>
-              <div className="flex gap-2">
-                <Button variant="outline" size="sm" disabled={meta.page <= 1} onClick={() => setFilter((f) => ({ ...f, page: (f.page || 1) - 1 }))}>
-                  <ChevronLeft className="h-4 w-4" /> Sebelumnya
-                </Button>
-                <Button variant="outline" size="sm" disabled={meta.page >= meta.totalHalaman} onClick={() => setFilter((f) => ({ ...f, page: (f.page || 1) + 1 }))}>
-                  Berikutnya <ChevronRight className="h-4 w-4" />
-                </Button>
+        {memuat ? (
+          <div className="p-stack-lg">
+            <LoadingSpinner />
+          </div>
+        ) : data.length === 0 ? (
+          <div className="p-stack-lg">
+            <EmptyState ikon={ClipboardList} judul="Belum ada peminjaman" deskripsi="Tidak ada data peminjaman yang cocok dengan filter." />
+          </div>
+        ) : (
+          <div className="p-stack-md">
+            <TabelPeminjaman data={data} hrefDetail={RUTE.adminPeminjamanDetail} tampilkanPeminjam />
+            {meta && meta.totalHalaman > 1 && (
+              <div className="mt-4 flex items-center justify-between">
+                <p className="text-sm text-on-surface-variant">
+                  Halaman {meta.page} dari {meta.totalHalaman} • {meta.total} data
+                </p>
+                <div className="flex gap-2">
+                  <Button variant="outline" size="sm" disabled={meta.page <= 1} onClick={() => setFilter((f) => ({ ...f, page: (f.page || 1) - 1 }))}>
+                    <ChevronLeft className="h-4 w-4" /> Sebelumnya
+                  </Button>
+                  <Button variant="outline" size="sm" disabled={meta.page >= meta.totalHalaman} onClick={() => setFilter((f) => ({ ...f, page: (f.page || 1) + 1 }))}>
+                    Berikutnya <ChevronRight className="h-4 w-4" />
+                  </Button>
+                </div>
               </div>
-            </div>
-          )}
-        </>
-      )}
+            )}
+          </div>
+        )}
+      </div>
     </div>
   );
 }

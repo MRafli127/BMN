@@ -83,7 +83,7 @@ export default function BantuanPage() {
           <span className="inline-flex items-center gap-2 rounded-full bg-white/15 px-3 py-1 text-xs font-medium">
             <Lightbulb className="h-3.5 w-3.5" /> Pusat Panduan
           </span>
-          <h1 className="mt-3 text-2xl font-bold md:text-3xl">
+          <h1 className="mt-3 font-jakarta text-2xl font-bold md:text-3xl">
             Panduan {isAdmin ? 'Administrator' : 'Peminjam'} SIPP-BMN
           </h1>
           <p className="mt-2 max-w-2xl text-white/85">
@@ -182,7 +182,7 @@ export default function BantuanPage() {
 
       {/* FAQ */}
       <div>
-        <h2 className="mb-4 text-lg font-bold text-foreground">Pertanyaan yang Sering Diajukan</h2>
+        <h2 className="mb-4 font-jakarta text-lg font-bold text-primary">Pertanyaan yang Sering Diajukan</h2>
         <div className="space-y-3">
           {faq.map((item, i) => (
             <div key={i} className="overflow-hidden rounded-xl border bg-card">
@@ -219,8 +219,8 @@ function SeksiStepper({
 
   return (
     <section>
-      <h2 className="text-lg font-bold text-foreground">{judul}</h2>
-      <p className="mb-4 text-sm text-muted-foreground">{deskripsi}</p>
+      <h2 className="font-jakarta text-lg font-bold text-primary">{judul}</h2>
+      <p className="mb-4 text-sm text-on-surface-variant">{deskripsi}</p>
       <div className="space-y-0">
         {langkah.map((l, i) => {
           const Ikon = l.ikon;

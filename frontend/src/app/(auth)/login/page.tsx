@@ -10,9 +10,7 @@ import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { ShieldCheck, Loader2, LogIn } from 'lucide-react';
-import { Input, Label } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
+import { Icon } from '@/components/ui/icon';
 import { notify } from '@/components/ui/toast';
 import { useAuth } from '@/hooks/useAuth';
 import { ambilPesanError } from '@/lib/utils';
@@ -49,79 +47,117 @@ export default function LoginPage() {
   });
 
   return (
-    <div className="grid min-h-screen lg:grid-cols-2">
-      {/* Panel branding */}
-      <div className="bg-brand-gradient relative hidden flex-col justify-between overflow-hidden p-12 text-white lg:flex">
-        <div
-          aria-hidden
-          className="pointer-events-none absolute -right-20 -top-20 h-72 w-72 rounded-full bg-white/10 blur-3xl"
-        />
-        <div
-          aria-hidden
-          className="pointer-events-none absolute -bottom-24 -left-16 h-72 w-72 rounded-full bg-brand-400/20 blur-3xl"
-        />
-        <Link href={RUTE.beranda} className="relative flex items-center gap-2">
-          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-white/15 ring-1 ring-white/20">
-            <ShieldCheck className="h-6 w-6" />
+    <main className="flex min-h-screen flex-col bg-background text-on-surface md:flex-row">
+      {/* Panel kiri: gradien mesh & ilustrasi */}
+      <section className="gradient-mesh relative hidden items-center justify-center overflow-hidden p-12 md:flex md:w-1/2 lg:w-3/5">
+        <div aria-hidden className="pointer-events-none absolute inset-0 opacity-20">
+          <div className="absolute -left-[10%] -top-[10%] h-[40%] w-[40%] animate-pulse rounded-full bg-white blur-[120px]" />
+          <div className="absolute -bottom-[10%] -right-[10%] h-[50%] w-[50%] animate-pulse rounded-full bg-secondary blur-[120px]" />
+        </div>
+        <div className="relative z-10 max-w-xl text-center">
+          <div className="glass-panel mb-12 inline-flex items-center gap-3 rounded-full px-6 py-3">
+            <Icon name="account_balance" fill className="text-primary" />
+            <span className="font-jakarta text-headline-md font-bold tracking-tight text-primary">SIPP-BMN</span>
           </div>
-          <span className="text-xl font-bold">SIPP-BMN</span>
-        </Link>
-        <div className="relative">
-          <h1 className="text-3xl font-bold leading-tight xl:text-4xl">
-            Sistem Informasi Peminjaman & Pengembalian Barang Milik Negara
+          <h1 className="mb-6 font-display-lg text-display-lg leading-tight text-white">
+            Manajemen Aset Negara Menjadi Lebih Mudah
           </h1>
-          <p className="mt-4 max-w-md text-white/80">
-            Kelola peminjaman BMN secara digital — cepat, transparan, dan akuntabel.
+          <p className="mb-10 font-body-lg text-body-lg text-white/80">
+            Transformasi tata kelola barang milik negara dengan platform terpadu, transparan, dan
+            akuntabel untuk masa depan birokrasi yang lebih efisien.
           </p>
         </div>
-        <p className="relative text-sm text-white/60">© {new Date().getFullYear()} SIPP-BMN</p>
-      </div>
+      </section>
 
-      {/* Form login */}
-      <div className="flex items-center justify-center bg-gradient-to-b from-brand-50/60 to-white p-6 lg:bg-none">
+      {/* Panel kanan: form login */}
+      <section className="flex min-h-screen w-full items-center justify-center bg-white p-6 md:w-1/2 md:p-12 lg:w-2/5">
         <div className="w-full max-w-md animate-fade-up">
-          <div className="mb-8 text-center lg:hidden">
-            <div className="bg-brand-gradient mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-xl text-white shadow-soft">
-              <ShieldCheck className="h-7 w-7" />
-            </div>
-            <h1 className="text-xl font-bold">SIPP-BMN</h1>
+          <div className="mb-10 text-center md:hidden">
+            <h2 className="font-jakarta text-headline-lg font-bold text-primary">SIPP-BMN</h2>
+            <p className="font-label-md text-on-surface-variant">Kementerian Keuangan RI</p>
           </div>
 
-          <h2 className="text-2xl font-bold text-foreground">Masuk ke Akun</h2>
-          <p className="mt-1 text-sm text-muted-foreground">Silakan masuk untuk melanjutkan.</p>
-
-          <form onSubmit={kirim} className="mt-6 space-y-4">
+          <form onSubmit={kirim} className="space-y-6">
             <div>
-              <Label htmlFor="email">Email</Label>
-              <Input id="email" type="email" placeholder="nama@bmn.go.id" {...register('email')} className="mt-1" />
-              {errors.email && <p className="mt-1 text-xs text-red-600">{errors.email.message}</p>}
-            </div>
-            <div>
-              <Label htmlFor="password">Kata Sandi</Label>
-              <Input id="password" type="password" placeholder="••••••••" {...register('password')} className="mt-1" />
-              {errors.password && <p className="mt-1 text-xs text-red-600">{errors.password.message}</p>}
+              <h3 className="mb-2 font-jakarta text-headline-md text-on-surface">Selamat Datang Kembali</h3>
+              <p className="mb-2 font-body-md text-on-surface-variant">
+                Silakan masuk dengan kredensial instansi Anda.
+              </p>
             </div>
 
-            <Button type="submit" className="w-full" disabled={sedangProses}>
-              {sedangProses ? <Loader2 className="h-4 w-4 animate-spin" /> : <LogIn className="h-4 w-4" />}
-              Masuk
-            </Button>
+            <div className="floating-label-group">
+              <input
+                id="email"
+                type="email"
+                placeholder=" "
+                {...register('email')}
+                className="w-full rounded-xl border border-outline-variant bg-surface-container-low px-4 py-4 transition-all focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/10"
+              />
+              <label htmlFor="email" className="font-label-md text-on-surface-variant">
+                NIP atau Email Pegawai
+              </label>
+            </div>
+            {errors.email && <p className="-mt-3 text-xs text-error">{errors.email.message}</p>}
+
+            <div className="floating-label-group">
+              <input
+                id="password"
+                type="password"
+                placeholder=" "
+                {...register('password')}
+                className="w-full rounded-xl border border-outline-variant bg-surface-container-low px-4 py-4 transition-all focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/10"
+              />
+              <label htmlFor="password" className="font-label-md text-on-surface-variant">
+                Kata Sandi
+              </label>
+            </div>
+            {errors.password && <p className="-mt-3 text-xs text-error">{errors.password.message}</p>}
+
+            <div className="flex items-center justify-between">
+              <label className="flex cursor-pointer items-center gap-2">
+                <input
+                  type="checkbox"
+                  className="h-4 w-4 rounded border-outline-variant text-primary focus:ring-primary"
+                />
+                <span className="font-label-sm text-on-surface-variant">Ingat Saya</span>
+              </label>
+              <a href="#" className="font-label-sm text-primary hover:underline">
+                Lupa kata sandi?
+              </a>
+            </div>
+
+            <button
+              type="submit"
+              disabled={sedangProses}
+              className="flex w-full items-center justify-center gap-2 rounded-xl bg-primary py-4 font-jakarta text-headline-md text-white shadow-lg shadow-primary/20 transition-all hover:bg-primary-container active:scale-[0.98] disabled:opacity-60"
+            >
+              {sedangProses ? (
+                <Icon name="progress_activity" className="animate-spin" />
+              ) : (
+                <>
+                  Masuk Aplikasi
+                  <Icon name="login" className="text-[20px]" />
+                </>
+              )}
+            </button>
           </form>
 
-          <p className="mt-6 text-center text-sm text-muted-foreground">
-            Belum punya akun?{' '}
-            <Link href={RUTE.register} className="font-medium text-primary hover:underline">
-              Daftar di sini
-            </Link>
-          </p>
+          <div className="mt-8 flex flex-col items-center gap-4 border-t border-outline-variant pt-8">
+            <p className="text-center font-label-sm text-on-surface-variant">
+              Belum punya akun?{' '}
+              <Link href={RUTE.register} className="font-bold text-primary hover:underline">
+                Daftar di sini
+              </Link>
+            </p>
+          </div>
 
-          <div className="mt-6 rounded-lg border bg-muted/40 p-3 text-xs text-muted-foreground">
-            <p className="font-medium text-foreground">Akun demo (setelah seeder dijalankan):</p>
+          <div className="mt-6 rounded-xl border border-outline-variant bg-surface-container-low p-3 text-xs text-on-surface-variant">
+            <p className="font-bold text-on-surface">Akun demo (setelah seeder dijalankan):</p>
             <p className="mt-1">Admin: admin@bmn.go.id / Admin123!</p>
             <p>Peminjam: budi@bmn.go.id / Peminjam123!</p>
           </div>
         </div>
-      </div>
-    </div>
+      </section>
+    </main>
   );
 }

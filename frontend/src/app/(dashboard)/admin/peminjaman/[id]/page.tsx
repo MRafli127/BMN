@@ -118,11 +118,11 @@ export default function DetailPeminjamanAdminPage() {
       </Button>
 
       {/* Header */}
-      <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border bg-card p-5">
+      <div className="glass-card flex flex-wrap items-center justify-between gap-3 rounded-2xl p-5">
         <div>
           <p className="font-mono text-sm text-primary">{data.kodePeminjaman}</p>
-          <h1 className="text-xl font-bold text-foreground">Detail Peminjaman</h1>
-          <p className="text-sm text-muted-foreground">Diajukan {formatTanggalLengkap(data.tanggalPengajuan)}</p>
+          <h1 className="font-jakarta text-headline-md text-primary">Detail Peminjaman</h1>
+          <p className="text-sm text-on-surface-variant">Diajukan {formatTanggalLengkap(data.tanggalPengajuan)}</p>
         </div>
         <Badge className={`${status.kelas} px-3 py-1 text-sm`}>{status.label}</Badge>
       </div>
