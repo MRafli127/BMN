@@ -1,0 +1,3372 @@
+<!-- Masuk & Daftar - SIPP-BMN -->
+<!DOCTYPE html>
+
+<html class="light" lang="id"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Login & Registrasi | SIPP-BMN</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Inter:wght@400;500;600&family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@100..900&family=Plus+Jakarta+Sans:wght@100..900&display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                    "surface-container-lowest": "#ffffff",
+                    "error-container": "#ffdad6",
+                    "surface-container-high": "#dce9ff",
+                    "primary-fixed": "#dde1ff",
+                    "on-secondary-container": "#00714d",
+                    "surface-container-low": "#eff4ff",
+                    "secondary-fixed-dim": "#4edea3",
+                    "on-secondary": "#ffffff",
+                    "surface-dim": "#cbdbf5",
+                    "tertiary-fixed": "#d8e2ff",
+                    "inverse-on-surface": "#eaf1ff",
+                    "primary-fixed-dim": "#b8c4ff",
+                    "tertiary-fixed-dim": "#adc6ff",
+                    "on-error-container": "#93000a",
+                    "on-tertiary-fixed-variant": "#004395",
+                    "surface-container": "#e5eeff",
+                    "on-primary": "#ffffff",
+                    "on-primary-fixed-variant": "#173bab",
+                    "surface-container-highest": "#d3e4fe",
+                    "on-background": "#0b1c30",
+                    "on-primary-container": "#a8b8ff",
+                    "error": "#ba1a1a",
+                    "outline": "#757684",
+                    "on-tertiary-fixed": "#001a42",
+                    "background": "#f8f9ff",
+                    "on-error": "#ffffff",
+                    "surface-tint": "#3755c3",
+                    "secondary-container": "#6cf8bb",
+                    "secondary": "#006c49",
+                    "inverse-primary": "#b8c4ff",
+                    "surface-bright": "#f8f9ff",
+                    "surface": "#f8f9ff",
+                    "tertiary": "#003272",
+                    "surface-variant": "#d3e4fe",
+                    "on-secondary-fixed-variant": "#005236",
+                    "on-tertiary-container": "#9cbbff",
+                    "on-secondary-fixed": "#002113",
+                    "primary-container": "#1e40af",
+                    "outline-variant": "#c4c5d5",
+                    "secondary-fixed": "#6ffbbe",
+                    "inverse-surface": "#213145",
+                    "on-surface": "#0b1c30",
+                    "on-surface-variant": "#444653",
+                    "on-primary-fixed": "#001453",
+                    "on-tertiary": "#ffffff",
+                    "tertiary-container": "#00489e",
+                    "primary": "#00288e"
+            },
+            "borderRadius": {
+                    "DEFAULT": "0.25rem",
+                    "lg": "0.5rem",
+                    "xl": "0.75rem",
+                    "full": "9999px"
+            },
+            "spacing": {
+                    "stack-lg": "32px",
+                    "gutter": "24px",
+                    "stack-sm": "8px",
+                    "stack-md": "16px",
+                    "margin-desktop": "40px",
+                    "margin-mobile": "16px",
+                    "container-max": "1280px"
+            },
+            "fontFamily": {
+                    "headline-md": ["Plus Jakarta Sans"],
+                    "label-sm": ["Inter"],
+                    "headline-lg": ["Plus Jakarta Sans"],
+                    "body-lg": ["Inter"],
+                    "label-md": ["Inter"],
+                    "display-lg": ["Plus Jakarta Sans"],
+                    "headline-lg-mobile": ["Plus Jakarta Sans"],
+                    "body-md": ["Inter"]
+            },
+            "fontSize": {
+                    "headline-md": ["24px", {"lineHeight": "1.4", "fontWeight": "600"}],
+                    "label-sm": ["12px", {"lineHeight": "1.2", "fontWeight": "600"}],
+                    "headline-lg": ["32px", {"lineHeight": "1.3", "fontWeight": "700"}],
+                    "body-lg": ["18px", {"lineHeight": "1.6", "fontWeight": "400"}],
+                    "label-md": ["14px", {"lineHeight": "1.4", "letterSpacing": "0.01em", "fontWeight": "500"}],
+                    "display-lg": ["48px", {"lineHeight": "1.2", "letterSpacing": "-0.02em", "fontWeight": "700"}],
+                    "headline-lg-mobile": ["24px", {"lineHeight": "1.3", "fontWeight": "700"}],
+                    "body-md": ["16px", {"lineHeight": "1.6", "fontWeight": "400"}]
+            }
+          },
+        },
+      }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.8);
+            backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .floating-label-group {
+            position: relative;
+        }
+
+        .floating-label-group input:focus ~ label,
+        .floating-label-group input:not(:placeholder-shown) ~ label {
+            transform: translateY(-1.5rem) scale(0.85);
+            color: #00288e;
+            background: white;
+            padding: 0 4px;
+        }
+
+        .floating-label-group label {
+            position: absolute;
+            top: 1rem;
+            left: 1rem;
+            transition: all 0.2s ease-out;
+            pointer-events: none;
+        }
+
+        .form-transition {
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .gradient-mesh {
+            background-color: #00288e;
+            background-image: 
+                radial-gradient(at 0% 0%, hsla(220,100%,45%,1) 0, transparent 50%), 
+                radial-gradient(at 50% 0%, hsla(200,100%,40%,1) 0, transparent 50%), 
+                radial-gradient(at 100% 0%, hsla(180,100%,35%,1) 0, transparent 50%);
+        }
+    </style>
+</head>
+<body class="bg-background text-on-surface font-body-md overflow-x-hidden">
+<main class="min-h-screen flex flex-col md:flex-row">
+<!-- Left Side: Gradient Panel & Illustration -->
+<section class="hidden md:flex md:w-1/2 lg:w-3/5 gradient-mesh relative items-center justify-center p-12 overflow-hidden">
+<div class="absolute inset-0 opacity-20 pointer-events-none">
+<div class="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] rounded-full bg-white blur-[120px] animate-pulse"></div>
+<div class="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] rounded-full bg-secondary blur-[120px] animate-pulse"></div>
+</div>
+<div class="relative z-10 max-w-xl text-center">
+<div class="mb-12 inline-flex items-center gap-3 px-6 py-3 rounded-full glass-panel">
+<span class="material-symbols-outlined text-primary" style="font-variation-settings: 'FILL' 1;">account_balance</span>
+<span class="font-headline-md text-primary font-bold tracking-tight">SIPP-BMN</span>
+</div>
+<h1 class="font-display-lg text-white mb-6 leading-tight">
+                    Manajemen Aset Negara Menjadi Lebih Mudah
+                </h1>
+<p class="text-white/80 font-body-lg mb-10">
+                    Transformasi tata kelola barang milik negara dengan platform terpadu, transparan, dan akuntabel untuk masa depan birokrasi yang lebih efisien.
+                </p>
+<div class="relative group">
+<div class="absolute inset-0 bg-white/10 rounded-2xl blur-xl group-hover:bg-white/20 transition-all"></div>
+<img alt="Dashboard Illustration" class="relative rounded-2xl shadow-2xl border border-white/20 transform group-hover:scale-[1.02] transition-transform duration-500" data-alt="A clean, high-end 3D isometric illustration of a digital office space representing state asset management. The scene features glowing translucent holographic screens displaying inventory graphs and data analytics. A professional color palette of deep royal blues, crisp whites, and subtle emerald green highlights the institutional yet innovative vibe. The lighting is soft and corporate, creating a sense of clarity, transparency, and high-performance SaaS software." src="https://lh3.googleusercontent.com/aida-public/AB6AXuAoamD8UjfBiXfmdXNln-XySoobaMYxbo2mIAuUmDbZDzpYPSAz4ERebSTpLeI7SYKup1zVMODN6llZLnh1GriDi1U6pMpefb-a_O83sIalAbUO6nnI4-VgUncu5yn2pc19OesyNHUHgrYKmSuGDjXI0z_mcCy9auRaAIh3F8MVTJDxE1fWbYYhNuPxEs34gQqXE1zgOSg0xZ06apoaPvKEqB6lfNIB4FLNLJFUVsBZEJEBKjfd6w6wiw"/>
+</div>
+</div>
+</section>
+<!-- Right Side: Login & Registration Form -->
+<section class="w-full md:w-1/2 lg:w-2/5 bg-white flex items-center justify-center p-6 md:p-12 min-h-screen">
+<div class="w-full max-w-md">
+<div class="text-center mb-10 md:hidden">
+<h2 class="font-headline-lg text-primary font-bold">SIPP-BMN</h2>
+<p class="text-on-surface-variant font-label-md">Kementerian Keuangan RI</p>
+</div>
+<!-- Tab Navigation -->
+<div class="flex p-1 bg-surface-container-low rounded-xl mb-8">
+<button class="flex-1 py-3 px-4 font-label-md rounded-lg transition-all bg-white text-primary shadow-sm ring-1 ring-black/5" data-active="true" id="tab-masuk" onclick="switchTab('masuk')">
+                        Masuk
+                    </button>
+<button class="flex-1 py-3 px-4 font-label-md rounded-lg transition-all text-on-surface-variant hover:text-primary" data-active="false" id="tab-daftar" onclick="switchTab('daftar')">
+                        Daftar
+                    </button>
+</div>
+<!-- Forms Container -->
+<div class="relative overflow-hidden min-h-[480px]">
+<!-- Login Form -->
+<form class="form-transition opacity-100 translate-x-0" id="form-masuk">
+<div class="space-y-6">
+<div>
+<h3 class="font-headline-md text-on-surface mb-2">Selamat Datang Kembali</h3>
+<p class="text-on-surface-variant font-body-md mb-8">Silakan masuk dengan kredensial instansi Anda.</p>
+</div>
+<div class="floating-label-group">
+<input class="w-full px-4 py-4 bg-surface-container-low border border-outline-variant rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/10 focus:border-primary transition-all" id="login-nip" name="nip" placeholder=" " required="" type="text"/>
+<label class="text-on-surface-variant font-label-md" for="login-nip">NIP atau Email Pegawai</label>
+</div>
+<div class="floating-label-group">
+<input class="w-full px-4 py-4 bg-surface-container-low border border-outline-variant rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/10 focus:border-primary transition-all" id="login-password" name="password" placeholder=" " required="" type="password"/>
+<label class="text-on-surface-variant font-label-md" for="login-password">Kata Sandi</label>
+</div>
+<div class="flex items-center justify-between">
+<label class="flex items-center gap-2 cursor-pointer">
+<input class="w-4 h-4 rounded border-outline-variant text-primary focus:ring-primary" type="checkbox"/>
+<span class="text-on-surface-variant font-label-sm">Ingat Saya</span>
+</label>
+<a class="text-primary font-label-sm hover:underline" href="#">Lupa kata sandi?</a>
+</div>
+<button class="w-full py-4 bg-primary text-white font-headline-md rounded-xl hover:bg-primary-container active:scale-[0.98] transition-all shadow-lg shadow-primary/20 flex items-center justify-center gap-2" type="submit">
+                                Masuk Aplikasi
+                                <span class="material-symbols-outlined text-[20px]">login</span>
+</button>
+</div>
+</form>
+<!-- Registration Form -->
+<form class="form-transition opacity-0 translate-x-full absolute top-0 w-full pointer-events-none" id="form-daftar">
+<div class="space-y-5">
+<div>
+<h3 class="font-headline-md text-on-surface mb-2">Registrasi Peminjam</h3>
+<p class="text-on-surface-variant font-body-md mb-6">Lengkapi data diri untuk pengajuan peminjaman aset.</p>
+</div>
+<div class="grid grid-cols-2 gap-4">
+<div class="floating-label-group">
+<input class="w-full px-4 py-4 bg-surface-container-low border border-outline-variant rounded-xl focus:outline-none focus:border-primary transition-all" id="reg-nama" name="nama" placeholder=" " required="" type="text"/>
+<label class="text-on-surface-variant font-label-md" for="reg-nama">Nama Lengkap</label>
+</div>
+<div class="floating-label-group">
+<input class="w-full px-4 py-4 bg-surface-container-low border border-outline-variant rounded-xl focus:outline-none focus:border-primary transition-all" id="reg-nip" name="nip" placeholder=" " required="" type="text"/>
+<label class="text-on-surface-variant font-label-md" for="reg-nip">NIP</label>
+</div>
+</div>
+<div class="floating-label-group">
+<input class="w-full px-4 py-4 bg-surface-container-low border border-outline-variant rounded-xl focus:outline-none focus:border-primary transition-all" id="reg-email" name="email" placeholder=" " required="" type="email"/>
+<label class="text-on-surface-variant font-label-md" for="reg-email">Alamat Email Kedinasan</label>
+</div>
+<div class="floating-label-group">
+<input class="w-full px-4 py-4 bg-surface-container-low border border-outline-variant rounded-xl focus:outline-none focus:border-primary transition-all" id="reg-jabatan" name="jabatan" placeholder=" " required="" type="text"/>
+<label class="text-on-surface-variant font-label-md" for="reg-jabatan">Jabatan</label>
+</div>
+<div class="floating-label-group">
+<select class="w-full px-4 py-4 bg-surface-container-low border border-outline-variant rounded-xl focus:outline-none focus:border-primary transition-all appearance-none text-on-surface" id="reg-unit" name="unit">
+<option disabled="" selected="" value="">Pilih Unit Kerja</option>
+<option value="setjen">Sekretariat Jenderal</option>
+<option value="itjen">Inspektorat Jenderal</option>
+<option value="djbc">Ditjen Bea dan Cukai</option>
+<option value="djp">Ditjen Pajak</option>
+</select>
+<span class="material-symbols-outlined absolute right-4 top-4 text-on-surface-variant pointer-events-none">expand_more</span>
+</div>
+<div class="floating-label-group">
+<input class="w-full px-4 py-4 bg-surface-container-low border border-outline-variant rounded-xl focus:outline-none focus:border-primary transition-all" id="reg-password" name="password" placeholder=" " required="" type="password"/>
+<label class="text-on-surface-variant font-label-md" for="reg-password">Kata Sandi</label>
+</div>
+<button class="w-full py-4 bg-primary text-white font-headline-md rounded-xl hover:bg-primary-container active:scale-[0.98] transition-all shadow-lg shadow-primary/20" type="submit">
+                                Buat Akun Peminjam
+                            </button>
+</div>
+</form>
+</div>
+<div class="mt-8 pt-8 border-t border-outline-variant flex flex-col items-center gap-4">
+<p class="text-on-surface-variant font-label-sm text-center">
+                        Butuh bantuan teknis? <a class="text-primary font-bold hover:underline" href="#">Hubungi Admin IT</a>
+</p>
+<div class="flex gap-4">
+<img alt="Logo Kemenkeu" class="h-8 opacity-60 grayscale hover:grayscale-0 transition-all cursor-pointer" data-alt="Official logo of the Ministry of Finance of Indonesia in high resolution, featuring the Garuda emblem and the words Kementerian Keuangan Republik Indonesia. The logo is rendered in a minimalist, clean professional style suitable for a modern administrative software portal, maintaining high contrast against a white background." src="https://lh3.googleusercontent.com/aida-public/AB6AXuAwCb5OtTq_-jV7nedim_oDnBl19iekG6FfFFSXbzBsygSMASyrH3j-NE6tz0JpNIRwNKala4gy4hG9gTAn98bvgnKhsjFFR953ZTD38sDTgzMLIupX4oeJ9P9LBrXL5PQH8rf3cIY5EwJkDsg97IfRWiwCihm3WkQtGufgYYlP5OW2jGI77pEc7TgCiZXKfeLRYz026e_HjRjdF04zSNgCXbffJN-vHbwjuksvFVR9u5_vjHvo4E8DPA"/>
+<img alt="Logo BMN" class="h-8 opacity-60 grayscale hover:grayscale-0 transition-all cursor-pointer" data-alt="The official institutional logo for Barang Milik Negara (State-Owned Assets Management), featuring symbolic elements of protection and organization. The style is modern, vector-based, and sleek, with deep blue and gold accents that convey trust and official authority. It is positioned with clear whitespace for a premium digital experience." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBg8aadq6VES71wV_QsGoO90ZKkc7dfNYQCFvJPsSCPaOgP_9CO4jgcFqCqZILoV-KosJFQ0hR870lH8PjTyg8T6HlU34bCFHOrz7FCv97_pwGyVJYRP5gyn1B731DGf6NXZE8iC-rNXWF12cj9DktZQYZhyMldEqYac2lSbJ1e2AKhwUcuNXE08ntBHwFuiVIcMCy8OLcFGPIc0zHCJ7RIhYMordjqjX0qkWbCp7Dik_6sLGY5V7m4Ow"/>
+</div>
+</div>
+</div>
+</section>
+</main>
+<script>
+        function switchTab(tab) {
+            const loginBtn = document.getElementById('tab-masuk');
+            const registerBtn = document.getElementById('tab-daftar');
+            const loginForm = document.getElementById('form-masuk');
+            const registerForm = document.getElementById('form-daftar');
+
+            if (tab === 'masuk') {
+                // Button Styles
+                loginBtn.classList.add('bg-white', 'text-primary', 'shadow-sm', 'ring-1', 'ring-black/5');
+                loginBtn.classList.remove('text-on-surface-variant');
+                registerBtn.classList.remove('bg-white', 'text-primary', 'shadow-sm', 'ring-1', 'ring-black/5');
+                registerBtn.classList.add('text-on-surface-variant');
+
+                // Form Transition
+                loginForm.classList.remove('opacity-0', '-translate-x-full', 'absolute', 'pointer-events-none');
+                loginForm.classList.add('opacity-100', 'translate-x-0');
+                
+                registerForm.classList.add('opacity-0', 'translate-x-full', 'absolute', 'pointer-events-none');
+                registerForm.classList.remove('opacity-100', 'translate-x-0');
+            } else {
+                // Button Styles
+                registerBtn.classList.add('bg-white', 'text-primary', 'shadow-sm', 'ring-1', 'ring-black/5');
+                registerBtn.classList.remove('text-on-surface-variant');
+                loginBtn.classList.remove('bg-white', 'text-primary', 'shadow-sm', 'ring-1', 'ring-black/5');
+                loginBtn.classList.add('text-on-surface-variant');
+
+                // Form Transition
+                registerForm.classList.remove('opacity-0', 'translate-x-full', 'absolute', 'pointer-events-none');
+                registerForm.classList.add('opacity-100', 'translate-x-0');
+                
+                loginForm.classList.add('opacity-0', '-translate-x-full', 'absolute', 'pointer-events-none');
+                loginForm.classList.remove('opacity-100', 'translate-x-0');
+            }
+        }
+
+        // Simple feedback for interaction
+        document.querySelectorAll('form').forEach(form => {
+            form.addEventListener('submit', (e) => {
+                e.preventDefault();
+                const btn = form.querySelector('button[type="submit"]');
+                const originalText = btn.innerHTML;
+                btn.disabled = true;
+                btn.innerHTML = `<span class="animate-spin material-symbols-outlined">progress_activity</span> Memproses...`;
+                
+                setTimeout(() => {
+                    btn.innerHTML = originalText;
+                    btn.disabled = false;
+                    alert('Simulasi: Akses Diterima. Mengalihkan ke Dashboard...');
+                }, 1500);
+            });
+        });
+    </script>
+</body></html>
+
+<!-- Halaman Panduan - SIPP-BMN -->
+<!DOCTYPE html>
+
+<html class="light" lang="id"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&amp;family=Inter:wght@400;500;600&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .glass-card {
+            background: rgba(255, 255, 255, 0.8);
+            backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        .timeline-line {
+            background: linear-gradient(to bottom, transparent, #1e40af 15%, #1e40af 85%, transparent);
+        }
+        .animate-float {
+            animation: float 6s ease-in-out infinite;
+        }
+        @keyframes float {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-10px); }
+        }
+        details > summary::-webkit-details-marker {
+            display: none;
+        }
+    </style>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "surface-container-lowest": "#ffffff",
+                        "error-container": "#ffdad6",
+                        "surface-container-high": "#dce9ff",
+                        "primary-fixed": "#dde1ff",
+                        "on-secondary-container": "#00714d",
+                        "surface-container-low": "#eff4ff",
+                        "secondary-fixed-dim": "#4edea3",
+                        "on-secondary": "#ffffff",
+                        "surface-dim": "#cbdbf5",
+                        "tertiary-fixed": "#d8e2ff",
+                        "inverse-on-surface": "#eaf1ff",
+                        "primary-fixed-dim": "#b8c4ff",
+                        "tertiary-fixed-dim": "#adc6ff",
+                        "on-error-container": "#93000a",
+                        "on-tertiary-fixed-variant": "#004395",
+                        "surface-container": "#e5eeff",
+                        "on-primary": "#ffffff",
+                        "on-primary-fixed-variant": "#173bab",
+                        "surface-container-highest": "#d3e4fe",
+                        "on-background": "#0b1c30",
+                        "on-primary-container": "#a8b8ff",
+                        "error": "#ba1a1a",
+                        "outline": "#757684",
+                        "on-tertiary-fixed": "#001a42",
+                        "background": "#f8f9ff",
+                        "on-error": "#ffffff",
+                        "surface-tint": "#3755c3",
+                        "secondary-container": "#6cf8bb",
+                        "secondary": "#006c49",
+                        "inverse-primary": "#b8c4ff",
+                        "surface-bright": "#f8f9ff",
+                        "surface": "#f8f9ff",
+                        "tertiary": "#003272",
+                        "surface-variant": "#d3e4fe",
+                        "on-secondary-fixed-variant": "#005236",
+                        "on-tertiary-container": "#9cbbff",
+                        "on-secondary-fixed": "#002113",
+                        "primary-container": "#1e40af",
+                        "outline-variant": "#c4c5d5",
+                        "secondary-fixed": "#6ffbbe",
+                        "inverse-surface": "#213145",
+                        "on-surface": "#0b1c30",
+                        "on-surface-variant": "#444653",
+                        "on-primary-fixed": "#001453",
+                        "on-tertiary": "#ffffff",
+                        "tertiary-container": "#00489e",
+                        "primary": "#00288e"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                        "stack-lg": "32px",
+                        "gutter": "24px",
+                        "stack-sm": "8px",
+                        "stack-md": "16px",
+                        "margin-desktop": "40px",
+                        "margin-mobile": "16px",
+                        "container-max": "1280px"
+                    },
+                    "fontFamily": {
+                        "headline-md": ["Plus Jakarta Sans"],
+                        "label-sm": ["Inter"],
+                        "headline-lg": ["Plus Jakarta Sans"],
+                        "body-lg": ["Inter"],
+                        "label-md": ["Inter"],
+                        "display-lg": ["Plus Jakarta Sans"],
+                        "headline-lg-mobile": ["Plus Jakarta Sans"],
+                        "body-md": ["Inter"]
+                    },
+                    "fontSize": {
+                        "headline-md": ["24px", {"lineHeight": "1.4", "fontWeight": "600"}],
+                        "label-sm": ["12px", {"lineHeight": "1.2", "fontWeight": "600"}],
+                        "headline-lg": ["32px", {"lineHeight": "1.3", "fontWeight": "700"}],
+                        "body-lg": ["18px", {"lineHeight": "1.6", "fontWeight": "400"}],
+                        "label-md": ["14px", {"lineHeight": "1.4", "letterSpacing": "0.01em", "fontWeight": "500"}],
+                        "display-lg": ["48px", {"lineHeight": "1.2", "letterSpacing": "-0.02em", "fontWeight": "700"}],
+                        "headline-lg-mobile": ["24px", {"lineHeight": "1.3", "fontWeight": "700"}],
+                        "body-md": ["16px", {"lineHeight": "1.6", "fontWeight": "400"}]
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="bg-background font-body-md text-on-background selection:bg-primary selection:text-white overflow-x-hidden">
+<!-- Top Navigation Bar -->
+<nav class="bg-white/80 backdrop-blur-md sticky top-0 z-50 border-b border-white/20 shadow-sm">
+<div class="flex justify-between items-center w-full px-margin-desktop py-4 max-w-container-max mx-auto">
+<div class="flex items-center gap-8">
+<span class="font-headline-md text-headline-md font-bold text-primary">SIPP-BMN</span>
+<div class="hidden md:flex gap-6">
+<a class="font-body-md text-body-md text-on-surface-variant hover:text-primary transition-colors" href="#">Beranda</a>
+<a class="font-body-md text-body-md text-primary font-bold border-b-2 border-primary pb-1" href="#">Bantuan</a>
+<a class="font-body-md text-body-md text-on-surface-variant hover:text-primary transition-colors" href="#">Katalog</a>
+</div>
+</div>
+<div class="flex items-center gap-4">
+<button class="material-symbols-outlined text-primary p-2 hover:bg-primary/5 rounded-full transition-all">notifications</button>
+<button class="material-symbols-outlined text-primary p-2 hover:bg-primary/5 rounded-full transition-all">settings</button>
+<img alt="User Profile Avatar" class="w-10 h-10 rounded-full border-2 border-primary-fixed cursor-pointer hover:scale-105 transition-transform" data-alt="A professional studio portrait of a modern government official looking confident and friendly. The man has a clean-cut appearance, short hair, and is wearing a crisp white formal shirt. The lighting is bright and high-key, set against a soft blue gradient background that matches a clean, corporate SaaS UI aesthetic." src="https://lh3.googleusercontent.com/aida-public/AB6AXuCVq0nn-MsYqogCvZny0a3zFgfEsYpmjP9ZGhtxnZMF-zPwJy-xDadQkknJqDWOHZuoJ7LoO1i0gBlQsblLACbcK6O_HS1fFZOwggW1cRlh10HYHox4MRubQ88YlGlBKDJAw6fGFZIkn5MVgzutHastlhMJN5LegfMG4F5CDhDcxo8NRECwKcCl-Le-plZGDLhdBGhPJE_39V0rGEPgDuWTMb1m7dtvUj2Qhgxzh8vLsO9vdnDlg7S9wA"/>
+</div>
+</div>
+</nav>
+<!-- Hero Section -->
+<header class="relative py-20 px-margin-desktop overflow-hidden">
+
+<div class="max-w-container-max mx-auto relative z-10 text-center">
+<span class="inline-block px-4 py-1.5 rounded-full bg-primary-fixed text-primary font-label-sm text-label-sm mb-6 uppercase tracking-wider">Pusat Panduan</span>
+<h1 class="font-display-lg text-display-lg text-primary mb-6 max-w-3xl mx-auto">Cara Mudah Mengelola Aset Negara</h1>
+<p class="font-body-lg text-body-lg text-on-surface-variant max-w-2xl mx-auto">Pelajari langkah-langkah peminjaman dan pengembalian Barang Milik Negara melalui sistem digital terpadu SIPP-BMN.</p>
+</div>
+</header>
+<main class="max-w-container-max mx-auto px-margin-desktop pb-24">
+<!-- SECTION: BORROWING PROCESS -->
+<section class="mb-32">
+<div class="text-center mb-16">
+<h2 class="font-headline-lg text-headline-lg text-primary mb-2">Prosedur Peminjaman</h2>
+<div class="h-1.5 w-24 bg-secondary mx-auto rounded-full"></div>
+</div>
+<div class="relative">
+<!-- Vertical Line -->
+<div class="absolute left-1/2 -translate-x-1/2 h-full w-1 timeline-line opacity-20 hidden md:block"></div>
+<!-- Step 1: Login -->
+<div class="flex flex-col md:flex-row items-center gap-12 mb-20 relative">
+<div class="md:w-1/2 flex justify-end">
+<div class="glass-card p-stack-lg rounded-xl shadow-sm hover:-translate-y-1 transition-transform max-w-md w-full border-l-4 border-primary">
+<div class="flex items-center gap-4 mb-4">
+<div class="bg-primary/10 p-3 rounded-lg">
+<span class="material-symbols-outlined text-primary text-3xl">login</span>
+</div>
+<h3 class="font-headline-md text-headline-md text-primary">Login</h3>
+</div>
+<p class="font-body-md text-body-md text-on-surface-variant">Masuk ke portal SIPP-BMN menggunakan kredensial resmi kementerian atau instansi Anda untuk memulai permohonan.</p>
+</div>
+</div>
+<div class="absolute left-1/2 -translate-x-1/2 w-10 h-10 bg-primary rounded-full border-4 border-white shadow-md flex items-center justify-center z-10 hidden md:flex">
+<span class="text-white font-bold">1</span>
+</div>
+<div class="md:w-1/2">
+<img class="rounded-xl shadow-lg w-full max-w-sm mx-auto" data-alt="A clean, high-angle shot of a high-end laptop on a bright, minimalist office desk. The screen displays a sophisticated login interface with deep blue brand colors. Beside the laptop is a small succulent and a designer coffee mug. The lighting is soft morning sunlight, creating a productive and professional atmosphere." src="https://lh3.googleusercontent.com/aida-public/AB6AXuDj6jq27L_Q1tpSeIwfHHpe-jUoU5PAuie0qT_MWuu4q4INx6Td5_GBo8CgAudoH9GNyzDrBtuGVHiHfcFxjwPOO7gcS4bhz54fNRmEy72jkOjaa7OwBfdnFy-Og9QKNLwhz5e5LoVyybgYUnuICDss4WQ8ZKT4tB_VK5Wq7VgxBoKDPlfW_N_pIzIixD7NslTGJfy3T0oY2g4mxsHRkwW-NuaF7fuEZ_irHE9wBwCIK3inaT0i34KNCg"/>
+</div>
+</div>
+<!-- Step 2: Pilih Barang -->
+<div class="flex flex-col md:flex-row-reverse items-center gap-12 mb-20 relative">
+<div class="md:w-1/2 flex justify-start">
+<div class="glass-card p-stack-lg rounded-xl shadow-sm hover:-translate-y-1 transition-transform max-w-md w-full border-l-4 border-secondary">
+<div class="flex items-center gap-4 mb-4">
+<div class="bg-secondary/10 p-3 rounded-lg">
+<span class="material-symbols-outlined text-secondary text-3xl">inventory_2</span>
+</div>
+<h3 class="font-headline-md text-headline-md text-secondary">Pilih Barang</h3>
+</div>
+<p class="font-body-md text-body-md text-on-surface-variant">Telusuri katalog aset digital kami yang luas. Gunakan filter untuk menemukan peralatan yang sesuai dengan kebutuhan operasional Anda.</p>
+</div>
+</div>
+<div class="absolute left-1/2 -translate-x-1/2 w-10 h-10 bg-secondary rounded-full border-4 border-white shadow-md flex items-center justify-center z-10 hidden md:flex">
+<span class="text-white font-bold">2</span>
+</div>
+<div class="md:w-1/2">
+<img class="rounded-xl shadow-lg w-full max-w-sm mx-auto" data-alt="A modern, organized warehouse with rows of neatly labeled high-tech equipment boxes. The lighting is bright and industrial, with cool blue tones emphasizing cleanliness and order. In the foreground, a digital tablet displays an asset management application, showing clear categories and high-quality product images for selection." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBhfZ8ScAO1D3UqB39Za21wndCn6xDiArn_4tW1sVA00g8I6YM_BBJOe8feiXVA0T6-Sggl1jUyLfEGV5luZQftjYFhS1ytBXo9h8jzOXkwNyvobpgB5WNned4zZVQ2SFO9kzSV9m-rlCbn5tC73u9jzQaj7OxdMwfgNEiASglVt1w8AEykz_zC8-rUecpCmLyZXvXi2bhpkiSW2Z0-e3ZTS6mhEc9wk3A13bm-tSEOHy0bBA2Mj1uuEw"/>
+</div>
+</div>
+<!-- Step 3: Form & Dokumen -->
+<div class="flex flex-col md:flex-row items-center gap-12 mb-20 relative">
+<div class="md:w-1/2 flex justify-end">
+<div class="glass-card p-stack-lg rounded-xl shadow-sm hover:-translate-y-1 transition-transform max-w-md w-full border-l-4 border-tertiary">
+<div class="flex items-center gap-4 mb-4">
+<div class="bg-tertiary/10 p-3 rounded-lg">
+<span class="material-symbols-outlined text-tertiary text-3xl">edit_document</span>
+</div>
+<h3 class="font-headline-md text-headline-md text-tertiary">Isi Form &amp; Unggah Dokumen</h3>
+</div>
+<p class="font-body-md text-body-md text-on-surface-variant">Lengkapi detail peminjaman dan unggah dokumen persyaratan seperti Surat Perintah Tugas secara digital dalam format PDF.</p>
+</div>
+</div>
+<div class="absolute left-1/2 -translate-x-1/2 w-10 h-10 bg-tertiary rounded-full border-4 border-white shadow-md flex items-center justify-center z-10 hidden md:flex">
+<span class="text-white font-bold">3</span>
+</div>
+<div class="md:w-1/2">
+<img class="rounded-xl shadow-lg w-full max-w-sm mx-auto" data-alt="Close-up of hands typing on a sleek keyboard with a high-resolution monitor in the background showing a clean digital form interface. The environment is a bright, modern office with soft-focus indoor plants. The color palette is professional, focusing on blues, whites, and soft grays, symbolizing administrative efficiency and digital transformation." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBMgBIiYAXcdbH4YEYsKnbrF_4z0xr-qsrflB1ejQJ4IF22xLzBwkqrTYHpqKGsaHmo73_WiPzrQ-g2xqfgiPjWoc-Z2mHwh_AEOnt2O9lTz7Dqxtptr52Gpfa6aNQm3JOpI7Z_ZJL7wWX04OB8p-omuS6EFHvmukMlc_A1n9qHtnYfdO71rJDHemqgMMCcBvUK0Nz_lFn7NDH7re2B_rVtJO1MGsvYKdZnOGs2-5t0Hd83XLzMP31lrQ"/>
+</div>
+</div>
+<!-- Step 4: Persetujuan -->
+<div class="flex flex-col md:flex-row-reverse items-center gap-12 mb-20 relative">
+<div class="md:w-1/2 flex justify-start">
+<div class="glass-card p-stack-lg rounded-xl shadow-sm hover:-translate-y-1 transition-transform max-w-md w-full border-l-4 border-primary">
+<div class="flex items-center gap-4 mb-4">
+<div class="bg-primary/10 p-3 rounded-lg">
+<span class="material-symbols-outlined text-primary text-3xl">verified</span>
+</div>
+<h3 class="font-headline-md text-headline-md text-primary">Tunggu Persetujuan</h3>
+</div>
+<p class="font-body-md text-body-md text-on-surface-variant">Admin akan memverifikasi permohonan Anda. Pantau status peminjaman secara real-time melalui dashboard notifikasi Anda.</p>
+</div>
+</div>
+<div class="absolute left-1/2 -translate-x-1/2 w-10 h-10 bg-primary rounded-full border-4 border-white shadow-md flex items-center justify-center z-10 hidden md:flex">
+<span class="text-white font-bold">4</span>
+</div>
+<div class="md:w-1/2">
+<img class="rounded-xl shadow-lg w-full max-w-sm mx-auto" data-alt="A high-tech digital dashboard displayed on a large professional screen. The dashboard shows elegant data visualizations, status indicators with green and blue lights, and a 'Request Approved' checkmark in a modern, semi-transparent card. The background is a blurred, futuristic office space with atmospheric lighting in deep navy and bright cyan." src="https://lh3.googleusercontent.com/aida-public/AB6AXuCIKolDSqqJDk3Hi-eeg9ReBjjCxyL3MQVvKreD9bgZV6FURWOfZdBncW77HrG5QmHML5u6ZOe29qXa_1rZ9QBjbh3IS9HL9K-KOoIHt3NNUGB8jr0C9EGPMwO7PsYFZhjI0mWF4LVh36UslNFpODV1X-Xh0DVMRFBF3_ppNiudAmEeezm3rWIPT5jeMSj1FTr7xg8kWUKKo9ltRrjJEwA27MEuEpyp6dG9pknWje6S1C781aisZgK9iA"/>
+</div>
+</div>
+<!-- Step 5: Ambil Barang -->
+<div class="flex flex-col md:flex-row items-center gap-12 relative">
+<div class="md:w-1/2 flex justify-end">
+<div class="glass-card p-stack-lg rounded-xl shadow-sm hover:-translate-y-1 transition-transform max-w-md w-full border-l-4 border-secondary">
+<div class="flex items-center gap-4 mb-4">
+<div class="bg-secondary/10 p-3 rounded-lg">
+<span class="material-symbols-outlined text-secondary text-3xl">qr_code_2</span>
+</div>
+<h3 class="font-headline-md text-headline-md text-secondary">Ambil Barang + QR Code</h3>
+</div>
+<p class="font-body-md text-body-md text-on-surface-variant">Tunjukkan Kode QR unik dari aplikasi Anda kepada petugas gudang untuk serah terima barang yang telah disetujui.</p>
+</div>
+</div>
+<div class="absolute left-1/2 -translate-x-1/2 w-10 h-10 bg-secondary rounded-full border-4 border-white shadow-md flex items-center justify-center z-10 hidden md:flex">
+<span class="text-white font-bold">5</span>
+</div>
+<div class="md:w-1/2">
+<img class="rounded-xl shadow-lg w-full max-w-sm mx-auto" data-alt="A smartphone screen displaying a bright, high-contrast QR code within a sleek, branded app interface. The background shows a modern office hallway with soft, cinematic lighting. A hand holds the phone, presenting it for scanning. The aesthetic is clean and technology-focused, using the core brand blues and crisp whites." src="https://lh3.googleusercontent.com/aida-public/AB6AXuAJkyE5CqDfesJmYZCX85XY-We9wVK7juWEMUiLcI45Btav4C6T-udwxDOrUuvUQVAD7Qnuhh1a-kIo6tEdNqgxKGsV9pgoTd2Em9Sy0lopLm4-at5vvgiNnU9Xj6I0lEvlI2Xt1NrIQa0Muyou0tJa75D2gI5pzk60BrDhvyduDAgaDxehe2hb-2W4xnZcxMRXIsDp9zf-JWezBLV2I7q_icv2UXEp6QpeHcmbt_AfQBV7FYgWS6RdYg"/>
+</div>
+</div>
+</div>
+</section>
+<!-- SECTION: RETURNING PROCESS -->
+<section class="mb-32">
+<div class="glass-card rounded-[32px] p-stack-lg border border-primary-fixed bg-primary/5">
+<div class="text-center mb-16">
+<h2 class="font-headline-lg text-headline-lg text-primary mb-2">Prosedur Pengembalian</h2>
+<div class="h-1.5 w-24 bg-tertiary mx-auto rounded-full"></div>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-4 gap-8">
+<!-- Step 1 -->
+<div class="text-center group">
+<div class="w-16 h-16 bg-white rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-sm group-hover:scale-110 transition-transform border border-outline-variant">
+<span class="material-symbols-outlined text-primary text-3xl">local_shipping</span>
+</div>
+<h4 class="font-headline-md text-headline-md text-on-surface mb-3">Bawa Barang</h4>
+<p class="font-body-md text-body-md text-on-surface-variant">Pastikan barang dalam kondisi baik dan lengkap.</p>
+</div>
+<!-- Step 2 -->
+<div class="text-center group">
+<div class="w-16 h-16 bg-white rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-sm group-hover:scale-110 transition-transform border border-outline-variant">
+<span class="material-symbols-outlined text-primary text-3xl">phonelink_setup</span>
+</div>
+<h4 class="font-headline-md text-headline-md text-on-surface mb-3">Tunjukkan QR</h4>
+<p class="font-body-md text-body-md text-on-surface-variant">Buka riwayat peminjaman dan pilih kode QR barang.</p>
+</div>
+<!-- Step 3 -->
+<div class="text-center group">
+<div class="w-16 h-16 bg-white rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-sm group-hover:scale-110 transition-transform border border-outline-variant">
+<span class="material-symbols-outlined text-primary text-3xl">document_scanner</span>
+</div>
+<h4 class="font-headline-md text-headline-md text-on-surface mb-3">Admin Scan</h4>
+<p class="font-body-md text-body-md text-on-surface-variant">Petugas memindai kode untuk memproses verifikasi fisik.</p>
+</div>
+<!-- Step 4 -->
+<div class="text-center group">
+<div class="w-16 h-16 bg-white rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-sm group-hover:scale-110 transition-transform border border-outline-variant">
+<span class="material-symbols-outlined text-secondary text-3xl">task_alt</span>
+</div>
+<h4 class="font-headline-md text-headline-md text-on-surface mb-3">Selesai</h4>
+<p class="font-body-md text-body-md text-on-surface-variant">Status aset kembali tersedia dan histori tersimpan.</p>
+</div>
+</div>
+</div>
+</section>
+<!-- SECTION: FAQ ACCORDION -->
+<section class="max-w-3xl mx-auto">
+<div class="text-center mb-12">
+<h2 class="font-headline-lg text-headline-lg text-primary mb-2">Pertanyaan Populer</h2>
+<p class="font-body-md text-body-md text-on-surface-variant">Temukan jawaban cepat untuk pertanyaan yang sering diajukan.</p>
+</div>
+<div class="space-y-4">
+<details class="group glass-card rounded-xl overflow-hidden" open="">
+<summary class="flex justify-between items-center p-stack-md cursor-pointer list-none hover:bg-primary/5 transition-colors">
+<span class="font-headline-md text-[18px] text-primary">Berapa lama proses persetujuan peminjaman?</span>
+<span class="material-symbols-outlined group-open:rotate-180 transition-transform text-primary">expand_more</span>
+</summary>
+<div class="px-stack-md pb-stack-md text-on-surface-variant font-body-md border-t border-outline-variant/30 pt-4">
+                        Proses verifikasi biasanya memakan waktu 1-2 hari kerja tergantung pada kompleksitas aset dan kebijakan masing-masing unit kerja.
+                    </div>
+</details>
+<details class="group glass-card rounded-xl overflow-hidden">
+<summary class="flex justify-between items-center p-stack-md cursor-pointer list-none hover:bg-primary/5 transition-colors">
+<span class="font-headline-md text-[18px] text-primary">Apakah saya bisa memperpanjang durasi pinjaman?</span>
+<span class="material-symbols-outlined group-open:rotate-180 transition-transform text-primary">expand_more</span>
+</summary>
+<div class="px-stack-md pb-stack-md text-on-surface-variant font-body-md border-t border-outline-variant/30 pt-4">
+                        Ya, permohonan perpanjangan dapat dilakukan melalui dashboard minimal 3 hari sebelum masa pinjaman berakhir.
+                    </div>
+</details>
+<details class="group glass-card rounded-xl overflow-hidden">
+<summary class="flex justify-between items-center p-stack-md cursor-pointer list-none hover:bg-primary/5 transition-colors">
+<span class="font-headline-md text-[18px] text-primary">Apa yang harus dilakukan jika barang rusak saat dipinjam?</span>
+<span class="material-symbols-outlined group-open:rotate-180 transition-transform text-primary">expand_more</span>
+</summary>
+<div class="px-stack-md pb-stack-md text-on-surface-variant font-body-md border-t border-outline-variant/30 pt-4">
+                        Segera laporkan kerusakan melalui sistem pada menu 'Lapor Kerusakan'. Sertakan foto dan kronologi kejadian untuk ditindaklanjuti oleh petugas teknis.
+                    </div>
+</details>
+<details class="group glass-card rounded-xl overflow-hidden">
+<summary class="flex justify-between items-center p-stack-md cursor-pointer list-none hover:bg-primary/5 transition-colors">
+<span class="font-headline-md text-[18px] text-primary">Bagaimana jika saya kehilangan Kode QR pengambilan?</span>
+<span class="material-symbols-outlined group-open:rotate-180 transition-transform text-primary">expand_more</span>
+</summary>
+<div class="px-stack-md pb-stack-md text-on-surface-variant font-body-md border-t border-outline-variant/30 pt-4">
+                        Kode QR dapat diakses kapan saja melalui akun Anda pada menu 'Peminjaman Aktif'. Anda juga dapat mengunduh salinan digitalnya ke ponsel Anda.
+                    </div>
+</details>
+</div>
+</section>
+</main>
+<!-- Footer -->
+<footer class="bg-surface-container-low border-t border-outline-variant">
+<div class="flex flex-col md:flex-row justify-between items-center px-margin-desktop py-stack-md w-full max-w-container-max mx-auto">
+<div class="mb-4 md:mb-0">
+<span class="font-headline-sm text-headline-sm font-bold text-primary">SIPP-BMN</span>
+<p class="font-label-sm text-label-sm text-on-surface-variant mt-1">Sistem Informasi Pengelolaan Peminjaman BMN</p>
+</div>
+<div class="flex flex-col items-center md:items-end gap-2">
+<div class="flex gap-6 mb-2">
+<a class="font-label-sm text-label-sm text-on-surface-variant hover:text-primary transition-colors" href="#">Kebijakan Privasi</a>
+<a class="font-label-sm text-label-sm text-on-surface-variant hover:text-primary transition-colors" href="#">Syarat &amp; Ketentuan</a>
+<a class="font-label-sm text-label-sm text-on-surface-variant hover:text-primary transition-colors" href="#">Kontak Kami</a>
+</div>
+<p class="font-label-sm text-label-sm text-on-surface-variant opacity-80">© 2024 SIPP-BMN - Kementerian Keuangan RI. All Rights Reserved.</p>
+</div>
+</div>
+</footer>
+<!-- Help FAB -->
+<button class="fixed bottom-8 right-8 bg-primary text-white p-4 rounded-full shadow-xl flex items-center gap-2 group hover:scale-110 transition-all z-40 active:scale-95">
+<span class="material-symbols-outlined">support_agent</span>
+<span class="max-w-0 overflow-hidden group-hover:max-w-xs transition-all duration-500 whitespace-nowrap font-label-md">Butuh Bantuan?</span>
+</button>
+<script>
+        // Simple micro-interaction for detail accordions
+        document.querySelectorAll('details').forEach((el) => {
+            el.addEventListener('click', (e) => {
+                if (el.open) return;
+                document.querySelectorAll('details').forEach((otherEl) => {
+                    if (otherEl !== el) otherEl.open = false;
+                });
+            });
+        });
+    </script>
+</body></html>
+
+<!-- Dashboard Admin - SIPP-BMN -->
+<!DOCTYPE html>
+
+<html class="light" lang="id"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>SIPP-BMN | Dashboard Admin</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&amp;family=Inter:wght@400;500;600&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+          darkMode: "class",
+          theme: {
+            extend: {
+              "colors": {
+                      "surface-container-lowest": "#ffffff",
+                      "error-container": "#ffdad6",
+                      "surface-container-high": "#dce9ff",
+                      "primary-fixed": "#dde1ff",
+                      "on-secondary-container": "#00714d",
+                      "surface-container-low": "#eff4ff",
+                      "secondary-fixed-dim": "#4edea3",
+                      "on-secondary": "#ffffff",
+                      "surface-dim": "#cbdbf5",
+                      "tertiary-fixed": "#d8e2ff",
+                      "inverse-on-surface": "#eaf1ff",
+                      "primary-fixed-dim": "#b8c4ff",
+                      "tertiary-fixed-dim": "#adc6ff",
+                      "on-error-container": "#93000a",
+                      "on-tertiary-fixed-variant": "#004395",
+                      "surface-container": "#e5eeff",
+                      "on-primary": "#ffffff",
+                      "on-primary-fixed-variant": "#173bab",
+                      "surface-container-highest": "#d3e4fe",
+                      "on-background": "#0b1c30",
+                      "on-primary-container": "#a8b8ff",
+                      "error": "#ba1a1a",
+                      "outline": "#757684",
+                      "on-tertiary-fixed": "#001a42",
+                      "background": "#f8f9ff",
+                      "on-error": "#ffffff",
+                      "surface-tint": "#3755c3",
+                      "secondary-container": "#6cf8bb",
+                      "secondary": "#006c49",
+                      "inverse-primary": "#b8c4ff",
+                      "surface-bright": "#f8f9ff",
+                      "surface": "#f8f9ff",
+                      "tertiary": "#003272",
+                      "surface-variant": "#d3e4fe",
+                      "on-secondary-fixed-variant": "#005236",
+                      "on-tertiary-container": "#9cbbff",
+                      "on-secondary-fixed": "#002113",
+                      "primary-container": "#1e40af",
+                      "outline-variant": "#c4c5d5",
+                      "secondary-fixed": "#6ffbbe",
+                      "inverse-surface": "#213145",
+                      "on-surface": "#0b1c30",
+                      "on-surface-variant": "#444653",
+                      "on-primary-fixed": "#001453",
+                      "on-tertiary": "#ffffff",
+                      "tertiary-container": "#00489e",
+                      "primary": "#00288e"
+              },
+              "borderRadius": {
+                      "DEFAULT": "0.25rem",
+                      "lg": "0.5rem",
+                      "xl": "0.75rem",
+                      "full": "9999px"
+              },
+              "spacing": {
+                      "stack-lg": "32px",
+                      "gutter": "24px",
+                      "stack-sm": "8px",
+                      "stack-md": "16px",
+                      "margin-desktop": "40px",
+                      "margin-mobile": "16px",
+                      "container-max": "1280px"
+              },
+              "fontFamily": {
+                      "headline-md": ["Plus Jakarta Sans"],
+                      "label-sm": ["Inter"],
+                      "headline-lg": ["Plus Jakarta Sans"],
+                      "body-lg": ["Inter"],
+                      "label-md": ["Inter"],
+                      "display-lg": ["Plus Jakarta Sans"],
+                      "headline-lg-mobile": ["Plus Jakarta Sans"],
+                      "body-md": ["Inter"]
+              },
+              "fontSize": {
+                      "headline-md": ["24px", {"lineHeight": "1.4", "fontWeight": "600"}],
+                      "label-sm": ["12px", {"lineHeight": "1.2", "fontWeight": "600"}],
+                      "headline-lg": ["32px", {"lineHeight": "1.3", "fontWeight": "700"}],
+                      "body-lg": ["18px", {"lineHeight": "1.6", "fontWeight": "400"}],
+                      "label-md": ["14px", {"lineHeight": "1.4", "letterSpacing": "0.01em", "fontWeight": "500"}],
+                      "display-lg": ["48px", {"lineHeight": "1.2", "letterSpacing": "-0.02em", "fontWeight": "700"}],
+                      "headline-lg-mobile": ["24px", {"lineHeight": "1.3", "fontWeight": "700"}],
+                      "body-md": ["16px", {"lineHeight": "1.6", "fontWeight": "400"}]
+              }
+            },
+          },
+        }
+    </script>
+<style>
+        .glass-card {
+            background: rgba(255, 255, 255, 0.8);
+            backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .sidebar-transition {
+            transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .animate-float {
+            animation: float 6s ease-in-out infinite;
+        }
+        @keyframes float {
+            0% { transform: translateY(0px); }
+            50% { transform: translateY(-10px); }
+            100% { transform: translateY(0px); }
+        }
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 4px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 10px;
+        }
+    </style>
+</head>
+<body class="bg-background text-on-surface font-body-md min-h-screen flex overflow-hidden">
+<!-- SideNavBar -->
+<aside class="sidebar-transition fixed left-0 top-0 h-screen w-[280px] bg-primary dark:bg-on-surface shadow-xl z-50 flex flex-col py-stack-lg overflow-hidden group" id="sidebar">
+<div class="px-6 mb-8 flex items-center justify-between">
+<div class="flex items-center gap-3 overflow-hidden">
+<div class="w-10 h-10 bg-white/20 rounded-lg flex items-center justify-center backdrop-blur-md flex-shrink-0">
+<span class="material-symbols-outlined text-white">account_balance</span>
+</div>
+<div class="whitespace-nowrap transition-opacity duration-300 group-[.collapsed]:opacity-0">
+<h1 class="font-headline-md text-headline-md text-white leading-none">SIPP-BMN</h1>
+<p class="font-label-sm text-label-sm text-white/60">Manajemen Aset Negara</p>
+</div>
+</div>
+</div>
+<nav class="flex-1 flex flex-col gap-1 overflow-y-auto custom-scrollbar">
+<!-- Dashboard (Active) -->
+<a class="bg-white/10 backdrop-blur-lg border-l-4 border-secondary text-white font-bold px-6 py-4 flex items-center gap-4 transition-all hover:translate-x-1" href="#">
+<span class="material-symbols-outlined">dashboard</span>
+<span class="font-label-md text-label-md group-[.collapsed]:hidden">Dashboard</span>
+</a>
+<a class="text-white/70 hover:bg-white/5 px-6 py-4 flex items-center gap-4 transition-all hover:translate-x-1" href="#">
+<span class="material-symbols-outlined">inventory_2</span>
+<span class="font-label-md text-label-md group-[.collapsed]:hidden">Katalog Aset</span>
+</a>
+<a class="text-white/70 hover:bg-white/5 px-6 py-4 flex items-center gap-4 transition-all hover:translate-x-1" href="#">
+<span class="material-symbols-outlined">sync_alt</span>
+<span class="font-label-md text-label-md group-[.collapsed]:hidden">Peminjaman</span>
+</a>
+<a class="text-white/70 hover:bg-white/5 px-6 py-4 flex items-center gap-4 transition-all hover:translate-x-1" href="#">
+<span class="material-symbols-outlined">history</span>
+<span class="font-label-md text-label-md group-[.collapsed]:hidden">Riwayat</span>
+</a>
+</nav>
+<div class="px-6 mb-stack-lg transition-opacity duration-300 group-[.collapsed]:opacity-0">
+<button class="w-full bg-secondary text-white font-bold py-3 rounded-xl flex items-center justify-center gap-2 hover:brightness-110 active:scale-95 transition-all shadow-lg shadow-secondary/20">
+<span class="material-symbols-outlined">add</span>
+<span>Buat Permohonan</span>
+</button>
+</div>
+<div class="mt-auto border-t border-white/10 pt-4">
+<a class="text-white/70 hover:bg-white/5 px-6 py-4 flex items-center gap-4 transition-all" href="#">
+<span class="material-symbols-outlined text-error-container">logout</span>
+<span class="font-label-md text-label-md group-[.collapsed]:hidden">Keluar Sesi</span>
+</a>
+</div>
+</aside>
+<!-- Main Content Area -->
+<main class="flex-1 ml-[280px] h-screen overflow-y-auto sidebar-transition" id="main-content">
+<!-- TopNavBar (Frosted Header) -->
+<header class="bg-white/80 dark:bg-on-surface/80 backdrop-blur-md sticky top-0 z-40 border-b border-white/20 shadow-sm px-margin-desktop py-4 flex justify-between items-center">
+<div class="flex items-center gap-4">
+<button class="p-2 hover:bg-primary/5 rounded-lg transition-all active:scale-90 lg:block" onclick="toggleSidebar()">
+<span class="material-symbols-outlined text-primary">menu_open</span>
+</button>
+<div class="hidden md:block">
+<p class="font-headline-md text-primary font-bold" id="realtime-clock">Sabtu, 13 Juni 2026, 14:30 WIB</p>
+</div>
+</div>
+<div class="flex items-center gap-6">
+<div class="relative group hidden sm:block">
+<input class="bg-surface-container-low border-none rounded-full px-5 py-2 w-64 focus:ring-2 focus:ring-primary/20 transition-all font-body-md text-body-md" placeholder="Cari data aset..." type="text"/>
+<span class="material-symbols-outlined absolute right-3 top-2 text-on-surface-variant">search</span>
+</div>
+<div class="flex items-center gap-3">
+<button class="p-2 hover:bg-primary/5 rounded-full relative text-on-surface-variant">
+<span class="material-symbols-outlined">notifications</span>
+<span class="absolute top-1.5 right-1.5 w-2.5 h-2.5 bg-error border-2 border-white rounded-full"></span>
+</button>
+<button class="p-2 hover:bg-primary/5 rounded-full text-on-surface-variant">
+<span class="material-symbols-outlined">settings</span>
+</button>
+<div class="h-10 w-10 rounded-full overflow-hidden border-2 border-primary/20">
+<img alt="Admin Avatar" class="w-full h-full object-cover" data-alt="A high-quality 3D avatar profile picture of a professional Indonesian government administrator in a clean minimalist style, using soft blue and white colors to match a premium corporate UI theme." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBNI1I7GRr-gxfHs2PsCE5knt3c_Nn8pXflrfnGVLFexKlT0_YnIFUH1DzEBa1_nPeRsrwodWIGdJNumf6Cmpnoomnysbu4HtrUv1Lj_FOsxXjQr6s6hapQ8uPAc8MFVar5bEEDQNQOaYpQhzGbqMTln4zrBb_XoY76w-ff9h2ijRKDa-eXCuE0kfRLNr5W_ZMHykNGJTzzAllhyAc01HRXqXtJufba4nr_Emd57lzAx96eg0vA_kk8AA"/>
+</div>
+</div>
+</div>
+</header>
+<!-- Content Canvas -->
+<div class="p-margin-desktop space-y-gutter max-w-container-max mx-auto">
+<!-- Welcome Section -->
+<section class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+<div>
+<h2 class="font-headline-lg text-headline-lg text-primary">Ringkasan Eksekutif</h2>
+<p class="text-on-surface-variant">Monitoring real-time aset dan inventaris Kementerian Keuangan.</p>
+</div>
+<div class="flex gap-3">
+<button class="flex items-center gap-2 px-4 py-2 rounded-lg bg-white border border-outline-variant hover:bg-surface-container-low transition-all font-label-md">
+<span class="material-symbols-outlined text-primary">calendar_today</span>
+<span>Rentang Waktu</span>
+</button>
+<button class="flex items-center gap-2 px-4 py-2 rounded-lg bg-primary text-white hover:brightness-110 transition-all font-label-md">
+<span class="material-symbols-outlined">download</span>
+<span>Ekspor Laporan</span>
+</button>
+</div>
+</section>
+<!-- Gradient Stat Cards -->
+<section class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-gutter">
+<!-- Total Barang -->
+<div class="glass-card p-stack-lg rounded-2xl relative overflow-hidden group hover:-translate-y-1 transition-all duration-300">
+<div class="absolute -right-4 -top-4 w-24 h-24 bg-primary/10 rounded-full blur-2xl group-hover:bg-primary/20 transition-colors"></div>
+<div class="flex justify-between items-start mb-4">
+<div class="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center text-primary">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">inventory</span>
+</div>
+<span class="flex items-center text-secondary font-bold text-label-sm">
+<span class="material-symbols-outlined text-sm mr-1">trending_up</span>
+                            +12.5%
+                        </span>
+</div>
+<p class="text-on-surface-variant font-label-md uppercase tracking-wider">Total Barang</p>
+<h3 class="text-headline-lg font-headline-lg text-primary mt-1">4,289</h3>
+<p class="text-label-sm text-on-surface-variant mt-2">Aset terdaftar aktif</p>
+</div>
+<!-- Peminjaman Aktif -->
+<div class="glass-card p-stack-lg rounded-2xl relative overflow-hidden group hover:-translate-y-1 transition-all duration-300">
+<div class="absolute -right-4 -top-4 w-24 h-24 bg-secondary/10 rounded-full blur-2xl group-hover:bg-secondary/20 transition-colors"></div>
+<div class="flex justify-between items-start mb-4">
+<div class="w-12 h-12 rounded-xl bg-secondary/10 flex items-center justify-center text-secondary">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">sync_alt</span>
+</div>
+<span class="flex items-center text-secondary font-bold text-label-sm">
+<span class="material-symbols-outlined text-sm mr-1">trending_up</span>
+                            +3.2%
+                        </span>
+</div>
+<p class="text-on-surface-variant font-label-md uppercase tracking-wider">Peminjaman Aktif</p>
+<h3 class="text-headline-lg font-headline-lg text-secondary mt-1">156</h3>
+<p class="text-label-sm text-on-surface-variant mt-2">Sedang digunakan</p>
+</div>
+<!-- Pengajuan Menunggu -->
+<div class="glass-card p-stack-lg rounded-2xl relative overflow-hidden group hover:-translate-y-1 transition-all duration-300 border-l-4 border-tertiary">
+<div class="absolute -right-4 -top-4 w-24 h-24 bg-tertiary/10 rounded-full blur-2xl group-hover:bg-tertiary/20 transition-colors"></div>
+<div class="flex justify-between items-start mb-4">
+<div class="w-12 h-12 rounded-xl bg-tertiary/10 flex items-center justify-center text-tertiary">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">pending_actions</span>
+</div>
+<span class="flex items-center text-primary font-bold text-label-sm">
+<span class="material-symbols-outlined text-sm mr-1">schedule</span>
+                            Urgent
+                        </span>
+</div>
+<p class="text-on-surface-variant font-label-md uppercase tracking-wider">Pengajuan Menunggu</p>
+<h3 class="text-headline-lg font-headline-lg text-tertiary mt-1">24</h3>
+<p class="text-label-sm text-on-surface-variant mt-2">Menunggu persetujuan</p>
+</div>
+<!-- Barang Terlambat -->
+<div class="glass-card p-stack-lg rounded-2xl relative overflow-hidden group hover:-translate-y-1 transition-all duration-300 border-l-4 border-error">
+<div class="absolute -right-4 -top-4 w-24 h-24 bg-error/10 rounded-full blur-2xl group-hover:bg-error/20 transition-colors"></div>
+<div class="flex justify-between items-start mb-4">
+<div class="w-12 h-12 rounded-xl bg-error/10 flex items-center justify-center text-error">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">report</span>
+</div>
+<span class="flex items-center text-error font-bold text-label-sm">
+<span class="material-symbols-outlined text-sm mr-1">priority_high</span>
+                            Atensi
+                        </span>
+</div>
+<p class="text-on-surface-variant font-label-md uppercase tracking-wider">Barang Terlambat</p>
+<h3 class="text-headline-lg font-headline-lg text-error mt-1">08</h3>
+<p class="text-label-sm text-on-surface-variant mt-2">Melebihi batas tempo</p>
+</div>
+</section>
+<!-- Main Dashboard Layout -->
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-gutter">
+<!-- Chart Section -->
+<section class="lg:col-span-2 glass-card rounded-2xl p-stack-lg flex flex-col gap-6">
+<div class="flex justify-between items-center">
+<div>
+<h3 class="font-headline-md text-headline-md text-primary">Ringkasan Aktivitas</h3>
+<p class="text-on-surface-variant">Volume peminjaman bulanan tahun 2024</p>
+</div>
+<select class="bg-surface-container border-none rounded-lg text-label-md focus:ring-primary/20">
+<option>Jan - Jun 2024</option>
+<option>Jul - Des 2024</option>
+</select>
+</div>
+<div class="flex-1 min-h-[300px] flex items-end justify-between gap-2 pt-10">
+<!-- Simulated Chart Bars -->
+<div class="flex-1 group relative">
+<div class="absolute -top-8 left-1/2 -translate-x-1/2 bg-primary text-white text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity">120</div>
+<div class="w-full bg-primary/20 rounded-t-lg h-32 group-hover:bg-primary/40 transition-all"></div>
+<p class="text-center text-label-sm mt-2 text-on-surface-variant">Jan</p>
+</div>
+<div class="flex-1 group relative">
+<div class="absolute -top-8 left-1/2 -translate-x-1/2 bg-primary text-white text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity">150</div>
+<div class="w-full bg-primary/20 rounded-t-lg h-40 group-hover:bg-primary/40 transition-all"></div>
+<p class="text-center text-label-sm mt-2 text-on-surface-variant">Feb</p>
+</div>
+<div class="flex-1 group relative">
+<div class="absolute -top-8 left-1/2 -translate-x-1/2 bg-primary text-white text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity">210</div>
+<div class="w-full bg-primary rounded-t-lg h-64 group-hover:brightness-110 transition-all"></div>
+<p class="text-center text-label-sm mt-2 text-on-surface-variant">Mar</p>
+</div>
+<div class="flex-1 group relative">
+<div class="absolute -top-8 left-1/2 -translate-x-1/2 bg-primary text-white text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity">180</div>
+<div class="w-full bg-primary/20 rounded-t-lg h-48 group-hover:bg-primary/40 transition-all"></div>
+<p class="text-center text-label-sm mt-2 text-on-surface-variant">Apr</p>
+</div>
+<div class="flex-1 group relative">
+<div class="absolute -top-8 left-1/2 -translate-x-1/2 bg-primary text-white text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity">250</div>
+<div class="w-full bg-primary rounded-t-lg h-72 group-hover:brightness-110 transition-all"></div>
+<p class="text-center text-label-sm mt-2 text-on-surface-variant">Mei</p>
+</div>
+<div class="flex-1 group relative">
+<div class="absolute -top-8 left-1/2 -translate-x-1/2 bg-primary text-white text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity">190</div>
+<div class="w-full bg-primary/20 rounded-t-lg h-52 group-hover:bg-primary/40 transition-all"></div>
+<p class="text-center text-label-sm mt-2 text-on-surface-variant">Jun</p>
+</div>
+</div>
+</section>
+<!-- Sidebar Activity -->
+<section class="glass-card rounded-2xl p-stack-lg">
+<h3 class="font-headline-md text-headline-md text-primary mb-6">Pemberitahuan</h3>
+<div class="space-y-6">
+<div class="flex gap-4 p-3 hover:bg-primary/5 rounded-xl transition-all cursor-pointer">
+<div class="w-10 h-10 rounded-full bg-error/10 flex items-center justify-center text-error shrink-0">
+<span class="material-symbols-outlined text-[20px]">priority_high</span>
+</div>
+<div>
+<p class="text-label-md font-bold text-on-surface">Terlambat Pengembalian</p>
+<p class="text-label-sm text-on-surface-variant">Laptop MacBook Pro #002 belum dikembalikan oleh Unit IT.</p>
+<p class="text-[11px] text-primary font-bold mt-1">2 jam yang lalu</p>
+</div>
+</div>
+<div class="flex gap-4 p-3 hover:bg-primary/5 rounded-xl transition-all cursor-pointer">
+<div class="w-10 h-10 rounded-full bg-secondary/10 flex items-center justify-center text-secondary shrink-0">
+<span class="material-symbols-outlined text-[20px]">task_alt</span>
+</div>
+<div>
+<p class="text-label-md font-bold text-on-surface">Pengajuan Disetujui</p>
+<p class="text-label-sm text-on-surface-variant">Kepala Biro menyetujui peminjaman Ruang Meeting R-04.</p>
+<p class="text-[11px] text-primary font-bold mt-1">5 jam yang lalu</p>
+</div>
+</div>
+<div class="flex gap-4 p-3 hover:bg-primary/5 rounded-xl transition-all cursor-pointer">
+<div class="w-10 h-10 rounded-full bg-tertiary/10 flex items-center justify-center text-tertiary shrink-0">
+<span class="material-symbols-outlined text-[20px]">assignment</span>
+</div>
+<div>
+<p class="text-label-md font-bold text-on-surface">Permohonan Baru</p>
+<p class="text-label-sm text-on-surface-variant">Andri Pratama mengajukan peminjaman Kamera DSLR.</p>
+<p class="text-[11px] text-primary font-bold mt-1">Kemarin, 14:00</p>
+</div>
+</div>
+</div>
+<button class="w-full mt-8 py-3 text-primary font-bold text-label-md border-t border-outline-variant hover:bg-primary/5 transition-all">Lihat Semua Aktivitas</button>
+</section>
+<!-- Peminjaman Terbaru Table -->
+<section class="lg:col-span-3 glass-card rounded-2xl overflow-hidden">
+<div class="p-stack-lg border-b border-outline-variant flex justify-between items-center bg-white/40">
+<h3 class="font-headline-md text-headline-md text-primary">Peminjaman Terbaru</h3>
+<button class="text-primary font-bold text-label-md hover:underline transition-all">Lihat Katalog Lengkap</button>
+</div>
+<div class="overflow-x-auto">
+<table class="w-full text-left">
+<thead class="bg-surface-container-low text-on-surface-variant text-label-sm uppercase tracking-wider">
+<tr>
+<th class="px-6 py-4 font-bold">Nama Peminjam</th>
+<th class="px-6 py-4 font-bold">Aset / Barang</th>
+<th class="px-6 py-4 font-bold">Tgl. Pinjam</th>
+<th class="px-6 py-4 font-bold">Tgl. Kembali</th>
+<th class="px-6 py-4 font-bold">Status</th>
+<th class="px-6 py-4 font-bold">Aksi</th>
+</tr>
+</thead>
+<tbody class="divide-y divide-outline-variant">
+<!-- Row 1 -->
+<tr class="hover:bg-white/50 transition-all group">
+<td class="px-6 py-4">
+<div class="flex items-center gap-3">
+<div class="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-xs font-bold text-primary">AP</div>
+<div>
+<p class="font-bold text-on-surface">Andri Pratama</p>
+<p class="text-xs text-on-surface-variant">Biro SDM</p>
+</div>
+</div>
+</td>
+<td class="px-6 py-4">
+<p class="font-medium text-primary">Laptop Dell Latitude 5420</p>
+<p class="text-xs text-on-surface-variant">SN: D0928-AX91</p>
+</td>
+<td class="px-6 py-4 text-on-surface-variant">10 Jun 2026</td>
+<td class="px-6 py-4 text-on-surface-variant">15 Jun 2026</td>
+<td class="px-6 py-4">
+<span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-secondary/10 text-secondary">
+<span class="w-1.5 h-1.5 rounded-full bg-secondary"></span>
+                                            Dipinjam
+                                        </span>
+</td>
+<td class="px-6 py-4">
+<button class="p-2 hover:bg-primary/5 rounded-lg text-primary transition-all">
+<span class="material-symbols-outlined">visibility</span>
+</button>
+</td>
+</tr>
+<!-- Row 2 -->
+<tr class="hover:bg-white/50 transition-all group">
+<td class="px-6 py-4">
+<div class="flex items-center gap-3">
+<div class="w-8 h-8 rounded-full bg-tertiary/10 flex items-center justify-center text-xs font-bold text-tertiary">SR</div>
+<div>
+<p class="font-bold text-on-surface">Siti Rahayu</p>
+<p class="text-xs text-on-surface-variant">Ditjen Pajak</p>
+</div>
+</div>
+</td>
+<td class="px-6 py-4">
+<p class="font-medium text-primary">Proyektor Epson EB-X500</p>
+<p class="text-xs text-on-surface-variant">SN: EPN-9921-X</p>
+</td>
+<td class="px-6 py-4 text-on-surface-variant">12 Jun 2026</td>
+<td class="px-6 py-4 text-on-surface-variant">13 Jun 2026</td>
+<td class="px-6 py-4">
+<span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-tertiary/10 text-tertiary">
+<span class="w-1.5 h-1.5 rounded-full bg-tertiary"></span>
+                                            Menunggu
+                                        </span>
+</td>
+<td class="px-6 py-4">
+<button class="p-2 hover:bg-primary/5 rounded-lg text-primary transition-all">
+<span class="material-symbols-outlined">visibility</span>
+</button>
+</td>
+</tr>
+<!-- Row 3 -->
+<tr class="hover:bg-white/50 transition-all group">
+<td class="px-6 py-4">
+<div class="flex items-center gap-3">
+<div class="w-8 h-8 rounded-full bg-secondary/10 flex items-center justify-center text-xs font-bold text-secondary">BW</div>
+<div>
+<p class="font-bold text-on-surface">Budi Wijaya</p>
+<p class="text-xs text-on-surface-variant">Pusdiklat</p>
+</div>
+</div>
+</td>
+<td class="px-6 py-4">
+<p class="font-medium text-primary">Sound System Portable</p>
+<p class="text-xs text-on-surface-variant">SN: SS-882-PRT</p>
+</td>
+<td class="px-6 py-4 text-on-surface-variant">13 Jun 2026</td>
+<td class="px-6 py-4 text-on-surface-variant">14 Jun 2026</td>
+<td class="px-6 py-4">
+<span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-primary/10 text-primary">
+<span class="w-1.5 h-1.5 rounded-full bg-primary"></span>
+                                            Disetujui
+                                        </span>
+</td>
+<td class="px-6 py-4">
+<button class="p-2 hover:bg-primary/5 rounded-lg text-primary transition-all">
+<span class="material-symbols-outlined">visibility</span>
+</button>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+</div>
+</div>
+<!-- Footer -->
+<footer class="mt-stack-lg border-t border-outline-variant bg-surface-container-low py-stack-md px-margin-desktop">
+<div class="max-w-container-max mx-auto flex flex-col md:flex-row justify-between items-center gap-4">
+<p class="font-label-sm text-label-sm text-on-surface-variant">© 2024 SIPP-BMN - Kementerian Keuangan RI. All Rights Reserved.</p>
+<div class="flex gap-6 text-on-surface-variant font-label-sm">
+<a class="hover:text-primary transition-all" href="#">Kebijakan Privasi</a>
+<a class="hover:text-primary transition-all" href="#">Syarat &amp; Ketentuan</a>
+<a class="hover:text-primary transition-all" href="#">Kontak Kami</a>
+</div>
+</div>
+</footer>
+</main>
+<script>
+        // Realtime Clock Functionality
+        function updateClock() {
+            const now = new Date();
+            const days = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
+            const months = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
+            
+            const dayName = days[now.getDay()];
+            const day = now.getDate();
+            const monthName = months[now.getMonth()];
+            const year = now.getFullYear();
+            const hours = String(now.getHours()).padStart(2, '0');
+            const minutes = String(now.getMinutes()).padStart(2, '0');
+            
+            const clockString = `${dayName}, ${day} ${monthName} ${year}, ${hours}:${minutes} WIB`;
+            const clockElement = document.getElementById('realtime-clock');
+            if (clockElement) clockElement.textContent = clockString;
+        }
+        
+        setInterval(updateClock, 60000); // Update every minute
+        updateClock(); // Initial call
+
+        // Sidebar Toggle Logic
+        let isSidebarCollapsed = false;
+        function toggleSidebar() {
+            const sidebar = document.getElementById('sidebar');
+            const mainContent = document.getElementById('main-content');
+            
+            if (isSidebarCollapsed) {
+                sidebar.classList.remove('w-[80px]', 'collapsed');
+                sidebar.classList.add('w-[280px]');
+                mainContent.classList.remove('ml-[80px]');
+                mainContent.classList.add('ml-[280px]');
+            } else {
+                sidebar.classList.remove('w-[280px]');
+                sidebar.classList.add('w-[80px]', 'collapsed');
+                mainContent.classList.remove('ml-[280px]');
+                mainContent.classList.add('ml-[80px]');
+            }
+            isSidebarCollapsed = !isSidebarCollapsed;
+        }
+
+        // Dropdown Logic (Simple)
+        window.addEventListener('click', function(e) {
+            // Close logic can be added here if needed for more complex interactive menus
+        });
+    </script>
+</body></html>
+
+<!-- Manajemen Peminjaman - SIPP-BMN Admin -->
+<!DOCTYPE html>
+
+<html class="light" lang="id"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Manajemen Peminjaman | SIPP-BMN</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&amp;family=Inter:wght@400;500;600&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                    "surface-container-lowest": "#ffffff",
+                    "error-container": "#ffdad6",
+                    "surface-container-high": "#dce9ff",
+                    "primary-fixed": "#dde1ff",
+                    "on-secondary-container": "#00714d",
+                    "surface-container-low": "#eff4ff",
+                    "secondary-fixed-dim": "#4edea3",
+                    "on-secondary": "#ffffff",
+                    "surface-dim": "#cbdbf5",
+                    "tertiary-fixed": "#d8e2ff",
+                    "inverse-on-surface": "#eaf1ff",
+                    "primary-fixed-dim": "#b8c4ff",
+                    "tertiary-fixed-dim": "#adc6ff",
+                    "on-error-container": "#93000a",
+                    "on-tertiary-fixed-variant": "#004395",
+                    "surface-container": "#e5eeff",
+                    "on-primary": "#ffffff",
+                    "on-primary-fixed-variant": "#173bab",
+                    "surface-container-highest": "#d3e4fe",
+                    "on-background": "#0b1c30",
+                    "on-primary-container": "#a8b8ff",
+                    "error": "#ba1a1a",
+                    "outline": "#757684",
+                    "on-tertiary-fixed": "#001a42",
+                    "background": "#f8f9ff",
+                    "on-error": "#ffffff",
+                    "surface-tint": "#3755c3",
+                    "secondary-container": "#6cf8bb",
+                    "secondary": "#006c49",
+                    "inverse-primary": "#b8c4ff",
+                    "surface-bright": "#f8f9ff",
+                    "surface": "#f8f9ff",
+                    "tertiary": "#003272",
+                    "surface-variant": "#d3e4fe",
+                    "on-secondary-fixed-variant": "#005236",
+                    "on-tertiary-container": "#9cbbff",
+                    "on-secondary-fixed": "#002113",
+                    "primary-container": "#1e40af",
+                    "outline-variant": "#c4c5d5",
+                    "secondary-fixed": "#6ffbbe",
+                    "inverse-surface": "#213145",
+                    "on-surface": "#0b1c30",
+                    "on-surface-variant": "#444653",
+                    "on-primary-fixed": "#001453",
+                    "on-tertiary": "#ffffff",
+                    "tertiary-container": "#00489e",
+                    "primary": "#00288e"
+            },
+            "borderRadius": {
+                    "DEFAULT": "0.25rem",
+                    "lg": "0.5rem",
+                    "xl": "0.75rem",
+                    "full": "9999px"
+            },
+            "spacing": {
+                    "stack-lg": "32px",
+                    "gutter": "24px",
+                    "stack-sm": "8px",
+                    "stack-md": "16px",
+                    "margin-desktop": "40px",
+                    "margin-mobile": "16px",
+                    "container-max": "1280px"
+            },
+            "fontFamily": {
+                    "headline-md": ["Plus Jakarta Sans"],
+                    "label-sm": ["Inter"],
+                    "headline-lg": ["Plus Jakarta Sans"],
+                    "body-lg": ["Inter"],
+                    "label-md": ["Inter"],
+                    "display-lg": ["Plus Jakarta Sans"],
+                    "headline-lg-mobile": ["Plus Jakarta Sans"],
+                    "body-md": ["Inter"]
+            },
+            "fontSize": {
+                    "headline-md": ["24px", {"lineHeight": "1.4", "fontWeight": "600"}],
+                    "label-sm": ["12px", {"lineHeight": "1.2", "fontWeight": "600"}],
+                    "headline-lg": ["32px", {"lineHeight": "1.3", "fontWeight": "700"}],
+                    "body-lg": ["18px", {"lineHeight": "1.6", "fontWeight": "400"}],
+                    "label-md": ["14px", {"lineHeight": "1.4", "letterSpacing": "0.01em", "fontWeight": "500"}],
+                    "display-lg": ["48px", {"lineHeight": "1.2", "letterSpacing": "-0.02em", "fontWeight": "700"}],
+                    "headline-lg-mobile": ["24px", {"lineHeight": "1.3", "fontWeight": "700"}],
+                    "body-md": ["16px", {"lineHeight": "1.6", "fontWeight": "400"}]
+            }
+          },
+        },
+      }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .glass-card {
+            background: rgba(255, 255, 255, 0.8);
+            backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        .sidebar-active {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(12px);
+            border-left: 4px solid #6ffbbe;
+        }
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #f1f1f1;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 10px;
+        }
+    </style>
+</head>
+<body class="bg-background font-body-md text-on-surface overflow-x-hidden">
+<!-- Navigation Shell -->
+<aside class="fixed left-0 top-0 h-screen w-[280px] bg-primary dark:bg-on-surface shadow-xl z-40 hidden md:flex flex-col py-stack-lg">
+<div class="px-6 mb-stack-lg">
+<h1 class="font-headline-md text-headline-md text-white mb-1">SIPP-BMN</h1>
+<p class="text-white/60 font-label-sm text-label-sm">Manajemen Aset Negara</p>
+</div>
+<nav class="flex-grow space-y-1">
+<a class="text-white/70 hover:bg-white/5 px-6 py-4 flex items-center gap-3 transition-all" href="#">
+<span class="material-symbols-outlined" data-icon="dashboard">dashboard</span>
+<span class="font-label-md text-label-md">Dashboard</span>
+</a>
+<a class="text-white/70 hover:bg-white/5 px-6 py-4 flex items-center gap-3 transition-all" href="#">
+<span class="material-symbols-outlined" data-icon="inventory_2">inventory_2</span>
+<span class="font-label-md text-label-md">Katalog Aset</span>
+</a>
+<a class="sidebar-active text-white font-bold px-6 py-4 flex items-center gap-3" href="#">
+<span class="material-symbols-outlined" data-icon="sync_alt">sync_alt</span>
+<span class="font-label-md text-label-md">Peminjaman</span>
+</a>
+<a class="text-white/70 hover:bg-white/5 px-6 py-4 flex items-center gap-3 transition-all" href="#">
+<span class="material-symbols-outlined" data-icon="history">history</span>
+<span class="font-label-md text-label-md">Riwayat</span>
+</a>
+</nav>
+<div class="px-6 pt-stack-lg border-t border-white/10 mt-auto">
+<a class="text-white/70 hover:bg-white/5 px-6 py-4 flex items-center gap-3 transition-all rounded-xl" href="#">
+<span class="material-symbols-outlined" data-icon="logout">logout</span>
+<span class="font-label-md text-label-md">Logout</span>
+</a>
+</div>
+</aside>
+<main class="md:ml-[280px] min-h-screen">
+<!-- Top Nav Bar -->
+<header class="bg-white/80 backdrop-blur-md sticky top-0 z-30 shadow-sm border-b border-white/20 px-margin-desktop py-4 flex justify-between items-center max-w-container-max mx-auto">
+<div class="flex items-center gap-4">
+<button class="md:hidden p-2 text-primary">
+<span class="material-symbols-outlined" data-icon="menu">menu</span>
+</button>
+<h2 class="font-headline-md text-headline-md font-bold text-primary">Manajemen Peminjaman</h2>
+</div>
+<div class="flex items-center gap-6">
+<div class="relative hidden lg:block">
+<input class="pl-10 pr-4 py-2 bg-surface-container-low border border-outline-variant rounded-full text-label-md focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all w-64" placeholder="Cari permohonan..." type="text"/>
+<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant text-[20px]" data-icon="search">search</span>
+</div>
+<div class="flex gap-4">
+<button class="p-2 text-on-surface-variant hover:bg-primary/5 rounded-full transition-all">
+<span class="material-symbols-outlined" data-icon="notifications">notifications</span>
+</button>
+<button class="p-2 text-on-surface-variant hover:bg-primary/5 rounded-full transition-all">
+<span class="material-symbols-outlined" data-icon="settings">settings</span>
+</button>
+<div class="h-10 w-10 rounded-full bg-primary-fixed overflow-hidden border-2 border-white shadow-sm">
+<img alt="User Profile" class="w-full h-full object-cover" data-alt="A professional portrait of a government official with a friendly expression, wearing a formal suit. The lighting is soft and corporate, set against a blurred modern office background with blue and white tones. High-end professional photography style." src="https://lh3.googleusercontent.com/aida-public/AB6AXuDIb17h-bkbILB4Rkakl2XuryAvL1qeWp1jGYEQoxKa_ysKCujORdmEIWgjhUd7-g-LwrBsaTuOOv0GiE8RiU8M2TsiTJnlBXknyKrLq4ebrjLWydqajQbBbfHxrx3pbbBJTXBsTbFS8KwEbOTV5d-3U7CDKZ8ZgV3Li24oKeMv0CFFxHhgHc930LQf0U_1_yT0w9D6Cd-pvYM-TlhD4JukOWGiwL5-R-mn2jTqGnBcJ2zTjPEbcn7VsA"/>
+</div>
+</div>
+</div>
+</header>
+<!-- Page Content -->
+<div class="px-margin-desktop py-stack-lg max-w-container-max mx-auto space-y-gutter">
+<!-- Statistics Bento Grid -->
+<div class="grid grid-cols-1 md:grid-cols-4 gap-gutter">
+<div class="glass-card p-stack-md rounded-xl shadow-sm flex items-center gap-4 border-l-4 border-yellow-500">
+<div class="bg-yellow-50 p-3 rounded-lg">
+<span class="material-symbols-outlined text-yellow-600" data-icon="pending">pending</span>
+</div>
+<div>
+<p class="text-label-sm text-on-surface-variant">Menunggu</p>
+<h4 class="font-headline-md text-headline-md">12</h4>
+</div>
+</div>
+<div class="glass-card p-stack-md rounded-xl shadow-sm flex items-center gap-4 border-l-4 border-blue-500">
+<div class="bg-blue-50 p-3 rounded-lg">
+<span class="material-symbols-outlined text-blue-600" data-icon="schedule">schedule</span>
+</div>
+<div>
+<p class="text-label-sm text-on-surface-variant">Sedang Dipinjam</p>
+<h4 class="font-headline-md text-headline-md">45</h4>
+</div>
+</div>
+<div class="glass-card p-stack-md rounded-xl shadow-sm flex items-center gap-4 border-l-4 border-orange-500">
+<div class="bg-orange-50 p-3 rounded-lg">
+<span class="material-symbols-outlined text-orange-600" data-icon="warning">warning</span>
+</div>
+<div>
+<p class="text-label-sm text-on-surface-variant">Terlambat</p>
+<h4 class="font-headline-md text-headline-md">3</h4>
+</div>
+</div>
+<div class="glass-card p-stack-md rounded-xl shadow-sm flex items-center gap-4 border-l-4 border-secondary">
+<div class="bg-secondary-container/20 p-3 rounded-lg">
+<span class="material-symbols-outlined text-secondary" data-icon="task_alt">task_alt</span>
+</div>
+<div>
+<p class="text-label-sm text-on-surface-variant">Selesai (Hari ini)</p>
+<h4 class="font-headline-md text-headline-md">8</h4>
+</div>
+</div>
+</div>
+<!-- Main Table Section -->
+<div class="glass-card rounded-2xl shadow-sm overflow-hidden border border-outline-variant">
+<div class="p-stack-md border-b border-outline-variant flex flex-col sm:flex-row justify-between items-center gap-4">
+<h3 class="font-headline-md text-headline-md text-primary">Daftar Permohonan Aset</h3>
+<div class="flex gap-2">
+<button class="px-4 py-2 bg-surface-container rounded-lg font-label-md text-on-surface flex items-center gap-2 hover:bg-surface-container-high transition-all">
+<span class="material-symbols-outlined text-[18px]" data-icon="filter_list">filter_list</span> Filter
+                        </button>
+<button class="px-4 py-2 bg-primary text-white rounded-lg font-label-md flex items-center gap-2 hover:bg-primary-container transition-all">
+<span class="material-symbols-outlined text-[18px]" data-icon="download">download</span> Export Report
+                        </button>
+</div>
+</div>
+<div class="overflow-x-auto">
+<table class="w-full text-left border-collapse">
+<thead class="bg-surface-container-low text-on-surface-variant font-label-sm">
+<tr>
+<th class="px-6 py-4">ID REQUEST</th>
+<th class="px-6 py-4">PEMINJAM</th>
+<th class="px-6 py-4">ASET</th>
+<th class="px-6 py-4">TANGGAL PINJAM</th>
+<th class="px-6 py-4">STATUS</th>
+<th class="px-6 py-4 text-right">AKSI</th>
+</tr>
+</thead>
+<tbody class="divide-y divide-outline-variant">
+<!-- Row 1: Menunggu -->
+<tr class="hover:bg-primary/5 transition-colors group cursor-pointer" onclick="openDetail('REQ-2024-081')">
+<td class="px-6 py-4 font-bold text-primary">REQ-2024-081</td>
+<td class="px-6 py-4">
+<div class="flex items-center gap-2">
+<div class="w-8 h-8 rounded-full bg-surface-dim flex items-center justify-center font-bold text-primary text-[12px]">AS</div>
+<div>
+<p class="font-label-md text-on-surface">Aditya Saputra</p>
+<p class="text-[11px] text-on-surface-variant">Biro Hukum &amp; Humas</p>
+</div>
+</div>
+</td>
+<td class="px-6 py-4">Laptop Dell Latitude 5420</td>
+<td class="px-6 py-4">24 Oct - 28 Oct 2024</td>
+<td class="px-6 py-4">
+<span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-yellow-100 text-yellow-700 text-[11px] font-bold">
+<span class="w-1.5 h-1.5 rounded-full bg-yellow-600"></span> MENUNGGU
+                                    </span>
+</td>
+<td class="px-6 py-4 text-right">
+<span class="material-symbols-outlined text-on-surface-variant group-hover:translate-x-1 transition-transform" data-icon="chevron_right">chevron_right</span>
+</td>
+</tr>
+<!-- Row 2: Dipinjam -->
+<tr class="hover:bg-primary/5 transition-colors group cursor-pointer">
+<td class="px-6 py-4 font-bold text-primary">REQ-2024-079</td>
+<td class="px-6 py-4">
+<div class="flex items-center gap-2">
+<div class="w-8 h-8 rounded-full bg-surface-dim flex items-center justify-center font-bold text-primary text-[12px]">RW</div>
+<div>
+<p class="font-label-md text-on-surface">Rina Wijaya</p>
+<p class="text-[11px] text-on-surface-variant">Pusdiklat Keuangan</p>
+</div>
+</div>
+</td>
+<td class="px-6 py-4">Mobil Toyota Avanza B 1234 KEM</td>
+<td class="px-6 py-4">20 Oct - 25 Oct 2024</td>
+<td class="px-6 py-4">
+<span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-blue-100 text-blue-700 text-[11px] font-bold">
+<span class="w-1.5 h-1.5 rounded-full bg-blue-600"></span> DIPINJAM
+                                    </span>
+</td>
+<td class="px-6 py-4 text-right">
+<span class="material-symbols-outlined text-on-surface-variant group-hover:translate-x-1 transition-transform" data-icon="chevron_right">chevron_right</span>
+</td>
+</tr>
+<!-- Row 3: Terlambat -->
+<tr class="hover:bg-primary/5 transition-colors group cursor-pointer">
+<td class="px-6 py-4 font-bold text-primary">REQ-2024-075</td>
+<td class="px-6 py-4">
+<div class="flex items-center gap-2">
+<div class="w-8 h-8 rounded-full bg-surface-dim flex items-center justify-center font-bold text-primary text-[12px]">BP</div>
+<div>
+<p class="font-label-md text-on-surface">Budi Pratama</p>
+<p class="text-[11px] text-on-surface-variant">Sekretariat Jenderal</p>
+</div>
+</div>
+</td>
+<td class="px-6 py-4">Proyektor Epson EB-X400</td>
+<td class="px-6 py-4">15 Oct - 18 Oct 2024</td>
+<td class="px-6 py-4">
+<span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-orange-100 text-orange-700 text-[11px] font-bold animate-pulse">
+<span class="w-1.5 h-1.5 rounded-full bg-orange-600"></span> TERLAMBAT
+                                    </span>
+</td>
+<td class="px-6 py-4 text-right">
+<span class="material-symbols-outlined text-on-surface-variant group-hover:translate-x-1 transition-transform" data-icon="chevron_right">chevron_right</span>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+</div>
+</main>
+<!-- Detail Pane Overlay (Modal/Drawer) -->
+<div class="fixed inset-y-0 right-0 w-full md:w-[600px] bg-white shadow-2xl z-50 transform translate-x-full transition-transform duration-500 ease-in-out border-l border-outline-variant overflow-y-auto" id="detailPane">
+<div class="sticky top-0 bg-white/95 backdrop-blur-md p-6 border-b border-outline-variant flex justify-between items-center z-10">
+<div>
+<h2 class="font-headline-md text-headline-md text-primary">Detail Permohonan</h2>
+<p class="text-label-md text-on-surface-variant" id="requestIdLabel">REQ-2024-081</p>
+</div>
+<button class="p-2 hover:bg-surface-container rounded-full transition-all" onclick="closeDetail()">
+<span class="material-symbols-outlined" data-icon="close">close</span>
+</button>
+</div>
+<div class="p-8 space-y-8">
+<!-- Peminjam Info -->
+<section class="space-y-4">
+<h4 class="font-label-sm text-label-sm uppercase tracking-wider text-on-surface-variant">Informasi Peminjam</h4>
+<div class="flex items-center gap-4 bg-surface-container-low p-4 rounded-xl border border-outline-variant">
+<img alt="Requester" class="w-16 h-16 rounded-full object-cover" data-alt="A detailed portrait of a young Indonesian male civil servant in a crisp white shirt, posing against a clean background with soft cinematic lighting. The image captures a sense of professional integrity and modern government service aesthetic." src="https://lh3.googleusercontent.com/aida-public/AB6AXuCyOXWcwDvDKdrSTggLEmHuslOX_PZRAywyFMo7KfCZkhdcAJ8SRyCAC34-V6Mc0p2APbM0sMvxayCo43wWXUuoKKrf1NsFt5IkHwTNLczZRZ4nPYvP0l2acNl47BZY_waYKqwZCpjURqQkRebHQEKs8uW5FKmllqatkfwMYGrkIY-4xaxCYu3iaQ1agiHjoulCb5hTDpo98nCjQDjh3ly_GnMwMkvPz0pUI5XadcZOLF-3YR8Coqpp3Q"/>
+<div>
+<h5 class="font-bold text-body-lg">Aditya Saputra</h5>
+<p class="text-on-surface-variant">NIP: 199203142015031002</p>
+<p class="text-on-surface-variant">Biro Hukum &amp; Humas</p>
+</div>
+</div>
+</section>
+<!-- Asset & Date -->
+<section class="grid grid-cols-2 gap-4">
+<div class="space-y-2">
+<h4 class="font-label-sm text-label-sm uppercase tracking-wider text-on-surface-variant">Aset yang Diminta</h4>
+<p class="font-bold text-primary">Laptop Dell Latitude 5420</p>
+<p class="text-label-md text-on-surface-variant">Kode BMN: 3.10.01.02.002.451</p>
+</div>
+<div class="space-y-2">
+<h4 class="font-label-sm text-label-sm uppercase tracking-wider text-on-surface-variant">Durasi Peminjaman</h4>
+<p class="font-bold">4 Hari</p>
+<p class="text-label-md text-on-surface-variant">24 - 28 Oktober 2024</p>
+</div>
+</section>
+<!-- Document Preview Section -->
+<section class="space-y-4">
+<h4 class="font-label-sm text-label-sm uppercase tracking-wider text-on-surface-variant">Dokumen Pendukung</h4>
+<div class="relative group aspect-[16/10] bg-surface-container-highest rounded-xl overflow-hidden border border-outline-variant flex items-center justify-center cursor-pointer">
+<div class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-all">
+<button class="bg-white px-4 py-2 rounded-lg font-bold text-primary flex items-center gap-2">
+<span class="material-symbols-outlined" data-icon="visibility">visibility</span> Pratinjau
+                        </button>
+</div>
+<div class="p-8 text-center space-y-2">
+<span class="material-symbols-outlined text-[64px] text-primary/40" data-icon="description">description</span>
+<p class="font-label-md">Surat_Tugas_Pelatihan.pdf</p>
+<p class="text-[12px] text-on-surface-variant">2.4 MB</p>
+</div>
+</div>
+</section>
+<!-- QR Card & Digital Stamp -->
+<section class="grid grid-cols-1 sm:grid-cols-2 gap-gutter">
+<div class="glass-card p-6 rounded-2xl border-2 border-primary/10 flex flex-col items-center justify-center gap-4 bg-primary/5">
+<div class="bg-white p-3 rounded-lg shadow-sm">
+<!-- QR Code Placeholder -->
+<div class="w-32 h-32 bg-on-surface-variant/10 rounded flex items-center justify-center relative overflow-hidden">
+<span class="material-symbols-outlined text-[100px] text-primary/20" data-icon="qr_code_2">qr_code_2</span>
+<div class="absolute inset-0 flex flex-wrap opacity-20">
+<div class="w-1/4 h-1/4 border border-primary"></div>
+<div class="w-1/4 h-1/4 border border-primary"></div>
+<div class="w-1/4 h-1/4 border border-primary"></div>
+<div class="w-1/4 h-1/4 border border-primary"></div>
+</div>
+</div>
+</div>
+<div class="text-center">
+<p class="font-bold text-primary">Validasi Digital</p>
+<p class="text-[10px] text-on-surface-variant">Scan untuk memverifikasi aset</p>
+</div>
+</div>
+<div class="space-y-4">
+<h4 class="font-label-sm text-label-sm uppercase tracking-wider text-on-surface-variant">Otorisasi</h4>
+<div class="border-2 border-dashed border-outline-variant rounded-2xl h-full flex flex-col items-center justify-center p-6 text-on-surface-variant/40 relative">
+<!-- Digital Signature Mockup -->
+<div class="absolute inset-0 flex items-center justify-center pointer-events-none">
+<span class="text-primary/10 font-serif italic text-4xl transform -rotate-12 select-none">Tanda Tangan Digital SIPP-BMN</span>
+</div>
+<span class="material-symbols-outlined text-4xl mb-2" data-icon="draw">draw</span>
+<p class="text-center text-[11px]">Area Tanda Tangan Penanggung Jawab Aset</p>
+</div>
+</div>
+</section>
+<!-- Action Buttons -->
+<div class="flex gap-4 pt-8">
+<button class="flex-1 py-4 bg-error text-white rounded-xl font-bold hover:bg-error/90 transition-all flex items-center justify-center gap-2 shadow-lg shadow-error/20 uppercase tracking-widest text-[14px]">
+<span class="material-symbols-outlined" data-icon="cancel">cancel</span> TOLAK
+                </button>
+<button class="flex-1 py-4 bg-secondary text-white rounded-xl font-bold hover:bg-secondary/90 transition-all flex items-center justify-center gap-2 shadow-lg shadow-secondary/20 uppercase tracking-widest text-[14px]">
+<span class="material-symbols-outlined" data-icon="check_circle">check_circle</span> SETUJUI (ACC)
+                </button>
+</div>
+</div>
+</div>
+<!-- Mobile Bottom Nav -->
+<nav class="md:hidden fixed bottom-0 left-0 w-full bg-white/80 backdrop-blur-md border-t border-outline-variant flex justify-around py-3 z-40">
+<button class="flex flex-col items-center text-on-surface-variant">
+<span class="material-symbols-outlined" data-icon="dashboard">dashboard</span>
+<span class="text-[10px]">Home</span>
+</button>
+<button class="flex flex-col items-center text-primary font-bold">
+<span class="material-symbols-outlined" data-icon="sync_alt" style="font-variation-settings: 'FILL' 1;">sync_alt</span>
+<span class="text-[10px]">Pinjam</span>
+</button>
+<button class="flex flex-col items-center text-on-surface-variant">
+<span class="material-symbols-outlined" data-icon="inventory_2">inventory_2</span>
+<span class="text-[10px]">Katalog</span>
+</button>
+<button class="flex flex-col items-center text-on-surface-variant">
+<span class="material-symbols-outlined" data-icon="account_circle">account_circle</span>
+<span class="text-[10px]">Profil</span>
+</button>
+</nav>
+<!-- Footer -->
+<footer class="md:ml-[280px] bg-surface-container-low border-t border-outline-variant py-stack-md px-margin-desktop">
+<div class="max-w-container-max mx-auto flex flex-col md:flex-row justify-between items-center gap-4">
+<p class="font-label-sm text-label-sm text-on-surface-variant opacity-80">© 2024 SIPP-BMN - Kementerian Keuangan RI. All Rights Reserved.</p>
+<div class="flex gap-6">
+<a class="font-label-sm text-label-sm text-on-surface-variant hover:text-primary transition-colors" href="#">Kebijakan Privasi</a>
+<a class="font-label-sm text-label-sm text-on-surface-variant hover:text-primary transition-colors" href="#">Syarat &amp; Ketentuan</a>
+<a class="font-label-sm text-label-sm text-on-surface-variant hover:text-primary transition-colors" href="#">Kontak Kami</a>
+</div>
+</div>
+</footer>
+<script>
+        function openDetail(id) {
+            const pane = document.getElementById('detailPane');
+            const idLabel = document.getElementById('requestIdLabel');
+            idLabel.innerText = id;
+            pane.classList.remove('translate-x-full');
+            document.body.classList.add('overflow-hidden');
+        }
+
+        function closeDetail() {
+            const pane = document.getElementById('detailPane');
+            pane.classList.add('translate-x-full');
+            document.body.classList.remove('overflow-hidden');
+        }
+
+        // Close on escape key
+        document.addEventListener('keydown', function(event) {
+            if (event.key === "Escape") {
+                closeDetail();
+            }
+        });
+    </script>
+</body></html>
+
+<!-- Scan QR Pengembalian - SIPP-BMN Admin -->
+<!DOCTYPE html>
+
+<html class="light" lang="id"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Scan QR - SIPP-BMN</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&amp;family=Inter:wght@400;500;600&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "surface-container-lowest": "#ffffff",
+                        "error-container": "#ffdad6",
+                        "surface-container-high": "#dce9ff",
+                        "primary-fixed": "#dde1ff",
+                        "on-secondary-container": "#00714d",
+                        "surface-container-low": "#eff4ff",
+                        "secondary-fixed-dim": "#4edea3",
+                        "on-secondary": "#ffffff",
+                        "surface-dim": "#cbdbf5",
+                        "tertiary-fixed": "#d8e2ff",
+                        "inverse-on-surface": "#eaf1ff",
+                        "primary-fixed-dim": "#b8c4ff",
+                        "tertiary-fixed-dim": "#adc6ff",
+                        "on-error-container": "#93000a",
+                        "on-tertiary-fixed-variant": "#004395",
+                        "surface-container": "#e5eeff",
+                        "on-primary": "#ffffff",
+                        "on-primary-fixed-variant": "#173bab",
+                        "surface-container-highest": "#d3e4fe",
+                        "on-background": "#0b1c30",
+                        "on-primary-container": "#a8b8ff",
+                        "error": "#ba1a1a",
+                        "outline": "#757684",
+                        "on-tertiary-fixed": "#001a42",
+                        "background": "#f8f9ff",
+                        "on-error": "#ffffff",
+                        "surface-tint": "#3755c3",
+                        "secondary-container": "#6cf8bb",
+                        "secondary": "#006c49",
+                        "inverse-primary": "#b8c4ff",
+                        "surface-bright": "#f8f9ff",
+                        "surface": "#f8f9ff",
+                        "tertiary": "#003272",
+                        "surface-variant": "#d3e4fe",
+                        "on-secondary-fixed-variant": "#005236",
+                        "on-tertiary-container": "#9cbbff",
+                        "on-secondary-fixed": "#002113",
+                        "primary-container": "#1e40af",
+                        "outline-variant": "#c4c5d5",
+                        "secondary-fixed": "#6ffbbe",
+                        "inverse-surface": "#213145",
+                        "on-surface": "#0b1c30",
+                        "on-surface-variant": "#444653",
+                        "on-primary-fixed": "#001453",
+                        "on-tertiary": "#ffffff",
+                        "tertiary-container": "#00489e",
+                        "primary": "#00288e"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                        "stack-lg": "32px",
+                        "gutter": "24px",
+                        "stack-sm": "8px",
+                        "stack-md": "16px",
+                        "margin-desktop": "40px",
+                        "margin-mobile": "16px",
+                        "container-max": "1280px"
+                    },
+                    "fontFamily": {
+                        "headline-md": ["Plus Jakarta Sans"],
+                        "label-sm": ["Inter"],
+                        "headline-lg": ["Plus Jakarta Sans"],
+                        "body-lg": ["Inter"],
+                        "label-md": ["Inter"],
+                        "display-lg": ["Plus Jakarta Sans"],
+                        "headline-lg-mobile": ["Plus Jakarta Sans"],
+                        "body-md": ["Inter"]
+                    },
+                    "fontSize": {
+                        "headline-md": ["24px", {"lineHeight": "1.4", "fontWeight": "600"}],
+                        "label-sm": ["12px", {"lineHeight": "1.2", "fontWeight": "600"}],
+                        "headline-lg": ["32px", {"lineHeight": "1.3", "fontWeight": "700"}],
+                        "body-lg": ["18px", {"lineHeight": "1.6", "fontWeight": "400"}],
+                        "label-md": ["14px", {"lineHeight": "1.4", "letterSpacing": "0.01em", "fontWeight": "500"}],
+                        "display-lg": ["48px", {"lineHeight": "1.2", "letterSpacing": "-0.02em", "fontWeight": "700"}],
+                        "headline-lg-mobile": ["24px", {"lineHeight": "1.3", "fontWeight": "700"}],
+                        "body-md": ["16px", {"lineHeight": "1.6", "fontWeight": "400"}]
+                    }
+                },
+            },
+        }
+    </script>
+<style>
+        .glass-card {
+            background: rgba(255, 255, 255, 0.8);
+            backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            box-shadow: 0 4px 20px -4px rgba(0, 0, 0, 0.04);
+        }
+        
+        .scanner-frame {
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .scan-line {
+            position: absolute;
+            width: 100%;
+            height: 2px;
+            background: #3755c3;
+            box-shadow: 0 0 15px 2px #3755c3;
+            animation: scan 2.5s infinite ease-in-out;
+            z-index: 10;
+        }
+
+        @keyframes scan {
+            0% { top: 0%; }
+            50% { top: 100%; }
+            100% { top: 0%; }
+        }
+
+        .corner-border {
+            position: absolute;
+            width: 40px;
+            height: 40px;
+            border-color: #3755c3;
+            border-width: 4px;
+            z-index: 20;
+        }
+
+        .corner-tl { top: 0; left: 0; border-right: 0; border-bottom: 0; }
+        .corner-tr { top: 0; right: 0; border-left: 0; border-bottom: 0; }
+        .corner-bl { bottom: 0; left: 0; border-right: 0; border-top: 0; }
+        .corner-br { bottom: 0; right: 0; border-left: 0; border-top: 0; }
+
+        .slide-up {
+            transform: translateY(100%);
+            transition: transform 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        .slide-up.active {
+            transform: translateY(0%);
+        }
+
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+    </style>
+</head>
+<body class="bg-background text-on-background min-h-screen flex flex-col font-body-md overflow-x-hidden">
+<!-- Top Navigation Bar -->
+<header class="sticky top-0 w-full bg-white/80 dark:bg-surface-container/80 backdrop-blur-md shadow-sm border-b border-white/20 z-50">
+<div class="flex items-center justify-between px-margin-desktop w-full h-16 max-w-container-max mx-auto">
+<div class="flex items-center gap-4">
+<a class="font-headline-md text-headline-md font-bold text-primary flex items-center gap-2" href="#">
+<span class="material-symbols-outlined text-primary" style="font-variation-settings: 'FILL' 1;">qr_code_scanner</span>
+                    SIPP-BMN
+                </a>
+</div>
+<div class="flex items-center gap-stack-md">
+<button class="p-2 rounded-full hover:bg-primary/5 transition-colors text-on-surface-variant">
+<span class="material-symbols-outlined">notifications</span>
+</button>
+<button class="p-2 rounded-full hover:bg-primary/5 transition-colors text-on-surface-variant">
+<span class="material-symbols-outlined">help</span>
+</button>
+<div class="w-10 h-10 rounded-full bg-primary-container flex items-center justify-center text-white font-bold overflow-hidden border-2 border-white shadow-sm">
+<img alt="User profile avatar" data-alt="A professional close-up portrait of a male government official in a formal Indonesian batik shirt. The background is a blurred office environment with institutional colors. The lighting is soft and flattering, emphasizing a trustworthy and efficient personality, following the modern corporate aesthetic of the SIPP-BMN platform." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBPGtPWDARzi2gGHqvpjQSNXBwrjoiFVUL7ojg5Cvb0LFX9l5hcOoREhjMHf5YtRlk2s1xKu9QMvilv4JmhNYdx5zQNiCG3H145er2xwyi6gAsBBn3kKFdgjjOP4nDDaIyucVZ50S2kTbSLXwtcWnLUfTkWlxh1AmYsc-V5cHohhiHlVCVvDOt9NRPjwVXKPr36ySts5raEczKFUXuiaoTZl2REYhNgsQ7pqD0Xg-bRk1Bhk8dLA5ejoQ"/>
+</div>
+</div>
+</div>
+</header>
+<main class="flex-1 flex flex-col items-center justify-center relative p-margin-mobile md:p-margin-desktop">
+<!-- Floating Animated Background (Subtle) -->
+<div class="absolute inset-0 -z-10 opacity-30">
+
+</div>
+<!-- Scanner Section -->
+<div class="w-full max-w-lg flex flex-col items-center gap-stack-lg z-10">
+<div class="text-center space-y-2 mb-4">
+<h1 class="font-headline-lg text-headline-lg text-primary">Pindai QR Kode</h1>
+<p class="font-body-md text-on-surface-variant max-w-xs mx-auto">Arahkan kamera ke QR Kode aset untuk memproses pengembalian barang secara otomatis.</p>
+</div>
+<!-- Viewport -->
+<div class="relative w-full aspect-square md:w-[400px] md:h-[400px] glass-card rounded-3xl p-4 border-2 border-primary/20">
+<div class="scanner-frame w-full h-full rounded-2xl bg-black/90 overflow-hidden relative group">
+<!-- Fake Camera Feed Placeholder -->
+<img alt="Camera View" class="w-full h-full object-cover opacity-60 mix-blend-screen" data-alt="A high-quality close-up of a sophisticated digital QR code being scanned by a camera lens. The environment is a modern, slightly dimmed office with deep blue ambient lighting. Glowing blue digital elements and scanning overlays are visible, reflecting a premium SaaS security and asset management experience for government institutions." src="https://lh3.googleusercontent.com/aida-public/AB6AXuAym_ocU2eh126IFQANN-1yTIxnpRYAivhJ_RvfO_hlaAAax9MjttYA33XK0sk3e2LWE3yL3nDChTGRi60aX2iDKIFIvJTfW3wfkD98XAiq2G7fpKX0LloqEZwPFNNoPLG-5WRcRvoGbU81UHwd14WXKXABUhvqYKLC9wxo07o_HxG9Arps9YLZUDjPO5HEIhOfQtsrMU69y8Sh4dFxs_F2vC8WPI9gM9_NGi6lJNE7lEReoQOUKfsExg"/>
+<div class="scan-line"></div>
+<!-- Viewport Corners -->
+<div class="corner-border corner-tl rounded-tl-xl"></div>
+<div class="corner-border corner-tr rounded-tr-xl"></div>
+<div class="corner-border corner-bl rounded-bl-xl"></div>
+<div class="corner-border corner-br rounded-br-xl"></div>
+<!-- Guidance Overlay -->
+<div class="absolute inset-0 flex items-center justify-center">
+<div class="w-64 h-64 border-2 border-white/30 rounded-xl border-dashed"></div>
+</div>
+</div>
+</div>
+<!-- Interaction Buttons -->
+<div class="flex gap-stack-md mt-4">
+<button class="flex items-center gap-2 px-stack-lg py-stack-md bg-primary text-white rounded-full font-bold shadow-xl hover:scale-105 active:scale-95 transition-all" id="simulateScan">
+<span class="material-symbols-outlined">flash_on</span>
+                    Simulasi Pindai
+                </button>
+<button class="flex items-center justify-center w-12 h-12 bg-white text-primary rounded-full shadow-lg border border-primary/10 hover:bg-primary/5 transition-colors">
+<span class="material-symbols-outlined">flip_camera_ios</span>
+</button>
+</div>
+</div>
+<!-- Result Detail Card (Slide In) -->
+<div class="slide-up fixed bottom-0 left-0 right-0 z-40 px-margin-mobile pb-12 pointer-events-none" id="resultCard">
+<div class="max-w-2xl mx-auto glass-card rounded-t-3xl p-stack-lg pointer-events-auto border-t-4 border-secondary shadow-2xl">
+<div class="w-12 h-1.5 bg-outline-variant/30 rounded-full mx-auto mb-stack-lg"></div>
+<div class="flex items-start justify-between mb-stack-lg">
+<div class="flex gap-stack-md">
+<div class="w-14 h-14 bg-primary/10 rounded-xl flex items-center justify-center text-primary">
+<span class="material-symbols-outlined text-[32px]" style="font-variation-settings: 'FILL' 1;">laptop_mac</span>
+</div>
+<div>
+<span class="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-secondary/10 text-secondary font-label-sm text-label-sm mb-1">
+<span class="w-1.5 h-1.5 rounded-full bg-secondary"></span>
+                                Aset Teridentifikasi
+                            </span>
+<h2 class="font-headline-md text-headline-md text-on-surface">MacBook Pro 14" M3</h2>
+<p class="font-body-md text-on-surface-variant">Kode Aset: BMN-2024-LAP-0882</p>
+</div>
+</div>
+<button class="text-on-surface-variant hover:text-error transition-colors" onclick="hideResult()">
+<span class="material-symbols-outlined">close</span>
+</button>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-2 gap-stack-md mb-stack-lg bg-surface-container-low p-4 rounded-2xl">
+<div class="space-y-1">
+<p class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider">Peminjam Saat Ini</p>
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-primary text-sm">person</span>
+<p class="font-body-md font-semibold text-on-surface">Dian Sastro Wardoyo</p>
+</div>
+</div>
+<div class="space-y-1">
+<p class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider">Unit Kerja</p>
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-primary text-sm">corporate_fare</span>
+<p class="font-body-md text-on-surface">Pusat Data dan Informasi</p>
+</div>
+</div>
+</div>
+<div class="flex flex-col gap-3">
+<button class="w-full py-4 bg-secondary hover:bg-on-secondary-container text-white rounded-2xl font-bold font-headline-md text-headline-md transition-all shadow-lg flex items-center justify-center gap-2">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">check_circle</span>
+                        Konfirmasi Barang Dikembalikan
+                    </button>
+<button class="w-full py-3 bg-white border border-outline-variant text-on-surface-variant rounded-2xl font-semibold hover:bg-surface-variant/20 transition-all">
+                        Laporkan Kerusakan / Kendala
+                    </button>
+</div>
+</div>
+</div>
+</main>
+<!-- Footer -->
+<footer class="w-full py-stack-lg px-margin-desktop bg-surface-container-low border-t border-outline-variant/30 mt-auto">
+<div class="max-w-container-max mx-auto flex flex-col md:flex-row justify-between items-center gap-stack-md">
+<div class="flex flex-col items-center md:items-start">
+<span class="font-headline-sm text-headline-sm font-bold text-primary">SIPP-BMN</span>
+<p class="font-label-sm text-label-sm text-on-surface-variant mt-1 text-center md:text-left">© 2024 SIPP-BMN Kementerian Keuangan RI. Seluruh Hak Cipta Dilindungi.</p>
+</div>
+<nav class="flex flex-wrap justify-center gap-gutter">
+<a class="font-label-sm text-label-sm text-on-surface-variant hover:text-primary transition-colors" href="#">Kebijakan Privasi</a>
+<a class="font-label-sm text-label-sm text-on-surface-variant hover:text-primary transition-colors" href="#">Syarat &amp; Ketentuan</a>
+<a class="font-label-sm text-label-sm text-on-surface-variant hover:text-primary transition-colors" href="#">Kontak Kami</a>
+</nav>
+</div>
+</footer>
+<script>
+        const simulateBtn = document.getElementById('simulateScan');
+        const resultCard = document.getElementById('resultCard');
+
+        simulateBtn.addEventListener('click', () => {
+            // Simulate scanning animation logic
+            simulateBtn.disabled = true;
+            simulateBtn.innerHTML = `
+                <span class="material-symbols-outlined animate-spin">sync</span>
+                Memproses...
+            `;
+            
+            setTimeout(() => {
+                showResult();
+                simulateBtn.disabled = false;
+                simulateBtn.innerHTML = `
+                    <span class="material-symbols-outlined">flash_on</span>
+                    Simulasi Pindai
+                `;
+            }, 1200);
+        });
+
+        function showResult() {
+            resultCard.classList.add('active');
+        }
+
+        function hideResult() {
+            resultCard.classList.remove('active');
+        }
+
+        // Mock interaction: Close card when clicking outside
+        document.addEventListener('click', (e) => {
+            if (resultCard.classList.contains('active') && !resultCard.contains(e.target) && !simulateBtn.contains(e.target)) {
+                hideResult();
+            }
+        });
+    </script>
+</body></html>
+
+<!-- Dashboard Saya - SIPP-BMN -->
+<!DOCTYPE html>
+
+<html class="light" lang="id"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>SIPP-BMN | Dashboard Peminjam</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&amp;family=Inter:wght@400;500;600&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                    "surface-container-lowest": "#ffffff",
+                    "error-container": "#ffdad6",
+                    "surface-container-high": "#dce9ff",
+                    "primary-fixed": "#dde1ff",
+                    "on-secondary-container": "#00714d",
+                    "surface-container-low": "#eff4ff",
+                    "secondary-fixed-dim": "#4edea3",
+                    "on-secondary": "#ffffff",
+                    "surface-dim": "#cbdbf5",
+                    "tertiary-fixed": "#d8e2ff",
+                    "inverse-on-surface": "#eaf1ff",
+                    "primary-fixed-dim": "#b8c4ff",
+                    "tertiary-fixed-dim": "#adc6ff",
+                    "on-error-container": "#93000a",
+                    "on-tertiary-fixed-variant": "#004395",
+                    "surface-container": "#e5eeff",
+                    "on-primary": "#ffffff",
+                    "on-primary-fixed-variant": "#173bab",
+                    "surface-container-highest": "#d3e4fe",
+                    "on-background": "#0b1c30",
+                    "on-primary-container": "#a8b8ff",
+                    "error": "#ba1a1a",
+                    "outline": "#757684",
+                    "on-tertiary-fixed": "#001a42",
+                    "background": "#f8f9ff",
+                    "on-error": "#ffffff",
+                    "surface-tint": "#3755c3",
+                    "secondary-container": "#6cf8bb",
+                    "secondary": "#006c49",
+                    "inverse-primary": "#b8c4ff",
+                    "surface-bright": "#f8f9ff",
+                    "surface": "#f8f9ff",
+                    "tertiary": "#003272",
+                    "surface-variant": "#d3e4fe",
+                    "on-secondary-fixed-variant": "#005236",
+                    "on-tertiary-container": "#9cbbff",
+                    "on-secondary-fixed": "#002113",
+                    "primary-container": "#1e40af",
+                    "outline-variant": "#c4c5d5",
+                    "secondary-fixed": "#6ffbbe",
+                    "inverse-surface": "#213145",
+                    "on-surface": "#0b1c30",
+                    "on-surface-variant": "#444653",
+                    "on-primary-fixed": "#001453",
+                    "on-tertiary": "#ffffff",
+                    "tertiary-container": "#00489e",
+                    "primary": "#00288e"
+            },
+            "borderRadius": {
+                    "DEFAULT": "0.25rem",
+                    "lg": "0.5rem",
+                    "xl": "0.75rem",
+                    "2xl": "1rem",
+                    "full": "9999px"
+            },
+            "spacing": {
+                    "stack-lg": "32px",
+                    "gutter": "24px",
+                    "stack-sm": "8px",
+                    "stack-md": "16px",
+                    "margin-desktop": "40px",
+                    "margin-mobile": "16px",
+                    "container-max": "1280px"
+            },
+            "fontFamily": {
+                    "headline-md": ["Plus Jakarta Sans"],
+                    "label-sm": ["Inter"],
+                    "headline-lg": ["Plus Jakarta Sans"],
+                    "body-lg": ["Inter"],
+                    "label-md": ["Inter"],
+                    "display-lg": ["Plus Jakarta Sans"],
+                    "headline-lg-mobile": ["Plus Jakarta Sans"],
+                    "body-md": ["Inter"]
+            },
+            "fontSize": {
+                    "headline-md": ["24px", {"lineHeight": "1.4", "fontWeight": "600"}],
+                    "label-sm": ["12px", {"lineHeight": "1.2", "fontWeight": "600"}],
+                    "headline-lg": ["32px", {"lineHeight": "1.3", "fontWeight": "700"}],
+                    "body-lg": ["18px", {"lineHeight": "1.6", "fontWeight": "400"}],
+                    "label-md": ["14px", {"lineHeight": "1.4", "letterSpacing": "0.01em", "fontWeight": "500"}],
+                    "display-lg": ["48px", {"lineHeight": "1.2", "letterSpacing": "-0.02em", "fontWeight": "700"}],
+                    "headline-lg-mobile": ["24px", {"lineHeight": "1.3", "fontWeight": "700"}],
+                    "body-md": ["16px", {"lineHeight": "1.6", "fontWeight": "400"}]
+            }
+          },
+        },
+      }
+    </script>
+<style>
+        .glass-card {
+            background: rgba(255, 255, 255, 0.8);
+            backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            box-shadow: 0 4px 20px -2px rgba(11, 28, 48, 0.04);
+        }
+        .sidebar-item-active {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(12px);
+            border-left: 4px solid white;
+        }
+        .stat-card-gradient-1 { background: linear-gradient(135deg, #00288e 0%, #1e40af 100%); }
+        .stat-card-gradient-2 { background: linear-gradient(135deg, #00489e 0%, #003272 100%); }
+        .stat-card-gradient-3 { background: linear-gradient(135deg, #006c49 0%, #4edea3 100%); }
+        
+        body {
+            background-color: #f8f9ff;
+            background-image: radial-gradient(at 0% 0%, hsla(217, 100%, 95%, 1) 0, transparent 50%), 
+                              radial-gradient(at 100% 100%, hsla(210, 100%, 90%, 1) 0, transparent 50%);
+        }
+    </style>
+</head>
+<body class="font-body-md text-on-surface">
+<!-- SideNavBar (Desktop) -->
+<aside class="fixed left-0 top-0 h-screen w-[280px] bg-primary flex flex-col py-stack-lg hidden md:flex z-50">
+<div class="px-8 mb-12">
+<h1 class="font-headline-md text-headline-md font-extrabold text-white">SIPP-BMN</h1>
+<p class="font-label-md text-label-md text-white/70">Manajemen Aset Negara</p>
+</div>
+<nav class="flex-1 px-4 space-y-2">
+<a class="sidebar-item-active flex items-center gap-4 px-4 py-3 rounded-r-xl text-white transition-all" href="#">
+<span class="material-symbols-outlined">dashboard</span>
+<span class="font-label-md">Beranda</span>
+</a>
+<a class="flex items-center gap-4 px-4 py-3 rounded-r-xl text-on-primary/70 hover:bg-white/5 transition-all" href="#">
+<span class="material-symbols-outlined">inventory_2</span>
+<span class="font-label-md">Daftar Aset</span>
+</a>
+<a class="flex items-center gap-4 px-4 py-3 rounded-r-xl text-on-primary/70 hover:bg-white/5 transition-all" href="#">
+<span class="material-symbols-outlined">handshake</span>
+<span class="font-label-md">Peminjaman</span>
+</a>
+<a class="flex items-center gap-4 px-4 py-3 rounded-r-xl text-on-primary/70 hover:bg-white/5 transition-all" href="#">
+<span class="material-symbols-outlined">analytics</span>
+<span class="font-label-md">Laporan</span>
+</a>
+<a class="flex items-center gap-4 px-4 py-3 rounded-r-xl text-on-primary/70 hover:bg-white/5 transition-all" href="#">
+<span class="material-symbols-outlined">settings</span>
+<span class="font-label-md">Pengaturan</span>
+</a>
+</nav>
+<div class="px-4 mt-auto">
+<button class="flex items-center gap-4 w-full px-4 py-3 rounded-xl text-on-primary/70 hover:bg-white/5 transition-all">
+<span class="material-symbols-outlined">logout</span>
+<span class="font-label-md">Keluar</span>
+</button>
+</div>
+</aside>
+<!-- Main Content -->
+<main class="md:ml-[280px] min-h-screen flex flex-col">
+<!-- TopNavBar -->
+<header class="sticky top-0 w-full h-16 bg-white/80 backdrop-blur-md border-b border-white/20 flex items-center justify-between px-margin-mobile md:px-margin-desktop z-40">
+<div class="flex items-center gap-4">
+<button class="md:hidden text-primary">
+<span class="material-symbols-outlined">menu</span>
+</button>
+<div class="relative hidden sm:block">
+<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-outline">search</span>
+<input class="pl-10 pr-4 py-2 bg-surface-container-low border-none rounded-full w-64 text-label-md focus:ring-2 focus:ring-primary/20" placeholder="Cari layanan atau aset..." type="text"/>
+</div>
+</div>
+<div class="flex items-center gap-4">
+<button class="w-10 h-10 flex items-center justify-center rounded-full text-on-surface-variant hover:bg-primary/5 transition-colors">
+<span class="material-symbols-outlined">notifications</span>
+</button>
+<button class="w-10 h-10 flex items-center justify-center rounded-full text-on-surface-variant hover:bg-primary/5 transition-colors">
+<span class="material-symbols-outlined">help</span>
+</button>
+<div class="h-8 w-[1px] bg-outline-variant/30 mx-1"></div>
+<div class="flex items-center gap-3">
+<div class="text-right hidden sm:block">
+<p class="font-label-md text-on-surface font-bold">Adi Wijaya</p>
+<p class="text-[10px] text-outline uppercase tracking-wider">Peminjam</p>
+</div>
+<img alt="Profil User" class="w-9 h-9 rounded-full object-cover border-2 border-primary/10" data-alt="Professional headshot of a young Indonesian man wearing a clean white shirt, smiling warmly against a blurred office background. The lighting is bright and natural, reflecting a clean and modern corporate aesthetic with soft shadows and high-key color grading consistent with a premium SaaS interface." src="https://lh3.googleusercontent.com/aida-public/AB6AXuD3pV6mtXa8Z6536tLho4HdxSzcBS8GHvDvaWPQ0x2gN9WjnF9twB4MeF2TW1FNSSeCckq6iSENpPzHCN8SYYcmEP_ZTuyV7QGaH8M-BvtyUuDI7uCdsY3QuykEnXUhfYiPq_pioZUdUJHogJUaVQ2uVkHTTk1e7_pTzJJSppeZO5T-J6PJD_eQEgVPWfhNPmhkRZQj0lPcc1BizwuRn19YrGpWNft6cdduS69LRkodnKQX71tDo3m3iw"/>
+</div>
+</div>
+</header>
+<!-- Canvas -->
+<div class="flex-1 p-margin-mobile md:p-margin-desktop space-y-stack-lg max-w-container-max mx-auto w-full">
+<!-- Welcome Banner -->
+<section class="relative overflow-hidden rounded-2xl bg-primary-container p-8 md:p-12 text-white">
+<div class="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
+<div class="max-w-xl">
+<h2 class="font-headline-lg text-headline-lg md:text-display-lg mb-2">Halo, Adi Wijaya!</h2>
+<p class="text-on-primary-container font-body-md opacity-90">Selamat datang di dashboard SIPP-BMN. Kelola peminjaman aset negara Anda dengan lebih mudah, transparan, dan terintegrasi.</p>
+<div class="mt-8 flex flex-wrap gap-4">
+<button class="bg-white text-primary px-6 py-3 rounded-xl font-bold flex items-center gap-2 hover:scale-[1.02] transition-transform">
+<span class="material-symbols-outlined">add_circle</span>
+                                Ajukan Pinjaman Baru
+                            </button>
+<button class="bg-primary-container border border-white/30 text-white px-6 py-3 rounded-xl font-bold hover:bg-white/10 transition-colors">
+                                Lihat Panduan
+                            </button>
+</div>
+</div>
+<div class="hidden lg:block">
+<span class="material-symbols-outlined text-[160px] opacity-10 select-none" style="font-variation-settings: 'FILL' 1;">account_balance</span>
+</div>
+</div>
+<!-- Decorative background elements -->
+<div class="absolute top-0 right-0 -translate-y-1/2 translate-x-1/4 w-96 h-96 bg-white/5 rounded-full blur-3xl"></div>
+<div class="absolute bottom-0 left-0 translate-y-1/2 -translate-x-1/4 w-64 h-64 bg-secondary-container/10 rounded-full blur-2xl"></div>
+</section>
+<!-- Stats Grid -->
+<section class="grid grid-cols-1 md:grid-cols-3 gap-gutter">
+<div class="stat-card-gradient-1 rounded-2xl p-stack-md text-white flex flex-col justify-between min-h-[160px] hover:-translate-y-1 transition-transform cursor-pointer shadow-lg">
+<div class="flex justify-between items-start">
+<div class="w-12 h-12 bg-white/10 rounded-xl flex items-center justify-center backdrop-blur-sm">
+<span class="material-symbols-outlined">pending_actions</span>
+</div>
+<span class="material-symbols-outlined opacity-30">trending_up</span>
+</div>
+<div>
+<p class="text-white/70 font-label-md">Peminjaman Aktif</p>
+<h3 class="font-headline-lg text-headline-lg">04 <span class="text-sm font-normal opacity-60">Aset</span></h3>
+</div>
+</div>
+<div class="stat-card-gradient-2 rounded-2xl p-stack-md text-white flex flex-col justify-between min-h-[160px] hover:-translate-y-1 transition-transform cursor-pointer shadow-lg">
+<div class="flex justify-between items-start">
+<div class="w-12 h-12 bg-white/10 rounded-xl flex items-center justify-center backdrop-blur-sm">
+<span class="material-symbols-outlined">history</span>
+</div>
+<span class="material-symbols-outlined opacity-30">done_all</span>
+</div>
+<div>
+<p class="text-white/70 font-label-md">Total Riwayat</p>
+<h3 class="font-headline-lg text-headline-lg">28 <span class="text-sm font-normal opacity-60">Selesai</span></h3>
+</div>
+</div>
+<div class="stat-card-gradient-3 rounded-2xl p-stack-md text-white flex flex-col justify-between min-h-[160px] hover:-translate-y-1 transition-transform cursor-pointer shadow-lg">
+<div class="flex justify-between items-start">
+<div class="w-12 h-12 bg-white/10 rounded-xl flex items-center justify-center backdrop-blur-sm">
+<span class="material-symbols-outlined">verified</span>
+</div>
+<div class="bg-white/20 px-2 py-1 rounded-lg text-[10px] font-bold">STABIL</div>
+</div>
+<div>
+<p class="text-white/70 font-label-md">Status Terkini</p>
+<h3 class="font-headline-lg text-headline-lg">Terverifikasi</h3>
+</div>
+</div>
+</section>
+<!-- Quick Action Cards & List -->
+<section class="grid grid-cols-1 lg:grid-cols-12 gap-gutter">
+<!-- Action Cards -->
+<div class="lg:col-span-4 space-y-gutter">
+<div class="glass-card rounded-2xl p-6 group hover:border-primary/40 transition-all cursor-pointer">
+<div class="flex items-center gap-4 mb-4">
+<div class="w-14 h-14 bg-primary/5 text-primary rounded-2xl flex items-center justify-center group-hover:bg-primary group-hover:text-white transition-colors">
+<span class="material-symbols-outlined text-3xl">search_insights</span>
+</div>
+<div>
+<h4 class="font-bold text-on-surface">Cari Aset</h4>
+<p class="text-sm text-outline">Eksplorasi katalog barang milik negara</p>
+</div>
+</div>
+<div class="flex items-center justify-between mt-6 pt-4 border-t border-outline-variant/20">
+<span class="text-primary text-sm font-bold">Buka Katalog</span>
+<span class="material-symbols-outlined text-primary group-hover:translate-x-1 transition-transform">arrow_forward</span>
+</div>
+</div>
+<div class="glass-card rounded-2xl p-6 group hover:border-secondary/40 transition-all cursor-pointer">
+<div class="flex items-center gap-4 mb-4">
+<div class="w-14 h-14 bg-secondary/5 text-secondary rounded-2xl flex items-center justify-center group-hover:bg-secondary group-hover:text-white transition-colors">
+<span class="material-symbols-outlined text-3xl">assignment_add</span>
+</div>
+<div>
+<h4 class="font-bold text-on-surface">Ajukan Pinjam</h4>
+<p class="text-sm text-outline">Formulir permohonan peminjaman baru</p>
+</div>
+</div>
+<div class="flex items-center justify-between mt-6 pt-4 border-t border-outline-variant/20">
+<span class="text-secondary text-sm font-bold">Mulai Pengajuan</span>
+<span class="material-symbols-outlined text-secondary group-hover:translate-x-1 transition-transform">arrow_forward</span>
+</div>
+</div>
+</div>
+<!-- Recent Activity / Asset List -->
+<div class="lg:col-span-8">
+<div class="glass-card rounded-2xl p-6 h-full flex flex-col">
+<div class="flex items-center justify-between mb-6">
+<h4 class="font-bold text-on-surface text-lg">Peminjaman Terbaru</h4>
+<a class="text-primary text-sm font-bold hover:underline" href="#">Lihat Semua</a>
+</div>
+<div class="space-y-3 flex-1">
+<!-- List Item 1 -->
+<div class="flex items-center justify-between p-4 rounded-xl bg-white border border-outline-variant/20 hover:shadow-md transition-shadow group cursor-pointer">
+<div class="flex items-center gap-4">
+<div class="w-12 h-12 bg-surface-container-high rounded-lg flex items-center justify-center overflow-hidden">
+<img alt="Aset Laptop" class="w-full h-full object-cover" data-alt="A high-quality professional laptop resting on a clean office desk in a bright environment. The image uses soft studio lighting and focuses on the sleek metallic finish of the device, conveying a sense of premium government equipment and modern workplace productivity." src="https://lh3.googleusercontent.com/aida-public/AB6AXuAy2tZyWvzRBs0Db7FtiV4d5_bPmxKX6OPURukaDsjmwQULfSxEcabL7d7kq5Y1tSJT6DEA1y230edEHjvZAqplqI3mqo4bZhQ38Tehtb2VBMUs9EaPZyJEIwCVB0qj1AWW8q1GJBiFtwjs9_ncMDQCy3dqEPbhgNY1qVYbiv1d7DXct7tY6eceDO7iljEOyAf32zMdc1QIzstRBg9_EGyT0TfAjgcaZQnVJYIVYTc1Dg_yHlam66YuPw"/>
+</div>
+<div>
+<p class="font-bold text-on-surface">Laptop Dell Latitude 7420</p>
+<p class="text-xs text-outline">ID: BMN-2023-0042 • 12 Jan 2024</p>
+</div>
+</div>
+<div class="flex items-center gap-4">
+<span class="flex items-center gap-1.5 px-3 py-1 rounded-full bg-secondary/10 text-secondary text-xs font-bold">
+<span class="w-1.5 h-1.5 rounded-full bg-secondary"></span>
+                                        Disetujui
+                                    </span>
+<span class="material-symbols-outlined text-outline group-hover:text-primary transition-colors">chevron_right</span>
+</div>
+</div>
+<!-- List Item 2 -->
+<div class="flex items-center justify-between p-4 rounded-xl bg-white border border-outline-variant/20 hover:shadow-md transition-shadow group cursor-pointer">
+<div class="flex items-center gap-4">
+<div class="w-12 h-12 bg-surface-container-high rounded-lg flex items-center justify-center overflow-hidden">
+<img alt="Aset Kamera" class="w-full h-full object-cover" data-alt="A professional DSLR camera with a large lens positioned against a neutral grey studio background. The lighting is sophisticated, with soft rim lights highlighting the camera's silhouette, embodying high-end technology and precise state asset management tools." src="https://lh3.googleusercontent.com/aida-public/AB6AXuAjKYx44bHmR3h3YV8hdQDWOZhXrgiL1i-sZsg9H1wdQY8nRJbT8ab_aO6SScBCTLmD1LH5m6DJA6tMaejQP7EwamzelbbT5v9HHAfpUkNGFpr-DpmuN8BDhJtuwAqlrNh--26In8kDoFSSGhL0cOnmrsOUylNBFsi-cvtgXXZE3Wlr8AU7DMSKMIVevw6eyZmaV6YA7C-mNnEiLZBoPbNhX6Mpbv57K5hsLfwEBFfIahq4ufdY_oBngQ"/>
+</div>
+<div>
+<p class="font-bold text-on-surface">Kamera Sony Alpha A7 III</p>
+<p class="text-xs text-outline">ID: BMN-2023-0118 • 10 Jan 2024</p>
+</div>
+</div>
+<div class="flex items-center gap-4">
+<span class="flex items-center gap-1.5 px-3 py-1 rounded-full bg-primary/10 text-primary text-xs font-bold">
+<span class="w-1.5 h-1.5 rounded-full bg-primary"></span>
+                                        Menunggu
+                                    </span>
+<span class="material-symbols-outlined text-outline group-hover:text-primary transition-colors">chevron_right</span>
+</div>
+</div>
+<!-- List Item 3 -->
+<div class="flex items-center justify-between p-4 rounded-xl bg-white border border-outline-variant/20 hover:shadow-md transition-shadow group cursor-pointer">
+<div class="flex items-center gap-4">
+<div class="w-12 h-12 bg-surface-container-high rounded-lg flex items-center justify-center overflow-hidden">
+<img alt="Aset HP" class="w-full h-full object-cover" data-alt="A modern smartphone with a glass back lying on a minimalist surface. The scene is illuminated with cold-toned lighting and soft blue accents, emphasizing the high-tech, clean look of modern institutional mobile communication devices." src="https://lh3.googleusercontent.com/aida-public/AB6AXuDULSTOCgoaYmZAyF1mYK7oJ1JV_nF5JA4Ldg5_xstaKYJ1QfJxpM9V6X-NSLCxNTkG946oWodagfDDzYTeuq7k_Yj5JUSy4vEJw0rybtwWa0l32RzcCHoflZZ8KLpGANdj7ZzpsXKfyLoHE03JuMhEhtGLGgPP1zP8kPT4EBcvPahBuBUI3xc2nPF1MILrG0jZw2DWU3hv-iVvpcUaIkEKOwMVsKAU5bKfVIVkG7KGoLmWD_7mYYbLLA"/>
+</div>
+<div>
+<p class="font-bold text-on-surface">Samsung Galaxy S23 Ultra</p>
+<p class="text-xs text-outline">ID: BMN-2024-0005 • 05 Jan 2024</p>
+</div>
+</div>
+<div class="flex items-center gap-4">
+<span class="flex items-center gap-1.5 px-3 py-1 rounded-full bg-error/10 text-error text-xs font-bold">
+<span class="w-1.5 h-1.5 rounded-full bg-error"></span>
+                                        Ditolak
+                                    </span>
+<span class="material-symbols-outlined text-outline group-hover:text-primary transition-colors">chevron_right</span>
+</div>
+</div>
+</div>
+</div>
+</div>
+</section>
+</div>
+<!-- Footer -->
+<footer class="w-full py-stack-lg px-margin-mobile md:px-margin-desktop border-t border-outline-variant/30 mt-auto bg-surface-container-low">
+<div class="max-w-container-max mx-auto flex flex-col md:flex-row justify-between items-center gap-4">
+<div class="flex items-center gap-4">
+<span class="font-headline-sm text-headline-sm font-bold text-primary">SIPP-BMN</span>
+<span class="hidden md:block h-4 w-[1px] bg-outline-variant"></span>
+<p class="text-label-sm text-on-surface-variant">© 2024 SIPP-BMN Kementerian Keuangan RI. Seluruh Hak Cipta Dilindungi.</p>
+</div>
+<nav class="flex gap-6">
+<a class="text-label-sm text-on-surface-variant hover:text-primary transition-colors" href="#">Kebijakan Privasi</a>
+<a class="text-label-sm text-on-surface-variant hover:text-primary transition-colors" href="#">Syarat &amp; Ketentuan</a>
+<a class="text-label-sm text-on-surface-variant hover:text-primary transition-colors" href="#">Kontak Kami</a>
+</nav>
+</div>
+</footer>
+</main>
+<!-- Bottom Nav (Mobile Only) -->
+<nav class="fixed bottom-0 left-0 w-full h-16 bg-white/90 backdrop-blur-lg border-t border-outline-variant/20 flex items-center justify-around md:hidden z-50">
+<button class="flex flex-col items-center gap-1 text-primary">
+<span class="material-symbols-outlined">dashboard</span>
+<span class="text-[10px] font-bold">Beranda</span>
+</button>
+<button class="flex flex-col items-center gap-1 text-on-surface-variant">
+<span class="material-symbols-outlined">inventory_2</span>
+<span class="text-[10px]">Aset</span>
+</button>
+<button class="flex flex-col items-center gap-1 text-on-surface-variant">
+<span class="material-symbols-outlined">handshake</span>
+<span class="text-[10px]">Pinjam</span>
+</button>
+<button class="flex flex-col items-center gap-1 text-on-surface-variant">
+<span class="material-symbols-outlined">person</span>
+<span class="text-[10px]">Profil</span>
+</button>
+</nav>
+<script>
+        // Micro-interactions for glass cards
+        document.querySelectorAll('.glass-card').forEach(card => {
+            card.addEventListener('mouseenter', () => {
+                card.style.transform = 'translateY(-4px)';
+            });
+            card.addEventListener('mouseleave', () => {
+                card.style.transform = 'translateY(0)';
+            });
+        });
+    </script>
+</body></html>
+
+<!-- Form Peminjaman - SIPP-BMN -->
+<!DOCTYPE html>
+
+<html class="light" lang="id"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Form Ajukan Peminjaman - SIPP-BMN</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&amp;family=Inter:wght@400;500;600&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<style>
+        .glass-card {
+            background: rgba(255, 255, 255, 0.8);
+            backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        .step-transition {
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        input:focus, textarea:focus {
+            outline: none;
+            border-color: #00288e;
+            box-shadow: 0 0 0 3px rgba(0, 40, 175, 0.1);
+        }
+    </style>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "surface-container-lowest": "#ffffff",
+                        "error-container": "#ffdad6",
+                        "surface-container-high": "#dce9ff",
+                        "primary-fixed": "#dde1ff",
+                        "on-secondary-container": "#00714d",
+                        "surface-container-low": "#eff4ff",
+                        "secondary-fixed-dim": "#4edea3",
+                        "on-secondary": "#ffffff",
+                        "surface-dim": "#cbdbf5",
+                        "tertiary-fixed": "#d8e2ff",
+                        "inverse-on-surface": "#eaf1ff",
+                        "primary-fixed-dim": "#b8c4ff",
+                        "tertiary-fixed-dim": "#adc6ff",
+                        "on-error-container": "#93000a",
+                        "on-tertiary-fixed-variant": "#004395",
+                        "surface-container": "#e5eeff",
+                        "on-primary": "#ffffff",
+                        "on-primary-fixed-variant": "#173bab",
+                        "surface-container-highest": "#d3e4fe",
+                        "on-background": "#0b1c30",
+                        "on-primary-container": "#a8b8ff",
+                        "error": "#ba1a1a",
+                        "outline": "#757684",
+                        "on-tertiary-fixed": "#001a42",
+                        "background": "#f8f9ff",
+                        "on-error": "#ffffff",
+                        "surface-tint": "#3755c3",
+                        "secondary-container": "#6cf8bb",
+                        "secondary": "#006c49",
+                        "inverse-primary": "#b8c4ff",
+                        "surface-bright": "#f8f9ff",
+                        "surface": "#f8f9ff",
+                        "tertiary": "#003272",
+                        "surface-variant": "#d3e4fe",
+                        "on-secondary-fixed-variant": "#005236",
+                        "on-tertiary-container": "#9cbbff",
+                        "on-secondary-fixed": "#002113",
+                        "primary-container": "#1e40af",
+                        "outline-variant": "#c4c5d5",
+                        "secondary-fixed": "#6ffbbe",
+                        "inverse-surface": "#213145",
+                        "on-surface": "#0b1c30",
+                        "on-surface-variant": "#444653",
+                        "on-primary-fixed": "#001453",
+                        "on-tertiary": "#ffffff",
+                        "tertiary-container": "#00489e",
+                        "primary": "#00288e"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                        "stack-lg": "32px",
+                        "gutter": "24px",
+                        "stack-sm": "8px",
+                        "stack-md": "16px",
+                        "margin-desktop": "40px",
+                        "margin-mobile": "16px",
+                        "container-max": "1280px"
+                    },
+                    "fontFamily": {
+                        "headline-md": ["Plus Jakarta Sans"],
+                        "label-sm": ["Inter"],
+                        "headline-lg": ["Plus Jakarta Sans"],
+                        "body-lg": ["Inter"],
+                        "label-md": ["Inter"],
+                        "display-lg": ["Plus Jakarta Sans"],
+                        "headline-lg-mobile": ["Plus Jakarta Sans"],
+                        "body-md": ["Inter"]
+                    },
+                    "fontSize": {
+                        "headline-md": ["24px", {"lineHeight": "1.4", "fontWeight": "600"}],
+                        "label-sm": ["12px", {"lineHeight": "1.2", "fontWeight": "600"}],
+                        "headline-lg": ["32px", {"lineHeight": "1.3", "fontWeight": "700"}],
+                        "body-lg": ["18px", {"lineHeight": "1.6", "fontWeight": "400"}],
+                        "label-md": ["14px", {"lineHeight": "1.4", "letterSpacing": "0.01em", "fontWeight": "500"}],
+                        "display-lg": ["48px", {"lineHeight": "1.2", "letterSpacing": "-0.02em", "fontWeight": "700"}],
+                        "headline-lg-mobile": ["24px", {"lineHeight": "1.3", "fontWeight": "700"}],
+                        "body-md": ["16px", {"lineHeight": "1.6", "fontWeight": "400"}]
+                    }
+                },
+            },
+        }
+    </script>
+</head>
+<body class="bg-background text-on-background font-body-md min-h-screen flex">
+<!-- SideNavBar -->
+<aside class="hidden md:flex fixed left-0 top-0 h-screen w-[280px] bg-primary flex-col py-stack-lg shadow-xl z-50">
+<div class="px-8 mb-10">
+<h1 class="font-headline-md text-headline-md font-extrabold text-white">SIPP-BMN</h1>
+<p class="font-label-md text-label-md text-on-primary/70">Manajemen Aset Negara</p>
+</div>
+<nav class="flex-1 px-4 space-y-2">
+<a class="flex items-center gap-4 px-4 py-3 rounded-xl text-on-primary/70 hover:bg-white/5 transition-all" href="#">
+<span class="material-symbols-outlined">dashboard</span>
+<span class="font-label-md text-label-md">Beranda</span>
+</a>
+<a class="flex items-center gap-4 px-4 py-3 rounded-xl bg-white/10 backdrop-blur-lg border-l-4 border-white text-white font-bold transition-all" href="#">
+<span class="material-symbols-outlined">handshake</span>
+<span class="font-label-md text-label-md">Peminjaman</span>
+</a>
+<a class="flex items-center gap-4 px-4 py-3 rounded-xl text-on-primary/70 hover:bg-white/5 transition-all" href="#">
+<span class="material-symbols-outlined">inventory_2</span>
+<span class="font-label-md text-label-md">Daftar Aset</span>
+</a>
+<a class="flex items-center gap-4 px-4 py-3 rounded-xl text-on-primary/70 hover:bg-white/5 transition-all" href="#">
+<span class="material-symbols-outlined">analytics</span>
+<span class="font-label-md text-label-md">Laporan</span>
+</a>
+<a class="flex items-center gap-4 px-4 py-3 rounded-xl text-on-primary/70 hover:bg-white/5 transition-all" href="#">
+<span class="material-symbols-outlined">settings</span>
+<span class="font-label-md text-label-md">Pengaturan</span>
+</a>
+</nav>
+<div class="px-4 mt-auto">
+<button class="w-full flex items-center gap-4 px-4 py-3 rounded-xl text-on-primary/70 hover:bg-white/5 transition-all">
+<span class="material-symbols-outlined">logout</span>
+<span class="font-label-md text-label-md">Keluar</span>
+</button>
+</div>
+</aside>
+<main class="flex-1 md:ml-[280px] min-h-screen flex flex-col">
+<!-- TopNavBar -->
+<header class="sticky top-0 w-full h-16 bg-white/80 backdrop-blur-md border-b border-white/20 shadow-sm flex items-center justify-between px-margin-desktop z-40">
+<div class="flex items-center gap-4">
+<span class="md:hidden material-symbols-outlined text-primary cursor-pointer">menu</span>
+<h2 class="font-headline-md text-headline-md font-bold text-primary">Ajukan Peminjaman</h2>
+</div>
+<div class="flex items-center gap-6">
+<div class="hidden sm:flex items-center bg-surface-container-low px-4 py-2 rounded-full border border-outline-variant/30">
+<span class="material-symbols-outlined text-on-surface-variant text-sm">search</span>
+<input class="bg-transparent border-none focus:ring-0 text-sm ml-2 w-48" placeholder="Cari aset..." type="text"/>
+</div>
+<div class="flex items-center gap-4">
+<span class="material-symbols-outlined text-on-surface-variant cursor-pointer hover:text-primary transition-colors">notifications</span>
+<span class="material-symbols-outlined text-on-surface-variant cursor-pointer hover:text-primary transition-colors">help</span>
+<div class="w-8 h-8 rounded-full bg-primary-fixed overflow-hidden border border-primary/20">
+<img alt="User profile avatar" class="w-full h-full object-cover" data-alt="A professional headshot of a government official in a sharp dark suit against a soft blurred office background. The lighting is bright and clean, consistent with a high-end corporate web portal, using a palette of soft blues and crisp whites for a trust-inspiring atmosphere." src="https://lh3.googleusercontent.com/aida-public/AB6AXuAaOOm1Tga7Jf2Zq3-ltR8e7cbMA2QCA6ItoRoVfsFkTe_aGlSyGswey_GN_GnH4pSc0IIHJfq6a4alvvNvuQ3JWostXeWc5NDBRMrrrKJ6hQEwBMxAmgL4DbuzYrIyO6Xt87XgpV5Sl8bcYSk9QVXb8gZNrn82m0dZPg2HAq1LdSIFW_IHbE-byVwZ7uJsxUJ6aryprs2ylBqhpDxADNDCgJGwvBabHJG1P10pQ9zebiuykeSgR-Vyww"/>
+</div>
+</div>
+</div>
+</header>
+<section class="p-margin-mobile md:p-margin-desktop flex-1">
+<div class="max-w-4xl mx-auto">
+<!-- Multi-Step Indicator -->
+<div class="flex items-center justify-between mb-12 relative">
+<div class="absolute top-1/2 left-0 w-full h-0.5 bg-surface-container-highest -z-10 -translate-y-1/2"></div>
+<div class="absolute top-1/2 left-0 w-0 h-0.5 bg-primary -z-10 -translate-y-1/2 transition-all duration-500" id="progress-line"></div>
+<div class="step-indicator flex flex-col items-center gap-2 group active" data-step="1">
+<div class="w-10 h-10 rounded-full flex items-center justify-center bg-primary text-white font-bold ring-4 ring-primary/10 step-circle">1</div>
+<span class="font-label-md text-label-md text-primary font-bold">Pilih Aset</span>
+</div>
+<div class="step-indicator flex flex-col items-center gap-2 group" data-step="2">
+<div class="w-10 h-10 rounded-full flex items-center justify-center bg-surface-container-highest text-on-surface-variant font-bold step-circle">2</div>
+<span class="font-label-md text-label-md text-on-surface-variant">Waktu</span>
+</div>
+<div class="step-indicator flex flex-col items-center gap-2 group" data-step="3">
+<div class="w-10 h-10 rounded-full flex items-center justify-center bg-surface-container-highest text-on-surface-variant font-bold step-circle">3</div>
+<span class="font-label-md text-label-md text-on-surface-variant">Dokumen</span>
+</div>
+</div>
+<!-- Form Content Area -->
+<form class="space-y-8" id="loanForm">
+<!-- Section 1: Item Selector -->
+<div class="step-transition" id="step-content-1">
+<div class="glass-card rounded-2xl p-stack-lg shadow-sm">
+<h3 class="font-headline-md text-headline-md text-primary mb-6">Pilih Item &amp; Jumlah</h3>
+<div class="space-y-4">
+<!-- Item Row -->
+<div class="flex flex-col md:flex-row md:items-center justify-between p-4 bg-white rounded-xl border border-outline-variant/30 hover:shadow-md transition-shadow">
+<div class="flex items-center gap-4 mb-4 md:mb-0">
+<div class="w-16 h-16 rounded-lg bg-surface-container flex items-center justify-center">
+<span class="material-symbols-outlined text-primary text-3xl">laptop_mac</span>
+</div>
+<div>
+<h4 class="font-bold text-on-surface">Laptop MacBook Pro 14"</h4>
+<p class="text-label-md text-on-surface-variant">ID: BMN-2024-001 • Tersedia: 12 unit</p>
+</div>
+</div>
+<div class="flex items-center gap-3">
+<button class="w-10 h-10 rounded-full border border-outline-variant flex items-center justify-center hover:bg-surface-container transition-colors" onclick="decrement('qty1')" type="button">-</button>
+<input class="w-16 text-center font-bold border-none bg-surface-container-low rounded-lg focus:ring-0" id="qty1" max="12" min="0" type="number" value="1"/>
+<button class="w-10 h-10 rounded-full border border-outline-variant flex items-center justify-center hover:bg-surface-container transition-colors" onclick="increment('qty1')" type="button">+</button>
+</div>
+</div>
+<div class="flex flex-col md:flex-row md:items-center justify-between p-4 bg-white rounded-xl border border-outline-variant/30 hover:shadow-md transition-shadow">
+<div class="flex items-center gap-4 mb-4 md:mb-0">
+<div class="w-16 h-16 rounded-lg bg-surface-container flex items-center justify-center">
+<span class="material-symbols-outlined text-primary text-3xl">videocam</span>
+</div>
+<div>
+<h4 class="font-bold text-on-surface">Sony Alpha A7 IV Kit</h4>
+<p class="text-label-md text-on-surface-variant">ID: BMN-2024-042 • Tersedia: 5 unit</p>
+</div>
+</div>
+<div class="flex items-center gap-3">
+<button class="w-10 h-10 rounded-full border border-outline-variant flex items-center justify-center hover:bg-surface-container transition-colors" onclick="decrement('qty2')" type="button">-</button>
+<input class="w-16 text-center font-bold border-none bg-surface-container-low rounded-lg focus:ring-0" id="qty2" max="5" min="0" type="number" value="0"/>
+<button class="w-10 h-10 rounded-full border border-outline-variant flex items-center justify-center hover:bg-surface-container transition-colors" onclick="increment('qty2')" type="button">+</button>
+</div>
+</div>
+<button class="w-full py-4 border-2 border-dashed border-outline-variant/50 rounded-xl text-on-surface-variant hover:border-primary hover:text-primary transition-all flex items-center justify-center gap-2" type="button">
+<span class="material-symbols-outlined">add_circle</span>
+<span class="font-bold">Tambah Item Lain</span>
+</button>
+</div>
+</div>
+</div>
+<!-- Section 2: Date Pickers -->
+<div class="step-transition hidden" id="step-content-2">
+<div class="glass-card rounded-2xl p-stack-lg shadow-sm">
+<h3 class="font-headline-md text-headline-md text-primary mb-6">Waktu Peminjaman</h3>
+<div class="grid grid-cols-1 md:grid-cols-2 gap-stack-lg">
+<div class="space-y-2">
+<label class="font-label-md text-on-surface-variant">Tanggal Pinjam</label>
+<div class="relative">
+<span class="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-on-surface-variant">calendar_today</span>
+<input class="w-full pl-12 pr-4 py-3 rounded-xl border border-outline-variant bg-white focus:ring-2 focus:ring-primary/10" type="date"/>
+</div>
+</div>
+<div class="space-y-2">
+<label class="font-label-md text-on-surface-variant">Rencana Kembali</label>
+<div class="relative">
+<span class="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-on-surface-variant">event_repeat</span>
+<input class="w-full pl-12 pr-4 py-3 rounded-xl border border-outline-variant bg-white focus:ring-2 focus:ring-primary/10" type="date"/>
+</div>
+</div>
+</div>
+<div class="mt-8 p-4 bg-primary-fixed/30 rounded-xl flex items-start gap-4">
+<span class="material-symbols-outlined text-primary">info</span>
+<p class="text-sm text-on-surface-variant">Maksimal durasi peminjaman standar adalah 7 hari kerja. Hubungi admin untuk perpanjangan khusus.</p>
+</div>
+</div>
+</div>
+<!-- Section 3: Reasoning & Upload -->
+<div class="step-transition hidden" id="step-content-3">
+<div class="glass-card rounded-2xl p-stack-lg shadow-sm space-y-8">
+<div class="space-y-2">
+<h3 class="font-headline-md text-headline-md text-primary">Alasan Peminjaman</h3>
+<textarea class="w-full p-4 rounded-xl border border-outline-variant bg-white resize-none" placeholder="Jelaskan tujuan peminjaman aset secara detail..." rows="4"></textarea>
+</div>
+<div class="space-y-2">
+<label class="font-label-md text-on-surface-variant">Unggah Dokumen Pendukung (Opsional)</label>
+<div class="border-2 border-dashed border-outline-variant rounded-2xl p-10 flex flex-col items-center justify-center bg-surface-container-low hover:border-primary hover:bg-primary/5 transition-all cursor-pointer" id="dropzone">
+<span class="material-symbols-outlined text-primary text-5xl mb-4">cloud_upload</span>
+<p class="font-bold text-on-surface mb-1">Klik atau tarik file ke sini</p>
+<p class="text-sm text-on-surface-variant">PDF, JPG, atau PNG (Maks. 5MB)</p>
+<input class="hidden" id="fileInput" multiple="" type="file"/>
+</div>
+<div class="mt-4 space-y-2" id="file-list">
+<!-- Dynamic File Previews -->
+</div>
+</div>
+</div>
+</div>
+<!-- Navigation Buttons -->
+<div class="flex items-center justify-between pt-8">
+<button class="px-8 py-3 rounded-xl border border-primary text-primary font-bold hover:bg-primary/5 transition-all opacity-0 pointer-events-none" id="prevBtn" type="button">
+                            Sebelumnya
+                        </button>
+<div class="flex gap-4">
+<button class="hidden md:block px-8 py-3 rounded-xl text-on-surface-variant hover:text-error transition-colors" type="button">
+                                Batalkan
+                            </button>
+<button class="px-10 py-3 rounded-xl bg-primary text-white font-bold shadow-lg shadow-primary/20 hover:translate-y-[-2px] hover:shadow-primary/30 transition-all active:scale-95" id="nextBtn" type="button">
+                                Lanjutkan
+                            </button>
+</div>
+</div>
+</form>
+</div>
+</section>
+<!-- Footer -->
+<footer class="mt-auto w-full border-t border-outline-variant/30 py-stack-lg px-margin-desktop bg-surface-container-low">
+<div class="max-w-container-max mx-auto flex flex-col md:flex-row justify-between items-center gap-6">
+<div class="text-center md:text-left">
+<h3 class="font-headline-sm text-headline-sm font-bold text-primary">SIPP-BMN</h3>
+<p class="font-label-sm text-label-sm text-on-surface-variant">© 2024 SIPP-BMN Kementerian Keuangan RI. Seluruh Hak Cipta Dilindungi.</p>
+</div>
+<div class="flex flex-wrap justify-center gap-6">
+<a class="font-label-sm text-label-sm text-on-surface-variant hover:text-primary transition-colors" href="#">Kebijakan Privasi</a>
+<a class="font-label-sm text-label-sm text-on-surface-variant hover:text-primary transition-colors" href="#">Syarat &amp; Ketentuan</a>
+<a class="font-label-sm text-label-sm text-on-surface-variant hover:text-primary transition-colors" href="#">Kontak Kami</a>
+<a class="font-label-sm text-label-sm text-on-surface-variant hover:text-primary transition-colors" href="#">Peta Situs</a>
+</div>
+</div>
+</footer>
+</main>
+<script>
+        let currentStep = 1;
+        const totalSteps = 3;
+
+        const nextBtn = document.getElementById('nextBtn');
+        const prevBtn = document.getElementById('prevBtn');
+        const progressLine = document.getElementById('progress-line');
+        const dropzone = document.getElementById('dropzone');
+        const fileInput = document.getElementById('fileInput');
+        const fileList = document.getElementById('file-list');
+
+        function updateStepUI() {
+            // Update step content visibility
+            for (let i = 1; i <= totalSteps; i++) {
+                const content = document.getElementById(`step-content-${i}`);
+                if (i === currentStep) {
+                    content.classList.remove('hidden');
+                    content.classList.add('animate-fade-in');
+                } else {
+                    content.classList.add('hidden');
+                }
+            }
+
+            // Update step indicators
+            document.querySelectorAll('.step-indicator').forEach((el, idx) => {
+                const stepIdx = idx + 1;
+                const circle = el.querySelector('.step-circle');
+                const label = el.querySelector('span');
+
+                if (stepIdx < currentStep) {
+                    circle.innerHTML = '<span class="material-symbols-outlined">check</span>';
+                    circle.classList.remove('bg-surface-container-highest', 'bg-primary');
+                    circle.classList.add('bg-secondary', 'text-white');
+                    label.classList.add('text-secondary');
+                } else if (stepIdx === currentStep) {
+                    circle.innerHTML = stepIdx;
+                    circle.classList.remove('bg-surface-container-highest', 'bg-secondary');
+                    circle.classList.add('bg-primary', 'text-white', 'ring-4', 'ring-primary/10');
+                    label.classList.add('text-primary', 'font-bold');
+                    label.classList.remove('text-on-surface-variant');
+                } else {
+                    circle.innerHTML = stepIdx;
+                    circle.classList.remove('bg-primary', 'bg-secondary', 'ring-4');
+                    circle.classList.add('bg-surface-container-highest', 'text-on-surface-variant');
+                    label.classList.remove('text-primary', 'text-secondary', 'font-bold');
+                    label.classList.add('text-on-surface-variant');
+                }
+            });
+
+            // Update progress line
+            const percentage = ((currentStep - 1) / (totalSteps - 1)) * 100;
+            progressLine.style.width = `${percentage}%`;
+
+            // Update buttons
+            if (currentStep === 1) {
+                prevBtn.classList.add('opacity-0', 'pointer-events-none');
+            } else {
+                prevBtn.classList.remove('opacity-0', 'pointer-events-none');
+            }
+
+            if (currentStep === totalSteps) {
+                nextBtn.innerText = 'Ajukan Sekarang';
+                nextBtn.classList.remove('bg-primary');
+                nextBtn.classList.add('bg-secondary');
+            } else {
+                nextBtn.innerText = 'Lanjutkan';
+                nextBtn.classList.add('bg-primary');
+                nextBtn.classList.remove('bg-secondary');
+            }
+        }
+
+        nextBtn.addEventListener('click', () => {
+            if (currentStep < totalSteps) {
+                currentStep++;
+                updateStepUI();
+            } else {
+                alert('Peminjaman Berhasil Diajukan! Menunggu verifikasi admin.');
+            }
+        });
+
+        prevBtn.addEventListener('click', () => {
+            if (currentStep > 1) {
+                currentStep--;
+                updateStepUI();
+            }
+        });
+
+        // Stepper Logic
+        function increment(id) {
+            const input = document.getElementById(id);
+            const val = parseInt(input.value);
+            if (val < parseInt(input.max)) input.value = val + 1;
+        }
+
+        function decrement(id) {
+            const input = document.getElementById(id);
+            const val = parseInt(input.value);
+            if (val > 0) input.value = val - 1;
+        }
+
+        // Dropzone Logic
+        dropzone.addEventListener('click', () => fileInput.click());
+        
+        dropzone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            dropzone.classList.add('border-primary', 'bg-primary/5');
+        });
+
+        dropzone.addEventListener('dragleave', () => {
+            dropzone.classList.remove('border-primary', 'bg-primary/5');
+        });
+
+        dropzone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            dropzone.classList.remove('border-primary', 'bg-primary/5');
+            handleFiles(e.dataTransfer.files);
+        });
+
+        fileInput.addEventListener('change', (e) => {
+            handleFiles(e.target.files);
+        });
+
+        function handleFiles(files) {
+            Array.from(files).forEach(file => {
+                const row = document.createElement('div');
+                row.className = 'flex items-center justify-between p-3 bg-white border border-outline-variant/30 rounded-lg animate-fade-in';
+                row.innerHTML = `
+                    <div class="flex items-center gap-3">
+                        <span class="material-symbols-outlined text-primary">description</span>
+                        <div class="flex flex-col">
+                            <span class="text-sm font-bold text-on-surface truncate max-w-[200px]">${file.name}</span>
+                            <span class="text-xs text-on-surface-variant">${(file.size / 1024).toFixed(1)} KB</span>
+                        </div>
+                    </div>
+                    <button type="button" class="text-error hover:bg-error/5 p-1 rounded transition-colors" onclick="this.parentElement.remove()">
+                        <span class="material-symbols-outlined">delete</span>
+                    </button>
+                `;
+                fileList.appendChild(row);
+            });
+        }
+    </script>
+</body></html>
+
+<!-- Detail Peminjaman - SIPP-BMN -->
+<!DOCTYPE html>
+
+<html class="light" lang="id"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Riwayat Peminjaman | SIPP-BMN</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&amp;family=Inter:wght@400;500;600&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "surface-container-lowest": "#ffffff",
+                        "error-container": "#ffdad6",
+                        "surface-container-high": "#dce9ff",
+                        "primary-fixed": "#dde1ff",
+                        "on-secondary-container": "#00714d",
+                        "surface-container-low": "#eff4ff",
+                        "secondary-fixed-dim": "#4edea3",
+                        "on-secondary": "#ffffff",
+                        "surface-dim": "#cbdbf5",
+                        "tertiary-fixed": "#d8e2ff",
+                        "inverse-on-surface": "#eaf1ff",
+                        "primary-fixed-dim": "#b8c4ff",
+                        "tertiary-fixed-dim": "#adc6ff",
+                        "on-error-container": "#93000a",
+                        "on-tertiary-fixed-variant": "#004395",
+                        "surface-container": "#e5eeff",
+                        "on-primary": "#ffffff",
+                        "on-primary-fixed-variant": "#173bab",
+                        "surface-container-highest": "#d3e4fe",
+                        "on-background": "#0b1c30",
+                        "on-primary-container": "#a8b8ff",
+                        "error": "#ba1a1a",
+                        "outline": "#757684",
+                        "on-tertiary-fixed": "#001a42",
+                        "background": "#f8f9ff",
+                        "on-error": "#ffffff",
+                        "surface-tint": "#3755c3",
+                        "secondary-container": "#6cf8bb",
+                        "secondary": "#006c49",
+                        "inverse-primary": "#b8c4ff",
+                        "surface-bright": "#f8f9ff",
+                        "surface": "#f8f9ff",
+                        "tertiary": "#003272",
+                        "surface-variant": "#d3e4fe",
+                        "on-secondary-fixed-variant": "#005236",
+                        "on-tertiary-container": "#9cbbff",
+                        "on-secondary-fixed": "#002113",
+                        "primary-container": "#1e40af",
+                        "outline-variant": "#c4c5d5",
+                        "secondary-fixed": "#6ffbbe",
+                        "inverse-surface": "#213145",
+                        "on-surface": "#0b1c30",
+                        "on-surface-variant": "#444653",
+                        "on-primary-fixed": "#001453",
+                        "on-tertiary": "#ffffff",
+                        "tertiary-container": "#00489e",
+                        "primary": "#00288e"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                        "stack-lg": "32px",
+                        "gutter": "24px",
+                        "stack-sm": "8px",
+                        "stack-md": "16px",
+                        "margin-desktop": "40px",
+                        "margin-mobile": "16px",
+                        "container-max": "1280px"
+                    },
+                    "fontFamily": {
+                        "headline-md": ["Plus Jakarta Sans"],
+                        "label-sm": ["Inter"],
+                        "headline-lg": ["Plus Jakarta Sans"],
+                        "body-lg": ["Inter"],
+                        "label-md": ["Inter"],
+                        "display-lg": ["Plus Jakarta Sans"],
+                        "headline-lg-mobile": ["Plus Jakarta Sans"],
+                        "body-md": ["Inter"]
+                    },
+                    "fontSize": {
+                        "headline-md": ["24px", {"lineHeight": "1.4", "fontWeight": "600"}],
+                        "label-sm": ["12px", {"lineHeight": "1.2", "fontWeight": "600"}],
+                        "headline-lg": ["32px", {"lineHeight": "1.3", "fontWeight": "700"}],
+                        "body-lg": ["18px", {"lineHeight": "1.6", "fontWeight": "400"}],
+                        "label-md": ["14px", {"lineHeight": "1.4", "letterSpacing": "0.01em", "fontWeight": "500"}],
+                        "display-lg": ["48px", {"lineHeight": "1.2", "letterSpacing": "-0.02em", "fontWeight": "700"}],
+                        "headline-lg-mobile": ["24px", {"lineHeight": "1.3", "fontWeight": "700"}],
+                        "body-md": ["16px", {"lineHeight": "1.6", "fontWeight": "400"}]
+                    }
+                },
+            },
+        }
+    </script>
+<style>
+        .glass-card {
+            background: rgba(255, 255, 255, 0.8);
+            backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            transition: transform 0.2s ease, background 0.2s ease;
+        }
+        .glass-card:hover {
+            transform: translateY(-4px);
+            background: rgba(255, 255, 255, 0.85);
+        }
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+        }
+        .timeline-line {
+            position: absolute;
+            left: 15px;
+            top: 24px;
+            bottom: -8px;
+            width: 2px;
+            background: #E2E8F0;
+        }
+        .timeline-line-active {
+            background: #00288e;
+            transition: height 1s ease-out;
+        }
+        @keyframes pulse-soft {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.6; }
+        }
+        .animate-pulse-soft {
+            animation: pulse-soft 2s infinite;
+        }
+    </style>
+</head>
+<body class="bg-background font-body-md text-on-surface">
+<!-- Sidebar (Shared Component Anchor) -->
+<aside class="fixed left-0 top-0 h-screen w-[280px] bg-primary dark:bg-primary-container flex flex-col py-stack-lg shadow-xl z-50">
+<div class="px-8 mb-10">
+<h1 class="font-headline-md text-headline-md font-extrabold text-white">SIPP-BMN</h1>
+<p class="text-on-primary/70 font-label-md text-label-md">Manajemen Aset Negara</p>
+</div>
+<nav class="flex-1 space-y-2 px-4">
+<a class="flex items-center gap-4 px-4 py-3 rounded-lg text-on-primary/70 font-label-md hover:bg-white/5 transition-all" href="#">
+<span class="material-symbols-outlined">dashboard</span> Beranda
+            </a>
+<a class="flex items-center gap-4 px-4 py-3 rounded-lg text-on-primary/70 font-label-md hover:bg-white/5 transition-all" href="#">
+<span class="material-symbols-outlined">inventory_2</span> Daftar Aset
+            </a>
+<a class="flex items-center gap-4 px-4 py-3 rounded-lg bg-white/10 backdrop-blur-lg border-l-4 border-white text-white font-bold transition-all translate-x-1" href="#">
+<span class="material-symbols-outlined">handshake</span> Peminjaman
+            </a>
+<a class="flex items-center gap-4 px-4 py-3 rounded-lg text-on-primary/70 font-label-md hover:bg-white/5 transition-all" href="#">
+<span class="material-symbols-outlined">analytics</span> Laporan
+            </a>
+<a class="flex items-center gap-4 px-4 py-3 rounded-lg text-on-primary/70 font-label-md hover:bg-white/5 transition-all" href="#">
+<span class="material-symbols-outlined">settings</span> Pengaturan
+            </a>
+</nav>
+<div class="mt-auto px-4">
+<button class="w-full flex items-center gap-4 px-4 py-3 rounded-lg text-on-primary/70 font-label-md hover:bg-white/5 transition-all">
+<span class="material-symbols-outlined">logout</span> Keluar
+            </button>
+</div>
+</aside>
+<!-- Main Content -->
+<main class="ml-[280px] min-h-screen">
+<!-- Top Navigation -->
+<header class="sticky top-0 w-full bg-white/80 dark:bg-surface-container/80 backdrop-blur-md h-16 flex items-center justify-between px-margin-desktop shadow-sm border-b border-white/20 z-40">
+<div class="flex items-center gap-4">
+<div class="relative">
+<span class="absolute left-3 top-1/2 -translate-y-1/2 material-symbols-outlined text-outline">search</span>
+<input class="pl-10 pr-4 py-1.5 rounded-full bg-surface-container border-none focus:ring-2 focus:ring-primary/20 w-64 text-label-md" placeholder="Cari nomor permohonan..." type="text"/>
+</div>
+</div>
+<div class="flex items-center gap-6">
+<button class="material-symbols-outlined text-primary hover:bg-primary/5 p-2 rounded-full transition-colors">notifications</button>
+<button class="material-symbols-outlined text-primary hover:bg-primary/5 p-2 rounded-full transition-colors">help</button>
+<div class="w-8 h-8 rounded-full bg-primary-fixed overflow-hidden ring-2 ring-primary/10">
+<img alt="Avatar" data-alt="A professional close-up headshot of a government official in a clean, modern setting with soft studio lighting. The individual has a friendly but authoritative expression, reflecting institutional trust and professional efficiency. The background is a soft, out-of-focus modern office environment with cool blue tones matching the SIPP-BMN brand identity." src="https://lh3.googleusercontent.com/aida-public/AB6AXuDE5DM1km9TJ-2RsuDk1xfZSwPSAoJg-VJhtKceT0cYn2eZx0YUqOi49I5rMTEByLm1Bpepwls9Mrn2gHe0T4ZXHcnbrDburlrfxac3pTrPKkx6iRg6EB70FlAVrzNavHwapz3XT3EBlyeicJoy2G6M1SoERrBvPeLU8yuCr3rynduLqAeWK0iJfhMWRgRYtgYINXSrgE9RlrgOWy5kQEEoJ3s6dnUvm9zyBYWUgUlLquC57XAXLxWbug"/>
+</div>
+</div>
+</header>
+<!-- List & Detail View Content -->
+<div class="p-margin-desktop max-w-container-max mx-auto space-y-gutter">
+<div class="flex flex-col md:flex-row gap-gutter">
+<!-- Left Column: List of Requests -->
+<div class="w-full md:w-5/12 space-y-stack-md">
+<div class="flex items-center justify-between mb-2">
+<h2 class="font-headline-md text-headline-md text-primary">Riwayat Peminjaman</h2>
+<span class="text-label-md text-outline">8 Permohonan</span>
+</div>
+<!-- List Items -->
+<div class="space-y-4">
+<!-- Active Item -->
+<div class="glass-card p-stack-md rounded-xl border-l-4 border-primary ring-2 ring-primary/5 cursor-pointer shadow-md">
+<div class="flex justify-between items-start mb-2">
+<span class="text-label-sm px-2 py-1 bg-primary/10 text-primary rounded-full uppercase tracking-wider">REQ-2024-001</span>
+<div class="flex items-center gap-2 px-3 py-1 bg-secondary-container/20 rounded-full">
+<div class="status-dot bg-secondary"></div>
+<span class="text-label-sm text-on-secondary-container font-semibold">Disetujui</span>
+</div>
+</div>
+<h3 class="font-headline-sm text-[18px] font-bold text-on-surface mb-1">Toyota Innova Zenix V</h3>
+<div class="flex items-center gap-4 text-on-surface-variant text-label-md">
+<span class="flex items-center gap-1"><span class="material-symbols-outlined text-[18px]">calendar_today</span> 12 Mar 2024</span>
+<span class="flex items-center gap-1"><span class="material-symbols-outlined text-[18px]">location_on</span> Jakarta</span>
+</div>
+</div>
+<!-- Secondary Item -->
+<div class="glass-card p-stack-md rounded-xl cursor-pointer opacity-80 hover:opacity-100 border-l-4 border-transparent">
+<div class="flex justify-between items-start mb-2">
+<span class="text-label-sm px-2 py-1 bg-surface-container text-outline rounded-full uppercase tracking-wider">REQ-2024-002</span>
+<div class="flex items-center gap-2 px-3 py-1 bg-primary-container/10 rounded-full">
+<div class="status-dot bg-primary"></div>
+<span class="text-label-sm text-primary font-semibold">Diajukan</span>
+</div>
+</div>
+<h3 class="font-headline-sm text-[18px] font-bold text-on-surface mb-1">Ruang Rapat Paripurna</h3>
+<div class="flex items-center gap-4 text-on-surface-variant text-label-md">
+<span class="flex items-center gap-1"><span class="material-symbols-outlined text-[18px]">calendar_today</span> 15 Mar 2024</span>
+<span class="flex items-center gap-1"><span class="material-symbols-outlined text-[18px]">location_on</span> Bogor</span>
+</div>
+</div>
+<!-- Finished Item -->
+<div class="glass-card p-stack-md rounded-xl cursor-pointer opacity-80 hover:opacity-100 border-l-4 border-transparent">
+<div class="flex justify-between items-start mb-2">
+<span class="text-label-sm px-2 py-1 bg-surface-container text-outline rounded-full uppercase tracking-wider">REQ-2024-003</span>
+<div class="flex items-center gap-2 px-3 py-1 bg-outline-variant/20 rounded-full">
+<div class="status-dot bg-outline"></div>
+<span class="text-label-sm text-on-surface-variant font-semibold">Selesai</span>
+</div>
+</div>
+<h3 class="font-headline-sm text-[18px] font-bold text-on-surface mb-1">MacBook Pro M2 Max</h3>
+<div class="flex items-center gap-4 text-on-surface-variant text-label-md">
+<span class="flex items-center gap-1"><span class="material-symbols-outlined text-[18px]">calendar_today</span> 01 Feb 2024</span>
+</div>
+</div>
+</div>
+</div>
+<!-- Right Column: Detail View -->
+<div class="w-full md:w-7/12">
+<div class="glass-card rounded-2xl p-stack-lg shadow-xl relative overflow-hidden">
+<!-- Header Detail -->
+<div class="flex flex-col md:flex-row justify-between items-start gap-4 mb-stack-lg pb-stack-md border-b border-outline-variant/30">
+<div>
+<nav class="flex gap-2 text-label-sm text-outline mb-2">
+<span>Handshake</span>
+<span>/</span>
+<span class="text-primary font-bold">REQ-2024-001</span>
+</nav>
+<h2 class="font-headline-lg text-headline-lg text-primary">Toyota Innova Zenix V</h2>
+<p class="text-body-md text-on-surface-variant mt-2">Plat Nomor: B 1234 Kemenkeu</p>
+</div>
+<div class="flex flex-col items-end">
+<button class="flex items-center gap-2 px-6 py-3 bg-primary text-white rounded-xl font-bold hover:scale-105 transition-transform shadow-lg shadow-primary/20">
+<span class="material-symbols-outlined">download</span> Unduh Dokumen STAMPEL
+                                </button>
+<span class="text-[10px] text-outline mt-2 italic text-right">Digital Signature: Verified by Peruri</span>
+</div>
+</div>
+<!-- Two Column Grid for Detail Content -->
+<div class="grid grid-cols-1 md:grid-cols-2 gap-stack-lg">
+<!-- Status Timeline -->
+<div class="space-y-6">
+<h3 class="font-label-md font-bold text-primary uppercase tracking-widest flex items-center gap-2">
+<span class="material-symbols-outlined text-[20px]">analytics</span> Lacak Status
+                                </h3>
+<div class="relative pl-10 space-y-8">
+<div class="timeline-line"></div>
+<div class="timeline-line timeline-line-active" style="height: 60%"></div>
+<!-- Step 1 -->
+<div class="relative">
+<div class="absolute -left-10 top-0 w-8 h-8 bg-primary rounded-full flex items-center justify-center text-white ring-4 ring-primary-fixed/30 z-10">
+<span class="material-symbols-outlined text-[16px]" style="font-variation-settings: 'FILL' 1;">check</span>
+</div>
+<div>
+<h4 class="font-bold text-primary text-body-md">Diajukan</h4>
+<p class="text-label-sm text-outline">10 Mar 2024, 09:15 WIB</p>
+<p class="text-label-md text-on-surface-variant mt-1 italic">"Permohonan telah diterima sistem."</p>
+</div>
+</div>
+<!-- Step 2 -->
+<div class="relative">
+<div class="absolute -left-10 top-0 w-8 h-8 bg-primary rounded-full flex items-center justify-center text-white ring-4 ring-primary-fixed/30 z-10">
+<span class="material-symbols-outlined text-[16px]" style="font-variation-settings: 'FILL' 1;">check</span>
+</div>
+<div>
+<h4 class="font-bold text-primary text-body-md">Disetujui</h4>
+<p class="text-label-sm text-outline">11 Mar 2024, 14:30 WIB</p>
+<p class="text-label-md text-on-surface-variant mt-1 italic">"Disetujui oleh Kepala Biro Umum."</p>
+</div>
+</div>
+<!-- Step 3 (Current) -->
+<div class="relative">
+<div class="absolute -left-10 top-0 w-8 h-8 bg-secondary rounded-full flex items-center justify-center text-white animate-pulse-soft ring-4 ring-secondary-container/50 z-10">
+<span class="material-symbols-outlined text-[16px]">qr_code_2</span>
+</div>
+<div>
+<h4 class="font-bold text-secondary text-body-md">Siap Diambil</h4>
+<p class="text-label-sm text-outline">Menunggu pengambilan unit</p>
+<div class="mt-3 p-3 bg-secondary-container/10 border border-secondary/20 rounded-lg">
+<p class="text-label-sm text-on-secondary-container">Silakan tunjukkan QR Code pada petugas parkir gedung pusat.</p>
+</div>
+</div>
+</div>
+<!-- Step 4 -->
+<div class="relative opacity-30">
+<div class="absolute -left-10 top-0 w-8 h-8 bg-outline-variant rounded-full flex items-center justify-center text-white z-10">
+<span class="material-symbols-outlined text-[16px]">keyboard_return</span>
+</div>
+<div>
+<h4 class="font-bold text-on-surface-variant text-body-md">Kembali</h4>
+<p class="text-label-sm text-outline">Estimasi: 14 Mar 2024</p>
+</div>
+</div>
+</div>
+</div>
+<!-- QR Card and Additional Info -->
+<div class="space-y-gutter">
+<!-- QR Card -->
+<div class="bg-white rounded-2xl p-6 shadow-xl border border-outline-variant/20 flex flex-col items-center text-center">
+<p class="font-bold text-primary mb-4 text-label-md">QR CODE PENGAMBILAN</p>
+<div class="w-48 h-48 bg-surface-container p-4 rounded-xl mb-4">
+<img alt="QR Code" class="w-full h-full" data-alt="A high-contrast black and white QR code centered on a clean, professional asset management card. The QR code represents a secure digital identification token for government asset retrieval. Surrounding it are subtle watermark patterns and institutional branding elements, emphasizing a modern, secure, and technologically advanced administrative process." src="https://lh3.googleusercontent.com/aida-public/AB6AXuDbxnKB1hMrKcFmkUSy_A8lHo6I6sj98Gxx4dqVK2Ccn8Vtr6o2ofDAtIzDkuWKS7m6aUvw_RsQj2EP1aKmzeU_LcwxXxMtlPXP8egtlpL8jbejvsJGqCJXynC_dnj7Nn3TRjrtArhYuhGwsyrp43ztntU_YHVndnXwUn70_Kr1XhGJs1uIPSTrIzyW1_o0fKK58Nc77AZ3_lkV1iPcYInp-cliP1NEQzyML4zMG1badYKKPIsG5jtOnA"/>
+</div>
+<p class="font-mono text-headline-sm text-on-surface tracking-[4px]">779 - 1102</p>
+<button class="mt-6 flex items-center gap-2 text-primary font-bold text-label-md hover:underline">
+<span class="material-symbols-outlined">print</span> Cetak Kartu QR
+                                    </button>
+</div>
+<!-- Detail List -->
+<div class="bg-surface-container-low/50 rounded-xl p-stack-md space-y-4">
+<h4 class="font-bold text-on-surface-variant text-label-sm uppercase tracking-wider">Informasi Peminjam</h4>
+<div class="grid grid-cols-2 gap-4">
+<div>
+<p class="text-[10px] text-outline uppercase font-bold">Peminjam</p>
+<p class="text-label-md font-semibold">Aditya Pratama</p>
+</div>
+<div>
+<p class="text-[10px] text-outline uppercase font-bold">Unit Kerja</p>
+<p class="text-label-md font-semibold">Biro Organisasi &amp; TIK</p>
+</div>
+<div class="col-span-2">
+<p class="text-[10px] text-outline uppercase font-bold">Keperluan</p>
+<p class="text-label-md">Dinas Luar Kota - Koordinasi Lapangan di Kantor Wilayah Jawa Barat.</p>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- Footer (Shared Component Anchor) -->
+<footer class="mt-20 w-full py-stack-lg px-margin-desktop bg-surface-container-low border-t border-outline-variant/30">
+<div class="max-w-container-max mx-auto flex flex-col md:flex-row justify-between items-center gap-stack-md">
+<div class="flex flex-col items-center md:items-start">
+<span class="font-headline-sm text-headline-sm font-bold text-primary mb-2">SIPP-BMN</span>
+<p class="text-on-surface-variant text-label-sm">© 2024 SIPP-BMN Kementerian Keuangan RI. Seluruh Hak Cipta Dilindungi.</p>
+</div>
+<div class="flex gap-8 text-label-sm">
+<a class="text-on-surface-variant hover:text-primary transition-colors" href="#">Kebijakan Privasi</a>
+<a class="text-on-surface-variant hover:text-primary transition-colors" href="#">Syarat &amp; Ketentuan</a>
+<a class="text-on-surface-variant hover:text-primary transition-colors" href="#">Kontak Kami</a>
+<a class="text-on-surface-variant hover:text-primary transition-colors" href="#">Peta Situs</a>
+</div>
+</div>
+</footer>
+</main>
+<!-- Micro-interaction Scripts -->
+<script>
+        // Intersection Observer for Timeline Animation
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    const line = entry.target.querySelector('.timeline-line-active');
+                    if(line) line.style.height = '60%'; // Set target height
+                }
+            });
+        }, { threshold: 0.1 });
+
+        document.querySelectorAll('.glass-card').forEach(card => {
+            card.addEventListener('click', () => {
+                // Remove active classes
+                document.querySelectorAll('.glass-card').forEach(c => {
+                    c.classList.remove('border-primary', 'ring-2', 'ring-primary/5', 'shadow-md');
+                    c.classList.add('opacity-80');
+                });
+                // Add active classes to clicked
+                card.classList.add('border-primary', 'ring-2', 'ring-primary/5', 'shadow-md');
+                card.classList.remove('opacity-80');
+            });
+        });
+    </script>
+</body></html>
