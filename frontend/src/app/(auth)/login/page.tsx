@@ -6,6 +6,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -56,8 +57,7 @@ export default function LoginPage() {
         </div>
         <div className="relative z-10 max-w-xl text-center">
           <div className="glass-panel mb-12 inline-flex items-center gap-3 rounded-full px-6 py-3">
-            <Icon name="account_balance" fill className="text-primary" />
-            <span className="font-jakarta text-headline-md font-bold tracking-tight text-primary">SIPP-BMN</span>
+            <Image src="/images/logo-kemenkeu.png" alt="Logo Kementerian Keuangan" width={220} height={60} className="object-contain" />
           </div>
           <h1 className="mb-6 font-display-lg text-display-lg leading-tight text-white">
             Manajemen Aset Negara Menjadi Lebih Mudah
@@ -72,9 +72,8 @@ export default function LoginPage() {
       {/* Panel kanan: form login */}
       <section className="flex min-h-screen w-full items-center justify-center bg-white p-6 md:w-1/2 md:p-12 lg:w-2/5">
         <div className="w-full max-w-md animate-fade-up">
-          <div className="mb-10 text-center md:hidden">
-            <h2 className="font-jakarta text-headline-lg font-bold text-primary">SIPP-BMN</h2>
-            <p className="font-label-md text-on-surface-variant">Kementerian Keuangan RI</p>
+          <div className="mb-10 flex flex-col items-center gap-2 text-center md:hidden">
+            <Image src="/images/logo-kemenkeu.png" alt="Logo Kementerian Keuangan" width={200} height={56} className="object-contain" />
           </div>
 
           <form onSubmit={kirim} className="space-y-6">
