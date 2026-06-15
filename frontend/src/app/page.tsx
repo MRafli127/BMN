@@ -3,6 +3,7 @@
 // ============================================================
 
 import Link from 'next/link';
+import Image from 'next/image';
 import {
   ShieldCheck,
   FileCheck2,
@@ -30,10 +31,7 @@ export default function BerandaPage() {
       <header className="sticky top-0 z-20 border-b bg-white/75 shadow-soft backdrop-blur-md">
         <div className="container flex h-16 items-center justify-between">
           <Link href={RUTE.beranda} className="flex items-center gap-2">
-            <div className="bg-brand-gradient flex h-9 w-9 items-center justify-center rounded-lg text-white shadow-soft">
-              <ShieldCheck className="h-5 w-5" />
-            </div>
-            <span className="text-lg font-bold text-foreground">SIPP-BMN</span>
+            <Image src="/images/logo-kemenkeu.png" alt="Logo Kementerian Keuangan" width={180} height={48} className="object-contain" />
           </Link>
           <nav className="flex items-center gap-1 sm:gap-2">
             <Button asChild variant="ghost" className="hidden sm:inline-flex">

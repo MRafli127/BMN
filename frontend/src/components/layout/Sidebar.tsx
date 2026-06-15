@@ -5,6 +5,7 @@
 'use client';
 
 import Link from 'next/link';
+import Image from 'next/image';
 import { usePathname, useRouter } from 'next/navigation';
 import { Icon } from '@/components/ui/icon';
 import { cn } from '@/lib/utils';
@@ -72,14 +73,8 @@ export function Sidebar() {
       >
         {/* Header logo */}
         <div className="mb-8 flex items-center justify-between gap-2 px-6">
-          <Link href={berandaHref} className="flex items-center gap-3 overflow-hidden">
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-white/20 backdrop-blur-md">
-              <Icon name="account_balance" className="text-white" />
-            </div>
-            <div className="whitespace-nowrap">
-              <h1 className="font-jakarta text-headline-md leading-none text-white">SIPP-BMN</h1>
-              <p className="font-label-sm text-white/60">Manajemen Aset Negara</p>
-            </div>
+          <Link href={berandaHref} className="flex items-center overflow-hidden">
+            <Image src="/images/logo-kemenkeu.png" alt="Logo Kementerian Keuangan" width={200} height={56} className="object-contain" />
           </Link>
           <button onClick={tutupSidebar} className="rounded-md p-1 hover:bg-white/10 lg:hidden">
             <Icon name="close" className="text-white" />

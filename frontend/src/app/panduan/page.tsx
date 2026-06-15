@@ -7,6 +7,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import {
   ShieldCheck,
   LogIn,
@@ -71,10 +72,7 @@ export default function PanduanPage() {
       <header className="border-b bg-white">
         <div className="container flex h-16 items-center justify-between">
           <Link href={RUTE.beranda} className="flex items-center gap-2">
-            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary text-primary-foreground">
-              <ShieldCheck className="h-5 w-5" />
-            </div>
-            <span className="text-lg font-bold">SIPP-BMN</span>
+            <Image src="/images/logo-kemenkeu.png" alt="Logo Kementerian Keuangan" width={180} height={48} className="object-contain" />
           </Link>
           <Button asChild variant="outline" size="sm">
             <Link href={RUTE.beranda}>
