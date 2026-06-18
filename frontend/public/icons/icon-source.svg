@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#00288e"/>
+      <stop offset="1" stop-color="#1e40af"/>
+    </linearGradient>
+  </defs>
+  <rect width="512" height="512" rx="112" fill="url(#bg)"/>
+  <!-- Gedung institusi (account_balance) -->
+  <g fill="#ffffff">
+    <!-- atap / pedimen -->
+    <path d="M256 104 L408 176 L408 200 L104 200 L104 176 Z"/>
+    <!-- pilar -->
+    <rect x="132" y="220" width="28" height="140" rx="4"/>
+    <rect x="194" y="220" width="28" height="140" rx="4"/>
+    <rect x="256" y="220" width="28" height="140" rx="4"/>
+    <rect x="318" y="220" width="28" height="140" rx="4"/>
+    <!-- alas -->
+    <rect x="104" y="380" width="304" height="28" rx="6"/>
+  </g>
+  <!-- aksen hijau -->
+  <rect x="104" y="416" width="304" height="14" rx="7" fill="#4edea3"/>
+</svg>

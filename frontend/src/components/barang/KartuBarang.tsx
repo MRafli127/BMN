@@ -52,6 +52,7 @@ export function KartuBarang({ barang, aksi }: Props) {
           <h3 className="line-clamp-2 font-semibold leading-tight text-foreground">{barang.nama}</h3>
         </div>
         <p className="font-mono text-xs text-muted-foreground">{barang.kodeBarang}</p>
+        {barang.merk && <p className="text-xs text-muted-foreground">Merk: <span className="font-medium text-foreground">{barang.merk}</span></p>}
 
         <div className="flex flex-wrap gap-1.5">
           <Badge className="border-primary/20 bg-primary/10 text-primary">{JENIS_BARANG[barang.jenis]}</Badge>

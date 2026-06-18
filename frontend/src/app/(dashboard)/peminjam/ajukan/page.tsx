@@ -59,7 +59,7 @@ export default function AjukanPage() {
         <CardHeader>
           <CardTitle>Ajukan Peminjaman Barang</CardTitle>
           <p className="text-sm text-muted-foreground">
-            Pilih barang, tentukan tanggal, dan unggah dokumen peminjaman Anda.
+            Pilih barang dan tentukan tanggal peminjaman Anda.
           </p>
         </CardHeader>
         <CardContent>

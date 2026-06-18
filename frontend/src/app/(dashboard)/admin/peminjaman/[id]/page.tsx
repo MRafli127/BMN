@@ -155,15 +155,20 @@ export default function DetailPeminjamanAdminPage() {
             <CardContent className="space-y-4 text-sm">
               <div className="grid grid-cols-2 gap-3">
                 <Info label="Rencana Pinjam" nilai={formatTanggalLengkap(data.tanggalPinjamRencana)} />
-                <Info label="Rencana Kembali" nilai={formatTanggalLengkap(data.tanggalKembaliRencana)} />
+                <Info
+                  label="Rencana Kembali"
+                  nilai={data.tanggalKembaliRencana ? formatTanggalLengkap(data.tanggalKembaliRencana) : 'Tanpa batas waktu'}
+                />
                 {data.tanggalKembaliAktual && (
                   <Info label="Dikembalikan Pada" nilai={formatTanggalLengkap(data.tanggalKembaliAktual)} />
                 )}
               </div>
-              <div>
-                <p className="font-medium text-foreground">Alasan Peminjaman</p>
-                <p className="mt-1 text-muted-foreground">{data.alasanPeminjaman}</p>
-              </div>
+              {data.alasanPeminjaman && (
+                <div>
+                  <p className="font-medium text-foreground">Alasan Peminjaman</p>
+                  <p className="mt-1 text-muted-foreground">{data.alasanPeminjaman}</p>
+                </div>
+              )}
 
               {/* Daftar barang */}
               <div>

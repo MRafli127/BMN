@@ -30,10 +30,10 @@ export interface Peminjaman {
   userId: string;
   tanggalPengajuan: string;
   tanggalPinjamRencana: string;
-  tanggalKembaliRencana: string;
+  tanggalKembaliRencana?: string | null;
   tanggalKembaliAktual?: string | null;
   status: StatusPeminjaman;
-  alasanPeminjaman: string;
+  alasanPeminjaman?: string | null;
   dokumenUrl?: string | null;
   dokumenStempelUrl?: string | null;
   qrCodeUrl?: string | null;
@@ -52,9 +52,7 @@ export interface ItemPengajuan {
 }
 
 export interface DataPengajuan {
-  alasanPeminjaman: string;
   tanggalPinjamRencana: string;
-  tanggalKembaliRencana: string;
+  tanggalKembaliRencana?: string;
   items: ItemPengajuan[];
-  dokumen?: File | null;
 }

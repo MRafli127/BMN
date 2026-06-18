@@ -30,14 +30,12 @@ export const peminjamanService = {
     return res.data.data;
   },
 
-  // Pengajuan peminjaman (multipart: items JSON + dokumen)
+  // Pengajuan peminjaman (multipart: items JSON)
   async create(data: DataPengajuan): Promise<Peminjaman> {
     const fd = new FormData();
-    fd.append('alasanPeminjaman', data.alasanPeminjaman);
     fd.append('tanggalPinjamRencana', data.tanggalPinjamRencana);
-    fd.append('tanggalKembaliRencana', data.tanggalKembaliRencana);
+    if (data.tanggalKembaliRencana) fd.append('tanggalKembaliRencana', data.tanggalKembaliRencana);
     fd.append('items', JSON.stringify(data.items));
-    if (data.dokumen) fd.append('dokumen', data.dokumen);
 
     const res = await api.post('/peminjaman', fd, {
       headers: { 'Content-Type': 'multipart/form-data' },

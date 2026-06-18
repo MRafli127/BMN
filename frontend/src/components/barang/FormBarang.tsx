@@ -18,6 +18,7 @@ import type { DataBarangForm } from '@/services/barang.service';
 
 const schema = z.object({
   nama: z.string().min(2, 'Nama barang minimal 2 karakter.'),
+  merk: z.string().optional(),
   jenis: z.enum(['ELEKTRONIK', 'FURNITUR', 'KENDARAAN', 'ATK', 'LAINNYA']),
   jumlahTotal: z.coerce.number().int('Harus bilangan bulat.').min(1, 'Jumlah minimal 1.'),
   kondisi: z.enum(['BAIK', 'RUSAK_RINGAN', 'RUSAK_BERAT']),
@@ -46,6 +47,7 @@ export function FormBarang({ nilaiAwal, onSimpan, teksTombol = 'Simpan' }: Props
     resolver: zodResolver(schema),
     defaultValues: {
       nama: nilaiAwal?.nama ?? '',
+      merk: nilaiAwal?.merk ?? '',
       jenis: nilaiAwal?.jenis ?? 'ELEKTRONIK',
       jumlahTotal: nilaiAwal?.jumlahTotal ?? 1,
       kondisi: nilaiAwal?.kondisi ?? 'BAIK',
@@ -72,10 +74,16 @@ export function FormBarang({ nilaiAwal, onSimpan, teksTombol = 'Simpan' }: Props
   return (
     <form onSubmit={kirim} className="grid grid-cols-1 gap-5 md:grid-cols-2">
       {/* Nama */}
-      <div className="md:col-span-2">
+      <div>
         <Label htmlFor="nama">Nama Barang</Label>
-        <Input id="nama" placeholder="Contoh: Laptop Dinas Lenovo" {...register('nama')} className="mt-1" />
+        <Input id="nama" placeholder="Contoh: Laptop Dinas" {...register('nama')} className="mt-1" />
         {errors.nama && <p className="mt-1 text-xs text-red-600">{errors.nama.message}</p>}
+      </div>
+
+      {/* Merk */}
+      <div>
+        <Label htmlFor="merk">Merk</Label>
+        <Input id="merk" placeholder="Contoh: Lenovo, Dell, HP" {...register('merk')} className="mt-1" />
       </div>
 
       {/* Jenis */}

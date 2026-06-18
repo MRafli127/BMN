@@ -72,6 +72,13 @@ export default function DetailBarangPage() {
 
   const kondisi = KONDISI_BARANG[barang.kondisi];
 
+  // Deskripsi hasil impor berformat "Merk: X | Jenis BMN: Y | Satker: Z".
+  // Pecah menjadi daftar spesifikasi bila memakai pemisah " | ".
+  const spesifikasi = (barang.deskripsi || '')
+    .split('|')
+    .map((s) => s.trim())
+    .filter(Boolean);
+
   return (
     <div className="mx-auto max-w-3xl space-y-5">
       <div className="flex items-center justify-between">
@@ -121,6 +128,11 @@ export default function DetailBarangPage() {
             <div>
               <p className="font-mono text-sm text-primary">{barang.kodeBarang}</p>
               <h1 className="text-2xl font-bold text-foreground">{barang.nama}</h1>
+              {barang.merk && (
+                <p className="mt-0.5 text-sm text-muted-foreground">
+                  Merk: <span className="font-medium text-foreground">{barang.merk}</span>
+                </p>
+              )}
             </div>
 
             <div className="flex flex-wrap gap-2">
@@ -133,10 +145,14 @@ export default function DetailBarangPage() {
               <Info ikon={MapPin} label="Lokasi" nilai={barang.lokasiPenyimpanan || '-'} />
             </div>
 
-            {barang.deskripsi && (
+            {spesifikasi.length > 0 && (
               <div>
-                <p className="text-sm font-medium text-foreground">Deskripsi</p>
-                <p className="mt-1 text-sm text-muted-foreground">{barang.deskripsi}</p>
+                <p className="text-sm font-medium text-foreground">Spesifikasi</p>
+                <ul className="mt-1 space-y-1 text-sm text-muted-foreground">
+                  {spesifikasi.map((s, i) => (
+                    <li key={i}>{s}</li>
+                  ))}
+                </ul>
               </div>
             )}
           </CardContent>

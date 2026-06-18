@@ -1,15 +1,14 @@
 // ============================================================
 //  Form pengajuan peminjaman.
 //   - Pilih satu atau beberapa barang + jumlah.
-//   - Isi tanggal pinjam & rencana kembali, alasan.
-//   - Unggah dokumen peminjaman (PDF / gambar).
+//   - Isi tanggal pinjam (wajib) & rencana kembali (opsional).
 // ============================================================
 
 'use client';
 
 import { useMemo, useState } from 'react';
-import { Search, Plus, Minus, Trash2, Upload, Loader2, FileText, Package } from 'lucide-react';
-import { Input, Textarea, Label } from '@/components/ui/input';
+import { Search, Plus, Minus, Trash2, Loader2, Package } from 'lucide-react';
+import { Input, Label } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { notify } from '@/components/ui/toast';
@@ -29,10 +28,8 @@ export function FormPeminjaman({ daftarBarang, onAjukan, praPilihId }: Props) {
     praPilihId ? { [praPilihId]: 1 } : {}
   );
   const [cari, setCari] = useState('');
-  const [alasan, setAlasan] = useState('');
   const [tglPinjam, setTglPinjam] = useState('');
   const [tglKembali, setTglKembali] = useState('');
-  const [dokumen, setDokumen] = useState<File | null>(null);
   const [sedangKirim, setSedangKirim] = useState(false);
 
   const petaBarang = useMemo(() => {
@@ -74,26 +71,19 @@ export function FormPeminjaman({ daftarBarang, onAjukan, praPilihId }: Props) {
     });
   };
 
-  const pilihDokumen = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setDokumen(e.target.files?.[0] ?? null);
-  };
-
   const kirim = async (e: React.FormEvent) => {
     e.preventDefault();
 
     // Validasi sisi klien
     if (idTerpilih.length === 0) return notify.gagal('Pilih minimal satu barang untuk dipinjam.');
-    if (!tglPinjam || !tglKembali) return notify.gagal('Tanggal pinjam dan rencana kembali wajib diisi.');
-    if (new Date(tglKembali) <= new Date(tglPinjam))
+    if (!tglPinjam) return notify.gagal('Tanggal pinjam wajib diisi.');
+    if (tglKembali && new Date(tglKembali) <= new Date(tglPinjam))
       return notify.gagal('Tanggal kembali harus setelah tanggal pinjam.');
-    if (alasan.trim().length < 5) return notify.gagal('Alasan peminjaman minimal 5 karakter.');
 
     const data: DataPengajuan = {
-      alasanPeminjaman: alasan.trim(),
       tanggalPinjamRencana: tglPinjam,
-      tanggalKembaliRencana: tglKembali,
+      tanggalKembaliRencana: tglKembali || undefined,
       items: idTerpilih.map((barangId) => ({ barangId, jumlahPinjam: terpilih[barangId] })),
-      dokumen,
     };
 
     setSedangKirim(true);
@@ -145,6 +135,7 @@ export function FormPeminjaman({ daftarBarang, onAjukan, praPilihId }: Props) {
                 </div>
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-sm font-medium">{barang.nama}</p>
+                  {barang.merk && <p className="truncate text-xs text-muted-foreground">Merk: {barang.merk}</p>}
                   <p className="text-xs text-muted-foreground">Tersedia: {barang.jumlahTersedia}</p>
                 </div>
                 <Button
@@ -204,31 +195,10 @@ export function FormPeminjaman({ daftarBarang, onAjukan, praPilihId }: Props) {
             <Input id="tglPinjam" type="date" value={tglPinjam} onChange={(e) => setTglPinjam(e.target.value)} className="mt-1" />
           </div>
           <div>
-            <Label htmlFor="tglKembali">Rencana Kembali</Label>
+            <Label htmlFor="tglKembali">Rencana Kembali (opsional)</Label>
             <Input id="tglKembali" type="date" value={tglKembali} onChange={(e) => setTglKembali(e.target.value)} className="mt-1" />
+            <p className="mt-1 text-xs text-muted-foreground">Kosongkan bila peminjaman tanpa batas waktu.</p>
           </div>
-        </div>
-
-        {/* Alasan */}
-        <div>
-          <Label htmlFor="alasan">3. Alasan Peminjaman</Label>
-          <Textarea
-            id="alasan"
-            value={alasan}
-            onChange={(e) => setAlasan(e.target.value)}
-            placeholder="Jelaskan keperluan peminjaman barang..."
-            className="mt-1"
-          />
-        </div>
-
-        {/* Dokumen */}
-        <div>
-          <Label>4. Unggah Dokumen Peminjaman</Label>
-          <label className="mt-1 flex cursor-pointer items-center gap-2 rounded-lg border border-dashed px-4 py-3 text-sm text-muted-foreground transition-colors hover:border-primary/50 hover:bg-primary/5">
-            {dokumen ? <FileText className="h-4 w-4 shrink-0 text-primary" /> : <Upload className="h-4 w-4 shrink-0" />}
-            <span className="truncate">{dokumen ? dokumen.name : 'Pilih file (PDF/JPG/PNG, maks 5 MB)'}</span>
-            <input type="file" accept="application/pdf,image/*" className="hidden" onChange={pilihDokumen} />
-          </label>
         </div>
 
         <Button type="submit" disabled={sedangKirim} className="w-full">
