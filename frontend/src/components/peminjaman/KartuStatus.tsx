@@ -41,7 +41,8 @@ export function KartuStatus({ peminjaman, hrefDetail, tampilkanPeminjam }: Props
           </p>
           <p className="flex items-center gap-2">
             <CalendarDays className="h-4 w-4" />
-            {formatTanggal(peminjaman.tanggalPinjamRencana)} — {formatTanggal(peminjaman.tanggalKembaliRencana)}
+            {formatTanggal(peminjaman.tanggalPinjamRencana)} —{' '}
+            {peminjaman.tanggalKembaliRencana ? formatTanggal(peminjaman.tanggalKembaliRencana) : 'tanpa batas'}
           </p>
         </div>
 

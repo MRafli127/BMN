@@ -7,6 +7,7 @@ import type { Barang, FilterBarang, MetaPagination } from '@/types/barang.type';
 
 export interface DataBarangForm {
   nama: string;
+  merk?: string;
   jenis: string;
   jumlahTotal: number | string;
   kondisi: string;
@@ -19,6 +20,7 @@ export interface DataBarangForm {
 function buatFormData(data: DataBarangForm): FormData {
   const fd = new FormData();
   fd.append('nama', data.nama);
+  if (data.merk) fd.append('merk', data.merk);
   fd.append('jenis', data.jenis);
   fd.append('jumlahTotal', String(data.jumlahTotal));
   fd.append('kondisi', data.kondisi);

@@ -12,6 +12,7 @@ import { cn } from '@/lib/utils';
 import { RUTE } from '@/constants/routes';
 import { useAuth } from '@/hooks/useAuth';
 import { useUIStore } from '@/store/uiStore';
+import { useJumlahKeranjang } from '@/store/keranjangStore';
 
 interface ItemMenu {
   label: string;
@@ -29,6 +30,7 @@ const menuAdmin: ItemMenu[] = [
 const menuPeminjam: ItemMenu[] = [
   { label: 'Dashboard', href: RUTE.peminjamDashboard, ikon: 'dashboard' },
   { label: 'Katalog Barang', href: RUTE.peminjamKatalog, ikon: 'inventory_2' },
+  { label: 'Keranjang', href: RUTE.peminjamKeranjang, ikon: 'shopping_cart' },
   { label: 'Ajukan Peminjaman', href: RUTE.peminjamAjukan, ikon: 'post_add' },
   { label: 'Riwayat Peminjaman', href: RUTE.peminjamRiwayat, ikon: 'history' },
 ];
@@ -38,6 +40,7 @@ export function Sidebar() {
   const router = useRouter();
   const { isAdmin, logout, user } = useAuth();
   const { sidebarTerbuka, tutupSidebar } = useUIStore();
+  const jumlahKeranjang = useJumlahKeranjang();
 
   const menu = isAdmin ? menuAdmin : menuPeminjam;
 
@@ -106,6 +109,11 @@ export function Sidebar() {
               >
                 <Icon name={item.ikon} fill={aktif} />
                 <span className="font-label-md">{item.label}</span>
+                {item.href === RUTE.peminjamKeranjang && jumlahKeranjang > 0 && (
+                  <span className="ml-auto inline-flex min-w-5 items-center justify-center rounded-full bg-secondary px-1.5 py-0.5 text-xs font-bold text-primary">
+                    {jumlahKeranjang}
+                  </span>
+                )}
               </Link>
             );
           })}

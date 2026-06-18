@@ -44,6 +44,7 @@ export function TabelBarang({ data, onHapus }: Props) {
             <TableRow>
               <TableHead className="w-16">Foto</TableHead>
               <TableHead>Kode / Nama</TableHead>
+              <TableHead>Merk</TableHead>
               <TableHead>Jenis</TableHead>
               <TableHead>Kondisi</TableHead>
               <TableHead className="text-center">Stok</TableHead>
@@ -72,6 +73,7 @@ export function TabelBarang({ data, onHapus }: Props) {
                     <p className="font-medium text-foreground">{barang.nama}</p>
                     <p className="font-mono text-xs text-muted-foreground">{barang.kodeBarang}</p>
                   </TableCell>
+                  <TableCell className="text-sm text-muted-foreground">{barang.merk || '-'}</TableCell>
                   <TableCell>
                     <Badge className="border-primary/20 bg-primary/10 text-primary">{JENIS_BARANG[barang.jenis]}</Badge>
                   </TableCell>

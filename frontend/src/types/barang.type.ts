@@ -9,6 +9,7 @@ export interface Barang {
   id: string;
   kodeBarang: string;
   nama: string;
+  merk?: string | null;
   jenis: JenisBarang;
   jumlahTotal: number;
   jumlahTersedia: number;

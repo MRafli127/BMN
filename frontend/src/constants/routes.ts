@@ -24,6 +24,8 @@ export const RUTE = {
   // Peminjam
   peminjamDashboard: '/peminjam/dashboard',
   peminjamKatalog: '/peminjam/katalog',
+  peminjamKatalogDetail: (id: string) => `/peminjam/katalog/${id}`,
+  peminjamKeranjang: '/peminjam/keranjang',
   peminjamAjukan: '/peminjam/ajukan',
   peminjamRiwayat: '/peminjam/riwayat',
   peminjamRiwayatDetail: (id: string) => `/peminjam/riwayat/${id}`,
