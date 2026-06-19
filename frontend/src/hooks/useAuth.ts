@@ -15,6 +15,8 @@ export function useAuth() {
     register: store.register,
     logout: store.logout,
     segarkanProfil: store.segarkanProfil,
+    perbaruiProfil: store.perbaruiProfil,
+    gantiPassword: store.gantiPassword,
     setUser: store.setUser,
     muatDariSesi: store.muatDariSesi,
     sudahLogin: !!store.user,

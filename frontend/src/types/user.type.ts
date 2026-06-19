@@ -35,3 +35,16 @@ export interface HasilAuth {
   accessToken: string;
   refreshToken: string;
 }
+
+export interface DataUpdateProfil {
+  nama: string;
+  nip: string;
+  email: string;
+  jabatan?: string;
+  unitKerja?: string;
+}
+
+export interface DataGantiPassword {
+  passwordLama: string;
+  passwordBaru: string;
+}
