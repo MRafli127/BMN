@@ -117,25 +117,25 @@ export default function DetailRiwayatPage() {
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-base">
-                <FileText className="h-4 w-4" /> Dokumen
+                <FileText className="h-4 w-4" /> Surat Pernyataan
               </CardTitle>
             </CardHeader>
             <CardContent className="flex flex-wrap gap-3">
-              {data.dokumenUrl && (
+              {data.dokumenUrl ? (
                 <Button asChild variant="outline">
                   <a href={data.dokumenUrl} target="_blank" rel="noreferrer">
-                    <FileText className="h-4 w-4" /> Dokumen Saya
-                  </a>
-                </Button>
-              )}
-              {data.dokumenStempelUrl ? (
-                <Button asChild variant="sukses">
-                  <a href={data.dokumenStempelUrl} target="_blank" rel="noreferrer">
-                    <Download className="h-4 w-4" /> Unduh Dokumen Berstempel
+                    <FileText className="h-4 w-4" /> Lihat Surat Pernyataan
                   </a>
                 </Button>
               ) : (
-                <p className="text-sm text-muted-foreground">Dokumen berstempel belum tersedia.</p>
+                <p className="text-sm text-muted-foreground">Surat pernyataan belum tersedia.</p>
+              )}
+              {data.dokumenStempelUrl && (
+                <Button asChild variant="sukses">
+                  <a href={data.dokumenStempelUrl} target="_blank" rel="noreferrer">
+                    <Download className="h-4 w-4" /> Unduh Surat Berstempel
+                  </a>
+                </Button>
               )}
             </CardContent>
           </Card>

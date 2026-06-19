@@ -12,6 +12,7 @@ import { Input, Label } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { notify } from '@/components/ui/toast';
+import { TandaTanganInput } from '@/components/peminjaman/TandaTanganInput';
 import { urlFile, ambilPesanError } from '@/lib/utils';
 import type { Barang } from '@/types/barang.type';
 import type { DataPengajuan } from '@/types/peminjaman.type';
@@ -30,6 +31,7 @@ export function FormPeminjaman({ daftarBarang, onAjukan, praPilihId }: Props) {
   const [cari, setCari] = useState('');
   const [tglPinjam, setTglPinjam] = useState('');
   const [tglKembali, setTglKembali] = useState('');
+  const [tandaTangan, setTandaTangan] = useState<string | null>(null);
   const [sedangKirim, setSedangKirim] = useState(false);
 
   const petaBarang = useMemo(() => {
@@ -79,11 +81,13 @@ export function FormPeminjaman({ daftarBarang, onAjukan, praPilihId }: Props) {
     if (!tglPinjam) return notify.gagal('Tanggal pinjam wajib diisi.');
     if (tglKembali && new Date(tglKembali) <= new Date(tglPinjam))
       return notify.gagal('Tanggal kembali harus setelah tanggal pinjam.');
+    if (!tandaTangan) return notify.gagal('Tanda tangan wajib diisi.');
 
     const data: DataPengajuan = {
       tanggalPinjamRencana: tglPinjam,
       tanggalKembaliRencana: tglKembali || undefined,
       items: idTerpilih.map((barangId) => ({ barangId, jumlahPinjam: terpilih[barangId] })),
+      tandaTangan,
     };
 
     setSedangKirim(true);
@@ -199,6 +203,14 @@ export function FormPeminjaman({ daftarBarang, onAjukan, praPilihId }: Props) {
             <Input id="tglKembali" type="date" value={tglKembali} onChange={(e) => setTglKembali(e.target.value)} className="mt-1" />
             <p className="mt-1 text-xs text-muted-foreground">Kosongkan bila peminjaman tanpa batas waktu.</p>
           </div>
+        </div>
+
+        {/* Tanda tangan untuk surat pernyataan */}
+        <div className="rounded-lg border p-3">
+          <TandaTanganInput value={tandaTangan} onChange={setTandaTangan} />
+          <p className="mt-2 text-xs text-muted-foreground">
+            Tanda tangan akan otomatis dimasukkan ke Surat Pernyataan Peminjaman (PDF).
+          </p>
         </div>
 
         <Button type="submit" disabled={sedangKirim} className="w-full">

@@ -36,6 +36,7 @@ export const peminjamanService = {
     fd.append('tanggalPinjamRencana', data.tanggalPinjamRencana);
     if (data.tanggalKembaliRencana) fd.append('tanggalKembaliRencana', data.tanggalKembaliRencana);
     fd.append('items', JSON.stringify(data.items));
+    fd.append('tandaTangan', data.tandaTangan);
 
     const res = await api.post('/peminjaman', fd, {
       headers: { 'Content-Type': 'multipart/form-data' },
