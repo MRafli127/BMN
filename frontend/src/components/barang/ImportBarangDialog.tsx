@@ -116,8 +116,9 @@ export function ImportBarangDialog({ onSelesai }: Props) {
           </Button>
           <p className="mt-2 text-xs text-muted-foreground">
             Kolom: Kode Satker, Nama Satker, Kode Barang, NUP, Nama Barang, Merk, Tipe, Jenis BMN,
-            Kondisi (Baik/Rusak Ringan/Rusak Berat), Lokasi Penyimpanan, Deskripsi. Kolom{' '}
-            <strong>NUP</strong> wajib agar tiap aset bisa dilacak saat re-import.
+            Kondisi (Baik/Rusak Ringan/Rusak Berat), Lokasi Ruang (BU), Deskripsi. Kolom{' '}
+            <strong>NUP</strong> wajib — kode barang otomatis dibentuk dari{' '}
+            <strong>Kode Satker · Kode Barang · NUP</strong>.
           </p>
         </div>
 
