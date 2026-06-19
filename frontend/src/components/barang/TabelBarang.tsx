@@ -31,6 +31,8 @@ export function TabelBarang({ data, onHapus }: Props) {
     try {
       await onHapus(target.id);
       setTarget(null);
+    } catch {
+      // Error sudah ditampilkan via toast oleh parent; dialog dibiarkan terbuka.
     } finally {
       setSedangHapus(false);
     }
