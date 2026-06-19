@@ -95,6 +95,9 @@ export default function DetailRiwayatPage() {
                       <div>
                         <p className="font-medium text-foreground">{d.barang?.nama}</p>
                         <p className="text-xs text-muted-foreground">
+                          Merk: <span className="font-medium text-foreground">{d.barang?.merk || '-'}</span>
+                        </p>
+                        <p className="text-xs text-muted-foreground">
                           {d.barang?.kodeBarang} • {d.barang ? JENIS_BARANG[d.barang.jenis] : ''}
                         </p>
                       </div>

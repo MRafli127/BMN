@@ -90,7 +90,9 @@ export default function ReviewPengajuanPage() {
                 <div key={d.id} className="flex items-center justify-between rounded-lg border bg-muted/30 p-3">
                   <div className="min-w-0">
                     <p className="truncate font-medium text-foreground">{d.barang?.nama}</p>
-                    {d.barang?.merk && <p className="truncate text-xs text-muted-foreground">Merk: {d.barang.merk}</p>}
+                    <p className="truncate text-xs text-muted-foreground">
+                      Merk: <span className="font-medium text-foreground">{d.barang?.merk || '-'}</span>
+                    </p>
                     <p className="font-mono text-xs text-muted-foreground">
                       {d.barang?.kodeBarang} • {d.barang ? JENIS_BARANG[d.barang.jenis] : ''}
                     </p>
