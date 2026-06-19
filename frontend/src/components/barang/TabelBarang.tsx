@@ -73,11 +73,9 @@ export function TabelBarang({ data, onHapus }: Props) {
                   </TableCell>
                   <TableCell>
                     <p className="font-medium text-foreground">{barang.nama}</p>
-                    <p className="font-mono text-xs text-muted-foreground">{barang.kodeBarang}</p>
+                    <p className="font-mono text-xs break-all text-muted-foreground">{barang.kodeBarang}</p>
                     {barang.nup && (
-                      <p className="font-mono text-xs text-muted-foreground">
-                        {barang.kodeBarangBmn ? `${barang.kodeBarangBmn} · ` : ''}NUP {barang.nup}
-                      </p>
+                      <p className="text-xs text-muted-foreground">NUP {barang.nup}</p>
                     )}
                   </TableCell>
                   <TableCell className="text-sm text-muted-foreground">{barang.merk || '-'}</TableCell>
