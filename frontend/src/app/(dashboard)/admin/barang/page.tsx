@@ -20,8 +20,11 @@ import { ambilPesanError } from '@/lib/utils';
 import { OPSI_JENIS, OPSI_KONDISI } from '@/constants/status';
 import { RUTE } from '@/constants/routes';
 
+// Pilihan jumlah baris yang ditampilkan per halaman
+const OPSI_LIMIT = [12, 50, 100, 200];
+
 export default function AdminBarangPage() {
-  const { data, meta, filter, setFilter, ubahFilter, sedangMemuat, refetch } = useBarang({ page: 1, limit: 10 });
+  const { data, meta, filter, setFilter, ubahFilter, sedangMemuat, refetch } = useBarang({ page: 1, limit: 12 });
   const [cari, setCari] = useState('');
 
   // Debounce pencarian
@@ -64,7 +67,7 @@ export default function AdminBarangPage() {
       <div className="grid grid-cols-1 gap-3 rounded-xl border bg-card p-4 sm:grid-cols-3">
         <div className="relative">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-          <Input value={cari} onChange={(e) => setCari(e.target.value)} placeholder="Cari nama / kode barang..." className="pl-9" />
+          <Input value={cari} onChange={(e) => setCari(e.target.value)} placeholder="Cari kode / nama / merk / lokasi..." className="pl-9" />
         </div>
         <Select value={filter.jenis || ''} onChange={(e) => ubahFilter({ jenis: (e.target.value || undefined) as never })}>
           <option value="">Semua Jenis</option>
@@ -103,13 +106,30 @@ export default function AdminBarangPage() {
         <>
           <TabelBarang data={data} onHapus={hapus} />
 
-          {/* Pagination */}
-          {meta && meta.totalHalaman > 1 && (
-            <div className="flex items-center justify-between">
-              <p className="text-sm text-muted-foreground">
-                Halaman {meta.page} dari {meta.totalHalaman} • {meta.total} barang
-              </p>
-              <div className="flex gap-2">
+          {/* Footer: jumlah per halaman + navigasi */}
+          <div className="flex flex-col items-center justify-between gap-3 sm:flex-row">
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+              <span>Tampilkan</span>
+              <Select
+                value={String(filter.limit ?? 12)}
+                onChange={(e) => ubahFilter({ limit: Number(e.target.value) })}
+                className="h-9 w-[4.5rem]"
+                aria-label="Jumlah barang per halaman"
+              >
+                {OPSI_LIMIT.map((n) => (
+                  <option key={n} value={n}>
+                    {n}
+                  </option>
+                ))}
+              </Select>
+              <span>per halaman{meta ? ` • ${meta.total} barang` : ''}</span>
+            </div>
+
+            {meta && meta.totalHalaman > 1 && (
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-muted-foreground">
+                  Halaman {meta.page} dari {meta.totalHalaman}
+                </span>
                 <Button variant="outline" size="sm" disabled={meta.page <= 1} onClick={() => gantiHalaman(meta.page - 1)}>
                   <ChevronLeft className="h-4 w-4" /> Sebelumnya
                 </Button>
@@ -117,8 +137,8 @@ export default function AdminBarangPage() {
                   Berikutnya <ChevronRight className="h-4 w-4" />
                 </Button>
               </div>
-            </div>
-          )}
+            )}
+          </div>
         </>
       )}
     </div>

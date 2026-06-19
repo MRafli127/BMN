@@ -73,7 +73,7 @@ export default function KatalogPage() {
           <Input
             value={cari}
             onChange={(e) => setCari(e.target.value)}
-            placeholder="Cari nama / kode / merk barang..."
+            placeholder="Cari kode / nama / merk / lokasi..."
             className="pl-9"
           />
         </div>
