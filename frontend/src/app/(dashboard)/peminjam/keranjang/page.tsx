@@ -17,6 +17,7 @@ import { Input, Label } from '@/components/ui/input';
 import { EmptyState } from '@/components/shared/EmptyState';
 import { LoadingSpinner } from '@/components/shared/LoadingSpinner';
 import { notify } from '@/components/ui/toast';
+import { TandaTanganInput } from '@/components/peminjaman/TandaTanganInput';
 import { useKeranjangStore } from '@/store/keranjangStore';
 import { peminjamanService } from '@/services/peminjaman.service';
 import { ambilPesanError, urlFile } from '@/lib/utils';
@@ -31,6 +32,7 @@ export default function KeranjangPage() {
 
   const [tglPinjam, setTglPinjam] = useState('');
   const [tglKembali, setTglKembali] = useState('');
+  const [tandaTangan, setTandaTangan] = useState<string | null>(null);
   const [sedangKirim, setSedangKirim] = useState(false);
 
   // Hindari hydration mismatch: isi keranjang (persisted) baru dibaca setelah mount.
@@ -44,6 +46,7 @@ export default function KeranjangPage() {
     if (!tglPinjam) return notify.gagal('Tanggal pinjam wajib diisi.');
     if (tglKembali && new Date(tglKembali) <= new Date(tglPinjam))
       return notify.gagal('Tanggal kembali harus setelah tanggal pinjam.');
+    if (!tandaTangan) return notify.gagal('Tanda tangan wajib diisi.');
 
     setSedangKirim(true);
     try {
@@ -51,10 +54,11 @@ export default function KeranjangPage() {
         tanggalPinjamRencana: tglPinjam,
         tanggalKembaliRencana: tglKembali || undefined,
         items: daftar.map((it) => ({ barangId: it.barangId, jumlahPinjam: it.jumlah })),
+        tandaTangan,
       });
       notify.sukses('Pengajuan peminjaman berhasil dikirim!');
       kosongkan();
-      router.push(RUTE.peminjamRiwayatDetail(p.id));
+      router.push(RUTE.peminjamRiwayatReview(p.id));
     } catch (error) {
       notify.gagal(ambilPesanError(error, 'Gagal mengirim pengajuan.'));
     } finally {
@@ -134,6 +138,16 @@ export default function KeranjangPage() {
                 </CardContent>
               </Card>
             ))}
+
+            {/* Tanda tangan untuk surat pernyataan */}
+            <Card>
+              <CardContent className="p-4">
+                <TandaTanganInput value={tandaTangan} onChange={setTandaTangan} />
+                <p className="mt-2 text-xs text-muted-foreground">
+                  Tanda tangan akan otomatis dimasukkan ke Surat Pernyataan Peminjaman (PDF).
+                </p>
+              </CardContent>
+            </Card>
           </div>
 
           {/* Ringkasan & checkout */}

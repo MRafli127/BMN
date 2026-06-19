@@ -29,6 +29,7 @@ export const RUTE = {
   peminjamAjukan: '/peminjam/ajukan',
   peminjamRiwayat: '/peminjam/riwayat',
   peminjamRiwayatDetail: (id: string) => `/peminjam/riwayat/${id}`,
+  peminjamRiwayatReview: (id: string) => `/peminjam/riwayat/${id}/review`,
 } as const;
 
 // Rute yang memerlukan login

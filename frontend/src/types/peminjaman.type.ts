@@ -55,4 +55,5 @@ export interface DataPengajuan {
   tanggalPinjamRencana: string;
   tanggalKembaliRencana?: string;
   items: ItemPengajuan[];
+  tandaTangan: string; // PNG data URL tanda tangan elektronik
 }

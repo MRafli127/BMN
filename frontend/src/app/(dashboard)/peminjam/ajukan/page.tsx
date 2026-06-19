@@ -44,7 +44,7 @@ export default function AjukanPage() {
   const ajukan = async (data: DataPengajuan) => {
     const p = await peminjamanService.create(data);
     notify.sukses('Pengajuan peminjaman berhasil dikirim!');
-    router.push(RUTE.peminjamRiwayatDetail(p.id));
+    router.push(RUTE.peminjamRiwayatReview(p.id));
   };
 
   return (
