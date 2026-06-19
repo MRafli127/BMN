@@ -3,7 +3,14 @@
 // ============================================================
 
 import api from '@/lib/api';
-import type { DataLogin, DataRegister, HasilAuth, User } from '@/types/user.type';
+import type {
+  DataGantiPassword,
+  DataLogin,
+  DataRegister,
+  DataUpdateProfil,
+  HasilAuth,
+  User,
+} from '@/types/user.type';
 
 export const authService = {
   async login(data: DataLogin): Promise<HasilAuth> {
@@ -19,6 +26,15 @@ export const authService = {
   async me(): Promise<User> {
     const res = await api.get('/auth/me');
     return res.data.data;
+  },
+
+  async updateProfil(data: DataUpdateProfil): Promise<{ user: User; accessToken: string }> {
+    const res = await api.patch('/auth/me', data);
+    return res.data.data;
+  },
+
+  async gantiPassword(data: DataGantiPassword): Promise<void> {
+    await api.patch('/auth/me/password', data);
   },
 
   async logout(): Promise<void> {

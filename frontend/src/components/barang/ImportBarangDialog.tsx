@@ -7,7 +7,16 @@
 'use client';
 
 import { useRef, useState } from 'react';
-import { Upload, Download, FileSpreadsheet, AlertTriangle, PlusCircle, RefreshCw } from 'lucide-react';
+import {
+  Upload,
+  Download,
+  FileSpreadsheet,
+  AlertTriangle,
+  PlusCircle,
+  RefreshCw,
+  Trash2,
+  ShieldCheck,
+} from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -55,9 +64,11 @@ export function ImportBarangDialog({ onSelesai }: Props) {
     try {
       const res = await barangService.importExcel(file);
       setHasil(res);
-      const adaPerubahan = res.ditambahkan + res.diperbarui > 0;
+      const adaPerubahan = res.ditambahkan + res.diperbarui + res.dihapus > 0;
       if (adaPerubahan) {
-        notify.sukses(`Impor: +${res.ditambahkan} baru, ${res.diperbarui} diperbarui.`);
+        notify.sukses(
+          `Impor: +${res.ditambahkan} baru, ${res.diperbarui} diperbarui, ${res.dihapus} dihapus.`
+        );
         onSelesai?.();
       } else if (res.gagal === 0) {
         // Data sudah sama persis dengan file — tidak ada yang berubah.
@@ -90,9 +101,10 @@ export function ImportBarangDialog({ onSelesai }: Props) {
         <DialogHeader>
           <DialogTitle>Import Barang dari Excel</DialogTitle>
           <DialogDescription>
-            Unggah file .xlsx, .xls, atau .csv. Barang baru akan <strong>ditambahkan</strong> dan yang
-            sudah ada (kode sama) <strong>diperbarui</strong>. Impor <strong>tidak pernah menghapus</strong>{' '}
-            data — barang yang tidak ada di file tetap aman. Hapus barang lewat tombol hapus bila perlu.
+            Unggah file .xlsx, .xls, atau .csv. Database akan <strong>disinkronkan</strong> dengan isi
+            file: baris baru <strong>ditambahkan</strong>, yang sudah ada <strong>diperbarui</strong>, dan
+            aset yang <strong>tidak ada lagi di file akan dihapus</strong> — kecuali unit yang sedang/pernah
+            dipinjam (otomatis dilindungi). Setiap baris = 1 unit barang.
           </DialogDescription>
         </DialogHeader>
 
@@ -103,8 +115,9 @@ export function ImportBarangDialog({ onSelesai }: Props) {
             <Download className="h-4 w-4" /> Unduh Template
           </Button>
           <p className="mt-2 text-xs text-muted-foreground">
-            Kolom: Nama, Jenis (ELEKTRONIK/FURNITUR/KENDARAAN/ATK/LAINNYA), Jumlah Total, Kondisi
-            (BAIK/RUSAK_RINGAN/RUSAK_BERAT), Lokasi Penyimpanan, Deskripsi.
+            Kolom: Kode Satker, Nama Satker, Kode Barang, NUP, Nama Barang, Merk, Tipe, Jenis BMN,
+            Kondisi (Baik/Rusak Ringan/Rusak Berat), Lokasi Penyimpanan, Deskripsi. Kolom{' '}
+            <strong>NUP</strong> wajib agar tiap aset bisa dilacak saat re-import.
           </p>
         </div>
 
@@ -144,12 +157,26 @@ export function ImportBarangDialog({ onSelesai }: Props) {
               <span className="inline-flex items-center gap-1.5 text-blue-700">
                 <RefreshCw className="h-4 w-4" /> {hasil.diperbarui} diperbarui
               </span>
+              <span className="inline-flex items-center gap-1.5 text-orange-700">
+                <Trash2 className="h-4 w-4" /> {hasil.dihapus} dihapus
+              </span>
+              {hasil.dilindungi > 0 && (
+                <span className="inline-flex items-center gap-1.5 text-amber-700">
+                  <ShieldCheck className="h-4 w-4" /> {hasil.dilindungi} dilindungi
+                </span>
+              )}
               {hasil.gagal > 0 && (
                 <span className="inline-flex items-center gap-1.5 text-red-700">
                   <AlertTriangle className="h-4 w-4" /> {hasil.gagal} gagal
                 </span>
               )}
             </div>
+            {hasil.dilindungi > 0 && (
+              <p className="text-xs text-amber-700">
+                {hasil.dilindungi} aset tidak ada di file tetapi <strong>tidak dihapus</strong> karena
+                terkait peminjaman. Hapus manual bila benar-benar perlu.
+              </p>
+            )}
             {hasil.detailGagal.length > 0 && (
               <div className="max-h-40 overflow-y-auto rounded-md bg-red-50 p-2">
                 <ul className="space-y-1 text-xs text-red-800">

@@ -4,7 +4,13 @@
 // ============================================================
 
 import { create } from 'zustand';
-import type { DataLogin, DataRegister, User } from '@/types/user.type';
+import type {
+  DataGantiPassword,
+  DataLogin,
+  DataRegister,
+  DataUpdateProfil,
+  User,
+} from '@/types/user.type';
 import { authService } from '@/services/auth.service';
 import { simpanSesi, bersihkanSesi, ambilUser, simpanUser } from '@/lib/auth';
 
@@ -16,6 +22,8 @@ interface AuthState {
   logout: () => Promise<void>;
   muatDariSesi: () => void;
   segarkanProfil: () => Promise<void>;
+  perbaruiProfil: (data: DataUpdateProfil) => Promise<User>;
+  gantiPassword: (data: DataGantiPassword) => Promise<void>;
   setUser: (user: User) => void;
 }
 
@@ -65,6 +73,19 @@ export const useAuthStore = create<AuthState>((set) => ({
     } catch {
       // dibiarkan; interceptor akan menangani sesi kedaluwarsa
     }
+  },
+
+  // Perbarui data profil (nama, NIP, email, dll) lalu sinkronkan sesi
+  perbaruiProfil: async (data) => {
+    const hasil = await authService.updateProfil(data);
+    simpanSesi(hasil.accessToken, hasil.user);
+    set({ user: hasil.user });
+    return hasil.user;
+  },
+
+  // Ganti kata sandi
+  gantiPassword: async (data) => {
+    await authService.gantiPassword(data);
   },
 
   setUser: (user) => set({ user }),

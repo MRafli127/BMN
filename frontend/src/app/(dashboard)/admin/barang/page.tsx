@@ -10,6 +10,7 @@ import { Search, Plus, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Input, Select } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { TabelBarang } from '@/components/barang/TabelBarang';
+import { ImportBarangDialog } from '@/components/barang/ImportBarangDialog';
 import { LoadingSpinner } from '@/components/shared/LoadingSpinner';
 import { EmptyState } from '@/components/shared/EmptyState';
 import { notify } from '@/components/ui/toast';
@@ -49,11 +50,14 @@ export default function AdminBarangPage() {
           <h1 className="text-2xl font-bold text-foreground">Manajemen Barang</h1>
           <p className="text-muted-foreground">Kelola data Barang Milik Negara.</p>
         </div>
-        <Button asChild>
-          <Link href={RUTE.adminBarangTambah}>
-            <Plus className="h-4 w-4" /> Tambah Barang
-          </Link>
-        </Button>
+        <div className="flex flex-wrap gap-2">
+          <ImportBarangDialog onSelesai={refetch} />
+          <Button asChild>
+            <Link href={RUTE.adminBarangTambah}>
+              <Plus className="h-4 w-4" /> Tambah Barang
+            </Link>
+          </Button>
+        </div>
       </div>
 
       {/* Filter */}

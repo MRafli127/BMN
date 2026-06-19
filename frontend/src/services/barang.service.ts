@@ -5,6 +5,17 @@
 import api from '@/lib/api';
 import type { Barang, FilterBarang, MetaPagination } from '@/types/barang.type';
 
+// Hasil proses import (sinkronisasi cermin) dari backend.
+export interface HasilImport {
+  ditambahkan: number;
+  diperbarui: number;
+  dihapus: number;
+  dilindungi: number;
+  gagal: number;
+  detailGagal: { baris: number; nama: string; pesan: string }[];
+  detailDilindungi: { nama: string; nup: string | null; kodeBarangBmn: string | null }[];
+}
+
 export interface DataBarangForm {
   nama: string;
   merk?: string;
@@ -57,5 +68,28 @@ export const barangService = {
 
   async remove(id: string): Promise<void> {
     await api.delete(`/barang/${id}`);
+  },
+
+  // Import file Excel/CSV. Backend menyinkronkan database dengan isi file.
+  async importExcel(file: File): Promise<HasilImport> {
+    const fd = new FormData();
+    fd.append('file', file);
+    const res = await api.post('/barang/import', fd, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+    return res.data.data;
+  },
+
+  // Unduh template Excel untuk import (memicu unduhan di browser).
+  async unduhTemplate(): Promise<void> {
+    const res = await api.get('/barang/template', { responseType: 'blob' });
+    const url = URL.createObjectURL(res.data as Blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'template-import-barang.xlsx';
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
   },
 };

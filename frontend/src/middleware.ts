@@ -15,10 +15,11 @@ export function middleware(request: NextRequest) {
   const adalahAdmin = pathname.startsWith('/admin');
   const adalahPeminjam = pathname.startsWith('/peminjam');
   const adalahBantuan = pathname.startsWith('/bantuan');
+  const adalahPengaturan = pathname.startsWith('/pengaturan');
   const adalahAuth = pathname === '/login' || pathname === '/register';
 
   // 1) Rute terproteksi tanpa token → arahkan ke login
-  if ((adalahAdmin || adalahPeminjam || adalahBantuan) && !token) {
+  if ((adalahAdmin || adalahPeminjam || adalahBantuan || adalahPengaturan) && !token) {
     const url = new URL('/login', request.url);
     url.searchParams.set('redirect', pathname);
     return NextResponse.redirect(url);
@@ -43,5 +44,14 @@ export function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ['/admin/:path*', '/peminjam/:path*', '/bantuan/:path*', '/bantuan', '/login', '/register'],
+  matcher: [
+    '/admin/:path*',
+    '/peminjam/:path*',
+    '/bantuan/:path*',
+    '/bantuan',
+    '/pengaturan/:path*',
+    '/pengaturan',
+    '/login',
+    '/register',
+  ],
 };
