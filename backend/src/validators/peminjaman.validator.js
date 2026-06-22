@@ -26,7 +26,8 @@ const parseItems = z.preprocess((val) => {
         .min(1, 'Jumlah pinjam minimal 1.'),
     })
   )
-  .min(1, 'Minimal pilih 1 barang untuk dipinjam.'));
+  .min(1, 'Minimal pilih 1 barang untuk dipinjam.')
+  .max(1, 'Maksimal 1 barang per pengajuan peminjaman.'));
 
 // Validasi pengajuan peminjaman
 const createPeminjamanSchema = z

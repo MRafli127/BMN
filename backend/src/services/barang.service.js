@@ -18,13 +18,14 @@ function serialisasi(barang) {
 // --- Ambil daftar barang dengan pencarian/filter/pagination ---
 async function getSemua({ q, jenis, kondisi, page = 1, limit = 10 } = {}) {
   const halaman = Math.max(1, parseInt(page, 10) || 1);
-  const perHalaman = Math.min(100, Math.max(1, parseInt(limit, 10) || 10));
+  const perHalaman = Math.min(200, Math.max(1, parseInt(limit, 10) || 10));
 
   const where = {};
   if (q) {
     where.OR = [
       { nama: { contains: q, mode: 'insensitive' } },
       { kodeBarang: { contains: q, mode: 'insensitive' } },
+      { merk: { contains: q, mode: 'insensitive' } },
       { lokasiPenyimpanan: { contains: q, mode: 'insensitive' } },
     ];
   }

@@ -10,7 +10,6 @@
 // ============================================================
 
 const { prisma } = require('../config/database');
-const { generateKodePeminjaman } = require('../utils/generateKode');
 const { urlPublik } = require('../utils/apiResponse');
 const { AppError } = require('../middleware/error.middleware');
 const qrcodeService = require('./qrcode.service');
@@ -44,25 +43,23 @@ function harusTerlambat(p) {
 }
 
 // --- Buat pengajuan peminjaman baru ---
+// Dibatasi 1 barang per pengajuan (lihat peminjaman.validator.js) karena
+// kodePeminjaman memakai kode aset barang yang dipinjam.
 async function create(userId, data, dokumenPath) {
   const created = await prisma.$transaction(async (tx) => {
-    // Validasi ketersediaan barang
-    for (const item of data.items) {
-      const barang = await tx.barang.findUnique({ where: { id: item.barangId } });
-      if (!barang) throw new AppError(`Barang dengan id ${item.barangId} tidak ditemukan.`, 404);
-      if (item.jumlahPinjam > barang.jumlahTersedia) {
-        throw new AppError(
-          `Stok "${barang.nama}" tidak mencukupi. Tersedia ${barang.jumlahTersedia}, diminta ${item.jumlahPinjam}.`,
-          400
-        );
-      }
+    const item = data.items[0];
+    const barang = await tx.barang.findUnique({ where: { id: item.barangId } });
+    if (!barang) throw new AppError(`Barang dengan id ${item.barangId} tidak ditemukan.`, 404);
+    if (item.jumlahPinjam > barang.jumlahTersedia) {
+      throw new AppError(
+        `Stok "${barang.nama}" tidak mencukupi. Tersedia ${barang.jumlahTersedia}, diminta ${item.jumlahPinjam}.`,
+        400
+      );
     }
-
-    const kodePeminjaman = await generateKodePeminjaman(tx);
 
     return tx.peminjaman.create({
       data: {
-        kodePeminjaman,
+        kodePeminjaman: barang.kodeBarang,
         userId,
         tanggalPinjamRencana: data.tanggalPinjamRencana,
         tanggalKembaliRencana: data.tanggalKembaliRencana,
@@ -70,7 +67,7 @@ async function create(userId, data, dokumenPath) {
         dokumenUrl: dokumenPath || null,
         status: 'MENUNGGU',
         detail: {
-          create: data.items.map((i) => ({ barangId: i.barangId, jumlahPinjam: i.jumlahPinjam })),
+          create: [{ barangId: item.barangId, jumlahPinjam: item.jumlahPinjam }],
         },
       },
       include: includeLengkap,
@@ -83,7 +80,7 @@ async function create(userId, data, dokumenPath) {
 // --- Ambil daftar peminjaman (role-aware) ---
 async function getSemua({ status, q, userId, role, page = 1, limit = 10 } = {}) {
   const halaman = Math.max(1, parseInt(page, 10) || 1);
-  const perHalaman = Math.min(100, Math.max(1, parseInt(limit, 10) || 10));
+  const perHalaman = Math.min(200, Math.max(1, parseInt(limit, 10) || 10));
 
   const where = {};
   if (status) where.status = status;
@@ -148,12 +145,21 @@ async function getById(id, { userId, role } = {}) {
 }
 
 // --- Ambil peminjaman berdasarkan kode (untuk scan QR) ---
+// kodePeminjaman tidak unik (= kode aset barang, bisa berulang tiap kali
+// barang yang sama dipinjam lagi). Prioritaskan transaksi yang masih
+// aktif/menunggu; bila semua sudah selesai, ambil yang paling baru.
 async function getByKode(kodePeminjaman) {
-  const p = await prisma.peminjaman.findUnique({
-    where: { kodePeminjaman },
+  const kandidat = await prisma.peminjaman.findMany({
+    where: { kodePeminjaman: { equals: kodePeminjaman, mode: 'insensitive' } },
     include: includeLengkap,
+    orderBy: { createdAt: 'desc' },
   });
-  if (!p) throw new AppError(`Peminjaman dengan kode "${kodePeminjaman}" tidak ditemukan.`, 404);
+  if (kandidat.length === 0) {
+    throw new AppError(`Peminjaman dengan kode "${kodePeminjaman}" tidak ditemukan.`, 404);
+  }
+
+  const aktif = ['MENUNGGU', 'DISETUJUI', 'DIPINJAM', 'TERLAMBAT'];
+  const p = kandidat.find((k) => aktif.includes(k.status)) || kandidat[0];
 
   if (harusTerlambat(p)) {
     p.status = 'TERLAMBAT';

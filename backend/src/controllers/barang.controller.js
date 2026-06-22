@@ -1,7 +1,8 @@
 const barangService = require('../services/barang.service');
+const barangImportService = require('../services/barangImport.service');
 const { bufferKeDataUrl } = require('../utils/fileData');
 const { responsSukses } = require('../utils/apiResponse');
-const { asyncHandler } = require('../middleware/error.middleware');
+const { asyncHandler, AppError } = require('../middleware/error.middleware');
 
 function pathFoto(file) {
   return file ? bufferKeDataUrl(file.buffer, file.mimetype) : null;
@@ -37,4 +38,22 @@ const remove = asyncHandler(async (req, res) => {
   return responsSukses(res, { pesan: 'Barang berhasil dihapus.' });
 });
 
-module.exports = { getSemua, getById, create, update, remove };
+// Import barang dari Excel/CSV (sinkronisasi cermin) — khusus admin.
+const importExcel = asyncHandler(async (req, res) => {
+  if (!req.file) throw new AppError('File belum diunggah.', 400);
+  const hasil = await barangImportService.importDariExcel(req.file.buffer);
+  return responsSukses(res, { pesan: 'Import selesai diproses.', data: hasil });
+});
+
+// Unduh template Excel untuk import barang.
+const unduhTemplate = asyncHandler(async (req, res) => {
+  const buffer = barangImportService.buatTemplateBuffer();
+  res.setHeader(
+    'Content-Type',
+    'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+  );
+  res.setHeader('Content-Disposition', 'attachment; filename="template-import-barang.xlsx"');
+  return res.send(buffer);
+});
+
+module.exports = { getSemua, getById, create, update, remove, importExcel, unduhTemplate };

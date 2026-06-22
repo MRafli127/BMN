@@ -8,6 +8,7 @@ const barangRoutes = require('./barang.routes');
 const peminjamanRoutes = require('./peminjaman.routes');
 const qrcodeRoutes = require('./qrcode.routes');
 const dashboardRoutes = require('./dashboard.routes');
+const peminjamImportRoutes = require('./peminjamImport.routes');
 
 const router = express.Router();
 
@@ -29,5 +30,6 @@ router.use('/peminjaman', qrcodeRoutes);
 router.use('/peminjaman', peminjamanRoutes);
 
 router.use('/dashboard', dashboardRoutes);
+router.use('/import-peminjam', peminjamImportRoutes);
 
 module.exports = router;

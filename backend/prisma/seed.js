@@ -58,6 +58,13 @@ async function main() {
       jabatan: 'Bendahara',
       unitKerja: 'Bagian Keuangan',
     },
+    {
+      nama: 'Rafli Pratama',
+      nip: '199801102021011004',
+      email: 'rafli@kemenkeu.go.id',
+      jabatan: 'Staf Pengelola BMN',
+      unitKerja: 'Bagian Umum',
+    },
   ];
 
   for (const p of peminjamContoh) {

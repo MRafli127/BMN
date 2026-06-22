@@ -27,6 +27,7 @@ export default function LoginPage() {
   const router = useRouter();
   const { login } = useAuth();
   const [sedangProses, setSedangProses] = useState(false);
+  const [lihatPassword, setLihatPassword] = useState(false);
 
   const {
     register,
@@ -98,17 +99,26 @@ export default function LoginPage() {
             </div>
             {errors.email && <p className="-mt-3 text-xs text-error">{errors.email.message}</p>}
 
-            <div className="floating-label-group">
+            <div className="floating-label-group relative">
               <input
                 id="password"
-                type="password"
+                type={lihatPassword ? 'text' : 'password'}
                 placeholder=" "
                 {...register('password')}
-                className="w-full rounded-xl border border-outline-variant bg-surface-container-low px-4 py-4 transition-all focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/10"
+                className="w-full rounded-xl border border-outline-variant bg-surface-container-low px-4 py-4 pr-12 transition-all focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/10"
               />
               <label htmlFor="password" className="font-label-md text-on-surface-variant">
                 Kata Sandi
               </label>
+              <button
+                type="button"
+                onClick={() => setLihatPassword((tampil) => !tampil)}
+                aria-label={lihatPassword ? 'Sembunyikan kata sandi' : 'Lihat kata sandi'}
+                aria-pressed={lihatPassword}
+                className="absolute right-3 top-1/2 -translate-y-1/2 rounded-lg p-1 text-on-surface-variant transition-colors hover:text-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
+              >
+                <Icon name={lihatPassword ? 'visibility_off' : 'visibility'} className="text-[22px]" />
+              </button>
             </div>
             {errors.password && <p className="-mt-3 text-xs text-error">{errors.password.message}</p>}
 

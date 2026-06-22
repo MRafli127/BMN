@@ -49,7 +49,7 @@ Buat 4 model:
 
 **3. Peminjaman**
 
-- `id` (UUID), `kodePeminjaman` (unik, format `PJM-2026-0001`), `userId` (relasi peminjam), `tanggalPengajuan`, `tanggalPinjamRencana`, `tanggalKembaliRencana`, `tanggalKembaliAktual`, `status` (enum: `MENUNGGU`, `DISETUJUI`, `DITOLAK`, `DIPINJAM`, `DIKEMBALIKAN`, `TERLAMBAT`), `alasanPeminjaman`, `dokumenUrl`, `dokumenStempelUrl`, `qrCodeUrl`, `catatanAdmin`, `disetujuiOleh` (relasi admin), `createdAt`, `updatedAt`
+- `id` (UUID), `kodePeminjaman` (tidak unik — kode aset barang yang dipinjam, format `kodeSatker-kodeBarangBmn-NUP`), `userId` (relasi peminjam), `tanggalPengajuan`, `tanggalPinjamRencana`, `tanggalKembaliRencana`, `tanggalKembaliAktual`, `status` (enum: `MENUNGGU`, `DISETUJUI`, `DITOLAK`, `DIPINJAM`, `DIKEMBALIKAN`, `TERLAMBAT`), `alasanPeminjaman`, `dokumenUrl`, `dokumenStempelUrl`, `qrCodeUrl`, `catatanAdmin`, `disetujuiOleh` (relasi admin), `createdAt`, `updatedAt`
 
 **4. DetailPeminjaman** (relasi barang ↔ peminjaman)
 
