@@ -45,7 +45,7 @@ Buat 4 model:
 
 **2. Barang**
 
-- `id` (UUID), `kodeBarang` (unik, format `BMN-2026-0001`), `nama`, `jenis` (enum: Elektronik, Furnitur, Kendaraan, ATK, Lainnya), `jumlahTotal`, `jumlahTersedia`, `kondisi` (enum: Baik, Rusak Ringan, Rusak Berat), `lokasiPenyimpanan`, `deskripsi`, `fotoUrl`, `createdAt`, `updatedAt`
+- `id` (UUID), `kodeBarang` (unik, kunci natural aset `KodeSatker-KodeBarang-NUP`, mis. `015110199411868000KP-3100102002-1180`), `nama`, `jenis` (enum: Elektronik, Furnitur, Kendaraan, ATK, Lainnya), `jumlahTotal`, `jumlahTersedia`, `kondisi` (enum: Baik, Rusak Ringan, Rusak Berat), `lokasiPenyimpanan`, `deskripsi`, `fotoUrl`, `createdAt`, `updatedAt`
 
 **3. Peminjaman**
 

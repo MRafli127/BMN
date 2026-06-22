@@ -16,6 +16,7 @@
 const XLSX = require('xlsx');
 const { prisma } = require('../config/database');
 const { AppError } = require('../middleware/error.middleware');
+const { kodeNaturalBarang } = require('../utils/generateKode');
 
 // Kolom template yang dipahami importer (urut tampil).
 const KOLOM_TEMPLATE = [
@@ -228,12 +229,6 @@ function kunci(o) {
   return `${o.kodeSatker ?? ''}||${o.kodeBarangBmn ?? ''}||${o.nup ?? ''}`;
 }
 
-// Kode barang yang ditampilkan = kunci natural aset BMN:
-// Kode Satker - Kode Barang - NUP. (Tidak lagi memakai format BMN-tahun-NNNN.)
-function kodeNatural(o) {
-  return [o.kodeSatker, o.kodeBarangBmn, o.nup].filter(Boolean).join('-');
-}
-
 // Apakah dua nilai (sudah dinormalisasi null) sama.
 function sama(a, b) {
   return (a ?? null) === (b ?? null);
@@ -244,7 +239,7 @@ function sama(a, b) {
 // dirapikan ke kunci natural saat import berikutnya.
 function adaPerubahan(lama, baru) {
   return (
-    !sama(lama.kodeBarang, kodeNatural(baru)) ||
+    !sama(lama.kodeBarang, kodeNaturalBarang(baru)) ||
     !sama(lama.nama, baru.nama) ||
     !sama(lama.merk, baru.merk) ||
     !sama(lama.jenis, baru.jenis) ||
@@ -359,7 +354,7 @@ async function importDariExcel(buffer) {
 // Bidang yang dipakai untuk create & update (termasuk kodeBarang = kunci natural).
 function dataDeskriptif(r) {
   return {
-    kodeBarang: kodeNatural(r),
+    kodeBarang: kodeNaturalBarang(r),
     nama: r.nama,
     merk: r.merk,
     jenis: r.jenis,

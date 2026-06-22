@@ -39,7 +39,7 @@ const dashboardAdmin = asyncHandler(async (req, res) => {
         orderBy: { createdAt: 'desc' },
         include: {
           peminjam: { select: { nama: true, nip: true } },
-          detail: { include: { barang: { select: { nama: true } } } },
+          detail: { include: { barang: { select: { nama: true, kodeBarang: true } } } },
         },
       }),
     ]);
@@ -75,7 +75,7 @@ const dashboardPeminjam = asyncHandler(async (req, res) => {
       take: 5,
       include: {
         peminjam: { select: { nama: true } },
-        detail: { include: { barang: { select: { nama: true, fotoUrl: true } } } },
+        detail: { include: { barang: { select: { nama: true, fotoUrl: true, kodeBarang: true } } } },
       },
     }),
     prisma.peminjaman.findFirst({
@@ -83,7 +83,7 @@ const dashboardPeminjam = asyncHandler(async (req, res) => {
       orderBy: { createdAt: 'desc' },
       include: {
         peminjam: { select: { nama: true } },
-        detail: { include: { barang: { select: { nama: true } } } },
+        detail: { include: { barang: { select: { nama: true, kodeBarang: true } } } },
       },
     }),
   ]);

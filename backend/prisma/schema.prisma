@@ -97,7 +97,7 @@ model User {
 // 2) Barang Milik Negara
 model Barang {
   id                String        @id @default(uuid())
-  kodeBarang        String        @unique // Kode sistem unik. Format: BMN-2026-0001
+  kodeBarang        String        @unique // Kode unik = kunci natural aset: Kode Satker-Kode Barang-NUP (mis. 015110199411868000KP-3100102002-1180)
   nama              String
   merk              String? // Merk/model barang (mis. Asus Notebook ROG)
   jenis             JenisBarang   @default(LAINNYA)
@@ -132,7 +132,7 @@ model Barang {
 // 3) Peminjaman (transaksi pengajuan peminjaman)
 model Peminjaman {
   id                    String           @id @default(uuid())
-  kodePeminjaman        String // Kode aset barang yang dipinjam (kodeSatker-kodeBarangBmn-NUP). Tidak unik — barang yang sama bisa dipinjam ulang di waktu berbeda.
+  kodePeminjaman        String // Snapshot kode aset barang saat dipinjam. Saat dibaca, kode di-resync dari kodeBarang barang terkait (kunci natural kodeSatker-kodeBarangBmn-NUP). Tidak unik — barang yang sama bisa dipinjam ulang.
   userId                String
   tanggalPengajuan      DateTime         @default(now())
   tanggalPinjamRencana  DateTime

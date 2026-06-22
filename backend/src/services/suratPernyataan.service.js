@@ -61,7 +61,10 @@ function wrapText(text, font, size, maxWidth) {
 }
 
 function nomorSurat(peminjaman) {
-  const seq = String(peminjaman.kodePeminjaman || '').split('-').pop() || '0000';
+  // Kode mengikuti kode barang terkini (kunci natural); seq = segmen terakhir (NUP).
+  const kode =
+    peminjaman.detail?.find((d) => d.barang)?.barang?.kodeBarang || peminjaman.kodePeminjaman || '';
+  const seq = String(kode).split('-').pop() || '0000';
   const tahun = new Date(peminjaman.tanggalPengajuan || Date.now()).getFullYear();
   return `PRN-${seq}/BMN/PP.1/${tahun}`;
 }

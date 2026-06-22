@@ -4,6 +4,7 @@ const fs = require('fs');
 const { dataUrlKeBuffer, bufferKeDataUrl } = require('../utils/fileData');
 const { formatTanggalSaja } = require('../utils/formatTanggal');
 const { AppError } = require('../middleware/error.middleware');
+const { kodeDariBarang } = require('./peminjaman.service');
 
 async function muatSebagaiPdf(dokumenUrl) {
   const file = dataUrlKeBuffer(dokumenUrl);
@@ -52,7 +53,7 @@ async function gambarStempelVektor(pdf, page, peminjaman, adminNama) {
     rotate: degrees(-8),
   });
 
-  page.drawText(peminjaman.kodePeminjaman, {
+  page.drawText(kodeDariBarang(peminjaman), {
     x: cx - 48,
     y: cy - 14,
     size: 9,

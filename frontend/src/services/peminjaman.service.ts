@@ -79,4 +79,9 @@ export const peminjamanService = {
     const res = await api.get(`/peminjaman/${id}/qrcode`);
     return res.data.data;
   },
+
+  // Hapus peminjaman (admin). Stok dikembalikan otomatis bila masih dipinjam.
+  async hapus(id: string): Promise<void> {
+    await api.delete(`/peminjaman/${id}`);
+  },
 };

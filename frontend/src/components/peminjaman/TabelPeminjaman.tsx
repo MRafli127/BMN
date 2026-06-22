@@ -4,11 +4,13 @@
 
 'use client';
 
+import { useState } from 'react';
 import Link from 'next/link';
-import { Eye } from 'lucide-react';
+import { Eye, Trash2 } from 'lucide-react';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { KonfirmasiDialog } from '@/components/shared/KonfirmasiDialog';
 import { formatTanggal } from '@/lib/utils';
 import { STATUS_PEMINJAMAN } from '@/constants/status';
 import type { Peminjaman } from '@/types/peminjaman.type';
@@ -17,10 +19,29 @@ interface Props {
   data: Peminjaman[];
   hrefDetail: (id: string) => string;
   tampilkanPeminjam?: boolean;
+  // Bila diberikan, tombol hapus ditampilkan (khusus admin).
+  onHapus?: (id: string) => Promise<void>;
 }
 
-export function TabelPeminjaman({ data, hrefDetail, tampilkanPeminjam }: Props) {
+export function TabelPeminjaman({ data, hrefDetail, tampilkanPeminjam, onHapus }: Props) {
+  const [target, setTarget] = useState<Peminjaman | null>(null);
+  const [sedangHapus, setSedangHapus] = useState(false);
+
+  const konfirmasiHapus = async () => {
+    if (!target || !onHapus) return;
+    setSedangHapus(true);
+    try {
+      await onHapus(target.id);
+      setTarget(null);
+    } catch {
+      // Error sudah ditampilkan via toast oleh parent; dialog dibiarkan terbuka.
+    } finally {
+      setSedangHapus(false);
+    }
+  };
+
   return (
+    <>
     <div className="rounded-xl border bg-card">
       <Table>
         <TableHeader>
@@ -57,11 +78,18 @@ export function TabelPeminjaman({ data, hrefDetail, tampilkanPeminjam }: Props) 
                   <Badge className={status.kelas}>{status.label}</Badge>
                 </TableCell>
                 <TableCell className="text-right">
-                  <Button asChild variant="outline" size="sm">
-                    <Link href={hrefDetail(p.id)}>
-                      <Eye className="h-4 w-4" /> Detail
-                    </Link>
-                  </Button>
+                  <div className="flex justify-end gap-1.5">
+                    <Button asChild variant="outline" size="sm">
+                      <Link href={hrefDetail(p.id)}>
+                        <Eye className="h-4 w-4" /> Detail
+                      </Link>
+                    </Button>
+                    {onHapus && (
+                      <Button variant="destructive" size="icon" onClick={() => setTarget(p)} aria-label="Hapus">
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    )}
+                  </div>
                 </TableCell>
               </TableRow>
             );
@@ -69,5 +97,24 @@ export function TabelPeminjaman({ data, hrefDetail, tampilkanPeminjam }: Props) 
         </TableBody>
       </Table>
     </div>
+
+    {onHapus && (
+      <KonfirmasiDialog
+        terbuka={!!target}
+        onUbahTerbuka={(o) => !o && setTarget(null)}
+        judul="Hapus Peminjaman"
+        deskripsi={`Hapus data peminjaman "${target ? kodePeminjamanRingkas(target) : ''}"? Jika barang masih dipinjam, stok akan dikembalikan otomatis. Tindakan ini tidak dapat dibatalkan.`}
+        teksKonfirmasi="Ya, Hapus"
+        variantKonfirmasi="destructive"
+        sedangProses={sedangHapus}
+        onKonfirmasi={konfirmasiHapus}
+      />
+    )}
+    </>
   );
+}
+
+// Label ringkas untuk dialog konfirmasi: kode + nama peminjam (bila ada).
+function kodePeminjamanRingkas(p: Peminjaman): string {
+  return p.peminjam?.nama ? `${p.kodePeminjaman} — ${p.peminjam.nama}` : p.kodePeminjaman;
 }

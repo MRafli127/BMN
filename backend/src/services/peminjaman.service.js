@@ -21,11 +21,20 @@ const includeLengkap = {
   detail: { include: { barang: true } },
 };
 
+// Kode peminjaman = kode barang yang sedang dipinjam (Manajemen Barang).
+// Diturunkan dari barang agar selalu sinkron dengan kodeBarang terkini
+// (kunci natural Kode Satker-Kode Barang-NUP), bukan dari snapshot lama.
+function kodeDariBarang(p) {
+  const barang = p.detail?.find((d) => d.barang)?.barang;
+  return barang?.kodeBarang || p.kodePeminjaman;
+}
+
 // Ubah path file relatif menjadi URL absolut
 function serialisasi(p) {
   if (!p) return p;
   return {
     ...p,
+    kodePeminjaman: kodeDariBarang(p),
     dokumenUrl: urlPublik(p.dokumenUrl),
     dokumenStempelUrl: urlPublik(p.dokumenStempelUrl),
     qrCodeUrl: urlPublik(p.qrCodeUrl),
@@ -87,9 +96,17 @@ async function getSemua({ status, q, userId, role, page = 1, limit = 10 } = {}) 
   // Peminjam hanya melihat miliknya sendiri
   if (role === 'PEMINJAM') where.userId = userId;
   if (q) {
+    const cocok = { contains: q, mode: 'insensitive' };
     where.OR = [
-      { kodePeminjaman: { contains: q, mode: 'insensitive' } },
-      { peminjam: { nama: { contains: q, mode: 'insensitive' } } },
+      // Kode peminjaman (snapshot) + kode barang terkini = sumber kode yang tampil.
+      { kodePeminjaman: cocok },
+      { detail: { some: { barang: { kodeBarang: cocok } } } },
+      { detail: { some: { barang: { nup: cocok } } } },
+      // Nama barang yang dipinjam.
+      { detail: { some: { barang: { nama: cocok } } } },
+      // Identitas peminjam.
+      { peminjam: { nama: cocok } },
+      { peminjam: { nip: cocok } },
     ];
   }
 
@@ -150,7 +167,14 @@ async function getById(id, { userId, role } = {}) {
 // aktif/menunggu; bila semua sudah selesai, ambil yang paling baru.
 async function getByKode(kodePeminjaman) {
   const kandidat = await prisma.peminjaman.findMany({
-    where: { kodePeminjaman: { equals: kodePeminjaman, mode: 'insensitive' } },
+    where: {
+      OR: [
+        { kodePeminjaman: { equals: kodePeminjaman, mode: 'insensitive' } },
+        // Cocokkan juga dengan kode barang terkini agar kode yang tampil
+        // di Manajemen Peminjaman / QR selalu bisa dipindai.
+        { detail: { some: { barang: { kodeBarang: { equals: kodePeminjaman, mode: 'insensitive' } } } } },
+      ],
+    },
     include: includeLengkap,
     orderBy: { createdAt: 'desc' },
   });
@@ -205,7 +229,8 @@ async function setujui(id, adminId, catatan) {
   });
 
   // Tahap 2: generate QR Code (opsional — tidak membatalkan persetujuan bila gagal)
-  const full = await getRawById(id);
+  // Pakai data terserialisasi agar QR memuat kode = kodeBarang terkini.
+  const full = serialisasi(await getRawById(id));
   try {
     const qrPath = await qrcodeService.generateUntukPeminjaman(full);
     await prisma.peminjaman.update({ where: { id }, data: { qrCodeUrl: qrPath } });
@@ -282,6 +307,33 @@ async function kembalikan(id) {
   return serialisasi(updated);
 }
 
+// --- Hapus peminjaman (khusus admin) ---
+// Bila peminjaman masih memegang stok (DISETUJUI/DIPINJAM/TERLAMBAT dengan
+// item berstatus DIPINJAM), stok dikembalikan dulu agar tidak hilang.
+// DetailPeminjaman ikut terhapus otomatis (onDelete: Cascade).
+async function hapus(id) {
+  await prisma.$transaction(async (tx) => {
+    const p = await tx.peminjaman.findUnique({ where: { id }, include: { detail: true } });
+    if (!p) throw new AppError('Data peminjaman tidak ditemukan.', 404);
+
+    const memegangStok = ['DISETUJUI', 'DIPINJAM', 'TERLAMBAT'].includes(p.status);
+    if (memegangStok) {
+      for (const d of p.detail) {
+        if (d.statusItem === 'DIPINJAM') {
+          await tx.barang.update({
+            where: { id: d.barangId },
+            data: { jumlahTersedia: { increment: d.jumlahPinjam } },
+          });
+        }
+      }
+    }
+
+    await tx.peminjaman.delete({ where: { id } });
+  });
+
+  return { id };
+}
+
 // --- Simpan URL dokumen yang sudah distempel ---
 async function setDokumenStempel(id, pathRelatif) {
   const updated = await prisma.peminjaman.update({
@@ -302,6 +354,8 @@ module.exports = {
   tolak,
   serahkan,
   kembalikan,
+  hapus,
   setDokumenStempel,
   serialisasi,
+  kodeDariBarang,
 };

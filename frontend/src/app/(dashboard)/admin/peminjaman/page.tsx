@@ -48,6 +48,17 @@ export default function AdminPeminjamanPage() {
     muat();
   }, [muat]);
 
+  const hapus = async (id: string) => {
+    try {
+      await peminjamanService.hapus(id);
+      notify.sukses('Data peminjaman berhasil dihapus.');
+      await muat();
+    } catch (error) {
+      notify.gagal(ambilPesanError(error, 'Gagal menghapus data peminjaman.'));
+      throw error; // biar dialog tetap terbuka saat gagal
+    }
+  };
+
   // Debounce pencarian
   useEffect(() => {
     const timer = setTimeout(() => setFilter((f) => ({ ...f, q: cari || undefined, page: 1 })), 400);
@@ -73,7 +84,7 @@ export default function AdminPeminjamanPage() {
               name="search"
               className="absolute left-3 top-1/2 -translate-y-1/2 text-[20px] text-on-surface-variant"
             />
-            <Input value={cari} onChange={(e) => setCari(e.target.value)} placeholder="Cari kode / nama peminjam..." className="pl-10" />
+            <Input value={cari} onChange={(e) => setCari(e.target.value)} placeholder="Cari kode / nama barang / nama peminjam..." className="pl-10" />
           </div>
           <Select
             value={filter.status || ''}
@@ -98,7 +109,7 @@ export default function AdminPeminjamanPage() {
           </div>
         ) : (
           <div className="p-stack-md">
-            <TabelPeminjaman data={data} hrefDetail={RUTE.adminPeminjamanDetail} tampilkanPeminjam />
+            <TabelPeminjaman data={data} hrefDetail={RUTE.adminPeminjamanDetail} tampilkanPeminjam onHapus={hapus} />
             <div className="mt-4 flex flex-col items-center justify-between gap-3 sm:flex-row">
               <div className="flex items-center gap-2 text-sm text-on-surface-variant">
                 <span>Tampilkan</span>

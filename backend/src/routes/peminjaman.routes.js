@@ -28,6 +28,7 @@ router.patch('/:id/setujui', roleMiddleware('ADMIN'), validate(setujuiSchema), p
 router.patch('/:id/tolak', roleMiddleware('ADMIN'), validate(tolakSchema), peminjamanController.tolak);
 router.patch('/:id/serahkan', roleMiddleware('ADMIN'), peminjamanController.serahkan);
 router.patch('/:id/kembalikan', roleMiddleware('ADMIN'), peminjamanController.kembalikan);
+router.delete('/:id', roleMiddleware('ADMIN'), peminjamanController.hapus);
 router.post('/:id/stempel', roleMiddleware('ADMIN'), stempelController.stempel);
 
 module.exports = router;
