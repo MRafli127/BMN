@@ -90,4 +90,10 @@ export const peminjamanService = {
     const res = await api.post('/peminjaman/hapus-massal', { ids });
     return res.data.data?.dihapus ?? 0;
   },
+
+  // Setujui banyak pengajuan sekaligus (admin). Mengembalikan ringkasan hasil.
+  async setujuiMassal(ids: string[]): Promise<{ disetujui: number; dilewati: number }> {
+    const res = await api.post('/peminjaman/setujui-massal', { ids });
+    return { disetujui: res.data.data?.disetujui ?? 0, dilewati: res.data.data?.dilewati ?? 0 };
+  },
 };

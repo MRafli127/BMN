@@ -5,7 +5,7 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
-import { ChevronLeft, ChevronRight, ClipboardList, Trash2, X } from 'lucide-react';
+import { ChevronLeft, ChevronRight, ClipboardList, Trash2, X, CheckCheck } from 'lucide-react';
 import { Icon } from '@/components/ui/icon';
 import { Input, Select } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -34,6 +34,13 @@ export default function AdminPeminjamanPage() {
   const [terpilih, setTerpilih] = useState<string[]>([]);
   const [dialogMassal, setDialogMassal] = useState(false);
   const [sedangMassal, setSedangMassal] = useState(false);
+  const [dialogSetujui, setDialogSetujui] = useState(false);
+  const [sedangSetujui, setSedangSetujui] = useState(false);
+
+  // Jumlah pengajuan berstatus MENUNGGU di antara yang dipilih (yang bisa di-ACC).
+  const jumlahBisaSetujui = data.filter(
+    (p) => terpilih.includes(p.id) && p.status === 'MENUNGGU'
+  ).length;
 
   const muat = useCallback(async () => {
     setMemuat(true);
@@ -61,6 +68,28 @@ export default function AdminPeminjamanPage() {
     } catch (error) {
       notify.gagal(ambilPesanError(error, 'Gagal menghapus data peminjaman.'));
       throw error; // biar dialog tetap terbuka saat gagal
+    }
+  };
+
+  const setujuiMassal = async () => {
+    setSedangSetujui(true);
+    try {
+      const { disetujui, dilewati } = await peminjamanService.setujuiMassal(terpilih);
+      if (disetujui > 0) {
+        notify.sukses(
+          dilewati > 0
+            ? `${disetujui} pengajuan disetujui, ${dilewati} dilewati (stok kurang / bukan menunggu).`
+            : `${disetujui} pengajuan berhasil disetujui.`
+        );
+      } else {
+        notify.gagal('Tidak ada pengajuan yang dapat disetujui (stok kurang / bukan status menunggu).');
+      }
+      setDialogSetujui(false);
+      await muat();
+    } catch (error) {
+      notify.gagal(ambilPesanError(error, 'Gagal menyetujui data terpilih.'));
+    } finally {
+      setSedangSetujui(false);
     }
   };
 
@@ -126,6 +155,11 @@ export default function AdminPeminjamanPage() {
               <Button variant="outline" size="sm" onClick={() => setTerpilih([])}>
                 <X className="h-4 w-4" /> Batal
               </Button>
+              {jumlahBisaSetujui > 0 && (
+                <Button variant="sukses" size="sm" onClick={() => setDialogSetujui(true)}>
+                  <CheckCheck className="h-4 w-4" /> Setujui ({jumlahBisaSetujui})
+                </Button>
+              )}
               <Button variant="destructive" size="sm" onClick={() => setDialogMassal(true)}>
                 <Trash2 className="h-4 w-4" /> Hapus Terpilih
               </Button>
@@ -186,6 +220,17 @@ export default function AdminPeminjamanPage() {
           </div>
         )}
       </div>
+
+      <KonfirmasiDialog
+        terbuka={dialogSetujui}
+        onUbahTerbuka={(o) => !o && setDialogSetujui(false)}
+        judul="Setujui Pengajuan Terpilih"
+        deskripsi={`Setujui ${jumlahBisaSetujui} pengajuan berstatus "Menunggu"? Stok barang akan dikurangi dan QR Code dibuat untuk tiap peminjaman. Pengajuan dengan stok tidak mencukupi akan dilewati.`}
+        teksKonfirmasi={`Ya, Setujui ${jumlahBisaSetujui}`}
+        variantKonfirmasi="sukses"
+        sedangProses={sedangSetujui}
+        onKonfirmasi={setujuiMassal}
+      />
 
       <KonfirmasiDialog
         terbuka={dialogMassal}

@@ -275,6 +275,28 @@ async function setujui(id, adminId, catatan) {
   return serialisasi(updated);
 }
 
+// --- Setujui banyak pengajuan sekaligus (khusus admin) ---
+// Memakai ulang logika setujui() per item (cek stok + ubah status + QR).
+// Pengajuan yang bukan MENUNGGU atau stoknya tidak cukup dilewati tanpa
+// menggagalkan yang lain.
+async function setujuiBanyak(ids, adminId) {
+  const daftarId = Array.isArray(ids) ? [...new Set(ids.filter((v) => typeof v === 'string' && v))] : [];
+  if (daftarId.length === 0) throw new AppError('Tidak ada peminjaman yang dipilih.', 400);
+
+  let disetujui = 0;
+  const dilewati = [];
+  for (const id of daftarId) {
+    try {
+      await setujui(id, adminId);
+      disetujui += 1;
+    } catch (e) {
+      dilewati.push({ id, pesan: e.message || 'Gagal disetujui.' });
+    }
+  }
+
+  return { disetujui, dilewati: dilewati.length, detailDilewati: dilewati.slice(0, 50) };
+}
+
 // --- Tolak pengajuan (wajib catatan) ---
 async function tolak(id, adminId, catatan) {
   const p = await prisma.peminjaman.findUnique({ where: { id } });
@@ -422,6 +444,7 @@ module.exports = {
   kembalikan,
   hapus,
   hapusBanyak,
+  setujuiBanyak,
   setDokumenStempel,
   serialisasi,
   kodeDariBarang,
