@@ -133,7 +133,7 @@ export default function PengaturanPage() {
             </div>
             <div>
               <h2 className="font-jakarta text-lg font-bold text-primary">Data Diri</h2>
-              <p className="text-sm text-muted-foreground">Perbarui nama, NIP, email, dan unit kerja Anda.</p>
+              <p className="text-sm text-muted-foreground">Perbarui nama, NIP, email, Eselon IV, dan Eselon III Anda.</p>
             </div>
           </div>
 
@@ -159,11 +159,11 @@ export default function PengaturanPage() {
 
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div className="space-y-1.5">
-                <Label htmlFor="jabatan">Jabatan</Label>
+                <Label htmlFor="jabatan">Eselon IV</Label>
                 <Input id="jabatan" placeholder="Opsional" {...regProfil('jabatan')} />
               </div>
               <div className="space-y-1.5">
-                <Label htmlFor="unitKerja">Unit Kerja</Label>
+                <Label htmlFor="unitKerja">Eselon III</Label>
                 <Input id="unitKerja" placeholder="Opsional" {...regProfil('unitKerja')} />
               </div>
             </div>
