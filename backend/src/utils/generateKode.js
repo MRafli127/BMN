@@ -1,9 +1,13 @@
 // ============================================================
-//  Generator kode unik untuk Barang & Peminjaman.
-//  Format Barang     : BMN-<TAHUN>-0001
-//  Format Peminjaman : PJM-<TAHUN>-0001
+//  Generator kode unik untuk Barang.
+//  Format Barang : BMN-<TAHUN>-0001
 //  Nomor urut mengikuti tahun berjalan & data terakhir.
 //  Harus dipanggil di dalam transaksi agar tidak bentrok.
+//
+//  Catatan: Peminjaman TIDAK punya generator kode sendiri.
+//  kodePeminjaman memakai kode aset barang yang dipinjam
+//  (Barang.kodeBarang) — lihat peminjaman.service.js &
+//  peminjamImport.service.js.
 // ============================================================
 
 const { prisma } = require('../config/database');
@@ -32,19 +36,4 @@ async function generateKodeBarang(tx = prisma) {
   return `${prefix}${String(urut).padStart(4, '0')}`;
 }
 
-// Generate kode peminjaman baru (PJM-2026-0001)
-async function generateKodePeminjaman(tx = prisma) {
-  const tahun = new Date().getFullYear();
-  const prefix = `PJM-${tahun}-`;
-
-  const terakhir = await tx.peminjaman.findFirst({
-    where: { kodePeminjaman: { startsWith: prefix } },
-    orderBy: { kodePeminjaman: 'desc' },
-    select: { kodePeminjaman: true },
-  });
-
-  const urut = nomorBerikutnya(terakhir?.kodePeminjaman, prefix);
-  return `${prefix}${String(urut).padStart(4, '0')}`;
-}
-
-module.exports = { generateKodeBarang, generateKodePeminjaman };
+module.exports = { generateKodeBarang };

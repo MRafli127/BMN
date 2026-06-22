@@ -38,13 +38,14 @@ export const useKeranjangStore = create<KeranjangState>()(
     (set) => ({
       items: {},
 
+      // Hanya boleh 1 barang per pengajuan — menambah barang baru
+      // menggantikan seluruh isi keranjang sebelumnya.
       tambah: (b, jumlah = 1) =>
         set((s) => {
           if (b.jumlahTersedia < 1) return s; // stok habis
           const baru = Math.min(b.jumlahTersedia, Math.max(1, jumlah));
           return {
             items: {
-              ...s.items,
               [b.id]: {
                 barangId: b.id,
                 nama: b.nama,

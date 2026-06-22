@@ -136,7 +136,7 @@ erDiagram
 | Kolom                   | Tipe               | Null | Default             | Keterangan                              |
 | ----------------------- | ------------------ | ---- | ------------------- | --------------------------------------- |
 | `id`                    | `TEXT`             | ❌   | UUID                | Primary key                             |
-| `kodePeminjaman`        | `TEXT`             | ❌   | —                   | **Unik** — format `PJM-2026-0001`       |
+| `kodePeminjaman`        | `TEXT`             | ❌   | —                   | Kode aset barang yang dipinjam (`kodeSatker-kodeBarangBmn-NUP`); **tidak unik**, bisa berulang saat barang yang sama dipinjam lagi |
 | `userId`                | `TEXT`             | ❌   | —                   | **FK** → `users.id` (peminjam)          |
 | `tanggalPengajuan`      | `TIMESTAMP(3)`     | ❌   | `CURRENT_TIMESTAMP` | Waktu pengajuan                         |
 | `tanggalPinjamRencana`  | `TIMESTAMP(3)`     | ❌   | —                   | Rencana mulai pinjam                    |

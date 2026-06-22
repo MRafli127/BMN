@@ -90,6 +90,62 @@ async function getMe(userId) {
   return tanpaPassword(user);
 }
 
+// --- Perbarui profil pengguna saat ini ---
+async function perbaruiProfil(userId, data) {
+  const pengguna = await prisma.user.findUnique({ where: { id: userId } });
+  if (!pengguna) {
+    throw new AppError('Pengguna tidak ditemukan.', 404);
+  }
+
+  // Pastikan email & NIP baru tidak dipakai pengguna lain
+  const bentrok = await prisma.user.findFirst({
+    where: {
+      id: { not: userId },
+      OR: [{ email: data.email }, { nip: data.nip }],
+    },
+  });
+  if (bentrok) {
+    if (bentrok.email === data.email) {
+      throw new AppError('Email sudah digunakan pengguna lain.', 409);
+    }
+    throw new AppError('NIP sudah digunakan pengguna lain.', 409);
+  }
+
+  const user = await prisma.user.update({
+    where: { id: userId },
+    data: {
+      nama: data.nama,
+      nip: data.nip,
+      email: data.email,
+      jabatan: data.jabatan ? data.jabatan : null,
+      unitKerja: data.unitKerja ? data.unitKerja : null,
+    },
+  });
+
+  // Terbitkan ulang access token agar nama/email pada token tetap sinkron
+  const accessToken = buatAccessToken(user);
+  return { user: tanpaPassword(user), accessToken };
+}
+
+// --- Ganti kata sandi pengguna saat ini ---
+async function gantiPassword(userId, { passwordLama, passwordBaru }) {
+  const user = await prisma.user.findUnique({ where: { id: userId } });
+  if (!user) {
+    throw new AppError('Pengguna tidak ditemukan.', 404);
+  }
+
+  const cocok = await bandingkanPassword(passwordLama, user.password);
+  if (!cocok) {
+    throw new AppError('Kata sandi lama tidak sesuai.', 400);
+  }
+
+  const passwordHash = await hashPassword(passwordBaru);
+  await prisma.user.update({
+    where: { id: userId },
+    data: { password: passwordHash },
+  });
+}
+
 // --- Perbarui access token menggunakan refresh token ---
 async function refresh(refreshToken) {
   if (!refreshToken) {
@@ -113,4 +169,13 @@ async function refresh(refreshToken) {
   return { user: tanpaPassword(user), accessToken, refreshToken: refreshTokenBaru };
 }
 
-module.exports = { register, login, getMe, refresh, buatAccessToken, buatRefreshToken };
+module.exports = {
+  register,
+  login,
+  getMe,
+  perbaruiProfil,
+  gantiPassword,
+  refresh,
+  buatAccessToken,
+  buatRefreshToken,
+};

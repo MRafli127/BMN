@@ -55,25 +55,39 @@ enum StatusItem {
   DIKEMBALIKAN
 }
 
+// Asal data barang: input manual oleh admin atau hasil import Excel
+enum SumberBarang {
+  MANUAL
+  IMPORT
+}
+
+// Asal akun peminjam: dibuat manual (admin/registrasi) atau hasil import Excel.
+// Hanya akun ber-sumber IMPORT yang ikut disinkronkan (perbarui/hapus) saat re-import.
+enum SumberAkun {
+  MANUAL
+  IMPORT
+}
+
 // ------------------------------------------------------------
 //  MODEL
 // ------------------------------------------------------------
 
 // 1) Pengguna sistem (admin & peminjam)
 model User {
-  id        String   @id @default(uuid())
+  id        String     @id @default(uuid())
   nama      String
-  nip       String   @unique // Nomor Induk Pegawai (unik)
-  email     String   @unique
+  nip       String     @unique // Nomor Induk Pegawai (unik)
+  email     String     @unique
   password  String // Disimpan dalam bentuk hash bcrypt
   jabatan   String?
   unitKerja String?
-  role      Role     @default(PEMINJAM)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  role      Role       @default(PEMINJAM)
+  sumber    SumberAkun @default(MANUAL) // MANUAL (admin/registrasi) atau IMPORT (sinkron Excel)
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
 
   // Relasi: peminjaman yang diajukan oleh user ini
-  peminjaman Peminjaman[] @relation("PeminjamanOlehPeminjam")
+  peminjaman  Peminjaman[] @relation("PeminjamanOlehPeminjam")
   // Relasi: peminjaman yang disetujui oleh user ini (sebagai admin)
   persetujuan Peminjaman[] @relation("PeminjamanDisetujuiAdmin")
 
@@ -83,8 +97,9 @@ model User {
 // 2) Barang Milik Negara
 model Barang {
   id                String        @id @default(uuid())
-  kodeBarang        String        @unique // Format: BMN-2026-0001
+  kodeBarang        String        @unique // Kode sistem unik. Format: BMN-2026-0001
   nama              String
+  merk              String? // Merk/model barang (mis. Asus Notebook ROG)
   jenis             JenisBarang   @default(LAINNYA)
   jumlahTotal       Int           @default(0)
   jumlahTersedia    Int           @default(0)
@@ -92,26 +107,39 @@ model Barang {
   lokasiPenyimpanan String?
   deskripsi         String?
   fotoUrl           String?
-  createdAt         DateTime      @default(now())
-  updatedAt         DateTime      @updatedAt
+  sumber            SumberBarang  @default(MANUAL) // Asal data: input MANUAL atau hasil IMPORT
+
+  // --- Identitas aset register BMN (terisi untuk barang hasil import) ---
+  // Kombinasi (kodeSatker, kodeBarangBmn, nup) menjadi kunci natural untuk
+  // mencocokkan baris saat re-import (sinkronisasi tambah/perbarui/hapus).
+  kodeSatker    String? // Kode Satker pada file BMN
+  namaSatker    String? // Nama Satker pada file BMN
+  kodeBarangBmn String? // "Kode Barang" asli pada file BMN (mis. 3100102002)
+  nup           String? // Nomor Urut Pendaftaran (unik per satker+kode)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   // Relasi: detail peminjaman yang memuat barang ini
   detailPeminjaman DetailPeminjaman[]
 
+  // Kunci natural aset BMN. Row manual (semua null) tidak saling bentrok
+  // karena NULL dianggap distinct oleh PostgreSQL.
+  @@unique([kodeSatker, kodeBarangBmn, nup], name: "identitasAset")
   @@map("barang")
 }
 
 // 3) Peminjaman (transaksi pengajuan peminjaman)
 model Peminjaman {
   id                    String           @id @default(uuid())
-  kodePeminjaman        String           @unique // Format: PJM-2026-0001
+  kodePeminjaman        String // Kode aset barang yang dipinjam (kodeSatker-kodeBarangBmn-NUP). Tidak unik — barang yang sama bisa dipinjam ulang di waktu berbeda.
   userId                String
   tanggalPengajuan      DateTime         @default(now())
   tanggalPinjamRencana  DateTime
-  tanggalKembaliRencana DateTime
+  tanggalKembaliRencana DateTime?
   tanggalKembaliAktual  DateTime?
   status                StatusPeminjaman @default(MENUNGGU)
-  alasanPeminjaman      String
+  alasanPeminjaman      String?
   dokumenUrl            String? // Dokumen yang diunggah peminjam
   dokumenStempelUrl     String? // Dokumen yang sudah distempel admin
   qrCodeUrl             String? // Gambar QR Code peminjaman
@@ -127,6 +155,7 @@ model Peminjaman {
 
   @@index([userId])
   @@index([status])
+  @@index([kodePeminjaman])
   @@map("peminjaman")
 }
 
