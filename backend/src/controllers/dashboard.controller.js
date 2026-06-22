@@ -10,8 +10,10 @@ const peminjamanService = require('../services/peminjaman.service');
 
 const STATUS_AKTIF = ['DISETUJUI', 'DIPINJAM', 'TERLAMBAT'];
 
-// Tandai peminjaman yang sudah lewat tanggal kembali menjadi TERLAMBAT
+// Sinkronkan status keterlambatan berdasarkan tanggal.
 async function tandaiTerlambat() {
+  // Lewat tenggat -> TERLAMBAT. Peminjaman tanpa tanggal kembali tidak ikut
+  // karena nilai NULL tidak terjaring perbandingan 'lt'.
   await prisma.peminjaman.updateMany({
     where: {
       status: { in: ['DISETUJUI', 'DIPINJAM'] },
@@ -19,6 +21,17 @@ async function tandaiTerlambat() {
       tanggalKembaliRencana: { lt: new Date() },
     },
     data: { status: 'TERLAMBAT' },
+  });
+
+  // Pulihkan: peminjaman tanpa tanggal kembali (tanpa batas waktu) yang
+  // terlanjur TERLAMBAT dikembalikan ke DIPINJAM.
+  await prisma.peminjaman.updateMany({
+    where: {
+      status: 'TERLAMBAT',
+      tanggalKembaliAktual: null,
+      tanggalKembaliRencana: null,
+    },
+    data: { status: 'DIPINJAM' },
   });
 }
 

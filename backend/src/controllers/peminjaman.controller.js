@@ -80,4 +80,20 @@ const hapus = asyncHandler(async (req, res) => {
   return responsSukses(res, { pesan: 'Data peminjaman berhasil dihapus.' });
 });
 
-module.exports = { create, getSemua, getById, setujui, tolak, serahkan, kembalikan, scan, hapus };
+const hapusMassal = asyncHandler(async (req, res) => {
+  const { dihapus } = await peminjamanService.hapusBanyak(req.body.ids);
+  return responsSukses(res, { pesan: `${dihapus} data peminjaman berhasil dihapus.`, data: { dihapus } });
+});
+
+module.exports = {
+  create,
+  getSemua,
+  getById,
+  setujui,
+  tolak,
+  serahkan,
+  kembalikan,
+  scan,
+  hapus,
+  hapusMassal,
+};
