@@ -20,7 +20,10 @@ const adminConfig = {
   password: process.env.ADMIN_PASSWORD || 'Admin123!',
 };
 
-const tahun = new Date().getFullYear();
+// Kode barang = kunci natural aset (Kode Satker - Kode Barang - NUP).
+function kodeNatural({ kodeSatker, kodeBarangBmn, nup }) {
+  return [kodeSatker, kodeBarangBmn, nup].filter(Boolean).join('-');
+}
 
 async function main() {
   console.log('🌱 Menjalankan seeder SIPP-BMN...');
@@ -78,9 +81,14 @@ async function main() {
   console.log(`✅ ${peminjamContoh.length} peminjam contoh siap (password: Peminjam123!)`);
 
   // --- 3) Barang contoh ---
+  // Identitas aset memakai kunci natural (Kode Satker - Kode Barang - NUP);
+  // kodeBarang dibentuk otomatis dari ketiga komponen tersebut.
+  const SATKER = '015110199411868000KP';
   const barangContoh = [
     {
-      kodeBarang: `BMN-${tahun}-0001`,
+      kodeSatker: SATKER,
+      kodeBarangBmn: '3100102002',
+      nup: '0001',
       nama: 'Laptop Dinas Lenovo ThinkPad',
       jenis: 'ELEKTRONIK',
       jumlahTotal: 10,
@@ -90,7 +98,9 @@ async function main() {
       deskripsi: 'Laptop untuk keperluan dinas, RAM 16GB, SSD 512GB.',
     },
     {
-      kodeBarang: `BMN-${tahun}-0002`,
+      kodeSatker: SATKER,
+      kodeBarangBmn: '3100103001',
+      nup: '0002',
       nama: 'Proyektor Epson EB-X51',
       jenis: 'ELEKTRONIK',
       jumlahTotal: 5,
@@ -100,7 +110,9 @@ async function main() {
       deskripsi: 'Proyektor untuk rapat dan presentasi.',
     },
     {
-      kodeBarang: `BMN-${tahun}-0003`,
+      kodeSatker: SATKER,
+      kodeBarangBmn: '4010101003',
+      nup: '0003',
       nama: 'Kursi Lipat Chitose',
       jenis: 'FURNITUR',
       jumlahTotal: 50,
@@ -110,7 +122,9 @@ async function main() {
       deskripsi: 'Kursi lipat untuk kegiatan acara dan rapat besar.',
     },
     {
-      kodeBarang: `BMN-${tahun}-0004`,
+      kodeSatker: SATKER,
+      kodeBarangBmn: '3100102050',
+      nup: '0004',
       nama: 'Kamera DSLR Canon EOS 800D',
       jenis: 'ELEKTRONIK',
       jumlahTotal: 3,
@@ -120,7 +134,9 @@ async function main() {
       deskripsi: 'Kamera untuk dokumentasi kegiatan kantor.',
     },
     {
-      kodeBarang: `BMN-${tahun}-0005`,
+      kodeSatker: SATKER,
+      kodeBarangBmn: '3020104001',
+      nup: '0005',
       nama: 'Mobil Dinas Toyota Avanza',
       jenis: 'KENDARAAN',
       jumlahTotal: 2,
@@ -130,7 +146,9 @@ async function main() {
       deskripsi: 'Kendaraan operasional untuk perjalanan dinas dalam kota.',
     },
     {
-      kodeBarang: `BMN-${tahun}-0006`,
+      kodeSatker: SATKER,
+      kodeBarangBmn: '3100102099',
+      nup: '0006',
       nama: 'Pengeras Suara (Sound System) Portable',
       jenis: 'ELEKTRONIK',
       jumlahTotal: 4,
@@ -142,10 +160,11 @@ async function main() {
   ];
 
   for (const b of barangContoh) {
+    const kodeBarang = kodeNatural(b);
     await prisma.barang.upsert({
-      where: { kodeBarang: b.kodeBarang },
+      where: { kodeBarang },
       update: {},
-      create: b,
+      create: { ...b, kodeBarang },
     });
   }
   console.log(`✅ ${barangContoh.length} barang contoh siap`);

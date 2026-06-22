@@ -5,7 +5,7 @@
 // ============================================================
 
 const { prisma } = require('../config/database');
-const { generateKodeBarang } = require('../utils/generateKode');
+const { kodeNaturalBarang } = require('../utils/generateKode');
 const { urlPublik } = require('../utils/apiResponse');
 const { AppError } = require('../middleware/error.middleware');
 
@@ -61,14 +61,20 @@ async function getById(id) {
 }
 
 // --- Tambah barang baru ---
+// Kode barang = kunci natural aset (Kode Satker - Kode Barang - NUP),
+// sama seperti barang hasil import. Tidak ada lagi kode auto-increment.
 async function create(data, fotoPath) {
-  // Generate kode & buat barang dalam satu transaksi agar nomor urut aman
-  const barang = await prisma.$transaction(async (tx) => {
-    const kodeBarang = await generateKodeBarang(tx);
-    return tx.barang.create({
+  const kodeBarang = kodeNaturalBarang(data);
+  if (!kodeBarang) {
+    throw new AppError('Kode Satker, Kode Barang, dan NUP wajib diisi untuk membentuk kode aset.', 400);
+  }
+
+  try {
+    const barang = await prisma.barang.create({
       data: {
         kodeBarang,
         nama: data.nama,
+        merk: data.merk || null,
         jenis: data.jenis,
         jumlahTotal: data.jumlahTotal,
         jumlahTersedia: data.jumlahTotal, // awalnya semua tersedia
@@ -76,10 +82,19 @@ async function create(data, fotoPath) {
         lokasiPenyimpanan: data.lokasiPenyimpanan || null,
         deskripsi: data.deskripsi || null,
         fotoUrl: fotoPath || null,
+        sumber: 'MANUAL',
+        kodeSatker: data.kodeSatker,
+        kodeBarangBmn: data.kodeBarangBmn,
+        nup: data.nup,
       },
     });
-  });
-  return serialisasi(barang);
+    return serialisasi(barang);
+  } catch (e) {
+    if (e.code === 'P2002') {
+      throw new AppError('Aset dengan kombinasi Kode Satker + Kode Barang + NUP tersebut sudah terdaftar.', 409);
+    }
+    throw e;
+  }
 }
 
 // --- Edit barang ---
@@ -87,9 +102,24 @@ async function update(id, data, fotoPath) {
   const barang = await prisma.barang.findUnique({ where: { id } });
   if (!barang) throw new AppError('Barang tidak ditemukan.', 404);
 
+  const dataUpdate = { ...data };
+
+  // Bila komponen identitas aset dikirim, bentuk ulang kodeBarang dari
+  // kunci natural (gabungan nilai baru + nilai lama yang tidak diubah).
+  if (data.kodeSatker !== undefined || data.kodeBarangBmn !== undefined || data.nup !== undefined) {
+    const kodeBarang = kodeNaturalBarang({
+      kodeSatker: data.kodeSatker ?? barang.kodeSatker,
+      kodeBarangBmn: data.kodeBarangBmn ?? barang.kodeBarangBmn,
+      nup: data.nup ?? barang.nup,
+    });
+    if (!kodeBarang) {
+      throw new AppError('Kode Satker, Kode Barang, dan NUP wajib diisi untuk membentuk kode aset.', 400);
+    }
+    dataUpdate.kodeBarang = kodeBarang;
+  }
+
   // Jika jumlahTotal diubah, sesuaikan jumlahTersedia secara proporsional.
   // Jumlah yang sedang dipinjam = total lama - tersedia lama.
-  const dataUpdate = { ...data };
   if (typeof data.jumlahTotal === 'number') {
     const sedangDipinjam = barang.jumlahTotal - barang.jumlahTersedia;
     const tersediaBaru = data.jumlahTotal - sedangDipinjam;
@@ -103,8 +133,15 @@ async function update(id, data, fotoPath) {
   }
   if (fotoPath) dataUpdate.fotoUrl = fotoPath;
 
-  const updated = await prisma.barang.update({ where: { id }, data: dataUpdate });
-  return serialisasi(updated);
+  try {
+    const updated = await prisma.barang.update({ where: { id }, data: dataUpdate });
+    return serialisasi(updated);
+  } catch (e) {
+    if (e.code === 'P2002') {
+      throw new AppError('Aset dengan kombinasi Kode Satker + Kode Barang + NUP tersebut sudah terdaftar.', 409);
+    }
+    throw e;
+  }
 }
 
 // --- Hapus barang ---

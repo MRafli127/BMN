@@ -75,4 +75,9 @@ const scan = asyncHandler(async (req, res) => {
   return responsSukses(res, { pesan: 'Data peminjaman ditemukan.', data: peminjaman });
 });
 
-module.exports = { create, getSemua, getById, setujui, tolak, serahkan, kembalikan, scan };
+const hapus = asyncHandler(async (req, res) => {
+  await peminjamanService.hapus(req.params.id);
+  return responsSukses(res, { pesan: 'Data peminjaman berhasil dihapus.' });
+});
+
+module.exports = { create, getSemua, getById, setujui, tolak, serahkan, kembalikan, scan, hapus };

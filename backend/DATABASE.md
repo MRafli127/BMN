@@ -119,7 +119,7 @@ erDiagram
 | Kolom               | Tipe            | Null | Default             | Keterangan                         |
 | ------------------- | --------------- | ---- | ------------------- | ---------------------------------- |
 | `id`                | `TEXT`          | ❌   | UUID                | Primary key                        |
-| `kodeBarang`        | `TEXT`          | ❌   | —                   | **Unik** — format `BMN-2026-0001`  |
+| `kodeBarang`        | `TEXT`          | ❌   | —                   | **Unik** — kunci natural aset `KodeSatker-KodeBarang-NUP` (mis. `015110199411868000KP-3100102002-1180`) |
 | `nama`              | `TEXT`          | ❌   | —                   | Nama barang                        |
 | `jenis`             | `JenisBarang`   | ❌   | `'LAINNYA'`         | Kategori                           |
 | `jumlahTotal`       | `INTEGER`       | ❌   | `0`                 | Total unit                         |

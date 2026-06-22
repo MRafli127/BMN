@@ -1,39 +1,23 @@
 // ============================================================
-//  Generator kode unik untuk Barang.
-//  Format Barang : BMN-<TAHUN>-0001
-//  Nomor urut mengikuti tahun berjalan & data terakhir.
-//  Harus dipanggil di dalam transaksi agar tidak bentrok.
+//  Pembentuk kode/identitas Barang.
 //
-//  Catatan: Peminjaman TIDAK punya generator kode sendiri.
-//  kodePeminjaman memakai kode aset barang yang dipinjam
-//  (Barang.kodeBarang) — lihat peminjaman.service.js &
-//  peminjamImport.service.js.
+//  Kode barang = KUNCI NATURAL aset BMN:
+//      Kode Satker - Kode Barang - NUP
+//  contoh: 015110199411868000KP-3100102002-1180
+//
+//  Menggantikan format lama BMN-<tahun>-NNNN (auto-increment)
+//  yang sudah dihapus dari seluruh sistem. Dipakai bersama oleh
+//  barang.service.js (input manual) & barangImport.service.js
+//  (import Excel) agar kode konsisten dari mana pun barang dibuat.
 // ============================================================
 
-const { prisma } = require('../config/database');
-
-// Ambil nomor urut berikutnya berdasarkan kode terakhir pada prefix tertentu
-function nomorBerikutnya(kodeTerakhir, prefix) {
-  if (!kodeTerakhir) return 1;
-  // kode contoh: BMN-2026-0042  -> ambil bagian "0042"
-  const bagian = kodeTerakhir.split('-');
-  const angka = parseInt(bagian[bagian.length - 1], 10);
-  return Number.isNaN(angka) ? 1 : angka + 1;
+// Bentuk kode barang dari komponen identitas aset.
+// Bagian yang kosong/null dilewati agar tidak ada pemisah '-' menggantung.
+function kodeNaturalBarang({ kodeSatker, kodeBarangBmn, nup } = {}) {
+  return [kodeSatker, kodeBarangBmn, nup]
+    .map((v) => (v == null ? '' : String(v).trim()))
+    .filter(Boolean)
+    .join('-');
 }
 
-// Generate kode barang baru (BMN-2026-0001)
-async function generateKodeBarang(tx = prisma) {
-  const tahun = new Date().getFullYear();
-  const prefix = `BMN-${tahun}-`;
-
-  const terakhir = await tx.barang.findFirst({
-    where: { kodeBarang: { startsWith: prefix } },
-    orderBy: { kodeBarang: 'desc' },
-    select: { kodeBarang: true },
-  });
-
-  const urut = nomorBerikutnya(terakhir?.kodeBarang, prefix);
-  return `${prefix}${String(urut).padStart(4, '0')}`;
-}
-
-module.exports = { generateKodeBarang };
+module.exports = { kodeNaturalBarang };
