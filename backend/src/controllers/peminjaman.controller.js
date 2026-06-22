@@ -85,6 +85,15 @@ const hapusMassal = asyncHandler(async (req, res) => {
   return responsSukses(res, { pesan: `${dihapus} data peminjaman berhasil dihapus.`, data: { dihapus } });
 });
 
+const setujuiMassal = asyncHandler(async (req, res) => {
+  const hasil = await peminjamanService.setujuiBanyak(req.body.ids, req.user.id);
+  const pesan =
+    hasil.dilewati > 0
+      ? `${hasil.disetujui} pengajuan disetujui, ${hasil.dilewati} dilewati.`
+      : `${hasil.disetujui} pengajuan berhasil disetujui.`;
+  return responsSukses(res, { pesan, data: hasil });
+});
+
 module.exports = {
   create,
   getSemua,
@@ -96,4 +105,5 @@ module.exports = {
   scan,
   hapus,
   hapusMassal,
+  setujuiMassal,
 };
