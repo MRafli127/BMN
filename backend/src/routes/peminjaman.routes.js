@@ -20,6 +20,10 @@ router.use(authMiddleware);
 router.get('/', peminjamanController.getSemua);
 router.post('/', uploadDokumenPeminjaman, validate(createPeminjamanSchema), peminjamanController.create);
 
+// Hapus massal (khusus admin) — didefinisikan sebelum '/:id' agar tidak
+// tertangkap sebagai parameter id.
+router.post('/hapus-massal', roleMiddleware('ADMIN'), peminjamanController.hapusMassal);
+
 // Detail
 router.get('/:id', peminjamanController.getById);
 

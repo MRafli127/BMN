@@ -29,24 +29,41 @@ const parseItems = z.preprocess((val) => {
   .min(1, 'Minimal pilih 1 barang untuk dipinjam.')
   .max(1, 'Maksimal 1 barang per pengajuan peminjaman.'));
 
-// Validasi pengajuan peminjaman
+// Tanggal opsional: string kosong/null dianggap "tidak diisi" (undefined).
+// Bila tanggal pinjam dikosongkan, service memakai tanggal hari ini.
+const tanggalOpsional = (pesan) =>
+  z.preprocess(
+    (v) => (v === '' || v === null ? undefined : v),
+    z.coerce.date({ errorMap: () => ({ message: pesan }) }).optional()
+  );
+
+// Validasi pengajuan peminjaman.
+// Tanggal pinjam & kembali keduanya opsional (pinjam default ke hari ini,
+// kembali kosong = tanpa batas waktu). Alasan juga opsional.
+// tandaTangan (data URL PNG) ikut divalidasi agar tidak dibuang saat sanitasi —
+// dipakai membuat Surat Pernyataan PDF di service.
 const createPeminjamanSchema = z
   .object({
     alasanPeminjaman: z
-      .string({ required_error: 'Alasan peminjaman wajib diisi.' })
-      .min(5, 'Alasan peminjaman minimal 5 karakter.'),
-    tanggalPinjamRencana: z.coerce.date({
-      errorMap: () => ({ message: 'Tanggal pinjam tidak valid.' }),
-    }),
-    tanggalKembaliRencana: z.coerce.date({
-      errorMap: () => ({ message: 'Tanggal kembali tidak valid.' }),
-    }),
+      .string()
+      .min(5, 'Alasan peminjaman minimal 5 karakter.')
+      .optional()
+      .or(z.literal('')),
+    tanggalPinjamRencana: tanggalOpsional('Tanggal pinjam tidak valid.'),
+    tanggalKembaliRencana: tanggalOpsional('Tanggal kembali tidak valid.'),
+    tandaTangan: z.string().optional(),
     items: parseItems,
   })
-  .refine((data) => data.tanggalKembaliRencana > data.tanggalPinjamRencana, {
-    message: 'Tanggal rencana kembali harus setelah tanggal pinjam.',
-    path: ['tanggalKembaliRencana'],
-  });
+  .refine(
+    (data) =>
+      !data.tanggalKembaliRencana ||
+      !data.tanggalPinjamRencana ||
+      data.tanggalKembaliRencana > data.tanggalPinjamRencana,
+    {
+      message: 'Tanggal rencana kembali harus setelah tanggal pinjam.',
+      path: ['tanggalKembaliRencana'],
+    }
+  );
 
 // Validasi penolakan (wajib isi catatan)
 const tolakSchema = z.object({

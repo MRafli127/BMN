@@ -5,12 +5,13 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
-import { ChevronLeft, ChevronRight, ClipboardList } from 'lucide-react';
+import { ChevronLeft, ChevronRight, ClipboardList, Trash2, X } from 'lucide-react';
 import { Icon } from '@/components/ui/icon';
 import { Input, Select } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { TabelPeminjaman } from '@/components/peminjaman/TabelPeminjaman';
 import { ImportPeminjamDialog } from '@/components/peminjaman/ImportPeminjamDialog';
+import { KonfirmasiDialog } from '@/components/shared/KonfirmasiDialog';
 import { LoadingSpinner } from '@/components/shared/LoadingSpinner';
 import { EmptyState } from '@/components/shared/EmptyState';
 import { notify } from '@/components/ui/toast';
@@ -30,6 +31,9 @@ export default function AdminPeminjamanPage() {
   const [filter, setFilter] = useState<FilterPeminjaman>({ page: 1, limit: 12 });
   const [cari, setCari] = useState('');
   const [memuat, setMemuat] = useState(true);
+  const [terpilih, setTerpilih] = useState<string[]>([]);
+  const [dialogMassal, setDialogMassal] = useState(false);
+  const [sedangMassal, setSedangMassal] = useState(false);
 
   const muat = useCallback(async () => {
     setMemuat(true);
@@ -37,6 +41,7 @@ export default function AdminPeminjamanPage() {
       const hasil = await peminjamanService.getSemua(filter);
       setData(hasil.data);
       setMeta(hasil.meta);
+      setTerpilih([]); // reset pilihan setiap data dimuat ulang
     } catch (error) {
       notify.gagal(ambilPesanError(error, 'Gagal memuat daftar peminjaman.'));
     } finally {
@@ -56,6 +61,20 @@ export default function AdminPeminjamanPage() {
     } catch (error) {
       notify.gagal(ambilPesanError(error, 'Gagal menghapus data peminjaman.'));
       throw error; // biar dialog tetap terbuka saat gagal
+    }
+  };
+
+  const hapusMassal = async () => {
+    setSedangMassal(true);
+    try {
+      const jumlah = await peminjamanService.hapusMassal(terpilih);
+      notify.sukses(`${jumlah} data peminjaman berhasil dihapus.`);
+      setDialogMassal(false);
+      await muat();
+    } catch (error) {
+      notify.gagal(ambilPesanError(error, 'Gagal menghapus data terpilih.'));
+    } finally {
+      setSedangMassal(false);
     }
   };
 
@@ -99,6 +118,21 @@ export default function AdminPeminjamanPage() {
           </Select>
         </div>
 
+        {/* Bilah aksi massal — muncul saat ada baris terpilih */}
+        {!memuat && data.length > 0 && terpilih.length > 0 && (
+          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-outline-variant bg-primary/5 p-stack-md">
+            <span className="text-sm font-medium text-on-surface">{terpilih.length} peminjaman dipilih</span>
+            <div className="flex items-center gap-2">
+              <Button variant="outline" size="sm" onClick={() => setTerpilih([])}>
+                <X className="h-4 w-4" /> Batal
+              </Button>
+              <Button variant="destructive" size="sm" onClick={() => setDialogMassal(true)}>
+                <Trash2 className="h-4 w-4" /> Hapus Terpilih
+              </Button>
+            </div>
+          </div>
+        )}
+
         {memuat ? (
           <div className="p-stack-lg">
             <LoadingSpinner />
@@ -109,7 +143,14 @@ export default function AdminPeminjamanPage() {
           </div>
         ) : (
           <div className="p-stack-md">
-            <TabelPeminjaman data={data} hrefDetail={RUTE.adminPeminjamanDetail} tampilkanPeminjam onHapus={hapus} />
+            <TabelPeminjaman
+              data={data}
+              hrefDetail={RUTE.adminPeminjamanDetail}
+              tampilkanPeminjam
+              onHapus={hapus}
+              terpilih={terpilih}
+              onUbahTerpilih={setTerpilih}
+            />
             <div className="mt-4 flex flex-col items-center justify-between gap-3 sm:flex-row">
               <div className="flex items-center gap-2 text-sm text-on-surface-variant">
                 <span>Tampilkan</span>
@@ -145,6 +186,17 @@ export default function AdminPeminjamanPage() {
           </div>
         )}
       </div>
+
+      <KonfirmasiDialog
+        terbuka={dialogMassal}
+        onUbahTerbuka={(o) => !o && setDialogMassal(false)}
+        judul="Hapus Peminjaman Terpilih"
+        deskripsi={`Hapus ${terpilih.length} data peminjaman yang dipilih? Untuk barang yang masih dipinjam, stok dikembalikan otomatis. Tindakan ini tidak dapat dibatalkan.`}
+        teksKonfirmasi={`Ya, Hapus ${terpilih.length} Data`}
+        variantKonfirmasi="destructive"
+        sedangProses={sedangMassal}
+        onKonfirmasi={hapusMassal}
+      />
     </div>
   );
 }

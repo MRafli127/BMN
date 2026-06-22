@@ -33,7 +33,7 @@ export const peminjamanService = {
   // Pengajuan peminjaman (multipart: items JSON)
   async create(data: DataPengajuan): Promise<Peminjaman> {
     const fd = new FormData();
-    fd.append('tanggalPinjamRencana', data.tanggalPinjamRencana);
+    if (data.tanggalPinjamRencana) fd.append('tanggalPinjamRencana', data.tanggalPinjamRencana);
     if (data.tanggalKembaliRencana) fd.append('tanggalKembaliRencana', data.tanggalKembaliRencana);
     fd.append('items', JSON.stringify(data.items));
     fd.append('tandaTangan', data.tandaTangan);
@@ -83,5 +83,11 @@ export const peminjamanService = {
   // Hapus peminjaman (admin). Stok dikembalikan otomatis bila masih dipinjam.
   async hapus(id: string): Promise<void> {
     await api.delete(`/peminjaman/${id}`);
+  },
+
+  // Hapus banyak peminjaman sekaligus (admin). Mengembalikan jumlah terhapus.
+  async hapusMassal(ids: string[]): Promise<number> {
+    const res = await api.post('/peminjaman/hapus-massal', { ids });
+    return res.data.data?.dihapus ?? 0;
   },
 };
