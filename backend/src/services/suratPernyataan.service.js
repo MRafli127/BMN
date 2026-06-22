@@ -146,8 +146,8 @@ async function generate(peminjaman, tandaTanganDataUrl) {
   const identitas = [
     ['Nama', u.nama || '-'],
     ['NIP', u.nip || '-'],
-    ['Pangkat/Gol.', u.jabatan || '-'],
-    ['Unit Kerja', u.unitKerja || '-'],
+    ['Eselon IV', u.jabatan || '-'],
+    ['Eselon III', u.unitKerja || '-'],
   ];
   const xLabel = MARGIN;
   const xTitik = MARGIN + 90;

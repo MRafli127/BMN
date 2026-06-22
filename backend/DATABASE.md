@@ -108,8 +108,8 @@ erDiagram
 | `nip`       | `TEXT`         | ❌   | —                   | **Unik** — Nomor Induk Pegawai   |
 | `email`     | `TEXT`         | ❌   | —                   | **Unik**                         |
 | `password`  | `TEXT`         | ❌   | —                   | Hash bcrypt                      |
-| `jabatan`   | `TEXT`         | ✅   | `NULL`              | Jabatan                          |
-| `unitKerja` | `TEXT`         | ✅   | `NULL`              | Unit kerja                       |
+| `jabatan`   | `TEXT`         | ✅   | `NULL`              | Eselon IV                        |
+| `unitKerja` | `TEXT`         | ✅   | `NULL`              | Eselon III                       |
 | `role`      | `Role`         | ❌   | `'PEMINJAM'`        | Peran pengguna                   |
 | `createdAt` | `TIMESTAMP(3)` | ❌   | `CURRENT_TIMESTAMP` | Waktu dibuat                     |
 | `updatedAt` | `TIMESTAMP(3)` | ❌   | —                   | Waktu diperbarui (oleh aplikasi) |
