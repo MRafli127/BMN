@@ -70,7 +70,9 @@ export function Sidebar() {
 
       <aside
         className={cn(
-          'fixed inset-y-0 left-0 z-40 flex w-[17rem] max-w-[85vw] flex-col bg-primary py-stack-lg text-white shadow-xl transition-transform duration-300 ease-out lg:static lg:max-w-none lg:translate-x-0',
+          'fixed inset-y-0 left-0 z-40 flex w-[17rem] max-w-[85vw] flex-col bg-primary py-stack-lg text-white shadow-xl transition-transform duration-300 ease-out',
+          // Desktop: tetap diam saat halaman di-scroll (sticky setinggi layar).
+          'lg:sticky lg:top-0 lg:h-screen lg:max-h-screen lg:max-w-none lg:translate-x-0 lg:self-start',
           sidebarTerbuka ? 'translate-x-0' : '-translate-x-full'
         )}
       >
