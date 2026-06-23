@@ -132,8 +132,9 @@ async function getSemua({ status, q, userId, role, page = 1, limit = 10 } = {}) 
       { kodePeminjaman: cocok },
       { detail: { some: { barang: { kodeBarang: cocok } } } },
       { detail: { some: { barang: { nup: cocok } } } },
-      // Nama barang yang dipinjam.
+      // Nama & merk barang yang dipinjam.
       { detail: { some: { barang: { nama: cocok } } } },
+      { detail: { some: { barang: { merk: cocok } } } },
       // Identitas peminjam.
       { peminjam: { nama: cocok } },
       { peminjam: { nip: cocok } },
