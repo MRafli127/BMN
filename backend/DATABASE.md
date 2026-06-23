@@ -108,8 +108,8 @@ erDiagram
 | `nip`       | `TEXT`         | ❌   | —                   | **Unik** — Nomor Induk Pegawai   |
 | `email`     | `TEXT`         | ❌   | —                   | **Unik**                         |
 | `password`  | `TEXT`         | ❌   | —                   | Hash bcrypt                      |
-| `jabatan`   | `TEXT`         | ✅   | `NULL`              | Jabatan                          |
-| `unitKerja` | `TEXT`         | ✅   | `NULL`              | Unit kerja                       |
+| `jabatan`   | `TEXT`         | ✅   | `NULL`              | Eselon IV                        |
+| `unitKerja` | `TEXT`         | ✅   | `NULL`              | Eselon III                       |
 | `role`      | `Role`         | ❌   | `'PEMINJAM'`        | Peran pengguna                   |
 | `createdAt` | `TIMESTAMP(3)` | ❌   | `CURRENT_TIMESTAMP` | Waktu dibuat                     |
 | `updatedAt` | `TIMESTAMP(3)` | ❌   | —                   | Waktu diperbarui (oleh aplikasi) |
@@ -119,7 +119,7 @@ erDiagram
 | Kolom               | Tipe            | Null | Default             | Keterangan                         |
 | ------------------- | --------------- | ---- | ------------------- | ---------------------------------- |
 | `id`                | `TEXT`          | ❌   | UUID                | Primary key                        |
-| `kodeBarang`        | `TEXT`          | ❌   | —                   | **Unik** — format `BMN-2026-0001`  |
+| `kodeBarang`        | `TEXT`          | ❌   | —                   | **Unik** — kunci natural aset `KodeSatker-KodeBarang-NUP` (mis. `015110199411868000KP-3100102002-1180`) |
 | `nama`              | `TEXT`          | ❌   | —                   | Nama barang                        |
 | `jenis`             | `JenisBarang`   | ❌   | `'LAINNYA'`         | Kategori                           |
 | `jumlahTotal`       | `INTEGER`       | ❌   | `0`                 | Total unit                         |
@@ -136,7 +136,7 @@ erDiagram
 | Kolom                   | Tipe               | Null | Default             | Keterangan                              |
 | ----------------------- | ------------------ | ---- | ------------------- | --------------------------------------- |
 | `id`                    | `TEXT`             | ❌   | UUID                | Primary key                             |
-| `kodePeminjaman`        | `TEXT`             | ❌   | —                   | **Unik** — format `PJM-2026-0001`       |
+| `kodePeminjaman`        | `TEXT`             | ❌   | —                   | Kode aset barang yang dipinjam (`kodeSatker-kodeBarangBmn-NUP`); **tidak unik**, bisa berulang saat barang yang sama dipinjam lagi |
 | `userId`                | `TEXT`             | ❌   | —                   | **FK** → `users.id` (peminjam)          |
 | `tanggalPengajuan`      | `TIMESTAMP(3)`     | ❌   | `CURRENT_TIMESTAMP` | Waktu pengajuan                         |
 | `tanggalPinjamRencana`  | `TIMESTAMP(3)`     | ❌   | —                   | Rencana mulai pinjam                    |

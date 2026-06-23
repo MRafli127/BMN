@@ -20,6 +20,11 @@ router.use(authMiddleware);
 router.get('/', peminjamanController.getSemua);
 router.post('/', uploadDokumenPeminjaman, validate(createPeminjamanSchema), peminjamanController.create);
 
+// Aksi massal (khusus admin) — didefinisikan sebelum '/:id' agar tidak
+// tertangkap sebagai parameter id.
+router.post('/hapus-massal', roleMiddleware('ADMIN'), peminjamanController.hapusMassal);
+router.post('/setujui-massal', roleMiddleware('ADMIN'), peminjamanController.setujuiMassal);
+
 // Detail
 router.get('/:id', peminjamanController.getById);
 
@@ -28,6 +33,7 @@ router.patch('/:id/setujui', roleMiddleware('ADMIN'), validate(setujuiSchema), p
 router.patch('/:id/tolak', roleMiddleware('ADMIN'), validate(tolakSchema), peminjamanController.tolak);
 router.patch('/:id/serahkan', roleMiddleware('ADMIN'), peminjamanController.serahkan);
 router.patch('/:id/kembalikan', roleMiddleware('ADMIN'), peminjamanController.kembalikan);
+router.delete('/:id', roleMiddleware('ADMIN'), peminjamanController.hapus);
 router.post('/:id/stempel', roleMiddleware('ADMIN'), stempelController.stempel);
 
 module.exports = router;

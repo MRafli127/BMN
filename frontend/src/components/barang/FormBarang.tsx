@@ -24,6 +24,10 @@ const schema = z.object({
   kondisi: z.enum(['BAIK', 'RUSAK_RINGAN', 'RUSAK_BERAT']),
   lokasiPenyimpanan: z.string().optional(),
   deskripsi: z.string().optional(),
+  // Identitas aset — membentuk kode barang (Kode Satker - Kode Barang - NUP).
+  kodeSatker: z.string().trim().min(1, 'Kode Satker wajib diisi.'),
+  kodeBarangBmn: z.string().trim().min(1, 'Kode Barang wajib diisi.'),
+  nup: z.string().trim().min(1, 'NUP wajib diisi.'),
 });
 
 type FormValues = z.infer<typeof schema>;
@@ -53,6 +57,9 @@ export function FormBarang({ nilaiAwal, onSimpan, teksTombol = 'Simpan' }: Props
       kondisi: nilaiAwal?.kondisi ?? 'BAIK',
       lokasiPenyimpanan: nilaiAwal?.lokasiPenyimpanan ?? '',
       deskripsi: nilaiAwal?.deskripsi ?? '',
+      kodeSatker: nilaiAwal?.kodeSatker ?? '',
+      kodeBarangBmn: nilaiAwal?.kodeBarangBmn ?? '',
+      nup: nilaiAwal?.nup ?? '',
     },
   });
 
@@ -84,6 +91,33 @@ export function FormBarang({ nilaiAwal, onSimpan, teksTombol = 'Simpan' }: Props
       <div>
         <Label htmlFor="merk">Merk</Label>
         <Input id="merk" placeholder="Contoh: Lenovo, Dell, HP" {...register('merk')} className="mt-1" />
+      </div>
+
+      {/* Identitas aset — membentuk kode barang (Kode Satker - Kode Barang - NUP) */}
+      <div className="md:col-span-2">
+        <p className="text-sm font-medium text-on-surface">Identitas Aset (BMN)</p>
+        <p className="text-xs text-muted-foreground">
+          Kode barang dibentuk otomatis dari <strong>Kode Satker · Kode Barang · NUP</strong>{' '}
+          (mis. 015110199411868000KP-3100102002-1180).
+        </p>
+      </div>
+
+      <div>
+        <Label htmlFor="kodeSatker">Kode Satker</Label>
+        <Input id="kodeSatker" placeholder="Contoh: 015110199411868000KP" {...register('kodeSatker')} className="mt-1" />
+        {errors.kodeSatker && <p className="mt-1 text-xs text-red-600">{errors.kodeSatker.message}</p>}
+      </div>
+
+      <div>
+        <Label htmlFor="kodeBarangBmn">Kode Barang</Label>
+        <Input id="kodeBarangBmn" placeholder="Contoh: 3100102002" {...register('kodeBarangBmn')} className="mt-1" />
+        {errors.kodeBarangBmn && <p className="mt-1 text-xs text-red-600">{errors.kodeBarangBmn.message}</p>}
+      </div>
+
+      <div>
+        <Label htmlFor="nup">NUP</Label>
+        <Input id="nup" placeholder="Contoh: 1180" {...register('nup')} className="mt-1" />
+        {errors.nup && <p className="mt-1 text-xs text-red-600">{errors.nup.message}</p>}
       </div>
 
       {/* Jenis */}

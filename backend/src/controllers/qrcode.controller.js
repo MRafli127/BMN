@@ -22,10 +22,11 @@ const getQrcode = asyncHandler(async (req, res) => {
     throw new AppError('QR Code belum tersedia karena peminjaman belum disetujui.', 400);
   }
 
-  // Generate bila belum ada
+  // Generate bila belum ada (kode = kodeBarang terkini agar sinkron).
   let qrCodeUrl = raw.qrCodeUrl;
   if (!qrCodeUrl) {
-    qrCodeUrl = await qrcodeService.generateUntukPeminjaman(raw);
+    const dataQr = { ...raw, kodePeminjaman: peminjamanService.kodeDariBarang(raw) };
+    qrCodeUrl = await qrcodeService.generateUntukPeminjaman(dataQr);
     await prisma.peminjaman.update({ where: { id: raw.id }, data: { qrCodeUrl } });
   }
 

@@ -43,15 +43,14 @@ export default function KeranjangPage() {
 
   const ajukan = async () => {
     if (daftar.length === 0) return notify.gagal('Keranjang masih kosong.');
-    if (!tglPinjam) return notify.gagal('Tanggal pinjam wajib diisi.');
-    if (tglKembali && new Date(tglKembali) <= new Date(tglPinjam))
+    if (tglPinjam && tglKembali && new Date(tglKembali) <= new Date(tglPinjam))
       return notify.gagal('Tanggal kembali harus setelah tanggal pinjam.');
     if (!tandaTangan) return notify.gagal('Tanda tangan wajib diisi.');
 
     setSedangKirim(true);
     try {
       const p = await peminjamanService.create({
-        tanggalPinjamRencana: tglPinjam,
+        tanggalPinjamRencana: tglPinjam || undefined,
         tanggalKembaliRencana: tglKembali || undefined,
         items: daftar.map((it) => ({ barangId: it.barangId, jumlahPinjam: it.jumlah })),
         tandaTangan,
@@ -158,8 +157,9 @@ export default function KeranjangPage() {
               </CardHeader>
               <CardContent className="space-y-4">
                 <div>
-                  <Label htmlFor="tglPinjam">Tanggal Pinjam</Label>
+                  <Label htmlFor="tglPinjam">Tanggal Pinjam (opsional)</Label>
                   <Input id="tglPinjam" type="date" value={tglPinjam} onChange={(e) => setTglPinjam(e.target.value)} className="mt-1" />
+                  <p className="mt-1 text-xs text-muted-foreground">Kosongkan untuk memakai tanggal hari ini.</p>
                 </div>
                 <div>
                   <Label htmlFor="tglKembali">Rencana Kembali (opsional)</Label>

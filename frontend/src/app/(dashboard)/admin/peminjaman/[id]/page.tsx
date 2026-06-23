@@ -140,8 +140,8 @@ export default function DetailPeminjamanAdminPage() {
             <CardContent className="grid grid-cols-2 gap-3 text-sm">
               <Info label="Nama" nilai={data.peminjam?.nama} />
               <Info label="NIP" nilai={data.peminjam?.nip} />
-              <Info label="Jabatan" nilai={data.peminjam?.jabatan} />
-              <Info label="Unit Kerja" nilai={data.peminjam?.unitKerja} />
+              <Info label="Eselon IV" nilai={data.peminjam?.jabatan} />
+              <Info label="Eselon III" nilai={data.peminjam?.unitKerja} />
             </CardContent>
           </Card>
 

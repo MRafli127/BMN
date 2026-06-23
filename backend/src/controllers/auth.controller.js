@@ -38,6 +38,16 @@ const me = asyncHandler(async (req, res) => {
   return responsSukses(res, { pesan: 'Profil pengguna.', data: user });
 });
 
+const updateMe = asyncHandler(async (req, res) => {
+  const hasil = await authService.perbaruiProfil(req.user.id, req.body);
+  return responsSukses(res, { pesan: 'Profil berhasil diperbarui.', data: hasil });
+});
+
+const gantiPassword = asyncHandler(async (req, res) => {
+  await authService.gantiPassword(req.user.id, req.body);
+  return responsSukses(res, { pesan: 'Kata sandi berhasil diperbarui.' });
+});
+
 const refresh = asyncHandler(async (req, res) => {
   // Ambil refresh token dari cookie atau body
   const token = req.cookies?.refreshToken || req.body?.refreshToken;
@@ -51,4 +61,4 @@ const logout = asyncHandler(async (req, res) => {
   return responsSukses(res, { pesan: 'Anda telah keluar.' });
 });
 
-module.exports = { register, login, me, refresh, logout };
+module.exports = { register, login, me, updateMe, gantiPassword, refresh, logout };

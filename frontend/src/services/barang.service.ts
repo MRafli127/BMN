@@ -24,6 +24,10 @@ export interface DataBarangForm {
   kondisi: string;
   lokasiPenyimpanan?: string;
   deskripsi?: string;
+  // Identitas aset — membentuk kode barang (Kode Satker - Kode Barang - NUP).
+  kodeSatker: string;
+  kodeBarangBmn: string;
+  nup: string;
   foto?: File | null;
 }
 
@@ -37,6 +41,9 @@ function buatFormData(data: DataBarangForm): FormData {
   fd.append('kondisi', data.kondisi);
   if (data.lokasiPenyimpanan) fd.append('lokasiPenyimpanan', data.lokasiPenyimpanan);
   if (data.deskripsi) fd.append('deskripsi', data.deskripsi);
+  fd.append('kodeSatker', data.kodeSatker);
+  fd.append('kodeBarangBmn', data.kodeBarangBmn);
+  fd.append('nup', data.nup);
   if (data.foto) fd.append('foto', data.foto);
   return fd;
 }

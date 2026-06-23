@@ -47,8 +47,13 @@ export default function KatalogPage() {
       hapus(barang.id);
       notify.info(`"${barang.nama}" dihapus dari keranjang.`);
     } else {
+      const adaItemLain = mounted && Object.keys(items).length > 0;
       tambah(barang);
-      notify.sukses(`"${barang.nama}" ditambahkan ke keranjang.`);
+      notify.sukses(
+        adaItemLain
+          ? `"${barang.nama}" menggantikan barang sebelumnya (maksimal 1 barang per pengajuan).`
+          : `"${barang.nama}" ditambahkan ke keranjang.`
+      );
     }
   };
 
