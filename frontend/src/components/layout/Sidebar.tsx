@@ -24,6 +24,7 @@ const menuAdmin: ItemMenu[] = [
   { label: 'Dashboard', href: RUTE.adminDashboard, ikon: 'dashboard' },
   { label: 'Manajemen Barang', href: RUTE.adminBarang, ikon: 'inventory_2' },
   { label: 'Manajemen Peminjaman', href: RUTE.adminPeminjaman, ikon: 'sync_alt' },
+  { label: 'Pengguna Terdaftar', href: RUTE.adminKategori('peminjam'), ikon: 'group' },
   { label: 'Scan Pengembalian', href: RUTE.adminScan, ikon: 'qr_code_scanner' },
 ];
 
