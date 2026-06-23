@@ -124,7 +124,7 @@ const ambilDataKategori = asyncHandler(async (req, res) => {
   // Ambil kategori dari URL params
   const kategori = req.params.kategori;
   const page = Math.max(1, parseInt(req.query.page, 10) || 1);
-  const limit = Math.min(50, Math.max(1, parseInt(req.query.limit, 10) || 10));
+  const limit = Math.min(200, Math.max(1, parseInt(req.query.limit, 10) || 10));
 
   let where = {};
   let data, total;
@@ -157,22 +157,34 @@ const ambilDataKategori = asyncHandler(async (req, res) => {
       where = { status: 'TERLAMBAT' };
       break;
 
-    case 'peminjam':
-      // Semua peminjam (user dengan role PEMINJAM)
+    case 'peminjam': {
+      // Semua peminjam (user dengan role PEMINJAM), dengan pencarian opsional.
+      // Eselon III tersimpan di unitKerja, Eselon IV di jabatan (lihat import).
+      const q = String(req.query.q || '').trim();
+      const wherePeminjam = { role: 'PEMINJAM' };
+      if (q) {
+        wherePeminjam.OR = [
+          { nama: { contains: q, mode: 'insensitive' } },
+          { nip: { contains: q, mode: 'insensitive' } },
+          { unitKerja: { contains: q, mode: 'insensitive' } }, // Eselon III
+          { jabatan: { contains: q, mode: 'insensitive' } }, //   Eselon IV
+        ];
+      }
       [data, total] = await Promise.all([
         prisma.user.findMany({
-          where: { role: 'PEMINJAM' },
-          select: { id: true, nama: true, nip: true, email: true, unitKerja: true, createdAt: true },
+          where: wherePeminjam,
+          select: { id: true, nama: true, nip: true, email: true, jabatan: true, unitKerja: true, createdAt: true },
           orderBy: { createdAt: 'desc' },
           skip: (page - 1) * limit,
           take: limit,
         }),
-        prisma.user.count({ where: { role: 'PEMINJAM' } }),
+        prisma.user.count({ where: wherePeminjam }),
       ]);
       return responsSukses(res, {
         pesan: 'Data peminjam.',
         data: { items: data, meta: { total, page, limit, totalHalaman: Math.ceil(total / limit) || 1 } },
       });
+    }
 
     default:
       // Default: semua peminjaman
