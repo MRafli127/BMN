@@ -21,6 +21,8 @@ interface Props {
   data: Peminjaman[];
   hrefDetail: (id: string) => string;
   tampilkanPeminjam?: boolean;
+  // Bila true, kolom "Merk" barang yang dipinjam ditampilkan (khusus admin).
+  tampilkanMerk?: boolean;
   // Bila diberikan, tombol hapus per baris ditampilkan (khusus admin).
   onHapus?: (id: string) => Promise<void>;
   // Bila diberikan, kolom checkbox pilihan ditampilkan (untuk hapus massal).
@@ -60,6 +62,7 @@ export function TabelPeminjaman({
   data,
   hrefDetail,
   tampilkanPeminjam,
+  tampilkanMerk,
   onHapus,
   terpilih,
   onUbahTerpilih,
@@ -107,7 +110,7 @@ export function TabelPeminjaman({
   };
 
   const jumlahKolom =
-    (pilihAktif ? 1 : 0) + (tampilkanPeminjam ? 1 : 0) + 6; // kode, barang, 2 tanggal, status, aksi
+    (pilihAktif ? 1 : 0) + (tampilkanPeminjam ? 1 : 0) + (tampilkanMerk ? 1 : 0) + 6; // kode, barang, 2 tanggal, status, aksi
 
   return (
     <>
@@ -128,6 +131,7 @@ export function TabelPeminjaman({
               <TableHead>Kode</TableHead>
               {tampilkanPeminjam && <TableHead>Peminjam</TableHead>}
               <TableHead>Barang</TableHead>
+              {tampilkanMerk && <TableHead>Merk</TableHead>}
               <TableHead>Rencana Pinjam</TableHead>
               <TableHead>Rencana Kembali</TableHead>
               <TableHead>Status</TableHead>
@@ -142,6 +146,7 @@ export function TabelPeminjaman({
                 p.detail && p.detail.length > 0
                   ? `${p.detail[0].barang?.nama ?? 'Barang'}${p.detail.length > 1 ? ` +${p.detail.length - 1} lainnya` : ''}`
                   : '-';
+              const merkBarang = p.detail?.[0]?.barang?.merk || '-';
               return (
                 <TableRow key={p.id} className={dipilih ? 'bg-primary/5' : undefined}>
                   {pilihAktif && (
@@ -157,6 +162,9 @@ export function TabelPeminjaman({
                     </TableCell>
                   )}
                   <TableCell className="max-w-[200px] truncate text-sm">{ringkasBarang}</TableCell>
+                  {tampilkanMerk && (
+                    <TableCell className="text-sm text-muted-foreground">{merkBarang}</TableCell>
+                  )}
                   <TableCell className="text-sm">{formatTanggal(p.tanggalPinjamRencana)}</TableCell>
                   <TableCell className="text-sm">{formatTanggal(p.tanggalKembaliRencana)}</TableCell>
                   <TableCell>

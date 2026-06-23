@@ -14,7 +14,7 @@ export interface HasilImportPeminjam {
   gagal: number;
   detailGagal: { baris: number; nama: string; pesan: string }[];
   barangTidakDitemukan: number;
-  detailBarangTidakDitemukan: { baris: number; nama: string; nup: string | null; pesan: string }[];
+  detailBarangTidakDitemukan: { baris: number; nama: string; merk: string | null; nup: string | null; pesan: string }[];
   detailDilindungi: { nama: string; nip: string }[];
   passwordDefault: string;
 }

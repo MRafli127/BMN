@@ -181,6 +181,7 @@ export default function AdminPeminjamanPage() {
               data={data}
               hrefDetail={RUTE.adminPeminjamanDetail}
               tampilkanPeminjam
+              tampilkanMerk
               onHapus={hapus}
               terpilih={terpilih}
               onUbahTerpilih={setTerpilih}
