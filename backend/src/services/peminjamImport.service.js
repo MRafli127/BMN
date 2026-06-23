@@ -66,6 +66,16 @@ function teksAtauNull(v) {
   return s === '' ? null : s;
 }
 
+// Normalisasi merk untuk pencocokan barang: abaikan beda huruf besar/kecil
+// dan spasi berlebih (mis. "Hp  Probook" == "HP Probook"). Konsisten dengan
+// pengelompokan folder per merk di Manajemen Barang.
+function normalMerk(v) {
+  return String(v ?? '')
+    .trim()
+    .toLowerCase()
+    .replace(/\s+/g, ' ');
+}
+
 const REGEX_EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 // --- Baca worksheet menjadi grid, tahan terhadap !ref yang rusak ---
@@ -165,6 +175,7 @@ function parse(buffer) {
       email,
       eselonIII: teksAtauNull(ambil(row, 'eselonIII')),
       eselonIV: teksAtauNull(ambil(row, 'eselonIV')),
+      merk: teksAtauNull(ambil(row, 'merk')),
       nup: teksAtauNull(ambil(row, 'nup')),
     });
   }
@@ -175,6 +186,13 @@ function parse(buffer) {
 // Bandingkan dua nilai dengan null ternormalisasi.
 function sama(a, b) {
   return (a ?? null) === (b ?? null);
+}
+
+// Tambahkan nilai ke Set di dalam Map (buat Set bila kuncinya belum ada).
+function tambahKe(map, kunci, nilai) {
+  const set = map.get(kunci) || new Set();
+  set.add(nilai);
+  map.set(kunci, set);
 }
 
 // --- Proses import: SINKRONISASI CERMIN data peminjam dari file ---
@@ -217,29 +235,48 @@ async function importDariExcel(buffer, { dryRun = false } = {}) {
   const userByNip = new Map(allUsers.map((u) => [u.nip, u]));
   const userByEmail = new Map(allUsers.map((u) => [u.email.toLowerCase(), u]));
 
-  // NUP barang yang SEDANG dipinjam tiap user (untuk idempotensi peminjaman).
+  // Kombinasi (merk+NUP) dan NUP barang yang SEDANG dipinjam tiap user, untuk
+  // idempotensi: re-import tidak boleh membuat peminjaman ganda. Combo dipakai
+  // saat baris menyebut merk (NUP bisa kembar antar-merk); NUP saja menjadi
+  // cadangan untuk baris tanpa merk.
   const loansAktif = await prisma.peminjaman.findMany({
     where: { status: 'DIPINJAM' },
-    select: { userId: true, detail: { select: { barang: { select: { nup: true } } } } },
+    select: { userId: true, detail: { select: { barang: { select: { nup: true, merk: true } } } } },
   });
-  const nupAktifByUser = new Map();
+  const comboAktifByUser = new Map(); // userId -> Set("<merk>|<nup>")
+  const nupAktifByUser = new Map(); //   userId -> Set("<nup>")
   for (const p of loansAktif) {
-    const set = nupAktifByUser.get(p.userId) || new Set();
-    for (const d of p.detail) if (d.barang?.nup) set.add(d.barang.nup);
-    nupAktifByUser.set(p.userId, set);
+    for (const d of p.detail) {
+      if (!d.barang?.nup) continue;
+      tambahKe(nupAktifByUser, p.userId, d.barang.nup);
+      tambahKe(comboAktifByUser, p.userId, `${normalMerk(d.barang.merk)}|${d.barang.nup}`);
+    }
   }
 
-  // Lookup barang yang punya NUP (hasil import BMN), dikelompokkan per NUP
-  // karena NUP saja bisa kembar antar-satker.
+  // Lookup barang ber-NUP (hasil import BMN). Pencocokan dibuat dua tingkat:
+  // cari MERK lebih dulu, baru NUP di dalam merk tersebut — karena NUP bisa
+  // kembar antar-merk/satker. barangByNup dipertahankan sebagai cadangan untuk
+  // baris yang tidak menyertakan merk (atau merk-nya tidak cocok dengan data).
   const barangList = await prisma.barang.findMany({
     where: { nup: { not: null } },
-    select: { id: true, nup: true, jumlahTersedia: true, kodeBarang: true },
+    select: { id: true, nup: true, merk: true, jumlahTersedia: true, kodeBarang: true },
   });
-  const barangByNup = new Map();
+  const barangByMerk = new Map(); // normalMerk -> Map(nup -> [barang])
+  const barangByNup = new Map(); //  nup -> [barang]
   for (const b of barangList) {
-    const arr = barangByNup.get(b.nup) || [];
+    const arrNup = barangByNup.get(b.nup) || [];
+    arrNup.push(b);
+    barangByNup.set(b.nup, arrNup);
+
+    const km = normalMerk(b.merk);
+    let perNup = barangByMerk.get(km);
+    if (!perNup) {
+      perNup = new Map();
+      barangByMerk.set(km, perNup);
+    }
+    const arr = perNup.get(b.nup) || [];
     arr.push(b);
-    barangByNup.set(b.nup, arr);
+    perNup.set(b.nup, arr);
   }
 
   const passwordHash = await hashPassword(PASSWORD_DEFAULT);
@@ -250,6 +287,7 @@ async function importDariExcel(buffer, { dryRun = false } = {}) {
   let peminjamanDipertahankan = 0;
   const detailBarangGagal = [];
   const dipakaiBarangId = new Set();
+  const tersedia = (b) => b.jumlahTersedia > 0 && !dipakaiBarangId.has(b.id);
   const dikelola = new Set(); // id user yang muncul di file (tidak boleh dihapus)
 
   // Akun IMPORT yang TIDAK ada di file -> kandidat hapus (pakai id agar cocok
@@ -303,21 +341,36 @@ async function importDariExcel(buffer, { dryRun = false } = {}) {
 
         if (!r.nup) continue;
 
-        // Idempoten: jika peminjam sudah memegang barang ber-NUP ini, biarkan.
-        if ((nupAktifByUser.get(user.id) || new Set()).has(r.nup)) {
+        // Apakah merk pada baris ini dikenali di data barang? Bila ya, pencarian
+        // DIKUNCI pada merk tersebut (cari merk dahulu, lalu NUP di dalamnya) dan
+        // tidak melintas ke merk lain meski NUP-nya kebetulan sama. Bila merk
+        // kosong/tak dikenali, dipakai cadangan: cocokkan hanya lewat NUP.
+        const merkDikenali = !!r.merk && barangByMerk.has(normalMerk(r.merk));
+
+        // Idempoten: jika peminjam sudah memegang barang dengan kombinasi ini,
+        // biarkan (re-import tidak menggandakan peminjaman).
+        const sudahPunya = merkDikenali
+          ? (comboAktifByUser.get(user.id) || new Set()).has(`${normalMerk(r.merk)}|${r.nup}`)
+          : (nupAktifByUser.get(user.id) || new Set()).has(r.nup);
+        if (sudahPunya) {
           peminjamanDipertahankan += 1;
           continue;
         }
 
-        const kandidat = (barangByNup.get(r.nup) || []).find(
-          (b) => b.jumlahTersedia > 0 && !dipakaiBarangId.has(b.id)
-        );
+        // Cari barang: merk dahulu (terkunci pada merk-nya), lalu NUP di dalamnya.
+        const kandidat = merkDikenali
+          ? (barangByMerk.get(normalMerk(r.merk)).get(r.nup) || []).find(tersedia)
+          : (barangByNup.get(r.nup) || []).find(tersedia);
+
         if (!kandidat) {
           detailBarangGagal.push({
             baris: r.baris,
             nama: r.nama,
+            merk: r.merk,
             nup: r.nup,
-            pesan: 'NUP tidak ditemukan di data barang atau stok sudah habis.',
+            pesan: merkDikenali
+              ? 'NUP tersebut tidak ada pada merk ini, atau stoknya sudah habis.'
+              : 'Barang dengan NUP tersebut tidak ditemukan, atau stoknya sudah habis.',
           });
           continue;
         }
@@ -339,9 +392,8 @@ async function importDariExcel(buffer, { dryRun = false } = {}) {
           where: { id: kandidat.id },
           data: { jumlahTersedia: { decrement: 1 } },
         });
-        const set = nupAktifByUser.get(user.id) || new Set();
-        set.add(r.nup);
-        nupAktifByUser.set(user.id, set);
+        tambahKe(nupAktifByUser, user.id, kandidat.nup);
+        tambahKe(comboAktifByUser, user.id, `${normalMerk(kandidat.merk)}|${kandidat.nup}`);
         peminjamanDibuat += 1;
       }
 

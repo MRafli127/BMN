@@ -106,9 +106,10 @@ export function ImportPeminjamDialog({ onSelesai }: Props) {
             File menjadi <strong>sumber data</strong> peminjam: re-import akan{' '}
             <strong>menyinkronkan</strong> — baris baru <strong>ditambahkan</strong>, data yang berubah{' '}
             <strong>diperbarui</strong>, dan akun hasil import yang <strong>hilang dari file dihapus</strong>{' '}
-            (kecuali yang punya riwayat peminjaman — dilindungi). Kolom <strong>NUP Laptop</strong> dicocokkan
-            ke barang; bila cocok &amp; stok tersedia, dibuatkan <strong>peminjaman aktif</strong>. Akun yang
-            dibuat manual/registrasi tidak terpengaruh.
+            (kecuali yang punya riwayat peminjaman — dilindungi). Kolom <strong>Merk Laptop</strong> &amp;{' '}
+            <strong>NUP Laptop</strong> dicocokkan ke barang (dicari merk-nya dahulu, lalu NUP); bila cocok &amp;
+            stok tersedia, dibuatkan <strong>peminjaman aktif</strong>. Akun yang dibuat manual/registrasi tidak
+            terpengaruh.
           </DialogDescription>
         </DialogHeader>
 
@@ -120,8 +121,9 @@ export function ImportPeminjamDialog({ onSelesai }: Props) {
           </Button>
           <p className="mt-2 text-xs text-muted-foreground">
             Kolom: Email, Nama, NIP, Eselon III, Eselon IV, Merk Laptop, Tipe Laptop, NUP Laptop. Kolom{' '}
-            <strong>Email, Nama, NIP</strong> wajib diisi. Semua akun baru memakai password default{' '}
-            <strong>Bmn@2026</strong> — sampaikan ke peminjam agar segera menggantinya.
+            <strong>Email, Nama, NIP</strong> wajib diisi; <strong>Merk Laptop + NUP Laptop</strong> dipakai untuk
+            mencocokkan barang yang dipinjam. Semua akun baru memakai password default <strong>Bmn@2026</strong> —
+            sampaikan ke peminjam agar segera menggantinya.
           </p>
         </div>
 
@@ -174,7 +176,7 @@ export function ImportPeminjamDialog({ onSelesai }: Props) {
               )}
               {hasil.barangTidakDitemukan > 0 && (
                 <span className="inline-flex items-center gap-1.5 text-amber-700">
-                  <AlertTriangle className="h-4 w-4" /> {hasil.barangTidakDitemukan} NUP tidak cocok
+                  <AlertTriangle className="h-4 w-4" /> {hasil.barangTidakDitemukan} barang tidak cocok
                 </span>
               )}
               {hasil.gagal > 0 && (
@@ -199,11 +201,11 @@ export function ImportPeminjamDialog({ onSelesai }: Props) {
             )}
             {hasil.detailBarangTidakDitemukan.length > 0 && (
               <div className="max-h-32 overflow-y-auto rounded-md bg-amber-50 p-2">
-                <p className="mb-1 text-xs font-medium text-amber-800">NUP tidak cocok / stok habis:</p>
+                <p className="mb-1 text-xs font-medium text-amber-800">Merk / NUP tidak cocok / stok habis:</p>
                 <ul className="space-y-1 text-xs text-amber-800">
                   {hasil.detailBarangTidakDitemukan.map((g, i) => (
                     <li key={i}>
-                      <strong>Baris {g.baris}</strong> ({g.nama}, NUP {g.nup || '-'}): {g.pesan}
+                      <strong>Baris {g.baris}</strong> ({g.nama}, {g.merk || 'tanpa merk'} / NUP {g.nup || '-'}): {g.pesan}
                     </li>
                   ))}
                 </ul>
