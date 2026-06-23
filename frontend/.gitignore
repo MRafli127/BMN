@@ -12,6 +12,7 @@ next-env.d.ts
 # Environment
 .env.local
 .env*.local
+.claude
 
 # Debug
 npm-debug.log*
