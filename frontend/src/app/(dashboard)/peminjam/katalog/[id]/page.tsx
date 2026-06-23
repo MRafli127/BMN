@@ -164,8 +164,13 @@ export default function DetailKatalogPage() {
                     variant="outline"
                     className="w-full sm:w-auto"
                     onClick={() => {
+                      const adaItemLain = mounted && Object.keys(items).length > 0;
                       tambah(barang);
-                      notify.sukses(`"${barang.nama}" ditambahkan ke keranjang.`);
+                      notify.sukses(
+                        adaItemLain
+                          ? `"${barang.nama}" menggantikan barang sebelumnya (maksimal 1 barang per pengajuan).`
+                          : `"${barang.nama}" ditambahkan ke keranjang.`
+                      );
                     }}
                   >
                     <ShoppingCart className="h-4 w-4" /> Tambah ke Keranjang

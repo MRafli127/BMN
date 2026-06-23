@@ -49,12 +49,14 @@ export function FormPeminjaman({ daftarBarang, onAjukan, praPilihId }: Props) {
 
   const idTerpilih = Object.keys(terpilih);
 
+  // Hanya boleh 1 barang per pengajuan — memilih barang baru
+  // menggantikan pilihan sebelumnya.
   const tambah = (barang: Barang) => {
     if (barang.jumlahTersedia < 1) {
       notify.gagal('Stok barang ini sedang habis.');
       return;
     }
-    setTerpilih((p) => ({ ...p, [barang.id]: p[barang.id] ? p[barang.id] : 1 }));
+    setTerpilih({ [barang.id]: 1 });
   };
 
   const ubahJumlah = (barangId: string, delta: number) => {
@@ -104,7 +106,7 @@ export function FormPeminjaman({ daftarBarang, onAjukan, praPilihId }: Props) {
     <form onSubmit={kirim} className="grid grid-cols-1 gap-6 lg:grid-cols-2">
       {/* Kolom kiri: pilih barang */}
       <div className="space-y-3">
-        <Label>1. Pilih Barang</Label>
+        <Label>1. Pilih Barang (maksimal 1 barang per pengajuan)</Label>
         <div className="relative">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input

@@ -158,7 +158,7 @@ export function ScannerQR({ onHasil }: Props) {
           <Input
             value={manual}
             onChange={(e) => setManual(e.target.value.toUpperCase())}
-            placeholder="Contoh: PJM-2026-0001"
+            placeholder="Contoh: 015110199411868004KP-3100102002-16"
             onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), cariManual())}
           />
           <Button onClick={cariManual} variant="secondary">

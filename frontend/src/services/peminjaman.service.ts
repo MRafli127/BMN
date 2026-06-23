@@ -33,7 +33,7 @@ export const peminjamanService = {
   // Pengajuan peminjaman (multipart: items JSON)
   async create(data: DataPengajuan): Promise<Peminjaman> {
     const fd = new FormData();
-    fd.append('tanggalPinjamRencana', data.tanggalPinjamRencana);
+    if (data.tanggalPinjamRencana) fd.append('tanggalPinjamRencana', data.tanggalPinjamRencana);
     if (data.tanggalKembaliRencana) fd.append('tanggalKembaliRencana', data.tanggalKembaliRencana);
     fd.append('items', JSON.stringify(data.items));
     fd.append('tandaTangan', data.tandaTangan);
@@ -78,5 +78,22 @@ export const peminjamanService = {
   async getQrcode(id: string): Promise<DataQrcode> {
     const res = await api.get(`/peminjaman/${id}/qrcode`);
     return res.data.data;
+  },
+
+  // Hapus peminjaman (admin). Stok dikembalikan otomatis bila masih dipinjam.
+  async hapus(id: string): Promise<void> {
+    await api.delete(`/peminjaman/${id}`);
+  },
+
+  // Hapus banyak peminjaman sekaligus (admin). Mengembalikan jumlah terhapus.
+  async hapusMassal(ids: string[]): Promise<number> {
+    const res = await api.post('/peminjaman/hapus-massal', { ids });
+    return res.data.data?.dihapus ?? 0;
+  },
+
+  // Setujui banyak pengajuan sekaligus (admin). Mengembalikan ringkasan hasil.
+  async setujuiMassal(ids: string[]): Promise<{ disetujui: number; dilewati: number }> {
+    const res = await api.post('/peminjaman/setujui-massal', { ids });
+    return { disetujui: res.data.data?.disetujui ?? 0, dilewati: res.data.data?.dilewati ?? 0 };
   },
 };

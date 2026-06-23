@@ -118,12 +118,12 @@ export default function RegisterPage() {
 
             <div className="floating-label-group">
               <input id="jabatan" placeholder=" " {...register('jabatan')} className={inputClass} />
-              <label htmlFor="jabatan" className="font-label-md text-on-surface-variant">Jabatan</label>
+              <label htmlFor="jabatan" className="font-label-md text-on-surface-variant">Eselon IV</label>
             </div>
 
             <div className="floating-label-group">
               <input id="unitKerja" placeholder=" " {...register('unitKerja')} className={inputClass} />
-              <label htmlFor="unitKerja" className="font-label-md text-on-surface-variant">Unit Kerja</label>
+              <label htmlFor="unitKerja" className="font-label-md text-on-surface-variant">Eselon III</label>
             </div>
 
             <div>

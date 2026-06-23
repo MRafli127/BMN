@@ -75,4 +75,35 @@ const scan = asyncHandler(async (req, res) => {
   return responsSukses(res, { pesan: 'Data peminjaman ditemukan.', data: peminjaman });
 });
 
-module.exports = { create, getSemua, getById, setujui, tolak, serahkan, kembalikan, scan };
+const hapus = asyncHandler(async (req, res) => {
+  await peminjamanService.hapus(req.params.id);
+  return responsSukses(res, { pesan: 'Data peminjaman berhasil dihapus.' });
+});
+
+const hapusMassal = asyncHandler(async (req, res) => {
+  const { dihapus } = await peminjamanService.hapusBanyak(req.body.ids);
+  return responsSukses(res, { pesan: `${dihapus} data peminjaman berhasil dihapus.`, data: { dihapus } });
+});
+
+const setujuiMassal = asyncHandler(async (req, res) => {
+  const hasil = await peminjamanService.setujuiBanyak(req.body.ids, req.user.id);
+  const pesan =
+    hasil.dilewati > 0
+      ? `${hasil.disetujui} pengajuan disetujui, ${hasil.dilewati} dilewati.`
+      : `${hasil.disetujui} pengajuan berhasil disetujui.`;
+  return responsSukses(res, { pesan, data: hasil });
+});
+
+module.exports = {
+  create,
+  getSemua,
+  getById,
+  setujui,
+  tolak,
+  serahkan,
+  kembalikan,
+  scan,
+  hapus,
+  hapusMassal,
+  setujuiMassal,
+};

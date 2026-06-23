@@ -10,10 +10,10 @@
 // ============================================================
 
 const { prisma } = require('../config/database');
-const { generateKodePeminjaman } = require('../utils/generateKode');
 const { urlPublik } = require('../utils/apiResponse');
 const { AppError } = require('../middleware/error.middleware');
 const qrcodeService = require('./qrcode.service');
+const suratPernyataanService = require('./suratPernyataan.service');
 
 // Bentuk include lengkap untuk relasi
 const includeLengkap = {
@@ -22,11 +22,20 @@ const includeLengkap = {
   detail: { include: { barang: true } },
 };
 
+// Kode peminjaman = kode barang yang sedang dipinjam (Manajemen Barang).
+// Diturunkan dari barang agar selalu sinkron dengan kodeBarang terkini
+// (kunci natural Kode Satker-Kode Barang-NUP), bukan dari snapshot lama.
+function kodeDariBarang(p) {
+  const barang = p.detail?.find((d) => d.barang)?.barang;
+  return barang?.kodeBarang || p.kodePeminjaman;
+}
+
 // Ubah path file relatif menjadi URL absolut
 function serialisasi(p) {
   if (!p) return p;
   return {
     ...p,
+    kodePeminjaman: kodeDariBarang(p),
     dokumenUrl: urlPublik(p.dokumenUrl),
     dokumenStempelUrl: urlPublik(p.dokumenStempelUrl),
     qrCodeUrl: urlPublik(p.qrCodeUrl),
@@ -37,45 +46,72 @@ function serialisasi(p) {
   };
 }
 
-// Apakah peminjaman seharusnya berstatus TERLAMBAT?
-function harusTerlambat(p) {
-  const aktif = p.status === 'DISETUJUI' || p.status === 'DIPINJAM';
-  return aktif && !p.tanggalKembaliAktual && new Date(p.tanggalKembaliRencana).getTime() < Date.now();
+// Hitung status terkini berdasarkan tanggal.
+//  - Peminjaman TANPA tanggal kembali = tanpa batas waktu -> TIDAK pernah
+//    TERLAMBAT; bila terlanjur TERLAMBAT, dipulihkan ke DIPINJAM.
+//  - Peminjaman dengan tenggat yang sudah lewat -> TERLAMBAT.
+// Mengembalikan status yang seharusnya (sama dengan p.status bila tak berubah).
+function statusBerdasarTanggal(p) {
+  if (p.tanggalKembaliAktual) return p.status; // sudah dikembalikan
+  if (!['DISETUJUI', 'DIPINJAM', 'TERLAMBAT'].includes(p.status)) return p.status;
+
+  // Tanpa tenggat: tidak boleh TERLAMBAT.
+  if (!p.tanggalKembaliRencana) return p.status === 'TERLAMBAT' ? 'DIPINJAM' : p.status;
+
+  const lewatTenggat = new Date(p.tanggalKembaliRencana).getTime() < Date.now();
+  if (lewatTenggat && (p.status === 'DISETUJUI' || p.status === 'DIPINJAM')) return 'TERLAMBAT';
+  return p.status;
 }
 
 // --- Buat pengajuan peminjaman baru ---
+// Dibatasi 1 barang per pengajuan (lihat peminjaman.validator.js) karena
+// kodePeminjaman memakai kode aset barang yang dipinjam.
 async function create(userId, data, dokumenPath) {
   const created = await prisma.$transaction(async (tx) => {
-    // Validasi ketersediaan barang
-    for (const item of data.items) {
-      const barang = await tx.barang.findUnique({ where: { id: item.barangId } });
-      if (!barang) throw new AppError(`Barang dengan id ${item.barangId} tidak ditemukan.`, 404);
-      if (item.jumlahPinjam > barang.jumlahTersedia) {
-        throw new AppError(
-          `Stok "${barang.nama}" tidak mencukupi. Tersedia ${barang.jumlahTersedia}, diminta ${item.jumlahPinjam}.`,
-          400
-        );
-      }
+    const item = data.items[0];
+    const barang = await tx.barang.findUnique({ where: { id: item.barangId } });
+    if (!barang) throw new AppError(`Barang dengan id ${item.barangId} tidak ditemukan.`, 404);
+    if (item.jumlahPinjam > barang.jumlahTersedia) {
+      throw new AppError(
+        `Stok "${barang.nama}" tidak mencukupi. Tersedia ${barang.jumlahTersedia}, diminta ${item.jumlahPinjam}.`,
+        400
+      );
     }
-
-    const kodePeminjaman = await generateKodePeminjaman(tx);
 
     return tx.peminjaman.create({
       data: {
-        kodePeminjaman,
+        kodePeminjaman: barang.kodeBarang,
         userId,
-        tanggalPinjamRencana: data.tanggalPinjamRencana,
-        tanggalKembaliRencana: data.tanggalKembaliRencana,
-        alasanPeminjaman: data.alasanPeminjaman,
+        // Tanggal pinjam opsional: default ke hari ini bila tidak diisi.
+        tanggalPinjamRencana: data.tanggalPinjamRencana || new Date(),
+        tanggalKembaliRencana: data.tanggalKembaliRencana || null,
+        alasanPeminjaman: data.alasanPeminjaman || null,
         dokumenUrl: dokumenPath || null,
         status: 'MENUNGGU',
         detail: {
-          create: data.items.map((i) => ({ barangId: i.barangId, jumlahPinjam: i.jumlahPinjam })),
+          create: [{ barangId: item.barangId, jumlahPinjam: item.jumlahPinjam }],
         },
       },
       include: includeLengkap,
     });
   });
+
+  // Bila tak ada dokumen diunggah tapi peminjam membubuhkan tanda tangan,
+  // buat Surat Pernyataan Peminjaman (PDF) lalu simpan sebagai dokumenUrl.
+  // Kegagalan membuat PDF tidak membatalkan pengajuan.
+  if (!dokumenPath && data.tandaTangan) {
+    try {
+      const pdfDataUrl = await suratPernyataanService.generate(created, data.tandaTangan);
+      const updated = await prisma.peminjaman.update({
+        where: { id: created.id },
+        data: { dokumenUrl: pdfDataUrl },
+        include: includeLengkap,
+      });
+      return serialisasi(updated);
+    } catch {
+      // PDF gagal dibuat; pengajuan tetap valid, dokumen bisa dilengkapi nanti.
+    }
+  }
 
   return serialisasi(created);
 }
@@ -83,16 +119,24 @@ async function create(userId, data, dokumenPath) {
 // --- Ambil daftar peminjaman (role-aware) ---
 async function getSemua({ status, q, userId, role, page = 1, limit = 10 } = {}) {
   const halaman = Math.max(1, parseInt(page, 10) || 1);
-  const perHalaman = Math.min(100, Math.max(1, parseInt(limit, 10) || 10));
+  const perHalaman = Math.min(200, Math.max(1, parseInt(limit, 10) || 10));
 
   const where = {};
   if (status) where.status = status;
   // Peminjam hanya melihat miliknya sendiri
   if (role === 'PEMINJAM') where.userId = userId;
   if (q) {
+    const cocok = { contains: q, mode: 'insensitive' };
     where.OR = [
-      { kodePeminjaman: { contains: q, mode: 'insensitive' } },
-      { peminjam: { nama: { contains: q, mode: 'insensitive' } } },
+      // Kode peminjaman (snapshot) + kode barang terkini = sumber kode yang tampil.
+      { kodePeminjaman: cocok },
+      { detail: { some: { barang: { kodeBarang: cocok } } } },
+      { detail: { some: { barang: { nup: cocok } } } },
+      // Nama barang yang dipinjam.
+      { detail: { some: { barang: { nama: cocok } } } },
+      // Identitas peminjam.
+      { peminjam: { nama: cocok } },
+      { peminjam: { nip: cocok } },
     ];
   }
 
@@ -107,12 +151,13 @@ async function getSemua({ status, q, userId, role, page = 1, limit = 10 } = {}) 
     prisma.peminjaman.count({ where }),
   ]);
 
-  // Deteksi & perbarui status TERLAMBAT
+  // Sinkronkan status berdasarkan tanggal (terlambat / pulihkan tanpa tenggat)
   const updates = [];
   for (const p of data) {
-    if (harusTerlambat(p)) {
-      p.status = 'TERLAMBAT';
-      updates.push(prisma.peminjaman.update({ where: { id: p.id }, data: { status: 'TERLAMBAT' } }));
+    const baru = statusBerdasarTanggal(p);
+    if (baru !== p.status) {
+      p.status = baru;
+      updates.push(prisma.peminjaman.update({ where: { id: p.id }, data: { status: baru } }));
     }
   }
   if (updates.length) await Promise.all(updates);
@@ -139,25 +184,43 @@ async function getById(id, { userId, role } = {}) {
     throw new AppError('Anda tidak memiliki akses ke peminjaman ini.', 403);
   }
 
-  if (harusTerlambat(p)) {
-    p.status = 'TERLAMBAT';
-    await prisma.peminjaman.update({ where: { id }, data: { status: 'TERLAMBAT' } });
+  const baru = statusBerdasarTanggal(p);
+  if (baru !== p.status) {
+    p.status = baru;
+    await prisma.peminjaman.update({ where: { id }, data: { status: baru } });
   }
 
   return serialisasi(p);
 }
 
 // --- Ambil peminjaman berdasarkan kode (untuk scan QR) ---
+// kodePeminjaman tidak unik (= kode aset barang, bisa berulang tiap kali
+// barang yang sama dipinjam lagi). Prioritaskan transaksi yang masih
+// aktif/menunggu; bila semua sudah selesai, ambil yang paling baru.
 async function getByKode(kodePeminjaman) {
-  const p = await prisma.peminjaman.findUnique({
-    where: { kodePeminjaman },
+  const kandidat = await prisma.peminjaman.findMany({
+    where: {
+      OR: [
+        { kodePeminjaman: { equals: kodePeminjaman, mode: 'insensitive' } },
+        // Cocokkan juga dengan kode barang terkini agar kode yang tampil
+        // di Manajemen Peminjaman / QR selalu bisa dipindai.
+        { detail: { some: { barang: { kodeBarang: { equals: kodePeminjaman, mode: 'insensitive' } } } } },
+      ],
+    },
     include: includeLengkap,
+    orderBy: { createdAt: 'desc' },
   });
-  if (!p) throw new AppError(`Peminjaman dengan kode "${kodePeminjaman}" tidak ditemukan.`, 404);
+  if (kandidat.length === 0) {
+    throw new AppError(`Peminjaman dengan kode "${kodePeminjaman}" tidak ditemukan.`, 404);
+  }
 
-  if (harusTerlambat(p)) {
-    p.status = 'TERLAMBAT';
-    await prisma.peminjaman.update({ where: { id: p.id }, data: { status: 'TERLAMBAT' } });
+  const aktif = ['MENUNGGU', 'DISETUJUI', 'DIPINJAM', 'TERLAMBAT'];
+  const p = kandidat.find((k) => aktif.includes(k.status)) || kandidat[0];
+
+  const baru = statusBerdasarTanggal(p);
+  if (baru !== p.status) {
+    p.status = baru;
+    await prisma.peminjaman.update({ where: { id: p.id }, data: { status: baru } });
   }
   return serialisasi(p);
 }
@@ -199,7 +262,8 @@ async function setujui(id, adminId, catatan) {
   });
 
   // Tahap 2: generate QR Code (opsional — tidak membatalkan persetujuan bila gagal)
-  const full = await getRawById(id);
+  // Pakai data terserialisasi agar QR memuat kode = kodeBarang terkini.
+  const full = serialisasi(await getRawById(id));
   try {
     const qrPath = await qrcodeService.generateUntukPeminjaman(full);
     await prisma.peminjaman.update({ where: { id }, data: { qrCodeUrl: qrPath } });
@@ -209,6 +273,28 @@ async function setujui(id, adminId, catatan) {
 
   const updated = await prisma.peminjaman.findUnique({ where: { id }, include: includeLengkap });
   return serialisasi(updated);
+}
+
+// --- Setujui banyak pengajuan sekaligus (khusus admin) ---
+// Memakai ulang logika setujui() per item (cek stok + ubah status + QR).
+// Pengajuan yang bukan MENUNGGU atau stoknya tidak cukup dilewati tanpa
+// menggagalkan yang lain.
+async function setujuiBanyak(ids, adminId) {
+  const daftarId = Array.isArray(ids) ? [...new Set(ids.filter((v) => typeof v === 'string' && v))] : [];
+  if (daftarId.length === 0) throw new AppError('Tidak ada peminjaman yang dipilih.', 400);
+
+  let disetujui = 0;
+  const dilewati = [];
+  for (const id of daftarId) {
+    try {
+      await setujui(id, adminId);
+      disetujui += 1;
+    } catch (e) {
+      dilewati.push({ id, pesan: e.message || 'Gagal disetujui.' });
+    }
+  }
+
+  return { disetujui, dilewati: dilewati.length, detailDilewati: dilewati.slice(0, 50) };
 }
 
 // --- Tolak pengajuan (wajib catatan) ---
@@ -276,6 +362,66 @@ async function kembalikan(id) {
   return serialisasi(updated);
 }
 
+// --- Hapus peminjaman (khusus admin) ---
+// Bila peminjaman masih memegang stok (DISETUJUI/DIPINJAM/TERLAMBAT dengan
+// item berstatus DIPINJAM), stok dikembalikan dulu agar tidak hilang.
+// DetailPeminjaman ikut terhapus otomatis (onDelete: Cascade).
+async function hapus(id) {
+  await prisma.$transaction(async (tx) => {
+    const p = await tx.peminjaman.findUnique({ where: { id }, include: { detail: true } });
+    if (!p) throw new AppError('Data peminjaman tidak ditemukan.', 404);
+
+    const memegangStok = ['DISETUJUI', 'DIPINJAM', 'TERLAMBAT'].includes(p.status);
+    if (memegangStok) {
+      for (const d of p.detail) {
+        if (d.statusItem === 'DIPINJAM') {
+          await tx.barang.update({
+            where: { id: d.barangId },
+            data: { jumlahTersedia: { increment: d.jumlahPinjam } },
+          });
+        }
+      }
+    }
+
+    await tx.peminjaman.delete({ where: { id } });
+  });
+
+  return { id };
+}
+
+// --- Hapus banyak peminjaman sekaligus (khusus admin) ---
+// Untuk tiap peminjaman yang masih memegang stok, stok dikembalikan dulu,
+// lalu seluruh record dihapus (detail ikut terhapus via cascade).
+async function hapusBanyak(ids) {
+  const daftarId = Array.isArray(ids) ? [...new Set(ids.filter((v) => typeof v === 'string' && v))] : [];
+  if (daftarId.length === 0) throw new AppError('Tidak ada peminjaman yang dipilih.', 400);
+
+  const dihapus = await prisma.$transaction(async (tx) => {
+    const list = await tx.peminjaman.findMany({
+      where: { id: { in: daftarId } },
+      include: { detail: true },
+    });
+
+    for (const p of list) {
+      const memegangStok = ['DISETUJUI', 'DIPINJAM', 'TERLAMBAT'].includes(p.status);
+      if (!memegangStok) continue;
+      for (const d of p.detail) {
+        if (d.statusItem === 'DIPINJAM') {
+          await tx.barang.update({
+            where: { id: d.barangId },
+            data: { jumlahTersedia: { increment: d.jumlahPinjam } },
+          });
+        }
+      }
+    }
+
+    const res = await tx.peminjaman.deleteMany({ where: { id: { in: daftarId } } });
+    return res.count;
+  });
+
+  return { dihapus };
+}
+
 // --- Simpan URL dokumen yang sudah distempel ---
 async function setDokumenStempel(id, pathRelatif) {
   const updated = await prisma.peminjaman.update({
@@ -296,6 +442,10 @@ module.exports = {
   tolak,
   serahkan,
   kembalikan,
+  hapus,
+  hapusBanyak,
+  setujuiBanyak,
   setDokumenStempel,
   serialisasi,
+  kodeDariBarang,
 };

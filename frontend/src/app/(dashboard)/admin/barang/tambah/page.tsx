@@ -40,7 +40,8 @@ export default function TambahBarangPage() {
         <CardHeader>
           <CardTitle>Tambah Barang Baru</CardTitle>
           <p className="text-sm text-muted-foreground">
-            Kode barang akan dibuat otomatis dengan format BMN-{new Date().getFullYear()}-XXXX.
+            Kode barang dibentuk otomatis dari kunci aset: Kode Satker · Kode Barang · NUP
+            (mis. 015110199411868000KP-3100102002-1180).
           </p>
         </CardHeader>
         <CardContent>
