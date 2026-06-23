@@ -38,24 +38,40 @@ export default function KategoriDashboardPage() {
   const [data, setData] = useState<ResponseKategori | null>(null);
   const [memuat, setMemuat] = useState(true);
   const [halaman, setHalaman] = useState(1);
+  const [limit, setLimit] = useState(10);
+  const [cari, setCari] = useState('');
+  const [cariDebounced, setCariDebounced] = useState('');
 
   const info = INFO_KATEGORI[kategori] || INFO_KATEGORI.semua;
   const adalahBarang = kategori === 'barang';
   const adalahPeminjam = kategori === 'peminjam';
 
+  // Debounce input pencarian agar tidak memanggil API tiap ketukan.
+  useEffect(() => {
+    const t = setTimeout(() => setCariDebounced(cari), 350);
+    return () => clearTimeout(t);
+  }, [cari]);
+
+  // Kembali ke halaman 1 saat filter/ukuran data berubah.
+  useEffect(() => {
+    setHalaman(1);
+  }, [cariDebounced, limit, kategori]);
+
   useEffect(() => {
     setMemuat(true);
     dashboardService
-      .ambilKategori(kategori, halaman)
+      .ambilKategori(kategori, halaman, limit, adalahPeminjam ? cariDebounced : '')
       .then(setData)
       .catch((e) => {
         notify.gagal(ambilPesanError(e, 'Gagal memuat data.'));
         router.push(RUTE.adminDashboard);
       })
       .finally(() => setMemuat(false));
-  }, [kategori, halaman, router]);
+  }, [kategori, halaman, limit, cariDebounced, adalahPeminjam, router]);
 
-  if (memuat) return <LoadingSpinner layarPenuh />;
+  // Spinner layar penuh hanya saat pemuatan awal; saat mencari, biarkan
+  // toolbar tetap terpasang agar fokus input tidak hilang.
+  if (memuat && !data) return <LoadingSpinner layarPenuh />;
 
   const meta = data?.meta;
   const items = data?.items || [];
@@ -82,12 +98,53 @@ export default function KategoriDashboardPage() {
         </div>
       </section>
 
+      {/* Toolbar pencarian & ukuran halaman (khusus daftar peminjam) */}
+      {adalahPeminjam && (
+        <section className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div className="relative w-full sm:max-w-md">
+            <Icon
+              name="search"
+              className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[20px] text-on-surface-variant"
+            />
+            <input
+              type="text"
+              value={cari}
+              onChange={(e) => setCari(e.target.value)}
+              placeholder="Cari nama, NIP, Eselon III / IV..."
+              className="w-full rounded-xl border border-outline-variant bg-white py-2.5 pl-10 pr-4 text-sm outline-none transition-all focus:border-primary focus:ring-2 focus:ring-primary/20"
+            />
+          </div>
+          <div className="flex items-center gap-2">
+            <label htmlFor="ukuran-halaman" className="shrink-0 text-sm text-on-surface-variant">
+              Tampilkan
+            </label>
+            <select
+              id="ukuran-halaman"
+              value={limit}
+              onChange={(e) => setLimit(Number(e.target.value))}
+              className="rounded-xl border border-outline-variant bg-white px-3 py-2.5 text-sm outline-none transition-all focus:border-primary focus:ring-2 focus:ring-primary/20"
+            >
+              {[10, 50, 100, 200].map((n) => (
+                <option key={n} value={n}>
+                  {n} data
+                </option>
+              ))}
+            </select>
+          </div>
+        </section>
+      )}
+
       {/* Statistik */}
       {meta && (
         <div className="rounded-xl border bg-card p-4">
           <p className="text-sm text-on-surface-variant">
             Menampilkan <span className="font-semibold">{items.length}</span> dari{' '}
             <span className="font-semibold">{meta.total}</span> data
+            {adalahPeminjam && cariDebounced && (
+              <>
+                {' '}untuk pencarian &ldquo;<span className="font-semibold">{cariDebounced}</span>&rdquo;
+              </>
+            )}
           </p>
         </div>
       )}
@@ -163,20 +220,24 @@ export default function KategoriDashboardPage() {
                 <TableHead className="w-16">#</TableHead>
                 <TableHead>Nama</TableHead>
                 <TableHead>NIP</TableHead>
+                <TableHead>Eselon III</TableHead>
+                <TableHead>Eselon IV</TableHead>
                 <TableHead>Email</TableHead>
-                <TableHead>Unit Kerja</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {(items as { id: string; nama: string; nip: string; email: string; unitKerja: string }[]).map((user, index) => (
-                <TableRow key={user.id}>
-                  <TableCell className="text-muted-foreground">{index + 1}</TableCell>
-                  <TableCell className="font-medium text-on-surface">{user.nama}</TableCell>
-                  <TableCell className="font-mono text-sm text-primary">{user.nip}</TableCell>
-                  <TableCell className="text-sm text-on-surface-variant">{user.email}</TableCell>
-                  <TableCell className="text-sm text-on-surface-variant">{user.unitKerja || '-'}</TableCell>
-                </TableRow>
-              ))}
+              {(items as { id: string; nama: string; nip: string; email: string; jabatan: string | null; unitKerja: string | null }[]).map(
+                (user, index) => (
+                  <TableRow key={user.id}>
+                    <TableCell className="text-muted-foreground">{(halaman - 1) * limit + index + 1}</TableCell>
+                    <TableCell className="font-medium text-on-surface">{user.nama}</TableCell>
+                    <TableCell className="font-mono text-sm text-primary">{user.nip}</TableCell>
+                    <TableCell className="text-sm text-on-surface-variant">{user.unitKerja || '-'}</TableCell>
+                    <TableCell className="text-sm text-on-surface-variant">{user.jabatan || '-'}</TableCell>
+                    <TableCell className="text-sm text-on-surface-variant">{user.email}</TableCell>
+                  </TableRow>
+                )
+              )}
             </TableBody>
           </Table>
         </div>
