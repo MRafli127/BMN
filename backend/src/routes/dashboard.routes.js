@@ -9,9 +9,16 @@ const roleMiddleware = require('../middleware/role.middleware');
 
 const router = express.Router();
 
+// Semua route butuh autentikasi
 router.use(authMiddleware);
 
+// Route kategori (HARUS sebelum /admin agar tidak tertangkap oleh pattern lain)
+router.get('/kategori/:kategori', roleMiddleware('ADMIN'), dashboardController.ambilDataKategori);
+
+// Dashboard Admin
 router.get('/admin', roleMiddleware('ADMIN'), dashboardController.dashboardAdmin);
+
+// Dashboard Peminjam
 router.get('/peminjam', dashboardController.dashboardPeminjam);
 
 module.exports = router;
