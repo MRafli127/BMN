@@ -54,6 +54,20 @@ export const barangService = {
     return { data: res.data.data, meta: res.data.meta };
   },
 
+  // Ambil SELURUH barang yang cocok dengan filter (menelusuri semua halaman).
+  // Dipakai oleh tampilan folder agar tiap merk memuat semua unitnya, bukan
+  // hanya yang kebetulan berada di satu halaman.
+  async getSemuaLengkap(filter: Omit<FilterBarang, 'page' | 'limit'> = {}): Promise<Barang[]> {
+    const limit = 200; // batas maksimum per halaman di backend
+    const pertama = await barangService.getSemua({ ...filter, page: 1, limit });
+    const semua = [...pertama.data];
+    for (let page = 2; page <= pertama.meta.totalHalaman; page++) {
+      const res = await barangService.getSemua({ ...filter, page, limit });
+      semua.push(...res.data);
+    }
+    return semua;
+  },
+
   async getById(id: string): Promise<Barang> {
     const res = await api.get(`/barang/${id}`);
     return res.data.data;
