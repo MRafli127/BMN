@@ -27,21 +27,41 @@ export interface GrupMerk {
 }
 
 // Kelompokkan daftar barang menjadi folder berdasarkan merk yang sama.
+// Perbedaan huruf besar/kecil dan spasi berlebih diabaikan agar merk yang
+// sama (mis. "Hp Probook 430 G7" vs "HP Probook 430 G7") tetap satu folder.
 export function kelompokkanPerMerk(data: Barang[]): GrupMerk[] {
-  const peta = new Map<string, Barang[]>();
+  const peta = new Map<string, { items: Barang[]; jumlahLabel: Map<string, number> }>();
+
   for (const barang of data) {
-    const kunci = barang.merk?.trim() || 'Tanpa Merk';
-    const arr = peta.get(kunci);
-    if (arr) arr.push(barang);
-    else peta.set(kunci, [barang]);
+    const asli = barang.merk?.trim() || 'Tanpa Merk';
+    const kunci = asli.toLowerCase().replace(/\s+/g, ' '); // kunci ternormalisasi
+    let grup = peta.get(kunci);
+    if (!grup) {
+      grup = { items: [], jumlahLabel: new Map() };
+      peta.set(kunci, grup);
+    }
+    grup.items.push(barang);
+    grup.jumlahLabel.set(asli, (grup.jumlahLabel.get(asli) || 0) + 1);
   }
-  return Array.from(peta, ([merk, items]) => ({
-    merk,
-    items,
-    totalUnit: items.length,
-    totalStok: items.reduce((s, i) => s + i.jumlahTotal, 0),
-    totalTersedia: items.reduce((s, i) => s + i.jumlahTersedia, 0),
-  })).sort((a, b) => a.merk.localeCompare(b.merk, 'id'));
+
+  return Array.from(peta.values(), ({ items, jumlahLabel }) => {
+    // Pakai variasi penulisan merk yang paling sering muncul sebagai nama folder.
+    let merk = 'Tanpa Merk';
+    let terbanyak = -1;
+    for (const [label, jumlah] of jumlahLabel) {
+      if (jumlah > terbanyak) {
+        terbanyak = jumlah;
+        merk = label;
+      }
+    }
+    return {
+      merk,
+      items,
+      totalUnit: items.length,
+      totalStok: items.reduce((s, i) => s + i.jumlahTotal, 0),
+      totalTersedia: items.reduce((s, i) => s + i.jumlahTersedia, 0),
+    };
+  }).sort((a, b) => a.merk.localeCompare(b.merk, 'id', { sensitivity: 'base' }));
 }
 
 interface Props {
