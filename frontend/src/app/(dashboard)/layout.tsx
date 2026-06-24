@@ -38,7 +38,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       <div className="flex min-w-0 flex-1 flex-col">
         <Header />
         <main className="flex-1 p-margin-mobile sm:p-6 lg:p-margin-desktop">
-          <div key={pathname} className="mx-auto max-w-container-max animate-fade-up space-y-gutter">
+          <div key={pathname} className="mx-auto max-w-container-max animate-page-in space-y-gutter">
             {children}
           </div>
         </main>

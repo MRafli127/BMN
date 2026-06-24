@@ -4,7 +4,7 @@
 
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { ChevronLeft, ChevronRight, ClipboardList, Trash2, X, CheckCheck } from 'lucide-react';
 import { Icon } from '@/components/ui/icon';
 import { Input, Select } from '@/components/ui/input';
@@ -16,6 +16,7 @@ import { LoadingSpinner } from '@/components/shared/LoadingSpinner';
 import { EmptyState } from '@/components/shared/EmptyState';
 import { notify } from '@/components/ui/toast';
 import { peminjamanService, type FilterPeminjaman } from '@/services/peminjaman.service';
+import { useQuery } from '@/lib/cache';
 import { ambilPesanError } from '@/lib/utils';
 import { OPSI_STATUS } from '@/constants/status';
 import { RUTE } from '@/constants/routes';
@@ -26,39 +27,33 @@ import type { MetaPagination } from '@/types/barang.type';
 const OPSI_LIMIT = [12, 50, 100, 200];
 
 export default function AdminPeminjamanPage() {
-  const [data, setData] = useState<Peminjaman[]>([]);
-  const [meta, setMeta] = useState<MetaPagination | null>(null);
   const [filter, setFilter] = useState<FilterPeminjaman>({ page: 1, limit: 12 });
   const [cari, setCari] = useState('');
-  const [memuat, setMemuat] = useState(true);
   const [terpilih, setTerpilih] = useState<string[]>([]);
   const [dialogMassal, setDialogMassal] = useState(false);
   const [sedangMassal, setSedangMassal] = useState(false);
   const [dialogSetujui, setDialogSetujui] = useState(false);
   const [sedangSetujui, setSedangSetujui] = useState(false);
 
+  const key = useMemo(() => `peminjaman:${JSON.stringify(filter)}`, [filter]);
+
+  // muat (refetch) memaksa pemuatan ulang sambil tetap menampilkan data lama.
+  const { data: hasil, sedangMemuat: memuat, refetch: muat } = useQuery<{ data: Peminjaman[]; meta: MetaPagination | null }>(
+    key,
+    () => peminjamanService.getSemua(filter)
+  );
+  const data = hasil?.data ?? [];
+  const meta = hasil?.meta ?? null;
+
+  // Reset pilihan setiap kali data dimuat ulang
+  useEffect(() => {
+    setTerpilih([]);
+  }, [hasil]);
+
   // Jumlah pengajuan berstatus MENUNGGU di antara yang dipilih (yang bisa di-ACC).
   const jumlahBisaSetujui = data.filter(
     (p) => terpilih.includes(p.id) && p.status === 'MENUNGGU'
   ).length;
-
-  const muat = useCallback(async () => {
-    setMemuat(true);
-    try {
-      const hasil = await peminjamanService.getSemua(filter);
-      setData(hasil.data);
-      setMeta(hasil.meta);
-      setTerpilih([]); // reset pilihan setiap data dimuat ulang
-    } catch (error) {
-      notify.gagal(ambilPesanError(error, 'Gagal memuat daftar peminjaman.'));
-    } finally {
-      setMemuat(false);
-    }
-  }, [filter]);
-
-  useEffect(() => {
-    muat();
-  }, [muat]);
 
   const hapus = async (id: string) => {
     try {

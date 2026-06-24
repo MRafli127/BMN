@@ -4,15 +4,14 @@
 
 'use client';
 
-import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Icon } from '@/components/ui/icon';
 import { LoadingSpinner } from '@/components/shared/LoadingSpinner';
 import { EmptyState } from '@/components/shared/EmptyState';
 import { TabelPeminjaman } from '@/components/peminjaman/TabelPeminjaman';
-import { notify } from '@/components/ui/toast';
-import { dashboardService, type DashboardAdmin } from '@/services/dashboard.service';
-import { ambilPesanError, cn } from '@/lib/utils';
+import { dashboardService } from '@/services/dashboard.service';
+import { useQuery } from '@/lib/cache';
+import { cn } from '@/lib/utils';
 import { STATUS_PEMINJAMAN } from '@/constants/status';
 import { RUTE } from '@/constants/routes';
 import type { KategoriDashboard } from '@/services/dashboard.service';
@@ -41,19 +40,10 @@ interface KartuStat {
 }
 
 export default function AdminDashboardPage() {
-  const [data, setData] = useState<DashboardAdmin | null>(null);
-  const [memuat, setMemuat] = useState(true);
   const router = useRouter();
+  const { data, sedangMemuat } = useQuery('dashboard-admin', () => dashboardService.admin());
 
-  useEffect(() => {
-    dashboardService
-      .admin()
-      .then(setData)
-      .catch((e) => notify.gagal(ambilPesanError(e, 'Gagal memuat dashboard.')))
-      .finally(() => setMemuat(false));
-  }, []);
-
-  if (memuat) return <LoadingSpinner layarPenuh />;
+  if (sedangMemuat && !data) return <LoadingSpinner layarPenuh />;
   if (!data) return null;
 
   const s = data.statistik;
