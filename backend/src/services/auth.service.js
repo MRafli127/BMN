@@ -263,9 +263,12 @@ async function refresh(refreshToken) {
   }
 
   // VALIDASI TOKEN VERSION
-  // Jika password berubah setelah token ini dibuat, token ditolak
+  // Jika password berubah setelah token ini dibuat, token ditolak.
+  // Normalisasi kedua sisi ke 1 bila kosong (token lama tanpa klaim "v" atau
+  // user.tokenVersion null) agar tidak terjadi mismatch palsu (1 !== undefined).
   const tokenVersion = payload.v || 1;
-  if (tokenVersion !== user.tokenVersion) {
+  const userVersion = user.tokenVersion || 1;
+  if (tokenVersion !== userVersion) {
     throw new AppError('Sesi Anda telah berakhir. Silakan login kembali.', 401);
   }
 
@@ -285,9 +288,10 @@ async function validateAccessTokenWithVersion(payload) {
     return { valid: false, reason: 'USER_NOT_FOUND' };
   }
 
-  // Cek tokenVersion
+  // Cek tokenVersion (normalisasi kedua sisi ke 1 bila kosong, lihat refresh()).
   const tokenVersion = payload.v || 1;
-  if (tokenVersion !== user.tokenVersion) {
+  const userVersion = user.tokenVersion || 1;
+  if (tokenVersion !== userVersion) {
     return { valid: false, reason: 'TOKEN_VERSION_MISMATCH' };
   }
 

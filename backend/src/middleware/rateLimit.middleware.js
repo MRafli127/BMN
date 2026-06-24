@@ -5,6 +5,7 @@
 
 const rateLimit = require('express-rate-limit');
 const { responsGagal } = require('../utils/apiResponse');
+const env = require('../config/env');
 
 // Helper: handler ketika rate limit exceeded
 function handleRateLimit(res, message = 'Terlalu banyak request. Coba lagi nanti.') {
@@ -14,14 +15,21 @@ function handleRateLimit(res, message = 'Terlalu banyak request. Coba lagi nanti
   });
 }
 
+// Rate limiting hanya aktif di PRODUCTION. Di development (npm run dev) limiter
+// dilewati agar reload berulang, React StrictMode, dan multi-tab di localhost
+// (semua berbagi satu IP) tidak terkunci 429 lalu terlempar ke halaman login.
+const skipDiDev = () => !env.isProduction;
+
 // 1. Login Rate Limit
 //    5 percobaan per 15 menit per IP
 const loginLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 menit
-  max: 5, // 5 percobaan
+  max: 10, // 10 percobaan gagal per email/IP — cukup untuk salah ketik, tetap menahan brute force
   message: null, // pakai custom handler
   standardHeaders: true, // Return rate limit info di headers
   legacyHeaders: false,
+  skip: skipDiDev,
+  skipSuccessfulRequests: true, // login yang BERHASIL tidak menghabiskan kuota
   handler: (req, res) => {
     return handleRateLimit(
       res,
@@ -43,6 +51,7 @@ const registerLimiter = rateLimit({
   message: null,
   standardHeaders: true,
   legacyHeaders: false,
+  skip: skipDiDev,
   handler: (req, res) => {
     return handleRateLimit(
       res,
@@ -55,13 +64,17 @@ const registerLimiter = rateLimit({
 });
 
 // 3. Refresh Token Rate Limit
-//    10 percobaan per 15 menit per IP
+//    Akses token berumur pendek (15 menit), jadi klien yang aktif WAJAR
+//    me-refresh tiap ~15 menit. Batas dibuat per-SESI (refresh token), bukan
+//    per-IP, supaya banyak pengguna di balik satu IP (kantor/NAT) tidak saling
+//    mengunci dan terlempar ke login. Tetap longgar untuk multi-tab.
 const refreshLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 menit
-  max: 10,
+  max: 60,
   message: null,
   standardHeaders: true,
   legacyHeaders: false,
+  skip: skipDiDev,
   handler: (req, res) => {
     return handleRateLimit(
       res,
@@ -69,7 +82,8 @@ const refreshLimiter = rateLimit({
     );
   },
   keyGenerator: (req) => {
-    return req.ip;
+    // Kunci per sesi (refresh token), fallback ke IP bila cookie belum ada.
+    return req.cookies?.refreshToken || req.ip;
   },
 });
 
@@ -81,6 +95,7 @@ const apiLimiter = rateLimit({
   message: null,
   standardHeaders: true,
   legacyHeaders: false,
+  skip: skipDiDev,
   handler: (req, res) => {
     return handleRateLimit(
       res,
@@ -100,6 +115,7 @@ const scanLimiter = rateLimit({
   message: null,
   standardHeaders: true,
   legacyHeaders: false,
+  skip: skipDiDev,
   handler: (req, res) => {
     return handleRateLimit(
       res,
@@ -119,6 +135,7 @@ const passwordLimiter = rateLimit({
   message: null,
   standardHeaders: true,
   legacyHeaders: false,
+  skip: skipDiDev,
   handler: (req, res) => {
     return handleRateLimit(
       res,
