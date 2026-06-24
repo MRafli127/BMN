@@ -42,7 +42,7 @@ const tanggalRequired = (pesan) =>
       return date;
     },
     z.date({ errorMap: () => ({ message: pesan }) })
-      .min(new Date().setHours(0, 0, 0, 0), 'Tanggal tidak boleh mundur dari hari ini.')
+      .min((() => { const d = new Date(); d.setHours(0,0,0,0); return d; })(), 'Tanggal tidak boleh mundur dari hari ini.')
   );
 
 // Tanggal opsional: string kosong/null dianggap "tidak diisi" (undefined).
@@ -60,7 +60,7 @@ const tanggalOpsional = (pesan, minDate) =>
     },
     z
       .date({ errorMap: () => ({ message: pesan }) })
-      .min(minDate || new Date().setHours(0, 0, 0, 0), 'Tanggal tidak boleh mundur dari hari ini.')
+      .min(minDate instanceof Date ? minDate : (() => { const d = new Date(); d.setHours(0,0,0,0); return d; })(), 'Tanggal tidak boleh mundur dari hari ini.')
       .optional()
   );
 

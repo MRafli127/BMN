@@ -96,7 +96,7 @@ export default function AdminDashboardPage() {
           return (
             <div
               key={k.label}
-              onClick={() => router.push(RUTE.adminKategori(k.kategori))}
+              onClick={() => router.push(k.kategori === 'barang' ? RUTE.adminBarang : RUTE.adminKategori(k.kategori))}
               className="glass-card group relative cursor-pointer overflow-hidden rounded-2xl p-stack-lg transition-all duration-300 hover:-translate-y-1 hover:shadow-elevated"
             >
               <div className={cn('absolute -right-4 -top-4 h-24 w-24 rounded-full blur-2xl transition-colors', g.orb)} />
