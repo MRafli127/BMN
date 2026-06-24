@@ -118,7 +118,7 @@ export default function PeminjamDashboardPage() {
             deskripsi="Ajukan peminjaman barang untuk memulai."
             aksi={
               <Button asChild>
-                <Link href={RUTE.peminjamAjukan}>
+                <Link href={RUTE.peminjamKatalog}>
                   <PlusCircle className="h-4 w-4" /> Ajukan Sekarang
                 </Link>
               </Button>

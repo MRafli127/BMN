@@ -82,8 +82,8 @@ async function create(userId, data, dokumenPath) {
       data: {
         kodePeminjaman: barang.kodeBarang,
         userId,
-        // Tanggal pinjam WAJIB (divalidasi di validator)
-        tanggalPinjamRencana: data.tanggalPinjamRencana,
+        // Tanggal pinjam OPSIONAL (lihat validator)
+        tanggalPinjamRencana: data.tanggalPinjamRencana || null,
         tanggalKembaliRencana: data.tanggalKembaliRencana || null,
         alasanPeminjaman: data.alasanPeminjaman || null,
         dokumenUrl: dokumenPath || null,
@@ -94,7 +94,7 @@ async function create(userId, data, dokumenPath) {
       },
       include: includeLengkap,
     });
-  });
+  }, { timeout: 20000, maxWait: 10000 });
 
   // Bila tak ada dokumen diunggah tapi peminjam membubuhkan tanda tangan,
   // buat Surat Pernyataan Peminjaman (PDF) lalu simpan sebagai dokumenUrl.
@@ -227,7 +227,9 @@ async function getByKode(kodePeminjaman) {
 
 // --- Setujui pengajuan: kurangi stok + generate QR ---
 async function setujui(id, adminId, catatan) {
-  // Tahap 1: validasi & ubah stok dalam transaksi
+  // Tahap 1: validasi & ubah stok dalam transaksi.
+  // Cek stok harus tetap di dalam transaksi agar atomik (anti race condition);
+  // timeout dinaikkan agar aman pada DB remote berlatensi tinggi (Neon).
   await prisma.$transaction(async (tx) => {
     const p = await tx.peminjaman.findUnique({ where: { id }, include: { detail: true } });
     if (!p) throw new AppError('Data peminjaman tidak ditemukan.', 404);
@@ -259,7 +261,7 @@ async function setujui(id, adminId, catatan) {
       where: { id },
       data: { status: 'DISETUJUI', disetujuiOleh: adminId, catatanAdmin: catatan || null },
     });
-  });
+  }, { timeout: 20000, maxWait: 10000 });
 
   // Tahap 2: generate QR Code (opsional — tidak membatalkan persetujuan bila gagal)
   // Pakai data terserialisasi agar QR memuat kode = kodeBarang terkini.
@@ -356,7 +358,7 @@ async function kembalikan(id) {
       where: { id },
       data: { status: 'DIKEMBALIKAN', tanggalKembaliAktual: new Date() },
     });
-  });
+  }, { timeout: 20000, maxWait: 10000 });
 
   const updated = await getRawById(id);
   return serialisasi(updated);
@@ -367,24 +369,34 @@ async function kembalikan(id) {
 // item berstatus DIPINJAM), stok dikembalikan dulu agar tidak hilang.
 // DetailPeminjaman ikut terhapus otomatis (onDelete: Cascade).
 async function hapus(id) {
-  await prisma.$transaction(async (tx) => {
-    const p = await tx.peminjaman.findUnique({ where: { id }, include: { detail: true } });
-    if (!p) throw new AppError('Data peminjaman tidak ditemukan.', 404);
+  // Baca data di luar transaksi agar transaksi interaktif sesingkat mungkin
+  // (mencegah timeout 5s pada DB remote berlatensi tinggi seperti Neon).
+  const p = await prisma.peminjaman.findUnique({ where: { id }, include: { detail: true } });
+  if (!p) throw new AppError('Data peminjaman tidak ditemukan.', 404);
 
-    const memegangStok = ['DISETUJUI', 'DIPINJAM', 'TERLAMBAT'].includes(p.status);
-    if (memegangStok) {
-      for (const d of p.detail) {
-        if (d.statusItem === 'DIPINJAM') {
-          await tx.barang.update({
-            where: { id: d.barangId },
-            data: { jumlahTersedia: { increment: d.jumlahPinjam } },
-          });
-        }
+  // Agregasi pengembalian stok per barang agar jumlah query update minimal.
+  const memegangStok = ['DISETUJUI', 'DIPINJAM', 'TERLAMBAT'].includes(p.status);
+  const stokKembali = new Map();
+  if (memegangStok) {
+    for (const d of p.detail) {
+      if (d.statusItem === 'DIPINJAM') {
+        stokKembali.set(d.barangId, (stokKembali.get(d.barangId) || 0) + d.jumlahPinjam);
       }
     }
+  }
 
-    await tx.peminjaman.delete({ where: { id } });
-  });
+  await prisma.$transaction(
+    async (tx) => {
+      for (const [barangId, jumlah] of stokKembali) {
+        await tx.barang.update({
+          where: { id: barangId },
+          data: { jumlahTersedia: { increment: jumlah } },
+        });
+      }
+      await tx.peminjaman.delete({ where: { id } });
+    },
+    { timeout: 20000, maxWait: 10000 }
+  );
 
   return { id };
 }
@@ -396,28 +408,38 @@ async function hapusBanyak(ids) {
   const daftarId = Array.isArray(ids) ? [...new Set(ids.filter((v) => typeof v === 'string' && v))] : [];
   if (daftarId.length === 0) throw new AppError('Tidak ada peminjaman yang dipilih.', 400);
 
-  const dihapus = await prisma.$transaction(async (tx) => {
-    const list = await tx.peminjaman.findMany({
-      where: { id: { in: daftarId } },
-      include: { detail: true },
-    });
+  // Baca data di luar transaksi agar transaksi interaktif sesingkat mungkin
+  // (mencegah timeout 5s pada DB remote berlatensi tinggi seperti Neon).
+  const list = await prisma.peminjaman.findMany({
+    where: { id: { in: daftarId } },
+    include: { detail: true },
+  });
 
-    for (const p of list) {
-      const memegangStok = ['DISETUJUI', 'DIPINJAM', 'TERLAMBAT'].includes(p.status);
-      if (!memegangStok) continue;
-      for (const d of p.detail) {
-        if (d.statusItem === 'DIPINJAM') {
-          await tx.barang.update({
-            where: { id: d.barangId },
-            data: { jumlahTersedia: { increment: d.jumlahPinjam } },
-          });
-        }
+  // Agregasi pengembalian stok per barang agar jumlah query update minimal.
+  const stokKembali = new Map();
+  for (const p of list) {
+    const memegangStok = ['DISETUJUI', 'DIPINJAM', 'TERLAMBAT'].includes(p.status);
+    if (!memegangStok) continue;
+    for (const d of p.detail) {
+      if (d.statusItem === 'DIPINJAM') {
+        stokKembali.set(d.barangId, (stokKembali.get(d.barangId) || 0) + d.jumlahPinjam);
       }
     }
+  }
 
-    const res = await tx.peminjaman.deleteMany({ where: { id: { in: daftarId } } });
-    return res.count;
-  });
+  const dihapus = await prisma.$transaction(
+    async (tx) => {
+      for (const [barangId, jumlah] of stokKembali) {
+        await tx.barang.update({
+          where: { id: barangId },
+          data: { jumlahTersedia: { increment: jumlah } },
+        });
+      }
+      const res = await tx.peminjaman.deleteMany({ where: { id: { in: daftarId } } });
+      return res.count;
+    },
+    { timeout: 20000, maxWait: 10000 }
+  );
 
   return { dihapus };
 }

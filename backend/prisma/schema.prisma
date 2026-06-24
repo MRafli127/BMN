@@ -149,7 +149,7 @@ model Peminjaman {
   kodePeminjaman        String // Snapshot kode aset barang saat dipinjam. Saat dibaca, kode di-resync dari kodeBarang barang terkait (kunci natural kodeSatker-kodeBarangBmn-NUP). Tidak unik — barang yang sama bisa dipinjam ulang.
   userId                String
   tanggalPengajuan      DateTime         @default(now())
-  tanggalPinjamRencana  DateTime
+  tanggalPinjamRencana  DateTime?
   tanggalKembaliRencana DateTime?
   tanggalKembaliAktual  DateTime?
   status                StatusPeminjaman @default(MENUNGGU)

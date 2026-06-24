@@ -101,13 +101,15 @@ async function generate(peminjaman, tandaTanganDataUrl) {
   };
 
   // ---------- Kop surat ----------
-  const absLogo = path.resolve(__dirname, '../../assets/logo-kemenkeu.png');
+  const absLogo = path.resolve(__dirname, '../../assets/logo_surat.png');
   if (fs.existsSync(absLogo)) {
     try {
       const logo = await pdf.embedPng(fs.readFileSync(absLogo));
-      const lw = 46;
+      const lw = 80;
       const lh = (logo.height / logo.width) * lw;
-      page.drawImage(logo, { x: MARGIN, y: y - lh, width: lw, height: lh });
+      // pusatkan logo secara vertikal terhadap blok kop surat (tinggi ±58pt)
+      const kopH = 58;
+      page.drawImage(logo, { x: MARGIN, y: y - lh + (lh - kopH) / 2, width: lw, height: lh });
     } catch {
       // abaikan bila logo gagal dimuat
     }
