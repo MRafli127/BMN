@@ -13,6 +13,10 @@ const {
   passwordLimiter,
 } = require('../middleware/rateLimit.middleware');
 const {
+  validateCsrfTokenMiddleware,
+  generateCsrfTokenMiddleware,
+} = require('../middleware/csrf.middleware');
+const {
   registerSchema,
   loginSchema,
   updateProfilSchema,
@@ -21,12 +25,18 @@ const {
 
 const router = express.Router();
 
+// Endpoint publik
 router.post('/register', registerLimiter, validate(registerSchema), authController.register);
 router.post('/login', loginLimiter, validate(loginSchema), authController.login);
 router.post('/refresh', refreshLimiter, authController.refresh);
-router.post('/logout', authController.logout);
+
+// Endpoint untuk dapat CSRF token (tanpa auth)
+router.get('/csrf-token', authController.getCsrf);
+
+// Endpoint yang butuh auth + CSRF
+router.post('/logout', authMiddleware, validateCsrfTokenMiddleware, authController.logout);
 router.get('/me', authMiddleware, authController.me);
-router.patch('/me', authMiddleware, validate(updateProfilSchema), authController.updateMe);
-router.patch('/me/password', passwordLimiter, authMiddleware, validate(gantiPasswordSchema), authController.gantiPassword);
+router.patch('/me', authMiddleware, validateCsrfTokenMiddleware, validate(updateProfilSchema), authController.updateMe);
+router.patch('/me/password', passwordLimiter, authMiddleware, validateCsrfTokenMiddleware, validate(gantiPasswordSchema), authController.gantiPassword);
 
 module.exports = router;
