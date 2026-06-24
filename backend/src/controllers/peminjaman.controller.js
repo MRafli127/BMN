@@ -1,4 +1,5 @@
 const peminjamanService = require('../services/peminjaman.service');
+const auditLogService = require('../services/auditLog.service');
 const { bufferKeDataUrl } = require('../utils/fileData');
 const { responsSukses } = require('../utils/apiResponse');
 const { asyncHandler } = require('../middleware/error.middleware');
@@ -7,8 +8,16 @@ function pathDokumen(file) {
   return file ? bufferKeDataUrl(file.buffer, file.mimetype) : null;
 }
 
+// Helper untuk ekstrak info request
+function getRequestInfo(req) {
+  return {
+    ipAddress: req.ip || req.connection?.remoteAddress || req.headers['x-forwarded-for'] || null,
+    userAgent: req.get('User-Agent') || null,
+  };
+}
+
 const create = asyncHandler(async (req, res) => {
-  const peminjaman = await peminjamanService.create(req.user.id, req.body, pathDokumen(req.file));
+  const peminjaman = await peminjamanService.create(req.user.id, req.body, pathDokumen(req.file), getRequestInfo(req));
   return responsSukses(res, {
     pesan: 'Pengajuan peminjaman berhasil dikirim. Menunggu persetujuan admin.',
     data: peminjaman,
@@ -42,7 +51,7 @@ const getById = asyncHandler(async (req, res) => {
 });
 
 const setujui = asyncHandler(async (req, res) => {
-  const peminjaman = await peminjamanService.setujui(req.params.id, req.user.id, req.body.catatanAdmin);
+  const peminjaman = await peminjamanService.setujui(req.params.id, req.user.id, req.body.catatanAdmin, getRequestInfo(req));
   return responsSukses(res, {
     pesan: 'Peminjaman disetujui. Stok telah diperbarui dan QR Code dibuat.',
     data: peminjaman,
@@ -50,7 +59,7 @@ const setujui = asyncHandler(async (req, res) => {
 });
 
 const tolak = asyncHandler(async (req, res) => {
-  const peminjaman = await peminjamanService.tolak(req.params.id, req.user.id, req.body.catatanAdmin);
+  const peminjaman = await peminjamanService.tolak(req.params.id, req.user.id, req.body.catatanAdmin, getRequestInfo(req));
   return responsSukses(res, { pesan: 'Peminjaman telah ditolak.', data: peminjaman });
 });
 
@@ -63,7 +72,7 @@ const serahkan = asyncHandler(async (req, res) => {
 });
 
 const kembalikan = asyncHandler(async (req, res) => {
-  const peminjaman = await peminjamanService.kembalikan(req.params.id);
+  const peminjaman = await peminjamanService.kembalikan(req.params.id, getRequestInfo(req));
   return responsSukses(res, {
     pesan: 'Pengembalian dikonfirmasi. Stok telah dikembalikan.',
     data: peminjaman,
@@ -76,7 +85,7 @@ const scan = asyncHandler(async (req, res) => {
 });
 
 const hapus = asyncHandler(async (req, res) => {
-  await peminjamanService.hapus(req.params.id);
+  await peminjamanService.hapus(req.params.id, getRequestInfo(req));
   return responsSukses(res, { pesan: 'Data peminjaman berhasil dihapus.' });
 });
 

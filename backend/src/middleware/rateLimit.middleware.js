@@ -4,6 +4,7 @@
 // ============================================================
 
 const rateLimit = require('express-rate-limit');
+const { ipKeyGenerator } = require('express-rate-limit');
 const { responsGagal } = require('../utils/apiResponse');
 const env = require('../config/env');
 
@@ -39,7 +40,7 @@ const loginLimiter = rateLimit({
   keyGenerator: (req) => {
     // Gunakan IP + email untuk limit per user (lebih secure)
     const email = req.body?.email || '';
-    return `${req.ip}-${email.toLowerCase()}`;
+    return `${ipKeyGenerator(req)}-${email.toLowerCase()}`;
   },
 });
 
@@ -59,7 +60,7 @@ const registerLimiter = rateLimit({
     );
   },
   keyGenerator: (req) => {
-    return req.ip;
+    return ipKeyGenerator(req);
   },
 });
 
@@ -82,8 +83,8 @@ const refreshLimiter = rateLimit({
     );
   },
   keyGenerator: (req) => {
-    // Kunci per sesi (refresh token), fallback ke IP bila cookie belum ada.
-    return req.cookies?.refreshToken || req.ip;
+    // Kunci per sesi (refresh token), fallback ke IP (dengan ipKeyGenerator untuk IPv6)
+    return req.cookies?.refreshToken || ipKeyGenerator(req);
   },
 });
 
@@ -103,7 +104,7 @@ const apiLimiter = rateLimit({
     );
   },
   keyGenerator: (req) => {
-    return req.ip;
+    return ipKeyGenerator(req);
   },
 });
 
@@ -123,7 +124,7 @@ const scanLimiter = rateLimit({
     );
   },
   keyGenerator: (req) => {
-    return req.ip;
+    return ipKeyGenerator(req);
   },
 });
 
@@ -143,7 +144,7 @@ const passwordLimiter = rateLimit({
     );
   },
   keyGenerator: (req) => {
-    return `${req.ip}-password`;
+    return `${ipKeyGenerator(req)}-password`;
   },
 });
 

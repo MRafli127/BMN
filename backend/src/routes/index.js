@@ -9,6 +9,9 @@ const peminjamanRoutes = require('./peminjaman.routes');
 const qrcodeRoutes = require('./qrcode.routes');
 const dashboardRoutes = require('./dashboard.routes');
 const peminjamImportRoutes = require('./peminjamImport.routes');
+const userManagementRoutes = require('./userManagement.routes');
+const auditLogRoutes = require('./auditLog.routes');
+const exportRoutes = require('./export.routes');
 
 const router = express.Router();
 
@@ -31,5 +34,10 @@ router.use('/peminjaman', peminjamanRoutes);
 
 router.use('/dashboard', dashboardRoutes);
 router.use('/import-peminjam', peminjamImportRoutes);
+router.use('/users', userManagementRoutes);
+
+// Rute baru: Audit Log & Export (khusus ADMIN)
+router.use('/audit-logs', auditLogRoutes);
+router.use('/export', exportRoutes);
 
 module.exports = router;

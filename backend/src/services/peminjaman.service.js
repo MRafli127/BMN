@@ -14,6 +14,10 @@ const { urlPublik } = require('../utils/apiResponse');
 const { AppError } = require('../middleware/error.middleware');
 const qrcodeService = require('./qrcode.service');
 const suratPernyataanService = require('./suratPernyataan.service');
+const { kodeTransaksiUnik } = require('../utils/generateKode');
+const auditLogService = require('./auditLog.service');
+const emailService = require('./email.service');
+const env = require('../config/env');
 
 // Bentuk include lengkap untuk relasi
 const includeLengkap = {
@@ -35,6 +39,7 @@ function serialisasi(p) {
   if (!p) return p;
   return {
     ...p,
+    kodeTransaksi: p.kodeTransaksi,
     kodePeminjaman: kodeDariBarang(p),
     dokumenUrl: urlPublik(p.dokumenUrl),
     dokumenStempelUrl: urlPublik(p.dokumenStempelUrl),
@@ -66,7 +71,28 @@ function statusBerdasarTanggal(p) {
 // --- Buat pengajuan peminjaman baru ---
 // Dibatasi 1 barang per pengajuan (lihat peminjaman.validator.js) karena
 // kodePeminjaman memakai kode aset barang yang dipinjam.
-async function create(userId, data, dokumenPath) {
+async function create(userId, data, dokumenPath, requestInfo = {}) {
+  // CEK: Batas maksimal peminjaman aktif per user
+  const peminjamanAktif = await prisma.peminjaman.count({
+    where: {
+      userId,
+      status: { in: ['MENUNGGU', 'DISETUJUI', 'DIPINJAM', 'TERLAMBAT'] },
+    },
+  });
+  const maxAktif = env.peminjaman?.maxAktif || 3;
+  if (peminjamanAktif >= maxAktif) {
+    throw new AppError(
+      `Anda sudah memiliki ${peminjamanAktif} peminjaman aktif. Selesaikan atau batalkan yang ada sebelum membuat pengajuan baru. (Maksimum: ${maxAktif})`,
+      400
+    );
+  }
+
+  // Ambil data user untuk audit log dan email
+  const user = await prisma.user.findUnique({ where: { id: userId } });
+
+  // Generate kode transaksi unik untuk QR code dan referensi
+  const kodeTransaksi = await kodeTransaksiUnik();
+
   const created = await prisma.$transaction(async (tx) => {
     const item = data.items[0];
     const barang = await tx.barang.findUnique({ where: { id: item.barangId } });
@@ -80,6 +106,7 @@ async function create(userId, data, dokumenPath) {
 
     return tx.peminjaman.create({
       data: {
+        kodeTransaksi,
         kodePeminjaman: barang.kodeBarang,
         userId,
         // Tanggal pinjam OPSIONAL (lihat validator)
@@ -95,6 +122,30 @@ async function create(userId, data, dokumenPath) {
       include: includeLengkap,
     });
   }, { timeout: 20000, maxWait: 10000 });
+
+  // Audit log: catat pembuatan peminjaman baru
+  auditLogService.log({
+    userId,
+    userEmail: user?.email,
+    userNama: user?.nama,
+    aksi: auditLogService.AKSI.PEMINJAMAN_CREATE,
+    entitas: auditLogService.ENTITAS.PEMINJAMAN,
+    entitasId: created.id,
+    dataBaru: {
+      kodeTransaksi: created.kodeTransaksi,
+      kodePeminjaman: created.kodePeminjaman,
+      status: created.status,
+      barangId: data.items[0].barangId,
+      jumlahPinjam: data.items[0].jumlahPinjam,
+    },
+    requestInfo,
+  }).catch(() => {});
+
+  // Kirim email konfirmasi ke peminjam (async, tidak blocking)
+  emailService.kirimKonfirmasiPengajuan(created, user).catch(() => {});
+
+  // Kirim notifikasi ke admin (async, tidak blocking)
+  emailService.kirimNotifikasiAdmin(created, user, env.email?.notifyAdmin).catch(() => {});
 
   // Bila tak ada dokumen diunggah tapi peminjam membubuhkan tanda tangan,
   // buat Surat Pernyataan Peminjaman (PDF) lalu simpan sebagai dokumenUrl.
@@ -226,20 +277,26 @@ async function getByKode(kodePeminjaman) {
 }
 
 // --- Setujui pengajuan: kurangi stok + generate QR ---
-async function setujui(id, adminId, catatan) {
+async function setujui(id, adminId, catatan, requestInfo = {}) {
   // CEK: Admin tidak bisa menyetujui request milik sendiri
-  const pCheck = await prisma.peminjaman.findUnique({ where: { id } });
+  const pCheck = await prisma.peminjaman.findUnique({ where: { id }, include: { peminjam: true } });
   if (!pCheck) throw new AppError('Data peminjaman tidak ditemukan.', 404);
   if (pCheck.userId === adminId) {
     throw new AppError('Anda tidak dapat menyetujui pengajuan milik sendiri.', 403);
   }
 
+  // Ambil data admin untuk audit log
+  const admin = await prisma.user.findUnique({ where: { id: adminId } });
+
   // Tahap 1: validasi & ubah stok dalam transaksi.
   // Cek stok harus tetap di dalam transaksi agar atomik (anti race condition);
   // timeout dinaikkan agar aman pada DB remote berlatensi tinggi (Neon).
+  let dataLama = null;
   await prisma.$transaction(async (tx) => {
     const p = await tx.peminjaman.findUnique({ where: { id }, include: { detail: true } });
     if (!p) throw new AppError('Data peminjaman tidak ditemukan.', 404);
+    dataLama = { status: p.status };
+
     if (p.status !== 'MENUNGGU') {
       throw new AppError('Hanya pengajuan berstatus "Menunggu" yang dapat disetujui.', 400);
     }
@@ -281,6 +338,23 @@ async function setujui(id, adminId, catatan) {
   }
 
   const updated = await prisma.peminjaman.findUnique({ where: { id }, include: includeLengkap });
+
+  // Audit log: catat persetujuan
+  auditLogService.log({
+    userId: adminId,
+    userEmail: admin?.email,
+    userNama: admin?.nama,
+    aksi: auditLogService.AKSI.PEMINJAMAN_STATUS_CHANGE,
+    entitas: auditLogService.ENTITAS.PEMINJAMAN,
+    entitasId: id,
+    dataLama,
+    dataBaru: { status: 'DISETUJUI', catatan },
+    requestInfo,
+  }).catch(() => {});
+
+  // Kirim email notifikasi ke peminjam
+  emailService.kirimStatusUpdate(updated, pCheck.peminjam, 'MENUNGGU', 'DISETUJUI', catatan).catch(() => {});
+
   return serialisasi(updated);
 }
 
@@ -307,9 +381,9 @@ async function setujuiBanyak(ids, adminId) {
 }
 
 // --- Tolak pengajuan (wajib catatan) ---
-async function tolak(id, adminId, catatan) {
+async function tolak(id, adminId, catatan, requestInfo = {}) {
   // CEK: Admin tidak bisa menolak request milik sendiri (conflict of interest)
-  const p = await prisma.peminjaman.findUnique({ where: { id } });
+  const p = await prisma.peminjaman.findUnique({ where: { id }, include: { peminjam: true } });
   if (!p) throw new AppError('Data peminjaman tidak ditemukan.', 404);
   if (p.userId === adminId) {
     throw new AppError('Anda tidak dapat menolak pengajuan milik sendiri.', 403);
@@ -318,11 +392,31 @@ async function tolak(id, adminId, catatan) {
     throw new AppError('Hanya pengajuan berstatus "Menunggu" yang dapat ditolak.', 400);
   }
 
+  // Ambil data admin untuk audit log
+  const admin = await prisma.user.findUnique({ where: { id: adminId } });
+
   const updated = await prisma.peminjaman.update({
     where: { id },
     data: { status: 'DITOLAK', disetujuiOleh: adminId, catatanAdmin: catatan },
     include: includeLengkap,
   });
+
+  // Audit log
+  auditLogService.log({
+    userId: adminId,
+    userEmail: admin?.email,
+    userNama: admin?.nama,
+    aksi: auditLogService.AKSI.PEMINJAMAN_STATUS_CHANGE,
+    entitas: auditLogService.ENTITAS.PEMINJAMAN,
+    entitasId: id,
+    dataLama: { status: 'MENUNGGU' },
+    dataBaru: { status: 'DITOLAK', alasan: catatan },
+    requestInfo,
+  }).catch(() => {});
+
+  // Kirim email notifikasi ke peminjam
+  emailService.kirimStatusUpdate(updated, p.peminjam, 'MENUNGGU', 'DITOLAK', catatan).catch(() => {});
+
   return serialisasi(updated);
 }
 
@@ -343,7 +437,13 @@ async function serahkan(id) {
 }
 
 // --- Konfirmasi pengembalian: stok dikembalikan otomatis ---
-async function kembalikan(id) {
+async function kembalikan(id, requestInfo = {}) {
+  // Ambil data untuk audit log
+  const pLama = await prisma.peminjaman.findUnique({ where: { id }, include: { peminjam: true, detail: true } });
+  if (!pLama) throw new AppError('Data peminjaman tidak ditemukan.', 404);
+
+  const statusLama = pLama.status;
+
   await prisma.$transaction(async (tx) => {
     const p = await tx.peminjaman.findUnique({ where: { id }, include: { detail: true } });
     if (!p) throw new AppError('Data peminjaman tidak ditemukan.', 404);
@@ -372,6 +472,23 @@ async function kembalikan(id) {
   }, { timeout: 20000, maxWait: 10000 });
 
   const updated = await getRawById(id);
+
+  // Audit log: catat pengembalian
+  auditLogService.log({
+    userId: null, // Sistem
+    userEmail: null,
+    userNama: 'Sistem',
+    aksi: auditLogService.AKSI.PEMINJAMAN_STATUS_CHANGE,
+    entitas: auditLogService.ENTITAS.PEMINJAMAN,
+    entitasId: id,
+    dataLama: { status: statusLama },
+    dataBaru: { status: 'DIKEMBALIKAN', tanggalKembaliAktual: updated.tanggalKembaliAktual },
+    requestInfo,
+  }).catch(() => {});
+
+  // Kirim email notifikasi ke peminjam
+  emailService.kirimStatusUpdate(updated, pLama.peminjam, statusLama, 'DIKEMBALIKAN').catch(() => {});
+
   return serialisasi(updated);
 }
 
@@ -379,7 +496,7 @@ async function kembalikan(id) {
 // Bila peminjaman masih memegang stok (DISETUJUI/DIPINJAM/TERLAMBAT dengan
 // item berstatus DIPINJAM), stok dikembalikan dulu agar tidak hilang.
 // DetailPeminjaman ikut terhapus otomatis (onDelete: Cascade).
-async function hapus(id) {
+async function hapus(id, requestInfo = {}) {
   // Baca data di luar transaksi agar transaksi interaktif sesingkat mungkin
   // (mencegah timeout 5s pada DB remote berlatensi tinggi seperti Neon).
   const p = await prisma.peminjaman.findUnique({ where: { id }, include: { detail: true } });
@@ -408,6 +525,23 @@ async function hapus(id) {
     },
     { timeout: 20000, maxWait: 10000 }
   );
+
+  // Audit log: catat penghapusan
+  auditLogService.log({
+    userId: null, // Admin melakukan, tapi kita tidak punya userId di sini
+    userEmail: null,
+    userNama: null,
+    aksi: auditLogService.AKSI.PEMINJAMAN_DELETE,
+    entitas: auditLogService.ENTITAS.PEMINJAMAN,
+    entitasId: id,
+    dataLama: {
+      kodeTransaksi: p.kodeTransaksi,
+      kodePeminjaman: p.kodePeminjaman,
+      status: p.status,
+      userId: p.userId,
+    },
+    requestInfo,
+  }).catch(() => {});
 
   return { id };
 }
