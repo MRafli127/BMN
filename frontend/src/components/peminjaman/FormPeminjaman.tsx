@@ -80,13 +80,12 @@ export function FormPeminjaman({ daftarBarang, onAjukan, praPilihId }: Props) {
 
     // Validasi sisi klien
     if (idTerpilih.length === 0) return notify.gagal('Pilih minimal satu barang untuk dipinjam.');
-    if (!tglPinjam) return notify.gagal('Tanggal pinjam wajib diisi.');
-    if (tglKembali && new Date(tglKembali) <= new Date(tglPinjam))
+    if (tglPinjam && tglKembali && new Date(tglKembali) <= new Date(tglPinjam))
       return notify.gagal('Tanggal kembali harus setelah tanggal pinjam.');
     if (!tandaTangan) return notify.gagal('Tanda tangan wajib diisi.');
 
     const data: DataPengajuan = {
-      tanggalPinjamRencana: tglPinjam,
+      tanggalPinjamRencana: tglPinjam || undefined,
       tanggalKembaliRencana: tglKembali || undefined,
       items: idTerpilih.map((barangId) => ({ barangId, jumlahPinjam: terpilih[barangId] })),
       tandaTangan,
@@ -197,8 +196,9 @@ export function FormPeminjaman({ daftarBarang, onAjukan, praPilihId }: Props) {
         {/* Tanggal */}
         <div className="grid grid-cols-1 gap-3 xs:grid-cols-2">
           <div>
-            <Label htmlFor="tglPinjam">2. Tanggal Pinjam</Label>
+            <Label htmlFor="tglPinjam">2. Tanggal Pinjam (opsional)</Label>
             <Input id="tglPinjam" type="date" value={tglPinjam} onChange={(e) => setTglPinjam(e.target.value)} className="mt-1" />
+            <p className="mt-1 text-xs text-muted-foreground">Kosongkan bila belum ditentukan.</p>
           </div>
           <div>
             <Label htmlFor="tglKembali">Rencana Kembali (opsional)</Label>

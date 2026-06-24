@@ -32,7 +32,6 @@ const menuPeminjam: ItemMenu[] = [
   { label: 'Dashboard', href: RUTE.peminjamDashboard, ikon: 'dashboard' },
   { label: 'Katalog Barang', href: RUTE.peminjamKatalog, ikon: 'inventory_2' },
   { label: 'Keranjang', href: RUTE.peminjamKeranjang, ikon: 'shopping_cart' },
-  { label: 'Ajukan Peminjaman', href: RUTE.peminjamAjukan, ikon: 'post_add' },
   { label: 'Riwayat Peminjaman', href: RUTE.peminjamRiwayat, ikon: 'history' },
 ];
 
