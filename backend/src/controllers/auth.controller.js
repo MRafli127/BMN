@@ -9,13 +9,8 @@ const { responsSukses } = require('../utils/apiResponse');
 const { asyncHandler } = require('../middleware/error.middleware');
 const env = require('../config/env');
 
-// Opsi cookie untuk refresh token
-const opsiCookie = {
-  httpOnly: true,
-  secure: env.nodeEnv === 'production',
-  sameSite: env.nodeEnv === 'production' ? 'none' : 'lax',
-  maxAge: 7 * 24 * 60 * 60 * 1000, // 7 hari
-};
+// Opsi cookie untuk refresh token - gunakan konfigurasi terpusat dari env.js
+const opsiCookie = { ...env.cookie };
 
 const register = asyncHandler(async (req, res) => {
   const hasil = await authService.register(req.body);
@@ -57,7 +52,16 @@ const refresh = asyncHandler(async (req, res) => {
 });
 
 const logout = asyncHandler(async (req, res) => {
-  res.clearCookie('refreshToken', { ...opsiCookie, maxAge: undefined });
+  // Blacklist token sebelum hapus cookie
+  const token = req.cookies?.refreshToken || req.body?.refreshToken;
+  if (token) {
+    await authService.blacklistToken(token);
+  }
+  res.clearCookie('refreshToken', {
+    httpOnly: true,
+    secure: env.cookie.secure,
+    sameSite: env.cookie.sameSite,
+  });
   return responsSukses(res, { pesan: 'Anda telah keluar.' });
 });
 

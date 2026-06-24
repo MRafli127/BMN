@@ -29,19 +29,46 @@ const parseItems = z.preprocess((val) => {
   .min(1, 'Minimal pilih 1 barang untuk dipinjam.')
   .max(1, 'Maksimal 1 barang per pengajuan peminjaman.'));
 
-// Tanggal opsional: string kosong/null dianggap "tidak diisi" (undefined).
-// Bila tanggal pinjam dikosongkan, service memakai tanggal hari ini.
-const tanggalOpsional = (pesan) =>
+// Tanggal required dengan validasi tidak boleh backdate
+const tanggalRequired = (pesan) =>
   z.preprocess(
-    (v) => (v === '' || v === null ? undefined : v),
-    z.coerce.date({ errorMap: () => ({ message: pesan }) }).optional()
+    (v) => {
+      if (v === '' || v === null || v === undefined) {
+        return undefined;
+      }
+      const date = new Date(v);
+      // Set ke start of day untuk perbandingan
+      date.setHours(0, 0, 0, 0);
+      return date;
+    },
+    z.date({ errorMap: () => ({ message: pesan }) })
+      .min(new Date().setHours(0, 0, 0, 0), 'Tanggal tidak boleh mundur dari hari ini.')
+  );
+
+// Tanggal opsional: string kosong/null dianggap "tidak diisi" (undefined).
+// Validasi: tidak boleh backdate DAN harus > tanggal pinjam (jika ada)
+const tanggalOpsional = (pesan, minDate) =>
+  z.preprocess(
+    (v) => {
+      if (v === '' || v === null || v === undefined) {
+        return undefined;
+      }
+      const date = new Date(v);
+      // Set ke start of day
+      date.setHours(0, 0, 0, 0);
+      return date;
+    },
+    z
+      .date({ errorMap: () => ({ message: pesan }) })
+      .min(minDate || new Date().setHours(0, 0, 0, 0), 'Tanggal tidak boleh mundur dari hari ini.')
+      .optional()
   );
 
 // Validasi pengajuan peminjaman.
-// Tanggal pinjam & kembali keduanya opsional (pinjam default ke hari ini,
-// kembali kosong = tanpa batas waktu). Alasan juga opsional.
-// tandaTangan (data URL PNG) ikut divalidasi agar tidak dibuang saat sanitasi —
-// dipakai membuat Surat Pernyataan PDF di service.
+// - Tanggal pinjam: WAJIB, tidak boleh backdate
+// - Tanggal kembali: OPSIONAL, tapi jika ada harus > tanggal pinjam
+// - Alasan: OPSIONAL tapi minimal 5 karakter jika diisi
+// tandaTangan (data URL PNG) ikut divalidasi agar tidak dibuang saat sanitasi
 const createPeminjamanSchema = z
   .object({
     alasanPeminjaman: z
@@ -49,7 +76,7 @@ const createPeminjamanSchema = z
       .min(5, 'Alasan peminjaman minimal 5 karakter.')
       .optional()
       .or(z.literal('')),
-    tanggalPinjamRencana: tanggalOpsional('Tanggal pinjam tidak valid.'),
+    tanggalPinjamRencana: tanggalRequired('Tanggal pinjam wajib diisi dan tidak boleh mundur dari hari ini.'),
     tanggalKembaliRencana: tanggalOpsional('Tanggal kembali tidak valid.'),
     tandaTangan: z.string().optional(),
     items: parseItems,

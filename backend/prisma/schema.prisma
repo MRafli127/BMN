@@ -72,6 +72,19 @@ enum SumberAkun {
 //  MODEL
 // ------------------------------------------------------------
 
+// 0) Token Blacklist — untuk invalidate refresh token saat logout
+model BlacklistedToken {
+  id        String   @id @default(uuid())
+  token     String   @unique // Token yang di-blacklist
+  expiresAt DateTime // kapan token ini expire (untuk auto-cleanup)
+  userId    String?  // User yang logout (opsional, untuk tracking)
+  createdAt DateTime @default(now())
+
+  @@index([token])
+  @@index([expiresAt])
+  @@map("blacklisted_tokens")
+}
+
 // 1) Pengguna sistem (admin & peminjam)
 model User {
   id        String     @id @default(uuid())
