@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { ArrowLeft, Package } from 'lucide-react';
 import Link from 'next/link';
@@ -11,11 +11,10 @@ import { TabelPeminjaman } from '@/components/peminjaman/TabelPeminjaman';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table';
-import { notify } from '@/components/ui/toast';
 import { urlFile } from '@/lib/utils';
-import { ambilPesanError } from '@/lib/utils';
 import { JENIS_BARANG, KONDISI_BARANG } from '@/constants/status';
 import { dashboardService, type KategoriDashboard, type ResponseKategori } from '@/services/dashboard.service';
+import { useQuery } from '@/lib/cache';
 import { RUTE } from '@/constants/routes';
 import type { Barang } from '@/types/barang.type';
 import type { Peminjaman } from '@/types/peminjaman.type';
@@ -35,8 +34,6 @@ export default function KategoriDashboardPage() {
   const router = useRouter();
   const kategori = params.kategori as KategoriDashboard;
 
-  const [data, setData] = useState<ResponseKategori | null>(null);
-  const [memuat, setMemuat] = useState(true);
   const [halaman, setHalaman] = useState(1);
   const [limit, setLimit] = useState(10);
   const [cari, setCari] = useState('');
@@ -57,17 +54,20 @@ export default function KategoriDashboardPage() {
     setHalaman(1);
   }, [cariDebounced, limit, kategori]);
 
+  const qCari = adalahPeminjam ? cariDebounced : '';
+  const key = useMemo(
+    () => `kategori:${kategori}:${halaman}:${limit}:${qCari}`,
+    [kategori, halaman, limit, qCari]
+  );
+  const { data, sedangMemuat: memuat, error } = useQuery<ResponseKategori>(
+    key,
+    () => dashboardService.ambilKategori(kategori, halaman, limit, qCari)
+  );
+
+  // Gagal memuat → kembali ke dashboard.
   useEffect(() => {
-    setMemuat(true);
-    dashboardService
-      .ambilKategori(kategori, halaman, limit, adalahPeminjam ? cariDebounced : '')
-      .then(setData)
-      .catch((e) => {
-        notify.gagal(ambilPesanError(e, 'Gagal memuat data.'));
-        router.push(RUTE.adminDashboard);
-      })
-      .finally(() => setMemuat(false));
-  }, [kategori, halaman, limit, cariDebounced, adalahPeminjam, router]);
+    if (error) router.push(RUTE.adminDashboard);
+  }, [error, router]);
 
   // Spinner layar penuh hanya saat pemuatan awal; saat mencari, biarkan
   // toolbar tetap terpasang agar fokus input tidak hilang.
