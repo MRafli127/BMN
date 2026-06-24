@@ -39,8 +39,27 @@ const updateMe = asyncHandler(async (req, res) => {
 });
 
 const gantiPassword = asyncHandler(async (req, res) => {
+  // Ambil access token untuk di-blacklist
+  const authHeader = req.headers.authorization || '';
+  const [tipe, accessToken] = authHeader.split(' ');
+
+  // Blacklist access token lama
+  if (tipe === 'Bearer' && accessToken) {
+    authService.blacklistToken(accessToken).catch(() => {});
+  }
+
   await authService.gantiPassword(req.user.id, req.body);
-  return responsSukses(res, { pesan: 'Kata sandi berhasil diperbarui.' });
+
+  // Hapus cookie refresh token juga
+  res.clearCookie('refreshToken', {
+    httpOnly: true,
+    secure: env.cookie.secure,
+    sameSite: env.cookie.sameSite,
+  });
+
+  return responsSukses(res, {
+    pesan: 'Kata sandi berhasil diperbarui. Anda telah keluar dari semua sesi.',
+  });
 });
 
 const refresh = asyncHandler(async (req, res) => {

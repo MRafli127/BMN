@@ -97,6 +97,7 @@ model User {
   unitKerja String?
   role      Role       @default(PEMINJAM)
   sumber    SumberAkun @default(MANUAL) // MANUAL (admin/registrasi) atau IMPORT (sinkron Excel)
+  tokenVersion Int      @default(1) // Increment saat password diubah untuk invalidate semua token
   createdAt DateTime   @default(now())
   updatedAt DateTime   @updatedAt
 

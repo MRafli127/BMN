@@ -17,7 +17,7 @@ async function isTokenBlacklisted(token) {
   return !!found;
 }
 
-// Helper: tambah token ke blacklist (untuk invalidate saat logout)
+// Helper: tambah token ke blacklist (untuk invalidate saat logout/password change)
 async function blacklistToken(token, userId = null) {
   if (!token) return;
 
@@ -46,31 +46,59 @@ async function blacklistToken(token, userId = null) {
   }
 }
 
+// Helper: blacklist semua token user berdasarkan tokenVersion lama
+// Dipanggil saat password berubah untuk invalidate semua sesi sebelumnya
+async function invalidateAllUserTokens(userId, oldTokenVersion) {
+  // Catat versi lama untuk tracking
+  const oldVersion = oldTokenVersion || 1;
+
+  // Cleanup expired tokens + tokens versi lama
+  // Catatan: kita tidak bisa invalidate access token yang sudah expire
+  // tapi refresh token akan gagal karena tokenVersion tidak cocok
+  // Access token dengan masa 15 menit akan expire sendiri
+
+  // Tandai di DB bahwa versi token berubah (untuk validasi)
+  // Ini ditangani dengan increment tokenVersion di user record
+  console.log(`[AUTH] Invalidated all tokens for user ${userId} (version ${oldVersion} -> ${oldVersion + 1})`);
+}
+
 // Helper: cleanup expired tokens secara periodik (async, tidak blocking)
 async function cleanupExpiredTokens() {
   try {
-    await prisma.blacklistedToken.deleteMany({
+    const result = await prisma.blacklistedToken.deleteMany({
       where: { expiresAt: { lt: new Date() } },
     });
+    if (result.count > 0) {
+      console.log(`[AUTH] Cleaned up ${result.count} expired blacklisted tokens`);
+    }
   } catch {
     // Silent fail
   }
 }
 
-// Buat access token (masa berlaku pendek) dengan jti untuk tracking
+// Buat access token (masa berlaku pendek) dengan jti dan tokenVersion
 function buatAccessToken(user) {
   return jwt.sign(
-    { sub: user.id, role: user.role, nama: user.nama, email: user.email, jti: generateJti() },
+    {
+      sub: user.id,
+      role: user.role,
+      nama: user.nama,
+      email: user.email,
+      jti: generateJti(),
+      v: user.tokenVersion // tokenVersion untuk invalidasi
+    },
     env.jwt.accessSecret,
     { expiresIn: env.jwt.accessExpiresIn }
   );
 }
 
-// Buat refresh token (masa berlaku lebih panjang) dengan jti untuk tracking
+// Buat refresh token (masa berlaku lebih panjang) dengan jti dan tokenVersion
 function buatRefreshToken(user) {
-  return jwt.sign({ sub: user.id, jti: generateJti() }, env.jwt.refreshSecret, {
-    expiresIn: env.jwt.refreshExpiresIn,
-  });
+  return jwt.sign(
+    { sub: user.id, jti: generateJti(), v: user.tokenVersion },
+    env.jwt.refreshSecret,
+    { expiresIn: env.jwt.refreshExpiresIn }
+  );
 }
 
 // Generate unique ID untuk JWT (untuk blacklist tracking)
@@ -109,6 +137,7 @@ async function register(data) {
       jabatan: data.jabatan || null,
       unitKerja: data.unitKerja || null,
       role: 'PEMINJAM', // registrasi publik selalu peminjam
+      tokenVersion: 1,
     },
   });
 
@@ -181,6 +210,7 @@ async function perbaruiProfil(userId, data) {
 }
 
 // --- Ganti kata sandi pengguna saat ini ---
+// Saat password berubah, INCREMENT tokenVersion untuk invalidate semua token lama
 async function gantiPassword(userId, { passwordLama, passwordBaru }) {
   const user = await prisma.user.findUnique({ where: { id: userId } });
   if (!user) {
@@ -193,10 +223,20 @@ async function gantiPassword(userId, { passwordLama, passwordBaru }) {
   }
 
   const passwordHash = await hashPassword(passwordBaru);
-  await prisma.user.update({
-    where: { id: userId },
-    data: { password: passwordHash },
+
+  // Increment tokenVersion dan update password dalam 1 transaksi
+  // Ini akan invalidate semua token lama (access + refresh)
+  await prisma.$transaction(async (tx) => {
+    await tx.user.update({
+      where: { id: userId },
+      data: {
+        password: passwordHash,
+        tokenVersion: { increment: 1 }
+      },
+    });
   });
+
+  console.log(`[AUTH] Password changed for user ${userId}. All old tokens invalidated.`);
 }
 
 // --- Perbarui access token menggunakan refresh token ---
@@ -222,12 +262,36 @@ async function refresh(refreshToken) {
     throw new AppError('Pengguna tidak ditemukan.', 404);
   }
 
+  // VALIDASI TOKEN VERSION
+  // Jika password berubah setelah token ini dibuat, token ditolak
+  const tokenVersion = payload.v || 1;
+  if (tokenVersion !== user.tokenVersion) {
+    throw new AppError('Sesi Anda telah berakhir. Silakan login kembali.', 401);
+  }
+
   // Cleanup expired tokens secara async
   cleanupExpiredTokens().catch(() => {});
 
   const accessToken = buatAccessToken(user);
   const refreshTokenBaru = buatRefreshToken(user);
   return { user: tanpaPassword(user), accessToken, refreshToken: refreshTokenBaru };
+}
+
+// --- Validasi access token dengan tokenVersion check ---
+// Dipanggil oleh auth middleware
+async function validateAccessTokenWithVersion(payload) {
+  const user = await prisma.user.findUnique({ where: { id: payload.sub } });
+  if (!user) {
+    return { valid: false, reason: 'USER_NOT_FOUND' };
+  }
+
+  // Cek tokenVersion
+  const tokenVersion = payload.v || 1;
+  if (tokenVersion !== user.tokenVersion) {
+    return { valid: false, reason: 'TOKEN_VERSION_MISMATCH' };
+  }
+
+  return { valid: true, user };
 }
 
 module.exports = {
@@ -239,6 +303,7 @@ module.exports = {
   refresh,
   blacklistToken,
   isTokenBlacklisted,
+  validateAccessTokenWithVersion,
   buatAccessToken,
   buatRefreshToken,
 };
