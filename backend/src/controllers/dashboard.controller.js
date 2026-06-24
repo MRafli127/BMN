@@ -9,6 +9,12 @@ const { asyncHandler } = require('../middleware/error.middleware');
 const peminjamanService = require('../services/peminjaman.service');
 
 const STATUS_AKTIF = ['DISETUJUI', 'DIPINJAM', 'TERLAMBAT'];
+const KATEGORI_PEMINJAMAN = {
+  SEMUA: null,
+  PENGAJUAN_MENUNGGU: 'MENUNGGU',
+  PEMINJAMAN_AKTIF: STATUS_AKTIF,
+  BARANG_TERLAMBAT: 'TERLAMBAT',
+};
 
 // Sinkronkan status keterlambatan berdasarkan tanggal.
 async function tandaiTerlambat() {
@@ -111,4 +117,101 @@ const dashboardPeminjam = asyncHandler(async (req, res) => {
   });
 });
 
-module.exports = { dashboardAdmin, dashboardPeminjam };
+// --- Ambil data berdasarkan kategori ---
+const ambilDataKategori = asyncHandler(async (req, res) => {
+  await tandaiTerlambat();
+
+  // Ambil kategori dari URL params
+  const kategori = req.params.kategori;
+  const page = Math.max(1, parseInt(req.query.page, 10) || 1);
+  const limit = Math.min(200, Math.max(1, parseInt(req.query.limit, 10) || 10));
+
+  let where = {};
+  let data, total;
+
+  switch (kategori) {
+    case 'barang':
+      // Semua barang
+      [data, total] = await Promise.all([
+        prisma.barang.findMany({
+          orderBy: { createdAt: 'desc' },
+          skip: (page - 1) * limit,
+          take: limit,
+        }),
+        prisma.barang.count(),
+      ]);
+      return responsSukses(res, {
+        pesan: 'Data barang.',
+        data: { items: data, meta: { total, page, limit, totalHalaman: Math.ceil(total / limit) || 1 } },
+      });
+
+    case 'pengajuan_menunggu':
+      where = { status: 'MENUNGGU' };
+      break;
+
+    case 'peminjaman_aktif':
+      where = { status: { in: STATUS_AKTIF } };
+      break;
+
+    case 'barang_terlambat':
+      where = { status: 'TERLAMBAT' };
+      break;
+
+    case 'peminjam': {
+      // Semua peminjam (user dengan role PEMINJAM), dengan pencarian opsional.
+      // Eselon III tersimpan di unitKerja, Eselon IV di jabatan (lihat import).
+      const q = String(req.query.q || '').trim();
+      const wherePeminjam = { role: 'PEMINJAM' };
+      if (q) {
+        wherePeminjam.OR = [
+          { nama: { contains: q, mode: 'insensitive' } },
+          { nip: { contains: q, mode: 'insensitive' } },
+          { unitKerja: { contains: q, mode: 'insensitive' } }, // Eselon III
+          { jabatan: { contains: q, mode: 'insensitive' } }, //   Eselon IV
+        ];
+      }
+      [data, total] = await Promise.all([
+        prisma.user.findMany({
+          where: wherePeminjam,
+          select: { id: true, nama: true, nip: true, email: true, jabatan: true, unitKerja: true, createdAt: true },
+          orderBy: { createdAt: 'desc' },
+          skip: (page - 1) * limit,
+          take: limit,
+        }),
+        prisma.user.count({ where: wherePeminjam }),
+      ]);
+      return responsSukses(res, {
+        pesan: 'Data peminjam.',
+        data: { items: data, meta: { total, page, limit, totalHalaman: Math.ceil(total / limit) || 1 } },
+      });
+    }
+
+    default:
+      // Default: semua peminjaman
+      break;
+  }
+
+  [data, total] = await Promise.all([
+    prisma.peminjaman.findMany({
+      where,
+      include: {
+        peminjam: { select: { nama: true, nip: true } },
+        detail: { include: { barang: { select: { nama: true, kodeBarang: true } } } },
+      },
+      orderBy: { createdAt: 'desc' },
+      skip: (page - 1) * limit,
+      take: limit,
+    }),
+    prisma.peminjaman.count({ where }),
+  ]);
+
+  return responsSukses(res, {
+    pesan: 'Data peminjaman.',
+    data: {
+      items: data.map(peminjamanService.serialisasi),
+      meta: { total, page, limit, totalHalaman: Math.ceil(total / limit) || 1 },
+    },
+  });
+});
+
+module.exports = { dashboardAdmin, dashboardPeminjam, ambilDataKategori };

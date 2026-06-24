@@ -4,7 +4,6 @@
 
 'use client';
 
-import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { PlusCircle } from 'lucide-react';
 import { Icon } from '@/components/ui/icon';
@@ -14,9 +13,9 @@ import { Badge } from '@/components/ui/badge';
 import { LoadingSpinner } from '@/components/shared/LoadingSpinner';
 import { EmptyState } from '@/components/shared/EmptyState';
 import { KartuStatus } from '@/components/peminjaman/KartuStatus';
-import { notify } from '@/components/ui/toast';
-import { dashboardService, type DashboardPeminjam } from '@/services/dashboard.service';
-import { ambilPesanError, cn } from '@/lib/utils';
+import { dashboardService } from '@/services/dashboard.service';
+import { useQuery } from '@/lib/cache';
+import { cn } from '@/lib/utils';
 import { STATUS_PEMINJAMAN } from '@/constants/status';
 import { RUTE } from '@/constants/routes';
 import { useAuth } from '@/hooks/useAuth';
@@ -36,18 +35,9 @@ const GAYA: Record<string, GayaWarna> = {
 
 export default function PeminjamDashboardPage() {
   const { user } = useAuth();
-  const [data, setData] = useState<DashboardPeminjam | null>(null);
-  const [memuat, setMemuat] = useState(true);
+  const { data, sedangMemuat } = useQuery('dashboard-peminjam', () => dashboardService.peminjam());
 
-  useEffect(() => {
-    dashboardService
-      .peminjam()
-      .then(setData)
-      .catch((e) => notify.gagal(ambilPesanError(e, 'Gagal memuat dashboard.')))
-      .finally(() => setMemuat(false));
-  }, []);
-
-  if (memuat) return <LoadingSpinner layarPenuh />;
+  if (sedangMemuat && !data) return <LoadingSpinner layarPenuh />;
   if (!data) return null;
 
   const s = data.statistik;
@@ -128,7 +118,7 @@ export default function PeminjamDashboardPage() {
             deskripsi="Ajukan peminjaman barang untuk memulai."
             aksi={
               <Button asChild>
-                <Link href={RUTE.peminjamAjukan}>
+                <Link href={RUTE.peminjamKatalog}>
                   <PlusCircle className="h-4 w-4" /> Ajukan Sekarang
                 </Link>
               </Button>

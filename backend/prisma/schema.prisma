@@ -72,6 +72,19 @@ enum SumberAkun {
 //  MODEL
 // ------------------------------------------------------------
 
+// 0) Token Blacklist — untuk invalidate refresh token saat logout
+model BlacklistedToken {
+  id        String   @id @default(uuid())
+  token     String   @unique // Token yang di-blacklist
+  expiresAt DateTime // kapan token ini expire (untuk auto-cleanup)
+  userId    String?  // User yang logout (opsional, untuk tracking)
+  createdAt DateTime @default(now())
+
+  @@index([token])
+  @@index([expiresAt])
+  @@map("blacklisted_tokens")
+}
+
 // 1) Pengguna sistem (admin & peminjam)
 model User {
   id        String     @id @default(uuid())
@@ -83,6 +96,7 @@ model User {
   unitKerja String?
   role      Role       @default(PEMINJAM)
   sumber    SumberAkun @default(MANUAL) // MANUAL (admin/registrasi) atau IMPORT (sinkron Excel)
+  tokenVersion Int      @default(1) // Increment saat password diubah untuk invalidate semua token
   createdAt DateTime   @default(now())
   updatedAt DateTime   @updatedAt
 
@@ -135,7 +149,7 @@ model Peminjaman {
   kodePeminjaman        String // Snapshot kode aset barang saat dipinjam. Saat dibaca, kode di-resync dari kodeBarang barang terkait (kunci natural kodeSatker-kodeBarangBmn-NUP). Tidak unik — barang yang sama bisa dipinjam ulang.
   userId                String
   tanggalPengajuan      DateTime         @default(now())
-  tanggalPinjamRencana  DateTime
+  tanggalPinjamRencana  DateTime?
   tanggalKembaliRencana DateTime?
   tanggalKembaliAktual  DateTime?
   status                StatusPeminjaman @default(MENUNGGU)
