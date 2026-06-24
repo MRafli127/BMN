@@ -29,7 +29,7 @@ export interface Peminjaman {
   kodePeminjaman: string;
   userId: string;
   tanggalPengajuan: string;
-  tanggalPinjamRencana: string;
+  tanggalPinjamRencana?: string | null;
   tanggalKembaliRencana?: string | null;
   tanggalKembaliAktual?: string | null;
   status: StatusPeminjaman;

@@ -201,6 +201,8 @@ const config: Config = {
         'accordion-up': 'accordion-up 0.2s ease-out',
         'fade-in': 'fade-in 0.4s ease-out both',
         'fade-up': 'fade-up 0.45s cubic-bezier(0.22, 1, 0.36, 1) both',
+        // Transisi antar halaman: opasitas singkat agar navigasi terasa cepat.
+        'page-in': 'fade-in 0.18s ease-out',
       },
     },
   },

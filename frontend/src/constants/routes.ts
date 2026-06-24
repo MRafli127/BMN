@@ -21,6 +21,7 @@ export const RUTE = {
   adminPeminjaman: '/admin/peminjaman',
   adminPeminjamanDetail: (id: string) => `/admin/peminjaman/${id}`,
   adminScan: '/admin/scan',
+  adminKategori: (kategori: string) => `/admin/dashboard/kategori/${kategori}`,
 
   // Peminjam
   peminjamDashboard: '/peminjam/dashboard',

@@ -7,22 +7,22 @@
 const authService = require('../services/auth.service');
 const { responsSukses } = require('../utils/apiResponse');
 const { asyncHandler } = require('../middleware/error.middleware');
+const { getCsrfToken, generateCsrfTokenMiddleware } = require('../middleware/csrf.middleware');
 const env = require('../config/env');
 
-// Opsi cookie untuk refresh token
-const opsiCookie = {
-  httpOnly: true,
-  secure: env.nodeEnv === 'production',
-  sameSite: env.nodeEnv === 'production' ? 'none' : 'lax',
-  maxAge: 7 * 24 * 60 * 60 * 1000, // 7 hari
-};
+// Opsi cookie untuk refresh token - gunakan konfigurasi terpusat dari env.js
+const opsiCookie = { ...env.cookie };
 
 const register = asyncHandler(async (req, res) => {
   const hasil = await authService.register(req.body);
   res.cookie('refreshToken', hasil.refreshToken, opsiCookie);
+
+  // Generate CSRF token untuk sesi baru
+  const csrfToken = getCsrfToken(req, res);
+
   return responsSukses(res, {
     pesan: 'Registrasi berhasil. Selamat datang!',
-    data: hasil,
+    data: { ...hasil, csrfToken },
     status: 201,
   });
 });
@@ -30,7 +30,14 @@ const register = asyncHandler(async (req, res) => {
 const login = asyncHandler(async (req, res) => {
   const hasil = await authService.login(req.body);
   res.cookie('refreshToken', hasil.refreshToken, opsiCookie);
-  return responsSukses(res, { pesan: 'Login berhasil.', data: hasil });
+
+  // Generate CSRF token untuk sesi baru
+  const csrfToken = getCsrfToken(req, res);
+
+  return responsSukses(res, {
+    pesan: 'Login berhasil.',
+    data: { ...hasil, csrfToken },
+  });
 });
 
 const me = asyncHandler(async (req, res) => {
@@ -44,8 +51,32 @@ const updateMe = asyncHandler(async (req, res) => {
 });
 
 const gantiPassword = asyncHandler(async (req, res) => {
+  // Ambil access token untuk di-blacklist
+  const authHeader = req.headers.authorization || '';
+  const [tipe, accessToken] = authHeader.split(' ');
+
+  // Blacklist access token lama
+  if (tipe === 'Bearer' && accessToken) {
+    authService.blacklistToken(accessToken).catch(() => {});
+  }
+
   await authService.gantiPassword(req.user.id, req.body);
-  return responsSukses(res, { pesan: 'Kata sandi berhasil diperbarui.' });
+
+  // Hapus cookie refresh token dan CSRF
+  res.clearCookie('refreshToken', {
+    httpOnly: true,
+    secure: env.cookie.secure,
+    sameSite: env.cookie.sameSite,
+  });
+  res.clearCookie('csrf_token', {
+    httpOnly: false,
+    secure: env.cookie.secure,
+    sameSite: 'strict',
+  });
+
+  return responsSukses(res, {
+    pesan: 'Kata sandi berhasil diperbarui. Anda telah keluar dari semua sesi.',
+  });
 });
 
 const refresh = asyncHandler(async (req, res) => {
@@ -57,8 +88,31 @@ const refresh = asyncHandler(async (req, res) => {
 });
 
 const logout = asyncHandler(async (req, res) => {
-  res.clearCookie('refreshToken', { ...opsiCookie, maxAge: undefined });
+  // Blacklist token sebelum hapus cookie
+  const token = req.cookies?.refreshToken || req.body?.refreshToken;
+  if (token) {
+    await authService.blacklistToken(token);
+  }
+  res.clearCookie('refreshToken', {
+    httpOnly: true,
+    secure: env.cookie.secure,
+    sameSite: env.cookie.sameSite,
+  });
+  res.clearCookie('csrf_token', {
+    httpOnly: false,
+    secure: env.cookie.secure,
+    sameSite: 'strict',
+  });
   return responsSukses(res, { pesan: 'Anda telah keluar.' });
 });
 
-module.exports = { register, login, me, updateMe, gantiPassword, refresh, logout };
+// Endpoint untuk dapat CSRF token baru
+const getCsrf = asyncHandler(async (req, res) => {
+  const csrfToken = getCsrfToken(req, res);
+  return responsSukses(res, {
+    pesan: 'CSRF token.',
+    data: { csrfToken },
+  });
+});
+
+module.exports = { register, login, me, updateMe, gantiPassword, refresh, logout, getCsrf };

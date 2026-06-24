@@ -4,16 +4,17 @@
 
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { Icon } from '@/components/ui/icon';
 import { LoadingSpinner } from '@/components/shared/LoadingSpinner';
 import { EmptyState } from '@/components/shared/EmptyState';
 import { TabelPeminjaman } from '@/components/peminjaman/TabelPeminjaman';
-import { notify } from '@/components/ui/toast';
-import { dashboardService, type DashboardAdmin } from '@/services/dashboard.service';
-import { ambilPesanError, cn } from '@/lib/utils';
+import { dashboardService } from '@/services/dashboard.service';
+import { useQuery } from '@/lib/cache';
+import { cn } from '@/lib/utils';
 import { STATUS_PEMINJAMAN } from '@/constants/status';
 import { RUTE } from '@/constants/routes';
+import type { KategoriDashboard } from '@/services/dashboard.service';
 
 interface GayaWarna {
   orb: string;
@@ -35,30 +36,23 @@ interface KartuStat {
   ikon: string;
   warna: keyof typeof GAYA;
   keterangan: string;
+  kategori: KategoriDashboard;
 }
 
 export default function AdminDashboardPage() {
-  const [data, setData] = useState<DashboardAdmin | null>(null);
-  const [memuat, setMemuat] = useState(true);
+  const router = useRouter();
+  const { data, sedangMemuat } = useQuery('dashboard-admin', () => dashboardService.admin());
 
-  useEffect(() => {
-    dashboardService
-      .admin()
-      .then(setData)
-      .catch((e) => notify.gagal(ambilPesanError(e, 'Gagal memuat dashboard.')))
-      .finally(() => setMemuat(false));
-  }, []);
-
-  if (memuat) return <LoadingSpinner layarPenuh />;
+  if (sedangMemuat && !data) return <LoadingSpinner layarPenuh />;
   if (!data) return null;
 
   const s = data.statistik;
   const kartu: KartuStat[] = [
-    { label: 'Total Barang', nilai: s.totalBarang, ikon: 'inventory', warna: 'primary', keterangan: 'Aset terdaftar aktif' },
-    { label: 'Pengajuan Menunggu', nilai: s.pengajuanMenunggu, ikon: 'pending_actions', warna: 'tertiary', keterangan: 'Menunggu persetujuan' },
-    { label: 'Peminjaman Aktif', nilai: s.peminjamanAktif, ikon: 'sync_alt', warna: 'secondary', keterangan: 'Sedang digunakan' },
-    { label: 'Barang Terlambat', nilai: s.barangTerlambat, ikon: 'report', warna: 'error', keterangan: 'Melebihi batas tempo' },
-    { label: 'Total Peminjam', nilai: s.totalPeminjam, ikon: 'group', warna: 'primary', keterangan: 'Pengguna terdaftar' },
+    { label: 'Total Barang', nilai: s.totalBarang, ikon: 'inventory', warna: 'primary', keterangan: 'Aset terdaftar aktif', kategori: 'barang' },
+    { label: 'Pengajuan Menunggu', nilai: s.pengajuanMenunggu, ikon: 'pending_actions', warna: 'tertiary', keterangan: 'Menunggu persetujuan', kategori: 'pengajuan_menunggu' },
+    { label: 'Peminjaman Aktif', nilai: s.peminjamanAktif, ikon: 'sync_alt', warna: 'secondary', keterangan: 'Sedang digunakan', kategori: 'peminjaman_aktif' },
+    { label: 'Barang Terlambat', nilai: s.barangTerlambat, ikon: 'report', warna: 'error', keterangan: 'Melebihi batas tempo', kategori: 'barang_terlambat' },
+    { label: 'Total Peminjam', nilai: s.totalPeminjam, ikon: 'group', warna: 'primary', keterangan: 'Pengguna terdaftar', kategori: 'peminjam' },
   ];
 
   const maxGrafik = Math.max(1, ...data.grafikStatus.map((g) => g.jumlah));
@@ -92,13 +86,15 @@ export default function AdminDashboardPage() {
           return (
             <div
               key={k.label}
-              className="glass-card group relative overflow-hidden rounded-2xl p-stack-lg transition-all duration-300 hover:-translate-y-1"
+              onClick={() => router.push(k.kategori === 'barang' ? RUTE.adminBarang : RUTE.adminKategori(k.kategori))}
+              className="glass-card group relative cursor-pointer overflow-hidden rounded-2xl p-stack-lg transition-all duration-300 hover:-translate-y-1 hover:shadow-elevated"
             >
               <div className={cn('absolute -right-4 -top-4 h-24 w-24 rounded-full blur-2xl transition-colors', g.orb)} />
               <div className="mb-4 flex items-start justify-between">
                 <div className={cn('flex h-12 w-12 items-center justify-center rounded-xl', g.ikonBox)}>
                   <Icon name={k.ikon} fill />
                 </div>
+                <Icon name="chevron_right" className="h-5 w-5 text-on-surface-variant opacity-0 transition-opacity group-hover:opacity-100" />
               </div>
               <p className="font-label-md uppercase tracking-wider text-on-surface-variant">{k.label}</p>
               <h3 className={cn('mt-1 font-jakarta text-headline-lg', g.nilai)}>{k.nilai}</h3>
@@ -141,7 +137,10 @@ export default function AdminDashboardPage() {
         <section className="glass-card rounded-2xl p-stack-lg">
           <h3 className="mb-6 font-jakarta text-headline-md text-primary">Status Sistem</h3>
           <div className="space-y-4">
-            <div className="flex gap-4 rounded-xl p-3 transition-all hover:bg-primary/5">
+            <div
+              onClick={() => router.push(RUTE.adminKategori('pengajuan_menunggu'))}
+              className="flex cursor-pointer gap-4 rounded-xl p-3 transition-all hover:bg-primary/5"
+            >
               <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-tertiary/10 text-tertiary">
                 <Icon name="pending_actions" className="text-[20px]" />
               </div>
@@ -150,7 +149,10 @@ export default function AdminDashboardPage() {
                 <p className="font-label-sm text-on-surface-variant">Menunggu verifikasi admin.</p>
               </div>
             </div>
-            <div className="flex gap-4 rounded-xl p-3 transition-all hover:bg-primary/5">
+            <div
+              onClick={() => router.push(RUTE.adminKategori('barang_terlambat'))}
+              className="flex cursor-pointer gap-4 rounded-xl p-3 transition-all hover:bg-primary/5"
+            >
               <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-error/10 text-error">
                 <Icon name="priority_high" className="text-[20px]" />
               </div>
@@ -159,7 +161,10 @@ export default function AdminDashboardPage() {
                 <p className="font-label-sm text-on-surface-variant">Melebihi batas waktu pengembalian.</p>
               </div>
             </div>
-            <div className="flex gap-4 rounded-xl p-3 transition-all hover:bg-primary/5">
+            <div
+              onClick={() => router.push(RUTE.adminKategori('peminjaman_aktif'))}
+              className="flex cursor-pointer gap-4 rounded-xl p-3 transition-all hover:bg-primary/5"
+            >
               <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-secondary/10 text-secondary">
                 <Icon name="task_alt" className="text-[20px]" />
               </div>
