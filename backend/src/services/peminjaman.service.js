@@ -227,6 +227,13 @@ async function getByKode(kodePeminjaman) {
 
 // --- Setujui pengajuan: kurangi stok + generate QR ---
 async function setujui(id, adminId, catatan) {
+  // CEK: Admin tidak bisa menyetujui request milik sendiri
+  const pCheck = await prisma.peminjaman.findUnique({ where: { id } });
+  if (!pCheck) throw new AppError('Data peminjaman tidak ditemukan.', 404);
+  if (pCheck.userId === adminId) {
+    throw new AppError('Anda tidak dapat menyetujui pengajuan milik sendiri.', 403);
+  }
+
   // Tahap 1: validasi & ubah stok dalam transaksi.
   // Cek stok harus tetap di dalam transaksi agar atomik (anti race condition);
   // timeout dinaikkan agar aman pada DB remote berlatensi tinggi (Neon).
@@ -301,8 +308,12 @@ async function setujuiBanyak(ids, adminId) {
 
 // --- Tolak pengajuan (wajib catatan) ---
 async function tolak(id, adminId, catatan) {
+  // CEK: Admin tidak bisa menolak request milik sendiri (conflict of interest)
   const p = await prisma.peminjaman.findUnique({ where: { id } });
   if (!p) throw new AppError('Data peminjaman tidak ditemukan.', 404);
+  if (p.userId === adminId) {
+    throw new AppError('Anda tidak dapat menolak pengajuan milik sendiri.', 403);
+  }
   if (p.status !== 'MENUNGGU') {
     throw new AppError('Hanya pengajuan berstatus "Menunggu" yang dapat ditolak.', 400);
   }
