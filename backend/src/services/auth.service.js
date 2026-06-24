@@ -9,20 +9,73 @@ const env = require('../config/env');
 const { hashPassword, bandingkanPassword } = require('../utils/hashPassword');
 const { AppError } = require('../middleware/error.middleware');
 
-// Buat access token (masa berlaku pendek)
+// Helper: cek apakah token ada di blacklist
+async function isTokenBlacklisted(token) {
+  const found = await prisma.blacklistedToken.findUnique({
+    where: { token },
+  });
+  return !!found;
+}
+
+// Helper: tambah token ke blacklist (untuk invalidate saat logout)
+async function blacklistToken(token, userId = null) {
+  if (!token) return;
+
+  // Decode untuk dapat expiry time
+  let expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // fallback 7 hari
+  try {
+    const decoded = jwt.decode(token);
+    if (decoded?.exp) {
+      expiresAt = new Date(decoded.exp * 1000);
+    }
+  } catch {
+    // Use fallback
+  }
+
+  // Simpan ke blacklist dengan try-catch karena token mungkin sudah ada
+  try {
+    await prisma.blacklistedToken.create({
+      data: {
+        token,
+        expiresAt,
+        userId,
+      },
+    });
+  } catch {
+    // Token sudah di-blacklist, skip
+  }
+}
+
+// Helper: cleanup expired tokens secara periodik (async, tidak blocking)
+async function cleanupExpiredTokens() {
+  try {
+    await prisma.blacklistedToken.deleteMany({
+      where: { expiresAt: { lt: new Date() } },
+    });
+  } catch {
+    // Silent fail
+  }
+}
+
+// Buat access token (masa berlaku pendek) dengan jti untuk tracking
 function buatAccessToken(user) {
   return jwt.sign(
-    { sub: user.id, role: user.role, nama: user.nama, email: user.email },
+    { sub: user.id, role: user.role, nama: user.nama, email: user.email, jti: generateJti() },
     env.jwt.accessSecret,
     { expiresIn: env.jwt.accessExpiresIn }
   );
 }
 
-// Buat refresh token (masa berlaku lebih panjang)
+// Buat refresh token (masa berlaku lebih panjang) dengan jti untuk tracking
 function buatRefreshToken(user) {
-  return jwt.sign({ sub: user.id }, env.jwt.refreshSecret, {
+  return jwt.sign({ sub: user.id, jti: generateJti() }, env.jwt.refreshSecret, {
     expiresIn: env.jwt.refreshExpiresIn,
   });
+}
+
+// Generate unique ID untuk JWT (untuk blacklist tracking)
+function generateJti() {
+  return `${Date.now()}-${Math.random().toString(36).substring(2, 15)}`;
 }
 
 // Hilangkan field password sebelum dikirim ke client
@@ -152,6 +205,11 @@ async function refresh(refreshToken) {
     throw new AppError('Refresh token tidak ditemukan.', 401);
   }
 
+  // Cek apakah token ada di blacklist
+  if (await isTokenBlacklisted(refreshToken)) {
+    throw new AppError('Token sudah tidak valid. Silakan login kembali.', 401);
+  }
+
   let payload;
   try {
     payload = jwt.verify(refreshToken, env.jwt.refreshSecret);
@@ -163,6 +221,9 @@ async function refresh(refreshToken) {
   if (!user) {
     throw new AppError('Pengguna tidak ditemukan.', 404);
   }
+
+  // Cleanup expired tokens secara async
+  cleanupExpiredTokens().catch(() => {});
 
   const accessToken = buatAccessToken(user);
   const refreshTokenBaru = buatRefreshToken(user);
@@ -176,6 +237,8 @@ module.exports = {
   perbaruiProfil,
   gantiPassword,
   refresh,
+  blacklistToken,
+  isTokenBlacklisted,
   buatAccessToken,
   buatRefreshToken,
 };

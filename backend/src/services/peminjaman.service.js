@@ -82,8 +82,8 @@ async function create(userId, data, dokumenPath) {
       data: {
         kodePeminjaman: barang.kodeBarang,
         userId,
-        // Tanggal pinjam opsional: default ke hari ini bila tidak diisi.
-        tanggalPinjamRencana: data.tanggalPinjamRencana || new Date(),
+        // Tanggal pinjam WAJIB (divalidasi di validator)
+        tanggalPinjamRencana: data.tanggalPinjamRencana,
         tanggalKembaliRencana: data.tanggalKembaliRencana || null,
         alasanPeminjaman: data.alasanPeminjaman || null,
         dokumenUrl: dokumenPath || null,
