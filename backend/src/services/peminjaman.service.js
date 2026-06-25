@@ -456,6 +456,53 @@ async function serahkan(id) {
   return serialisasi(updated);
 }
 
+// --- Peminjam mengajukan pengembalian (menunggu konfirmasi admin) ---
+// Tidak mengubah stok/status; hanya menandai tanggalPermintaanKembali agar
+// admin mendapat sinyal untuk mengkonfirmasi pengembalian (kembalikan()).
+async function mintaPengembalian(id, { userId, role } = {}, requestInfo = {}) {
+  const p = await prisma.peminjaman.findUnique({ where: { id }, include: { peminjam: true } });
+  if (!p) throw new AppError('Data peminjaman tidak ditemukan.', 404);
+
+  // Peminjam hanya boleh mengajukan untuk peminjaman miliknya sendiri
+  if (role === 'PEMINJAM' && p.userId !== userId) {
+    throw new AppError('Anda tidak memiliki akses ke peminjaman ini.', 403);
+  }
+
+  // Sinkronkan status berdasarkan tanggal (mis. DIPINJAM -> TERLAMBAT)
+  const statusKini = statusBerdasarTanggal(p);
+
+  if (!['DIPINJAM', 'TERLAMBAT'].includes(statusKini)) {
+    throw new AppError('Pengembalian hanya dapat diajukan untuk barang yang sedang dipinjam.', 400);
+  }
+  if (p.tanggalPermintaanKembali) {
+    throw new AppError('Permintaan pengembalian sudah diajukan dan menunggu konfirmasi admin.', 400);
+  }
+
+  const updated = await prisma.peminjaman.update({
+    where: { id },
+    data: { tanggalPermintaanKembali: new Date(), status: statusKini },
+    include: includeLengkap,
+  });
+
+  // Audit log: catat permintaan pengembalian oleh peminjam
+  auditLogService.log({
+    userId,
+    userEmail: p.peminjam?.email,
+    userNama: p.peminjam?.nama,
+    aksi: auditLogService.AKSI.PEMINJAMAN_STATUS_CHANGE,
+    entitas: auditLogService.ENTITAS.PEMINJAMAN,
+    entitasId: id,
+    dataLama: { tanggalPermintaanKembali: null },
+    dataBaru: { tanggalPermintaanKembali: updated.tanggalPermintaanKembali },
+    requestInfo,
+  }).catch(() => {});
+
+  // Kirim notifikasi ke admin agar segera mengkonfirmasi pengembalian
+  emailService.kirimPermintaanPengembalian(updated, p.peminjam, env.email?.notifyAdmin).catch(() => {});
+
+  return serialisasi(updated);
+}
+
 // --- Konfirmasi pengembalian: stok dikembalikan otomatis ---
 async function kembalikan(id, requestInfo = {}) {
   // Ambil data untuk audit log
@@ -628,6 +675,7 @@ module.exports = {
   setujui,
   tolak,
   serahkan,
+  mintaPengembalian,
   kembalikan,
   hapus,
   hapusBanyak,

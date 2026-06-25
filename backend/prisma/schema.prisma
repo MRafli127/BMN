@@ -153,6 +153,7 @@ model Peminjaman {
   tanggalPinjamRencana  DateTime?
   tanggalKembaliRencana DateTime?
   tanggalKembaliAktual  DateTime?
+  tanggalPermintaanKembali DateTime? // Saat peminjam mengajukan pengembalian; menunggu konfirmasi admin
   status                StatusPeminjaman @default(MENUNGGU)
   alasanPeminjaman      String?
   dokumenUrl            String? // Dokumen yang diunggah peminjam
