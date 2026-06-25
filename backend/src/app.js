@@ -5,6 +5,7 @@
 const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
+const compression = require('compression');
 const morgan = require('morgan');
 const cookieParser = require('cookie-parser');
 const path = require('path');
@@ -22,6 +23,10 @@ app.use(
     crossOriginResourcePolicy: { policy: 'cross-origin' },
   })
 );
+
+// Kompresi gzip respons — memperkecil payload JSON (daftar barang/peminjaman)
+// sehingga transfer lebih cepat, terutama pada koneksi lambat.
+app.use(compression());
 
 // CORS — izinkan frontend mengirim cookie (refresh token)
 app.use(

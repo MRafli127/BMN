@@ -16,29 +16,42 @@ const KATEGORI_PEMINJAMAN = {
   BARANG_TERLAMBAT: 'TERLAMBAT',
 };
 
-// Sinkronkan status keterlambatan berdasarkan tanggal.
-async function tandaiTerlambat() {
-  // Lewat tenggat -> TERLAMBAT. Peminjaman tanpa tanggal kembali tidak ikut
-  // karena nilai NULL tidak terjaring perbandingan 'lt'.
-  await prisma.peminjaman.updateMany({
-    where: {
-      status: { in: ['DISETUJUI', 'DIPINJAM'] },
-      tanggalKembaliAktual: null,
-      tanggalKembaliRencana: { lt: new Date() },
-    },
-    data: { status: 'TERLAMBAT' },
-  });
+// Throttle: status keterlambatan cukup disinkronkan berkala, bukan pada
+// SETIAP request. Tanpa ini, tiap load dashboard menambah 2 query tulis
+// (round-trip ekstra ke DB remote/Neon yang berlatensi tinggi). Granularitas
+// menit sudah memadai untuk deteksi TERLAMBAT.
+let terakhirTandai = 0;
+const JEDA_TANDAI_MS = 60_000;
 
-  // Pulihkan: peminjaman tanpa tanggal kembali (tanpa batas waktu) yang
-  // terlanjur TERLAMBAT dikembalikan ke DIPINJAM.
-  await prisma.peminjaman.updateMany({
-    where: {
-      status: 'TERLAMBAT',
-      tanggalKembaliAktual: null,
-      tanggalKembaliRencana: null,
-    },
-    data: { status: 'DIPINJAM' },
-  });
+// Sinkronkan status keterlambatan berdasarkan tanggal.
+async function tandaiTerlambat(paksa = false) {
+  if (!paksa && Date.now() - terakhirTandai < JEDA_TANDAI_MS) return;
+  terakhirTandai = Date.now(); // set optimistis agar request paralel tidak menjalankan ganda
+
+  // Kedua update menyasar baris yang saling lepas (tenggat terisi vs NULL),
+  // jadi aman dijalankan paralel → 1 round-trip alih-alih 2.
+  await Promise.all([
+    // Lewat tenggat -> TERLAMBAT. Peminjaman tanpa tanggal kembali tidak ikut
+    // karena nilai NULL tidak terjaring perbandingan 'lt'.
+    prisma.peminjaman.updateMany({
+      where: {
+        status: { in: ['DISETUJUI', 'DIPINJAM'] },
+        tanggalKembaliAktual: null,
+        tanggalKembaliRencana: { lt: new Date() },
+      },
+      data: { status: 'TERLAMBAT' },
+    }),
+    // Pulihkan: peminjaman tanpa tanggal kembali (tanpa batas waktu) yang
+    // terlanjur TERLAMBAT dikembalikan ke DIPINJAM.
+    prisma.peminjaman.updateMany({
+      where: {
+        status: 'TERLAMBAT',
+        tanggalKembaliAktual: null,
+        tanggalKembaliRencana: null,
+      },
+      data: { status: 'DIPINJAM' },
+    }),
+  ]);
 }
 
 // --- Dashboard Admin ---
@@ -73,7 +86,7 @@ const dashboardAdmin = asyncHandler(async (req, res) => {
     data: {
       statistik: { totalBarang, pengajuanMenunggu, peminjamanAktif, barangTerlambat, totalPeminjam },
       grafikStatus,
-      peminjamanTerbaru: terbaru.map(peminjamanService.serialisasi),
+      peminjamanTerbaru: terbaru.map(peminjamanService.serialisasiRingkas),
     },
   });
 });
@@ -111,8 +124,8 @@ const dashboardPeminjam = asyncHandler(async (req, res) => {
     pesan: 'Ringkasan dashboard peminjam.',
     data: {
       statistik: { peminjamanAktif, menunggu, dikembalikan, totalRiwayat },
-      daftarAktif: daftarAktif.map(peminjamanService.serialisasi),
-      statusTerkini: statusTerkini ? peminjamanService.serialisasi(statusTerkini) : null,
+      daftarAktif: daftarAktif.map(peminjamanService.serialisasiRingkas),
+      statusTerkini: statusTerkini ? peminjamanService.serialisasiRingkas(statusTerkini) : null,
     },
   });
 });
@@ -208,7 +221,7 @@ const ambilDataKategori = asyncHandler(async (req, res) => {
   return responsSukses(res, {
     pesan: 'Data peminjaman.',
     data: {
-      items: data.map(peminjamanService.serialisasi),
+      items: data.map(peminjamanService.serialisasiRingkas),
       meta: { total, page, limit, totalHalaman: Math.ceil(total / limit) || 1 },
     },
   });
