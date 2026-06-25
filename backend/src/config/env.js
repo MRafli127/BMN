@@ -104,6 +104,12 @@ const env = {
   // Ukuran maksimum file upload (byte)
   maxFileSize: (parseInt(process.env.MAX_FILE_SIZE_MB, 10) || 5) * 1024 * 1024,
 
+  // Konfigurasi peminjaman
+  peminjaman: {
+    maxAktif: parseInt(process.env.MAX_PEMINJAMAN_AKTIF, 10) || 3, // Maksimum peminjaman aktif per user
+    maxHari: parseInt(process.env.MAX_HARI_PINJAM, 10) || 365, // Maksimum hari pinjam (opsional, 0 = tidak terbatas)
+  },
+
   // Cookie security - production pakai strict settings
   cookie: {
     secure: isProduction,
@@ -117,6 +123,20 @@ const env = {
     nip: process.env.ADMIN_NIP || '198001012010011001',
     email: process.env.ADMIN_EMAIL || 'admin@bmn.go.id',
     password: process.env.ADMIN_PASSWORD || 'Admin123!',
+  },
+
+  // Konfigurasi email/SMTP
+  email: {
+    enabled: process.env.EMAIL_ENABLED === 'true',
+    smtp: {
+      host: process.env.SMTP_HOST || 'smtp.gmail.com',
+      port: parseInt(process.env.SMTP_PORT, 10) || 587,
+      user: process.env.SMTP_USER || '',
+      pass: process.env.SMTP_PASS || '',
+    },
+    from: process.env.SMTP_FROM || '"SIPP-BMN" <noreply@bmn.go.id>',
+    // Email admin untuk notifikasi (jika ada pengajuan baru)
+    notifyAdmin: process.env.EMAIL_NOTIFY_ADMIN || process.env.ADMIN_EMAIL || 'admin@bmn.go.id',
   },
 };
 

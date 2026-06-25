@@ -146,7 +146,8 @@ model Barang {
 // 3) Peminjaman (transaksi pengajuan peminjaman)
 model Peminjaman {
   id                    String           @id @default(uuid())
-  kodePeminjaman        String // Snapshot kode aset barang saat dipinjam. Saat dibaca, kode di-resync dari kodeBarang barang terkait (kunci natural kodeSatker-kodeBarangBmn-NUP). Tidak unik — barang yang sama bisa dipinjam ulang.
+  kodeTransaksi         String?          @unique // Kode unik per transaksi (untuk QR scan & referensi). Format: BMN-YYYYMMDD-XXXXX. Nullable untuk kompatibilitas data lama.
+  kodePeminjaman        String // Snapshot kode aset barang saat dipinjam. Saat dibaca, kode di-resync dari kodeBarang barang terkait (kunci natural kodeSatker-kodeBarangBmn-NUP).
   userId                String
   tanggalPengajuan      DateTime         @default(now())
   tanggalPinjamRencana  DateTime?
@@ -187,4 +188,27 @@ model DetailPeminjaman {
   @@index([peminjamanId])
   @@index([barangId])
   @@map("detail_peminjaman")
+}
+
+// 5) Audit Log — untuk tracking semua perubahan data (CRUD, status change, login)
+model AuditLog {
+  id        String   @id @default(uuid())
+  userId    String?  // User yang melakukan aksi (null untuk sistem)
+  userEmail String?  // Snapshot email (jika user dihapus tetap bisa lihat)
+  userNama  String?  // Snapshot nama
+  aksi      String   // CREATE, UPDATE, DELETE, STATUS_CHANGE, LOGIN, LOGOUT, dll
+  entitas   String   // Nama tabel/entity (peminjaman, barang, user, auth)
+  entitasId String?  // ID record yang berubah (null untuk login/logout)
+  dataLama  Json?    // Data sebelum perubahan (UPDATE/DELETE)
+  dataBaru  Json?    // Data setelah perubahan (CREATE/UPDATE)
+  ipAddress String?  // Alamat IP client
+  userAgent String?  // User agent browser
+  timestamp DateTime @default(now())
+
+  @@index([userId])
+  @@index([entitas])
+  @@index([entitasId])
+  @@index([aksi])
+  @@index([timestamp])
+  @@map("audit_logs")
 }
