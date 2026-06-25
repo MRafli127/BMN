@@ -51,6 +51,26 @@ function serialisasi(p) {
   };
 }
 
+// Versi RINGAN untuk respons DAFTAR (list).
+// Dokumen surat pernyataan / stempel / QR dapat tersimpan sebagai data URL
+// base64 (PDF/gambar) yang berukuran besar. Pada daftar, body tersebut tidak
+// pernah dipakai (hanya halaman detail yang menampilkannya), sehingga dibuang
+// agar payload kecil dan transfer cepat. File upload biasa (URL pendek) tetap
+// dikirim. Keberadaan dokumen ditandai lewat flag boolean.
+function serialisasiRingkas(p) {
+  const s = serialisasi(p);
+  if (!s) return s;
+  const buangDataUrl = (v) => (typeof v === 'string' && v.startsWith('data:') ? null : v);
+  return {
+    ...s,
+    adaDokumen: Boolean(s.dokumenUrl),
+    adaDokumenStempel: Boolean(s.dokumenStempelUrl),
+    dokumenUrl: buangDataUrl(s.dokumenUrl),
+    dokumenStempelUrl: buangDataUrl(s.dokumenStempelUrl),
+    qrCodeUrl: buangDataUrl(s.qrCodeUrl),
+  };
+}
+
 // Hitung status terkini berdasarkan tanggal.
 //  - Peminjaman TANPA tanggal kembali = tanpa batas waktu -> TIDAK pernah
 //    TERLAMBAT; bila terlanjur TERLAMBAT, dipulihkan ke DIPINJAM.
@@ -214,7 +234,7 @@ async function getSemua({ status, q, userId, role, page = 1, limit = 10 } = {}) 
   if (updates.length) await Promise.all(updates);
 
   return {
-    data: data.map(serialisasi),
+    data: data.map(serialisasiRingkas),
     meta: { total, page: halaman, limit: perHalaman, totalHalaman: Math.ceil(total / perHalaman) || 1 },
   };
 }
@@ -614,5 +634,6 @@ module.exports = {
   setujuiBanyak,
   setDokumenStempel,
   serialisasi,
+  serialisasiRingkas,
   kodeDariBarang,
 };
