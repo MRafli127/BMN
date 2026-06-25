@@ -15,12 +15,31 @@ export const api = axios.create({
   headers: { Accept: 'application/json' },
 });
 
-// --- Interceptor request: sisipkan token ---
+// Baca nilai cookie (untuk CSRF double-submit). Cookie csrf_token di-set
+// backend dengan httpOnly:false agar bisa dibaca & dikirim balik di header.
+function bacaCookie(nama: string): string | null {
+  if (typeof document === 'undefined') return null;
+  const cocok = document.cookie.match(new RegExp('(?:^|;\\s*)' + nama + '=([^;]+)'));
+  return cocok ? decodeURIComponent(cocok[1]) : null;
+}
+
+const METODE_AMAN = ['get', 'head', 'options'];
+
+// --- Interceptor request: sisipkan access token + CSRF token ---
 api.interceptors.request.use((config) => {
   const token = ambilToken();
   if (token && config.headers) {
     config.headers.Authorization = `Bearer ${token}`;
   }
+
+  // Double-submit CSRF: request yang mengubah state wajib mengirim token
+  // yang sama dengan cookie. Tanpa ini backend menolak dengan 403.
+  const metode = (config.method || 'get').toLowerCase();
+  if (!METODE_AMAN.includes(metode) && config.headers) {
+    const csrf = bacaCookie('csrf_token');
+    if (csrf) config.headers['x-csrf-token'] = csrf;
+  }
+
   return config;
 });
 
@@ -36,8 +55,29 @@ function prosesAntrian(token: string | null) {
 api.interceptors.response.use(
   (response) => response,
   async (error: AxiosError) => {
-    const original = error.config as InternalAxiosRequestConfig & { _retry?: boolean };
+    const original = error.config as InternalAxiosRequestConfig & { _retry?: boolean; _csrfRetry?: boolean };
     const url = original?.url || '';
+
+    // --- Auto-recovery CSRF: cookie token hilang/kedaluwarsa ---
+    // Ambil token baru dari /auth/csrf-token (set cookie + balikan token),
+    // sisipkan ke header, lalu ulangi request asli satu kali.
+    const pesanCsrf = (error.response?.data as { pesan?: string } | undefined)?.pesan || '';
+    if (
+      error.response?.status === 403 &&
+      pesanCsrf.toLowerCase().includes('csrf') &&
+      original &&
+      !original._csrfRetry
+    ) {
+      original._csrfRetry = true;
+      try {
+        const res = await axios.get(`${BASE_URL}/auth/csrf-token`, { withCredentials: true });
+        const csrf = res.data?.data?.csrfToken;
+        if (csrf && original.headers) original.headers['x-csrf-token'] = csrf;
+        return api(original);
+      } catch {
+        return Promise.reject(error);
+      }
+    }
 
     // Jangan coba refresh untuk endpoint auth itu sendiri
     const endpointAuth = url.includes('/auth/login') || url.includes('/auth/refresh') || url.includes('/auth/register');

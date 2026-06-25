@@ -195,30 +195,40 @@ function tambahKe(map, kunci, nilai) {
   map.set(kunci, set);
 }
 
-// --- Proses import: SINKRONISASI CERMIN data peminjam dari file ---
-//  File menjadi sumber kebenaran untuk akun ber-sumber IMPORT:
-//    - NIP baru di file        -> akun dibuat (sumber IMPORT)
-//    - NIP cocok dengan akun    -> data (nama/jabatan/unitKerja) diperbarui
-//                                  bila berubah; akun ditandai dikelola IMPORT
-//    - akun IMPORT yang hilang  -> dihapus
-//        (KECUALI yang punya riwayat peminjaman -> dilindungi)
-//  Akun MANUAL (admin/registrasi) yang tidak ada di file TIDAK disentuh.
-//  Pembuatan peminjaman dari NUP bersifat idempoten (tidak dibuat ganda
-//  saat re-import bila peminjam sudah memegang barang ber-NUP tsb).
+// --- Proses import: TAMBAH/PERBARUI data peminjam dari file ---
+//  Import bersifat HANYA-TAMBAH/PERBARUI (tidak pernah menghapus akun):
+//    - NIP/email baru di file  -> akun dibuat (sumber IMPORT)
+//    - NIP/email cocok          -> data (nama/jabatan/unitKerja) diperbarui
+//                                  bila berubah
+//    - akun yang hilang/baris tanpa NUP -> DIBIARKAN (tidak dihapus).
+//  Akun peminjam bersifat PERMANEN; penghapusan hanya lewat aksi admin
+//  manual di Manajemen Pengguna. Akun MANUAL (admin/registrasi) tidak
+//  disentuh. Baris TANPA NUP tetap MEMBUAT/MEMPERBARUI akun (semua orang di
+//  file punya akun), hanya tidak dibuatkan peminjaman. Satu orang boleh muncul
+//  di beberapa baris (NUP berbeda) -> beberapa peminjaman. Pembuatan peminjaman
+//  dari NUP idempoten (tidak dibuat ganda saat re-import).
 async function importDariExcel(buffer, { dryRun = false } = {}) {
   const { rows, gagal } = parse(buffer);
 
-  // Buang duplikat NIP dalam file (baris terakhir menang); catat sebagai gagal.
-  const petaFile = new Map(); // nip -> row
+  // Dedup baris file dengan kunci NIP + NUP. Satu orang BOLEH muncul di
+  // beberapa baris ber-NUP berbeda (meminjam beberapa unit) — tiap baris jadi
+  // peminjaman tersendiri. Baris TANPA NUP TETAP diproses untuk membuat /
+  // memperbarui AKUN (akun permanen, semua orang di file punya akun); hanya
+  // tidak dibuatkan peminjaman. Kombinasi (NIP+NUP) yang sama persis dianggap
+  // duplikat (baris terakhir menang); NUP kosong dipakai apa adanya sebagai
+  // bagian kunci sehingga banyak baris tanpa-NUP untuk satu NIP -> satu akun.
+  let dilewatiTanpaNup = 0; // jumlah baris tanpa NUP (akun dibuat, tanpa peminjaman)
+  const petaFile = new Map(); // "nip|nup" -> row
   for (const r of rows) {
-    if (petaFile.has(r.nip)) {
-      gagal.push({ baris: r.baris, nama: r.nama, pesan: 'NIP duplikat dalam file (baris ini diabaikan).' });
+    if (!r.nup) dilewatiTanpaNup += 1;
+    const kunci = `${r.nip}|${r.nup || ''}`;
+    if (petaFile.has(kunci)) {
+      gagal.push({ baris: r.baris, nama: r.nama, pesan: 'Baris duplikat (NIP + NUP sama) diabaikan.' });
     }
-    petaFile.set(r.nip, r); // last-wins
+    petaFile.set(kunci, r); // last-wins
   }
 
-  // Muat seluruh user untuk pencocokan (NIP/email unik global) + jumlah
-  // keterkaitan peminjaman (untuk proteksi saat hapus).
+  // Muat seluruh user untuk pencocokan (NIP/email unik global).
   const allUsers = await prisma.user.findMany({
     select: {
       id: true,
@@ -229,7 +239,6 @@ async function importDariExcel(buffer, { dryRun = false } = {}) {
       unitKerja: true,
       role: true,
       sumber: true,
-      _count: { select: { peminjaman: true } },
     },
   });
   const userByNip = new Map(allUsers.map((u) => [u.nip, u]));
@@ -285,20 +294,29 @@ async function importDariExcel(buffer, { dryRun = false } = {}) {
   let akunDiperbarui = 0;
   let peminjamanDibuat = 0;
   let peminjamanDipertahankan = 0;
+  // Daftar rinci perubahan agar admin bisa melihat data APA yang
+  // ditambahkan / diperbarui / dibuatkan peminjaman.
+  const ditambahkanList = [];
+  const diperbaruiList = [];
+  const peminjamanDibuatList = [];
   const detailBarangGagal = [];
   const dipakaiBarangId = new Set();
   const tersedia = (b) => b.jumlahTersedia > 0 && !dipakaiBarangId.has(b.id);
-  const dikelola = new Set(); // id user yang muncul di file (tidak boleh dihapus)
 
-  // Akun IMPORT yang TIDAK ada di file -> kandidat hapus (pakai id agar cocok
-  // walau baris file dicocokkan via email dengan NIP berbeda).
-  const akanDihapus = [];
-  const dilindungiList = [];
+  // CATATAN: import ini TIDAK PERNAH menghapus akun. Akun peminjam bersifat
+  // permanen — hanya admin yang dapat menghapusnya secara manual lewat
+  // Manajemen Pengguna. Baris tanpa NUP / akun yang hilang dari file cukup
+  // diabaikan, bukan dihapus.
 
   await prisma.$transaction(
     async (tx) => {
+      // Akun yang sudah dibuat/di-update pada run ini. Satu orang bisa muncul
+      // di banyak baris (NUP berbeda), jadi pembuatan & update akun cukup SEKALI.
+      const sudahDiproses = new Set();
+
       for (const r of rows) {
-        if (!petaFile.get(r.nip) || petaFile.get(r.nip).baris !== r.baris) continue; // lewati baris duplikat
+        const kunci = `${r.nip}|${r.nup || ''}`;
+        if (!petaFile.get(kunci) || petaFile.get(kunci).baris !== r.baris) continue; // lewati baris duplikat
 
         let user = userByNip.get(r.nip) || userByEmail.get(r.email);
 
@@ -320,25 +338,51 @@ async function importDariExcel(buffer, { dryRun = false } = {}) {
               sumber: 'IMPORT',
             },
           });
-          user = { id: dibuat.id, email: dibuat.email, nip: dibuat.nip };
+          user = {
+            id: dibuat.id,
+            email: dibuat.email,
+            nip: dibuat.nip,
+            nama: r.nama,
+            jabatan: r.eselonIV,
+            unitKerja: r.eselonIII,
+            role: 'PEMINJAM',
+            sumber: 'IMPORT',
+          };
+          // Daftarkan ke peta agar baris lain dengan NIP/email sama (NUP beda)
+          // memakai akun ini, bukan membuat ulang (akan melanggar unik NIP).
+          userByNip.set(user.nip, user);
+          userByEmail.set(user.email.toLowerCase(), user);
           akunDitambahkan += 1;
-        } else {
-          const fieldBerubah =
-            !sama(user.nama, r.nama) ||
-            !sama(user.jabatan, r.eselonIV) ||
-            !sama(user.unitKerja, r.eselonIII);
+          ditambahkanList.push({ nama: r.nama, nip: r.nip, email: r.email });
+          sudahDiproses.add(user.id);
+        } else if (!sudahDiproses.has(user.id)) {
+          // Update/claim akun hanya sekali per run meski muncul di banyak baris.
+          // Catat field yang berubah agar admin tahu APA yang diperbarui.
+          const perubahan = [];
+          if (!sama(user.nama, r.nama)) perubahan.push('Nama');
+          if (!sama(user.jabatan, r.eselonIV)) perubahan.push('Eselon IV');
+          if (!sama(user.unitKerja, r.eselonIII)) perubahan.push('Eselon III');
+          const fieldBerubah = perubahan.length > 0;
           const perluClaim = user.sumber !== 'IMPORT';
           if (fieldBerubah || perluClaim) {
             await tx.user.update({
               where: { id: user.id },
               data: { nama: r.nama, jabatan: r.eselonIV, unitKerja: r.eselonIII, sumber: 'IMPORT' },
             });
-            if (fieldBerubah) akunDiperbarui += 1;
+            // Sinkronkan in-memory agar baris berikutnya tidak terdeteksi berubah lagi.
+            user.nama = r.nama;
+            user.jabatan = r.eselonIV;
+            user.unitKerja = r.eselonIII;
+            user.sumber = 'IMPORT';
+            if (fieldBerubah) {
+              akunDiperbarui += 1;
+              diperbaruiList.push({ nama: r.nama, nip: r.nip, perubahan });
+            }
           }
+          sudahDiproses.add(user.id);
         }
 
-        dikelola.add(user.id);
-
+        // Baris tanpa NUP: cukup buat/perbarui AKUN, tidak ada peminjaman.
         if (!r.nup) continue;
 
         // Apakah merk pada baris ini dikenali di data barang? Bila ya, pencarian
@@ -395,21 +439,16 @@ async function importDariExcel(buffer, { dryRun = false } = {}) {
         tambahKe(nupAktifByUser, user.id, kandidat.nup);
         tambahKe(comboAktifByUser, user.id, `${normalMerk(kandidat.merk)}|${kandidat.nup}`);
         peminjamanDibuat += 1;
+        peminjamanDibuatList.push({
+          nama: r.nama,
+          merk: kandidat.merk,
+          nup: kandidat.nup,
+          kodeBarang: kandidat.kodeBarang,
+        });
       }
 
-      // --- Hapus akun IMPORT yang hilang dari file (lindungi yang berriwayat) ---
-      for (const u of allUsers) {
-        if (u.role !== 'PEMINJAM' || u.sumber !== 'IMPORT') continue;
-        if (dikelola.has(u.id)) continue;
-        if (u._count.peminjaman > 0) {
-          dilindungiList.push(u);
-        } else {
-          akanDihapus.push(u.id);
-        }
-      }
-      if (akanDihapus.length) {
-        await tx.user.deleteMany({ where: { id: { in: akanDihapus } } });
-      }
+      // Akun TIDAK PERNAH dihapus oleh import (lihat catatan di atas):
+      // penghapusan akun hanya lewat aksi admin manual.
 
       // Mode pratinjau: batalkan semua perubahan, pertahankan hitungan.
       if (dryRun) throw Object.assign(new Error('DRY_RUN_ROLLBACK'), { __dryRun: true });
@@ -423,15 +462,16 @@ async function importDariExcel(buffer, { dryRun = false } = {}) {
   return {
     akunDitambahkan,
     akunDiperbarui,
-    akunDihapus: akanDihapus.length,
-    akunDilindungi: dilindungiList.length,
     peminjamanDibuat,
     peminjamanDipertahankan,
+    dilewatiTanpaNup,
+    detailDitambahkan: ditambahkanList.slice(0, 100),
+    detailDiperbarui: diperbaruiList.slice(0, 100),
+    detailPeminjamanDibuat: peminjamanDibuatList.slice(0, 100),
     gagal: gagal.length,
     detailGagal: gagal.slice(0, 50),
     barangTidakDitemukan: detailBarangGagal.length,
     detailBarangTidakDitemukan: detailBarangGagal.slice(0, 50),
-    detailDilindungi: dilindungiList.slice(0, 50).map((u) => ({ nama: u.nama, nip: u.nip })),
     passwordDefault: PASSWORD_DEFAULT,
   };
 }
