@@ -201,6 +201,9 @@ async function perbaruiProfil(userId, data) {
       email: data.email,
       jabatan: data.jabatan ? data.jabatan : null,
       unitKerja: data.unitKerja ? data.unitKerja : null,
+      eselon2: data.eselon2 ? data.eselon2 : null,
+      jabatanPegawai: data.jabatanPegawai ? data.jabatanPegawai : null,
+      unitKerjaPegawai: data.unitKerjaPegawai ? data.unitKerjaPegawai : null,
     },
   });
 
