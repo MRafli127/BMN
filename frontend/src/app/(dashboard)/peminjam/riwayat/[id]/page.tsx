@@ -7,10 +7,11 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
-import { ArrowLeft, FileText, Download, CalendarDays, Boxes } from 'lucide-react';
+import { ArrowLeft, FileText, Download, CalendarDays, Boxes, Undo2, Clock } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { KonfirmasiDialog } from '@/components/shared/KonfirmasiDialog';
 import { LoadingSpinner } from '@/components/shared/LoadingSpinner';
 import { TimelineStatus } from '@/components/peminjaman/TimelineStatus';
 import { TampilQR } from '@/components/qrcode/TampilQR';
@@ -25,6 +26,8 @@ export default function DetailRiwayatPage() {
   const { id } = useParams<{ id: string }>();
   const [data, setData] = useState<Peminjaman | null>(null);
   const [memuat, setMemuat] = useState(true);
+  const [dialogKembali, setDialogKembali] = useState(false);
+  const [proses, setProses] = useState(false);
 
   useEffect(() => {
     if (!id) return;
@@ -35,10 +38,28 @@ export default function DetailRiwayatPage() {
       .finally(() => setMemuat(false));
   }, [id]);
 
+  const ajukanPengembalian = async () => {
+    if (!data) return;
+    setProses(true);
+    try {
+      const hasil = await peminjamanService.mintaPengembalian(data.id);
+      setData(hasil);
+      setDialogKembali(false);
+      notify.sukses('Permintaan pengembalian terkirim. Menunggu konfirmasi admin.');
+    } catch (error) {
+      notify.gagal(ambilPesanError(error, 'Gagal mengajukan pengembalian.'));
+    } finally {
+      setProses(false);
+    }
+  };
+
   if (memuat) return <LoadingSpinner layarPenuh />;
   if (!data) return null;
 
   const status = STATUS_PEMINJAMAN[data.status];
+  const sedangDipinjam = ['DIPINJAM', 'TERLAMBAT'].includes(data.status);
+  const bisaAjukanKembali = sedangDipinjam && !data.tanggalPermintaanKembali;
+  const menungguKonfirmasi = sedangDipinjam && !!data.tanggalPermintaanKembali;
 
   return (
     <div className="mx-auto max-w-5xl space-y-5">
@@ -146,6 +167,36 @@ export default function DetailRiwayatPage() {
 
         {/* Sidebar: timeline + QR */}
         <div className="space-y-5">
+          {(bisaAjukanKembali || menungguKonfirmasi) && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base">Pengembalian Barang</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                {bisaAjukanKembali && (
+                  <>
+                    <p className="text-sm text-muted-foreground">
+                      Sudah selesai meminjam? Ajukan pengembalian, lalu admin akan mengkonfirmasi penerimaan barang.
+                    </p>
+                    <Button className="w-full" onClick={() => setDialogKembali(true)}>
+                      <Undo2 className="h-4 w-4" /> Kembalikan Barang
+                    </Button>
+                  </>
+                )}
+                {menungguKonfirmasi && (
+                  <div className="flex items-start gap-2 rounded-lg bg-amber-50 p-3 text-sm text-amber-800">
+                    <Clock className="mt-0.5 h-4 w-4 shrink-0" />
+                    <span>
+                      Permintaan pengembalian sudah dikirim
+                      {data.tanggalPermintaanKembali ? ` pada ${formatTanggalLengkap(data.tanggalPermintaanKembali)}` : ''}.
+                      Menunggu konfirmasi pengembalian oleh admin.
+                    </span>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          )}
+
           <Card>
             <CardHeader>
               <CardTitle className="text-base">Lacak Status</CardTitle>
@@ -168,6 +219,18 @@ export default function DetailRiwayatPage() {
           )}
         </div>
       </div>
+
+      {/* Dialog konfirmasi pengembalian */}
+      <KonfirmasiDialog
+        terbuka={dialogKembali}
+        onUbahTerbuka={(o) => !o && setDialogKembali(false)}
+        judul="Kembalikan Barang"
+        deskripsi="Ajukan pengembalian barang ini. Permintaan akan dikirim ke admin untuk dikonfirmasi. Pastikan barang sudah siap dikembalikan."
+        teksKonfirmasi="Ya, Ajukan Pengembalian"
+        variantKonfirmasi="sukses"
+        sedangProses={proses}
+        onKonfirmasi={ajukanPengembalian}
+      />
     </div>
   );
 }

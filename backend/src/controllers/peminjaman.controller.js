@@ -71,6 +71,18 @@ const serahkan = asyncHandler(async (req, res) => {
   });
 });
 
+const mintaPengembalian = asyncHandler(async (req, res) => {
+  const peminjaman = await peminjamanService.mintaPengembalian(
+    req.params.id,
+    { userId: req.user.id, role: req.user.role },
+    getRequestInfo(req)
+  );
+  return responsSukses(res, {
+    pesan: 'Permintaan pengembalian terkirim. Menunggu konfirmasi admin.',
+    data: peminjaman,
+  });
+});
+
 const kembalikan = asyncHandler(async (req, res) => {
   const peminjaman = await peminjamanService.kembalikan(req.params.id, getRequestInfo(req));
   return responsSukses(res, {
@@ -110,6 +122,7 @@ module.exports = {
   setujui,
   tolak,
   serahkan,
+  mintaPengembalian,
   kembalikan,
   scan,
   hapus,

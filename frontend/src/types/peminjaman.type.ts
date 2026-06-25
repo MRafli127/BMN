@@ -32,6 +32,7 @@ export interface Peminjaman {
   tanggalPinjamRencana?: string | null;
   tanggalKembaliRencana?: string | null;
   tanggalKembaliAktual?: string | null;
+  tanggalPermintaanKembali?: string | null;
   status: StatusPeminjaman;
   alasanPeminjaman?: string | null;
   dokumenUrl?: string | null;

@@ -59,6 +59,12 @@ export const peminjamanService = {
     return res.data.data;
   },
 
+  // Peminjam mengajukan pengembalian barang (menunggu konfirmasi admin)
+  async mintaPengembalian(id: string): Promise<Peminjaman> {
+    const res = await api.patch(`/peminjaman/${id}/minta-pengembalian`);
+    return res.data.data;
+  },
+
   async kembalikan(id: string): Promise<Peminjaman> {
     const res = await api.patch(`/peminjaman/${id}/kembalikan`);
     return res.data.data;
