@@ -16,9 +16,20 @@ async function mulai() {
       logger.info(`Mode: ${env.nodeEnv} | API: http://localhost:${env.port}/api`);
     });
 
+    // Jaga koneksi DB tetap "hangat". Neon (serverless) menidurkan compute
+    // saat idle (scale-to-zero); query pertama setelahnya kena cold start
+    // beberapa detik — inilah yang membuat halaman terasa lama saat dibuka.
+    // Ping ringan berkala mencegah compute tidur selama server hidup.
+    const KEEPALIVE_MS = 4 * 60 * 1000; // 4 menit (di bawah ambang idle ~5 menit)
+    const keepAlive = setInterval(() => {
+      prisma.$queryRaw`SELECT 1`.catch(() => {});
+    }, KEEPALIVE_MS);
+    if (typeof keepAlive.unref === 'function') keepAlive.unref();
+
     // Penutupan server yang rapi (graceful shutdown)
     const matikan = async (sinyal) => {
       logger.warn(`Menerima ${sinyal}, menutup server...`);
+      clearInterval(keepAlive);
       server.close(async () => {
         await prisma.$disconnect();
         logger.info('Koneksi database ditutup. Server berhenti.');

@@ -71,6 +71,27 @@ const serahkan = asyncHandler(async (req, res) => {
   });
 });
 
+const suratPengembalian = asyncHandler(async (req, res) => {
+  const suratUrl = await peminjamanService.generateSuratPengembalian(req.params.id, {
+    userId: req.user.id,
+    role: req.user.role,
+  });
+  return responsSukses(res, { pesan: 'Surat pernyataan pengembalian dibuat.', data: { suratUrl } });
+});
+
+const mintaPengembalian = asyncHandler(async (req, res) => {
+  const peminjaman = await peminjamanService.mintaPengembalian(
+    req.params.id,
+    { userId: req.user.id, role: req.user.role },
+    pathDokumen(req.file),
+    getRequestInfo(req)
+  );
+  return responsSukses(res, {
+    pesan: 'Permintaan pengembalian terkirim. Menunggu konfirmasi admin.',
+    data: peminjaman,
+  });
+});
+
 const kembalikan = asyncHandler(async (req, res) => {
   const peminjaman = await peminjamanService.kembalikan(req.params.id, getRequestInfo(req));
   return responsSukses(res, {
@@ -110,6 +131,8 @@ module.exports = {
   setujui,
   tolak,
   serahkan,
+  mintaPengembalian,
+  suratPengembalian,
   kembalikan,
   scan,
   hapus,

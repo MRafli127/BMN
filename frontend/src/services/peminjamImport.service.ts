@@ -7,15 +7,16 @@ import api from '@/lib/api';
 export interface HasilImportPeminjam {
   akunDitambahkan: number;
   akunDiperbarui: number;
-  akunDihapus: number;
-  akunDilindungi: number;
   peminjamanDibuat: number;
   peminjamanDipertahankan: number;
+  dilewatiTanpaNup: number;
+  detailDitambahkan: { nama: string; nip: string; email: string }[];
+  detailDiperbarui: { nama: string; nip: string; perubahan: string[] }[];
+  detailPeminjamanDibuat: { nama: string; merk: string | null; nup: string | null; kodeBarang: string }[];
   gagal: number;
   detailGagal: { baris: number; nama: string; pesan: string }[];
   barangTidakDitemukan: number;
   detailBarangTidakDitemukan: { baris: number; nama: string; merk: string | null; nup: string | null; pesan: string }[];
-  detailDilindungi: { nama: string; nip: string }[];
   passwordDefault: string;
 }
 

@@ -4,13 +4,26 @@
 
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
-import { ArrowLeft, FileText, Download, CalendarDays, Boxes } from 'lucide-react';
+import {
+  ArrowLeft,
+  FileText,
+  Download,
+  CalendarDays,
+  Boxes,
+  Undo2,
+  Clock,
+  ExternalLink,
+  Upload,
+  Loader2,
+  CheckCircle2,
+} from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { KonfirmasiDialog } from '@/components/shared/KonfirmasiDialog';
 import { LoadingSpinner } from '@/components/shared/LoadingSpinner';
 import { TimelineStatus } from '@/components/peminjaman/TimelineStatus';
 import { TampilQR } from '@/components/qrcode/TampilQR';
@@ -25,6 +38,12 @@ export default function DetailRiwayatPage() {
   const { id } = useParams<{ id: string }>();
   const [data, setData] = useState<Peminjaman | null>(null);
   const [memuat, setMemuat] = useState(true);
+  const [dialogKembali, setDialogKembali] = useState(false);
+  const [proses, setProses] = useState(false);
+  const [suratUrl, setSuratUrl] = useState<string | null>(null);
+  const [memuatSurat, setMemuatSurat] = useState(false);
+  const [fileKembali, setFileKembali] = useState<File | null>(null);
+  const fileRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (!id) return;
@@ -35,10 +54,52 @@ export default function DetailRiwayatPage() {
       .finally(() => setMemuat(false));
   }, [id]);
 
+  // Hasilkan Surat Pernyataan Pengembalian (PDF) saat pengembalian masih bisa diajukan.
+  useEffect(() => {
+    if (!data) return;
+    const bisa = ['DIPINJAM', 'TERLAMBAT'].includes(data.status) && !data.tanggalPermintaanKembali;
+    if (!bisa || suratUrl) return;
+    setMemuatSurat(true);
+    peminjamanService
+      .getSuratPengembalian(data.id)
+      .then(setSuratUrl)
+      .catch((e) => notify.gagal(ambilPesanError(e, 'Gagal membuat surat pengembalian.')))
+      .finally(() => setMemuatSurat(false));
+  }, [data, suratUrl]);
+
+  const pilihFile = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const f = e.target.files?.[0] ?? null;
+    if (f && f.type !== 'application/pdf') {
+      notify.gagal('Berkas harus berformat PDF.');
+      e.target.value = '';
+      return;
+    }
+    setFileKembali(f);
+  };
+
+  const ajukanPengembalian = async () => {
+    if (!data || !fileKembali) return;
+    setProses(true);
+    try {
+      const hasil = await peminjamanService.mintaPengembalian(data.id, fileKembali);
+      setData(hasil);
+      setDialogKembali(false);
+      setFileKembali(null);
+      notify.sukses('Permintaan pengembalian terkirim. Menunggu konfirmasi admin.');
+    } catch (error) {
+      notify.gagal(ambilPesanError(error, 'Gagal mengajukan pengembalian.'));
+    } finally {
+      setProses(false);
+    }
+  };
+
   if (memuat) return <LoadingSpinner layarPenuh />;
   if (!data) return null;
 
   const status = STATUS_PEMINJAMAN[data.status];
+  const sedangDipinjam = ['DIPINJAM', 'TERLAMBAT'].includes(data.status);
+  const bisaAjukanKembali = sedangDipinjam && !data.tanggalPermintaanKembali;
+  const menungguKonfirmasi = sedangDipinjam && !!data.tanggalPermintaanKembali;
 
   return (
     <div className="mx-auto max-w-5xl space-y-5">
@@ -140,12 +201,106 @@ export default function DetailRiwayatPage() {
                   </a>
                 </Button>
               )}
+              {data.dokumenPengembalianUrl && (
+                <Button asChild variant="outline">
+                  <a href={data.dokumenPengembalianUrl} target="_blank" rel="noreferrer">
+                    <FileText className="h-4 w-4" /> Surat Pengembalian (Ditandatangani)
+                  </a>
+                </Button>
+              )}
             </CardContent>
           </Card>
         </div>
 
         {/* Sidebar: timeline + QR */}
         <div className="space-y-5">
+          {(bisaAjukanKembali || menungguKonfirmasi) && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base">Pengembalian Barang</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                {bisaAjukanKembali && (
+                  <>
+                    {/* Langkah 1 — unduh & cetak surat */}
+                    <div className="space-y-2">
+                      <p className="text-sm font-medium text-foreground">
+                        1. Unduh &amp; cetak Surat Pernyataan Pengembalian
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        Cetak surat, lalu minta tanda tangan <strong>&quot;Yang menerima BMN&quot;</strong> secara fisik.
+                      </p>
+                      <div className="flex flex-wrap gap-2">
+                        {memuatSurat ? (
+                          <Button variant="outline" size="sm" disabled>
+                            <Loader2 className="h-4 w-4 animate-spin" /> Menyiapkan surat…
+                          </Button>
+                        ) : suratUrl ? (
+                          <>
+                            <Button asChild variant="outline" size="sm">
+                              <a href={suratUrl} download={`surat-pengembalian-${data.kodePeminjaman}.pdf`}>
+                                <Download className="h-4 w-4" /> Unduh Surat
+                              </a>
+                            </Button>
+                            <Button asChild variant="outline" size="sm">
+                              <a href={suratUrl} target="_blank" rel="noreferrer">
+                                <ExternalLink className="h-4 w-4" /> Lihat
+                              </a>
+                            </Button>
+                          </>
+                        ) : (
+                          <p className="text-xs text-muted-foreground">Surat belum tersedia.</p>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Langkah 2 — unggah surat yang sudah ditandatangani */}
+                    <div className="space-y-2 border-t pt-3">
+                      <p className="text-sm font-medium text-foreground">
+                        2. Unggah surat yang sudah ditandatangani (PDF)
+                      </p>
+                      <input
+                        ref={fileRef}
+                        type="file"
+                        accept="application/pdf"
+                        onChange={pilihFile}
+                        className="hidden"
+                      />
+                      <Button variant="outline" size="sm" className="w-full" onClick={() => fileRef.current?.click()}>
+                        <Upload className="h-4 w-4" /> {fileKembali ? 'Ganti Berkas' : 'Pilih Berkas PDF'}
+                      </Button>
+                      {fileKembali && (
+                        <div className="flex items-center gap-2 rounded-lg bg-green-50 p-2 text-xs text-green-800">
+                          <CheckCircle2 className="h-4 w-4 shrink-0" />
+                          <span className="truncate">{fileKembali.name}</span>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Langkah 3 — ajukan pengembalian */}
+                    <Button
+                      className="w-full"
+                      disabled={!fileKembali}
+                      onClick={() => setDialogKembali(true)}
+                    >
+                      <Undo2 className="h-4 w-4" /> Kembalikan Barang
+                    </Button>
+                  </>
+                )}
+                {menungguKonfirmasi && (
+                  <div className="flex items-start gap-2 rounded-lg bg-amber-50 p-3 text-sm text-amber-800">
+                    <Clock className="mt-0.5 h-4 w-4 shrink-0" />
+                    <span>
+                      Permintaan pengembalian sudah dikirim
+                      {data.tanggalPermintaanKembali ? ` pada ${formatTanggalLengkap(data.tanggalPermintaanKembali)}` : ''}.
+                      Menunggu konfirmasi pengembalian oleh admin.
+                    </span>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          )}
+
           <Card>
             <CardHeader>
               <CardTitle className="text-base">Lacak Status</CardTitle>
@@ -168,6 +323,18 @@ export default function DetailRiwayatPage() {
           )}
         </div>
       </div>
+
+      {/* Dialog konfirmasi pengembalian */}
+      <KonfirmasiDialog
+        terbuka={dialogKembali}
+        onUbahTerbuka={(o) => !o && setDialogKembali(false)}
+        judul="Kembalikan Barang"
+        deskripsi="Surat pernyataan pengembalian yang sudah ditandatangani akan diunggah dan permintaan dikirim ke admin untuk dikonfirmasi. Pastikan barang sudah siap dikembalikan."
+        teksKonfirmasi="Ya, Ajukan Pengembalian"
+        variantKonfirmasi="sukses"
+        sedangProses={proses}
+        onKonfirmasi={ajukanPengembalian}
+      />
     </div>
   );
 }

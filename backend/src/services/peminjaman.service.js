@@ -14,6 +14,7 @@ const { urlPublik } = require('../utils/apiResponse');
 const { AppError } = require('../middleware/error.middleware');
 const qrcodeService = require('./qrcode.service');
 const suratPernyataanService = require('./suratPernyataan.service');
+const suratPengembalianService = require('./suratPengembalian.service');
 const { kodeTransaksiUnik } = require('../utils/generateKode');
 const auditLogService = require('./auditLog.service');
 const emailService = require('./email.service');
@@ -43,11 +44,34 @@ function serialisasi(p) {
     kodePeminjaman: kodeDariBarang(p),
     dokumenUrl: urlPublik(p.dokumenUrl),
     dokumenStempelUrl: urlPublik(p.dokumenStempelUrl),
+    dokumenPengembalianUrl: urlPublik(p.dokumenPengembalianUrl),
     qrCodeUrl: urlPublik(p.qrCodeUrl),
     detail: p.detail?.map((d) => ({
       ...d,
       barang: d.barang ? { ...d.barang, fotoUrl: urlPublik(d.barang.fotoUrl) } : d.barang,
     })),
+  };
+}
+
+// Versi RINGAN untuk respons DAFTAR (list).
+// Dokumen surat pernyataan / stempel / QR dapat tersimpan sebagai data URL
+// base64 (PDF/gambar) yang berukuran besar. Pada daftar, body tersebut tidak
+// pernah dipakai (hanya halaman detail yang menampilkannya), sehingga dibuang
+// agar payload kecil dan transfer cepat. File upload biasa (URL pendek) tetap
+// dikirim. Keberadaan dokumen ditandai lewat flag boolean.
+function serialisasiRingkas(p) {
+  const s = serialisasi(p);
+  if (!s) return s;
+  const buangDataUrl = (v) => (typeof v === 'string' && v.startsWith('data:') ? null : v);
+  return {
+    ...s,
+    adaDokumen: Boolean(s.dokumenUrl),
+    adaDokumenStempel: Boolean(s.dokumenStempelUrl),
+    adaDokumenPengembalian: Boolean(s.dokumenPengembalianUrl),
+    dokumenUrl: buangDataUrl(s.dokumenUrl),
+    dokumenStempelUrl: buangDataUrl(s.dokumenStempelUrl),
+    dokumenPengembalianUrl: buangDataUrl(s.dokumenPengembalianUrl),
+    qrCodeUrl: buangDataUrl(s.qrCodeUrl),
   };
 }
 
@@ -215,7 +239,7 @@ async function getSemua({ status, q, userId, role, page = 1, limit = 10 } = {}) 
   if (updates.length) await Promise.all(updates);
 
   return {
-    data: data.map(serialisasi),
+    data: data.map(serialisasiRingkas),
     meta: { total, page: halaman, limit: perHalaman, totalHalaman: Math.ceil(total / perHalaman) || 1 },
   };
 }
@@ -437,6 +461,80 @@ async function serahkan(id) {
   return serialisasi(updated);
 }
 
+// --- Buat Surat Pernyataan Pengembalian BMN (PDF) untuk diunduh peminjam ---
+// Dihasilkan otomatis (on-demand). Peminjam mengunduh, mencetak, dan meminta
+// tanda tangan fisik "Yang menerima BMN" sebelum mengunggahnya kembali.
+async function generateSuratPengembalian(id, { userId, role } = {}) {
+  const p = await getRawById(id);
+  if (role === 'PEMINJAM' && p.userId !== userId) {
+    throw new AppError('Anda tidak memiliki akses ke peminjaman ini.', 403);
+  }
+  if (!['DIPINJAM', 'TERLAMBAT'].includes(statusBerdasarTanggal(p))) {
+    throw new AppError('Surat pengembalian hanya tersedia untuk barang yang sedang dipinjam.', 400);
+  }
+  return suratPengembalianService.generate(serialisasi(p));
+}
+
+// --- Peminjam mengajukan pengembalian (menunggu konfirmasi admin) ---
+// Tidak mengubah stok/status; menandai tanggalPermintaanKembali agar admin
+// mendapat sinyal untuk mengkonfirmasi pengembalian (kembalikan()), dan
+// menyimpan Surat Pernyataan Pengembalian yang sudah ditandatangani fisik.
+async function mintaPengembalian(id, { userId, role } = {}, dokumenPengembalianDataUrl, requestInfo = {}) {
+  const p = await prisma.peminjaman.findUnique({ where: { id }, include: { peminjam: true } });
+  if (!p) throw new AppError('Data peminjaman tidak ditemukan.', 404);
+
+  // Peminjam hanya boleh mengajukan untuk peminjaman miliknya sendiri
+  if (role === 'PEMINJAM' && p.userId !== userId) {
+    throw new AppError('Anda tidak memiliki akses ke peminjaman ini.', 403);
+  }
+
+  // Wajib melampirkan surat pernyataan pengembalian yang sudah ditandatangani.
+  if (!dokumenPengembalianDataUrl) {
+    throw new AppError(
+      'Unggah Surat Pernyataan Pengembalian yang sudah ditandatangani (PDF) sebelum mengajukan pengembalian.',
+      400
+    );
+  }
+
+  // Sinkronkan status berdasarkan tanggal (mis. DIPINJAM -> TERLAMBAT)
+  const statusKini = statusBerdasarTanggal(p);
+
+  if (!['DIPINJAM', 'TERLAMBAT'].includes(statusKini)) {
+    throw new AppError('Pengembalian hanya dapat diajukan untuk barang yang sedang dipinjam.', 400);
+  }
+  if (p.tanggalPermintaanKembali) {
+    throw new AppError('Permintaan pengembalian sudah diajukan dan menunggu konfirmasi admin.', 400);
+  }
+
+  const updated = await prisma.peminjaman.update({
+    where: { id },
+    data: {
+      tanggalPermintaanKembali: new Date(),
+      status: statusKini,
+      dokumenPengembalianUrl: dokumenPengembalianDataUrl,
+    },
+    include: includeLengkap,
+  });
+
+  // Audit log: catat permintaan pengembalian oleh peminjam
+  auditLogService.log({
+    userId,
+    userEmail: p.peminjam?.email,
+    userNama: p.peminjam?.nama,
+    aksi: auditLogService.AKSI.PEMINJAMAN_STATUS_CHANGE,
+    entitas: auditLogService.ENTITAS.PEMINJAMAN,
+    entitasId: id,
+    dataLama: { tanggalPermintaanKembali: null },
+    dataBaru: { tanggalPermintaanKembali: updated.tanggalPermintaanKembali },
+    requestInfo,
+  }).catch(() => {});
+
+  // Kirim notifikasi ke admin agar segera mengkonfirmasi pengembalian
+  emailService.kirimPermintaanPengembalian(updated, p.peminjam, env.email?.notifyAdmin).catch(() => {});
+
+  return serialisasi(updated);
+}
+
 // --- Konfirmasi pengembalian: stok dikembalikan otomatis ---
 async function kembalikan(id, requestInfo = {}) {
   // Ambil data untuk audit log
@@ -609,11 +707,14 @@ module.exports = {
   setujui,
   tolak,
   serahkan,
+  mintaPengembalian,
+  generateSuratPengembalian,
   kembalikan,
   hapus,
   hapusBanyak,
   setujuiBanyak,
   setDokumenStempel,
   serialisasi,
+  serialisasiRingkas,
   kodeDariBarang,
 };

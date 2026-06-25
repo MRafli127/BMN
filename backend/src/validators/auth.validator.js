@@ -68,6 +68,9 @@ const updateProfilSchema = z.object({
   email: z.string({ required_error: 'Email wajib diisi.' }).email('Format email tidak valid.'),
   jabatan: z.string().optional().or(z.literal('')),
   unitKerja: z.string().optional().or(z.literal('')),
+  eselon2: z.string().optional().or(z.literal('')),
+  jabatanPegawai: z.string().optional().or(z.literal('')),
+  unitKerjaPegawai: z.string().optional().or(z.literal('')),
 });
 
 // Validasi penggantian kata sandi
