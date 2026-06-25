@@ -14,6 +14,7 @@ const { urlPublik } = require('../utils/apiResponse');
 const { AppError } = require('../middleware/error.middleware');
 const qrcodeService = require('./qrcode.service');
 const suratPernyataanService = require('./suratPernyataan.service');
+const suratPengembalianService = require('./suratPengembalian.service');
 const { kodeTransaksiUnik } = require('../utils/generateKode');
 const auditLogService = require('./auditLog.service');
 const emailService = require('./email.service');
@@ -43,6 +44,7 @@ function serialisasi(p) {
     kodePeminjaman: kodeDariBarang(p),
     dokumenUrl: urlPublik(p.dokumenUrl),
     dokumenStempelUrl: urlPublik(p.dokumenStempelUrl),
+    dokumenPengembalianUrl: urlPublik(p.dokumenPengembalianUrl),
     qrCodeUrl: urlPublik(p.qrCodeUrl),
     detail: p.detail?.map((d) => ({
       ...d,
@@ -65,8 +67,10 @@ function serialisasiRingkas(p) {
     ...s,
     adaDokumen: Boolean(s.dokumenUrl),
     adaDokumenStempel: Boolean(s.dokumenStempelUrl),
+    adaDokumenPengembalian: Boolean(s.dokumenPengembalianUrl),
     dokumenUrl: buangDataUrl(s.dokumenUrl),
     dokumenStempelUrl: buangDataUrl(s.dokumenStempelUrl),
+    dokumenPengembalianUrl: buangDataUrl(s.dokumenPengembalianUrl),
     qrCodeUrl: buangDataUrl(s.qrCodeUrl),
   };
 }
@@ -456,16 +460,39 @@ async function serahkan(id) {
   return serialisasi(updated);
 }
 
+// --- Buat Surat Pernyataan Pengembalian BMN (PDF) untuk diunduh peminjam ---
+// Dihasilkan otomatis (on-demand). Peminjam mengunduh, mencetak, dan meminta
+// tanda tangan fisik "Yang menerima BMN" sebelum mengunggahnya kembali.
+async function generateSuratPengembalian(id, { userId, role } = {}) {
+  const p = await getRawById(id);
+  if (role === 'PEMINJAM' && p.userId !== userId) {
+    throw new AppError('Anda tidak memiliki akses ke peminjaman ini.', 403);
+  }
+  if (!['DIPINJAM', 'TERLAMBAT'].includes(statusBerdasarTanggal(p))) {
+    throw new AppError('Surat pengembalian hanya tersedia untuk barang yang sedang dipinjam.', 400);
+  }
+  return suratPengembalianService.generate(serialisasi(p));
+}
+
 // --- Peminjam mengajukan pengembalian (menunggu konfirmasi admin) ---
-// Tidak mengubah stok/status; hanya menandai tanggalPermintaanKembali agar
-// admin mendapat sinyal untuk mengkonfirmasi pengembalian (kembalikan()).
-async function mintaPengembalian(id, { userId, role } = {}, requestInfo = {}) {
+// Tidak mengubah stok/status; menandai tanggalPermintaanKembali agar admin
+// mendapat sinyal untuk mengkonfirmasi pengembalian (kembalikan()), dan
+// menyimpan Surat Pernyataan Pengembalian yang sudah ditandatangani fisik.
+async function mintaPengembalian(id, { userId, role } = {}, dokumenPengembalianDataUrl, requestInfo = {}) {
   const p = await prisma.peminjaman.findUnique({ where: { id }, include: { peminjam: true } });
   if (!p) throw new AppError('Data peminjaman tidak ditemukan.', 404);
 
   // Peminjam hanya boleh mengajukan untuk peminjaman miliknya sendiri
   if (role === 'PEMINJAM' && p.userId !== userId) {
     throw new AppError('Anda tidak memiliki akses ke peminjaman ini.', 403);
+  }
+
+  // Wajib melampirkan surat pernyataan pengembalian yang sudah ditandatangani.
+  if (!dokumenPengembalianDataUrl) {
+    throw new AppError(
+      'Unggah Surat Pernyataan Pengembalian yang sudah ditandatangani (PDF) sebelum mengajukan pengembalian.',
+      400
+    );
   }
 
   // Sinkronkan status berdasarkan tanggal (mis. DIPINJAM -> TERLAMBAT)
@@ -480,7 +507,11 @@ async function mintaPengembalian(id, { userId, role } = {}, requestInfo = {}) {
 
   const updated = await prisma.peminjaman.update({
     where: { id },
-    data: { tanggalPermintaanKembali: new Date(), status: statusKini },
+    data: {
+      tanggalPermintaanKembali: new Date(),
+      status: statusKini,
+      dokumenPengembalianUrl: dokumenPengembalianDataUrl,
+    },
     include: includeLengkap,
   });
 
@@ -676,6 +707,7 @@ module.exports = {
   tolak,
   serahkan,
   mintaPengembalian,
+  generateSuratPengembalian,
   kembalikan,
   hapus,
   hapusBanyak,
