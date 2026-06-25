@@ -125,6 +125,15 @@ const env = {
     password: process.env.ADMIN_PASSWORD || 'Admin123!',
   },
 
+  // Petugas BMN penerima pengembalian — ditandatangani secara fisik pada
+  // "Surat Pernyataan Pengembalian BMN" sebagai "Yang menerima BMN".
+  petugasBmn: {
+    nama: process.env.PETUGAS_BMN_NAMA || 'Taufan Sukma Nugraha',
+    nip: process.env.PETUGAS_BMN_NIP || '198605132007011001',
+    unitKerja: process.env.PETUGAS_BMN_UNIT_KERJA || 'Sekretariat BPPK',
+    bagian: process.env.PETUGAS_BMN_BAGIAN || 'Umum',
+  },
+
   // Konfigurasi email/SMTP
   email: {
     enabled: process.env.EMAIL_ENABLED === 'true',

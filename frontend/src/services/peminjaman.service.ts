@@ -59,9 +59,20 @@ export const peminjamanService = {
     return res.data.data;
   },
 
-  // Peminjam mengajukan pengembalian barang (menunggu konfirmasi admin)
-  async mintaPengembalian(id: string): Promise<Peminjaman> {
-    const res = await api.patch(`/peminjaman/${id}/minta-pengembalian`);
+  // Buat Surat Pernyataan Pengembalian (PDF, data URL) untuk diunduh/cetak peminjam
+  async getSuratPengembalian(id: string): Promise<string> {
+    const res = await api.get(`/peminjaman/${id}/surat-pengembalian`);
+    return res.data.data.suratUrl;
+  },
+
+  // Peminjam mengajukan pengembalian barang (menunggu konfirmasi admin).
+  // Wajib melampirkan surat pernyataan pengembalian yang sudah ditandatangani (PDF).
+  async mintaPengembalian(id: string, dokumen: File): Promise<Peminjaman> {
+    const fd = new FormData();
+    fd.append('dokumen', dokumen);
+    const res = await api.patch(`/peminjaman/${id}/minta-pengembalian`, fd, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
     return res.data.data;
   },
 

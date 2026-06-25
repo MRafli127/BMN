@@ -161,6 +161,7 @@ model Peminjaman {
   alasanPeminjaman      String?
   dokumenUrl            String? // Dokumen yang diunggah peminjam
   dokumenStempelUrl     String? // Dokumen yang sudah distempel admin
+  dokumenPengembalianUrl String? // Surat Pernyataan Pengembalian (PDF) yang sudah ditandatangani fisik & diunggah peminjam
   qrCodeUrl             String? // Gambar QR Code peminjaman
   catatanAdmin          String? // Catatan admin (wajib saat menolak)
   disetujuiOleh         String? // userId admin yang menyetujui

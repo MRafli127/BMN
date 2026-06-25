@@ -37,6 +37,7 @@ export interface Peminjaman {
   alasanPeminjaman?: string | null;
   dokumenUrl?: string | null;
   dokumenStempelUrl?: string | null;
+  dokumenPengembalianUrl?: string | null;
   qrCodeUrl?: string | null;
   catatanAdmin?: string | null;
   disetujuiOleh?: string | null;
