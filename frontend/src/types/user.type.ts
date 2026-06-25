@@ -11,6 +11,9 @@ export interface User {
   email: string;
   jabatan?: string | null;
   unitKerja?: string | null;
+  eselon2?: string | null;
+  jabatanPegawai?: string | null;
+  unitKerjaPegawai?: string | null;
   role: Role;
   createdAt?: string;
   updatedAt?: string;
@@ -42,6 +45,9 @@ export interface DataUpdateProfil {
   email: string;
   jabatan?: string;
   unitKerja?: string;
+  eselon2?: string;
+  jabatanPegawai?: string;
+  unitKerjaPegawai?: string;
 }
 
 export interface DataGantiPassword {

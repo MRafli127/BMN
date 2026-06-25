@@ -15,9 +15,11 @@ import {
   Stamp,
   PackageCheck,
   Undo2,
+  Clock,
   FileText,
   Download,
   Loader2,
+  ExternalLink,
   User as UserIcon,
   CalendarDays,
 } from 'lucide-react';
@@ -226,6 +228,40 @@ export default function DetailPeminjamanAdminPage() {
               )}
             </CardContent>
           </Card>
+
+          {/* Surat Pernyataan Pengembalian (diunggah peminjam) */}
+          {data.dokumenPengembalianUrl && (
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0">
+                <CardTitle className="flex items-center gap-2 text-base">
+                  <Undo2 className="h-4 w-4" /> Surat Pernyataan Pengembalian
+                </CardTitle>
+                <div className="flex gap-2">
+                  <Button asChild variant="outline" size="sm">
+                    <a href={data.dokumenPengembalianUrl} target="_blank" rel="noreferrer">
+                      <ExternalLink className="h-4 w-4" /> Tab Baru
+                    </a>
+                  </Button>
+                  <Button asChild variant="outline" size="sm">
+                    <a href={data.dokumenPengembalianUrl} download={`surat-pengembalian-${data.kodePeminjaman}.pdf`}>
+                      <Download className="h-4 w-4" /> Unduh
+                    </a>
+                  </Button>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <p className="mb-3 text-sm text-muted-foreground">
+                  Surat pernyataan pengembalian yang sudah ditandatangani fisik oleh peminjam. Periksa sebelum
+                  mengkonfirmasi pengembalian.
+                </p>
+                <iframe
+                  src={data.dokumenPengembalianUrl}
+                  title="Surat Pernyataan Pengembalian"
+                  className="h-[520px] w-full rounded-lg border"
+                />
+              </CardContent>
+            </Card>
+          )}
         </div>
 
         {/* Sidebar aksi */}
@@ -258,6 +294,15 @@ export default function DetailPeminjamanAdminPage() {
                   {sedangStempel ? <Loader2 className="h-4 w-4 animate-spin" /> : <Stamp className="h-4 w-4" />}
                   {data.dokumenStempelUrl ? 'Stempel Ulang Dokumen' : 'Stempel Dokumen'}
                 </Button>
+              )}
+
+              {bisaKembalikan && data.tanggalPermintaanKembali && (
+                <div className="flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
+                  <Clock className="mt-0.5 h-4 w-4 shrink-0" />
+                  <span>
+                    Peminjam mengajukan pengembalian pada {formatTanggalLengkap(data.tanggalPermintaanKembali)}. Mohon konfirmasi penerimaan barang.
+                  </span>
+                </div>
               )}
 
               {bisaKembalikan && (

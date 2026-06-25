@@ -111,6 +111,40 @@ async function kirimNotifikasiAdmin(peminjaman, peminjam, adminEmail) {
   });
 }
 
+// Kirim notifikasi ke admin: peminjam mengajukan pengembalian barang
+async function kirimPermintaanPengembalian(peminjaman, peminjam, adminEmail) {
+  const kode = peminjaman.kodeTransaksi || peminjaman.kodePeminjaman || peminjaman.id;
+  const html = `
+  <!DOCTYPE html>
+  <html lang="id">
+  <head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"></head>
+  <body style="margin:0;padding:0;font-family:'Segoe UI',sans-serif;background-color:#f3f4f6;color:#1f2937;">
+    <table width="100%" cellpadding="0" cellspacing="0" style="background-color:#f3f4f6;padding:20px;">
+      <tr><td align="center">
+        <table width="600" cellpadding="0" cellspacing="0" style="background-color:#ffffff;border-radius:12px;overflow:hidden;">
+          <tr><td style="background:linear-gradient(135deg,#1e40af 0%,#3b82f6 100%);padding:30px;text-align:center;">
+            <h1 style="margin:0;color:#ffffff;font-size:22px;">📦 Permintaan Pengembalian Barang</h1>
+          </td></tr>
+          <tr><td style="padding:30px;">
+            <p style="margin:0 0 16px;color:#374151;">Peminjam <strong>${peminjam?.nama || '-'}</strong> mengajukan pengembalian barang dan menunggu konfirmasi Anda.</p>
+            <div style="background-color:#eff6ff;padding:16px;border-radius:8px;margin-bottom:24px;">
+              <p style="margin:0;color:#1e40af;"><strong>Kode Peminjaman:</strong> ${kode}</p>
+            </div>
+            <p style="margin:0;color:#6b7280;font-size:14px;">Silakan buka menu Manajemen Peminjaman untuk mengkonfirmasi pengembalian.</p>
+          </td></tr>
+        </table>
+      </td></tr>
+    </table>
+  </body>
+  </html>`;
+
+  return kirim({
+    ke: adminEmail || env.admin?.email,
+    subjek: `📦 Permintaan Pengembalian - ${kode}`,
+    html,
+  });
+}
+
 // Kirim email reset password
 async function kirimResetPassword(user, passwordBaru) {
   const html = `
@@ -163,6 +197,7 @@ module.exports = {
   kirimStatusUpdate,
   kirimKeterlambatan,
   kirimNotifikasiAdmin,
+  kirimPermintaanPengembalian,
   kirimResetPassword,
   getTransporter,
 };

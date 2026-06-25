@@ -25,6 +25,9 @@ const profilSchema = z.object({
   email: z.string().min(1, 'Email wajib diisi.').email('Format email tidak valid.'),
   jabatan: z.string().optional(),
   unitKerja: z.string().optional(),
+  eselon2: z.string().optional(),
+  jabatanPegawai: z.string().optional(),
+  unitKerjaPegawai: z.string().optional(),
 });
 type ProfilValues = z.infer<typeof profilSchema>;
 
@@ -62,6 +65,9 @@ export default function PengaturanPage() {
         email: user.email ?? '',
         jabatan: user.jabatan ?? '',
         unitKerja: user.unitKerja ?? '',
+        eselon2: user.eselon2 ?? '',
+        jabatanPegawai: user.jabatanPegawai ?? '',
+        unitKerjaPegawai: user.unitKerjaPegawai ?? '',
       });
     }
   }, [user, resetProfil]);
@@ -77,6 +83,9 @@ export default function PengaturanPage() {
         email: pembaruan.email,
         jabatan: pembaruan.jabatan ?? '',
         unitKerja: pembaruan.unitKerja ?? '',
+        eselon2: pembaruan.eselon2 ?? '',
+        jabatanPegawai: pembaruan.jabatanPegawai ?? '',
+        unitKerjaPegawai: pembaruan.unitKerjaPegawai ?? '',
       });
     } catch (error) {
       notify.gagal(ambilPesanError(error, 'Gagal memperbarui profil.'));
@@ -133,7 +142,7 @@ export default function PengaturanPage() {
             </div>
             <div>
               <h2 className="font-jakarta text-lg font-bold text-primary">Data Diri</h2>
-              <p className="text-sm text-muted-foreground">Perbarui nama, NIP, email, Eselon IV, dan Eselon III Anda.</p>
+              <p className="text-sm text-muted-foreground">Perbarui nama, NIP, email, jabatan, unit kerja, dan data eselon Anda.</p>
             </div>
           </div>
 
@@ -157,14 +166,29 @@ export default function PengaturanPage() {
               {errProfil.email && <p className="text-xs text-error">{errProfil.email.message}</p>}
             </div>
 
+            <div className="space-y-1.5">
+              <Label htmlFor="jabatanPegawai">Jabatan</Label>
+              <Input id="jabatanPegawai" {...regProfil('jabatanPegawai')} />
+            </div>
+
+            <div className="space-y-1.5">
+              <Label htmlFor="unitKerjaPegawai">Unit Kerja</Label>
+              <Input id="unitKerjaPegawai" {...regProfil('unitKerjaPegawai')} />
+            </div>
+
+            <div className="space-y-1.5">
+              <Label htmlFor="eselon2">Eselon II</Label>
+              <Input id="eselon2" {...regProfil('eselon2')} />
+            </div>
+
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div className="space-y-1.5">
                 <Label htmlFor="jabatan">Eselon IV</Label>
-                <Input id="jabatan" placeholder="Opsional" {...regProfil('jabatan')} />
+                <Input id="jabatan" {...regProfil('jabatan')} />
               </div>
               <div className="space-y-1.5">
                 <Label htmlFor="unitKerja">Eselon III</Label>
-                <Input id="unitKerja" placeholder="Opsional" {...regProfil('unitKerja')} />
+                <Input id="unitKerja" {...regProfil('unitKerja')} />
               </div>
             </div>
 
