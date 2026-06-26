@@ -92,10 +92,45 @@ function statusBerdasarTanggal(p) {
   return p.status;
 }
 
+// --- Pratinjau Surat Pernyataan Peminjaman (PDF) sebelum pengajuan dibuat ---
+// Dipakai peminjam untuk mengunduh & mencetak surat, menandatanganinya secara
+// FISIK, lalu mengunggahnya kembali saat mengajukan. Tidak menyimpan apa pun:
+// hanya membangun objek peminjaman semu (dari barang & identitas peminjam
+// terkini) untuk dirender menjadi PDF. Hasil = data URL (application/pdf).
+async function previewSurat(userId, data) {
+  const user = await prisma.user.findUnique({ where: { id: userId } });
+  if (!user) throw new AppError('Data peminjam tidak ditemukan.', 404);
+
+  const item = data.items[0];
+  const barang = await prisma.barang.findUnique({ where: { id: item.barangId } });
+  if (!barang) throw new AppError('Barang yang dipilih tidak ditemukan.', 404);
+
+  const peminjamanSemu = {
+    peminjam: user,
+    detail: [{ barang, jumlahPinjam: item.jumlahPinjam }],
+    kodePeminjaman: barang.kodeBarang,
+    tanggalPengajuan: new Date(),
+    tanggalPinjamRencana: data.tanggalPinjamRencana || null,
+    tanggalKembaliRencana: data.tanggalKembaliRencana || null,
+  };
+
+  return suratPernyataanService.generate(peminjamanSemu);
+}
+
 // --- Buat pengajuan peminjaman baru ---
 // Dibatasi 1 barang per pengajuan (lihat peminjaman.validator.js) karena
 // kodePeminjaman memakai kode aset barang yang dipinjam.
+// Wajib melampirkan Surat Pernyataan Peminjaman yang sudah ditandatangani
+// fisik (PDF) — disimpan sebagai dokumenUrl.
 async function create(userId, data, dokumenPath, requestInfo = {}) {
+  // Wajib unggah surat pernyataan yang sudah ditandatangani.
+  if (!dokumenPath) {
+    throw new AppError(
+      'Unggah Surat Pernyataan Peminjaman yang sudah ditandatangani (PDF) sebelum mengajukan pinjaman.',
+      400
+    );
+  }
+
   // CEK: Batas maksimal peminjaman aktif per user
   const peminjamanAktif = await prisma.peminjaman.count({
     where: {
@@ -170,23 +205,6 @@ async function create(userId, data, dokumenPath, requestInfo = {}) {
 
   // Kirim notifikasi ke admin (async, tidak blocking)
   emailService.kirimNotifikasiAdmin(created, user, env.email?.notifyAdmin).catch(() => {});
-
-  // Bila tak ada dokumen diunggah tapi peminjam membubuhkan tanda tangan,
-  // buat Surat Pernyataan Peminjaman (PDF) lalu simpan sebagai dokumenUrl.
-  // Kegagalan membuat PDF tidak membatalkan pengajuan.
-  if (!dokumenPath && data.tandaTangan) {
-    try {
-      const pdfDataUrl = await suratPernyataanService.generate(created, data.tandaTangan);
-      const updated = await prisma.peminjaman.update({
-        where: { id: created.id },
-        data: { dokumenUrl: pdfDataUrl },
-        include: includeLengkap,
-      });
-      return serialisasi(updated);
-    } catch {
-      // PDF gagal dibuat; pengajuan tetap valid, dokumen bisa dilengkapi nanti.
-    }
-  }
 
   return serialisasi(created);
 }
@@ -700,6 +718,7 @@ async function setDokumenStempel(id, pathRelatif) {
 
 module.exports = {
   create,
+  previewSurat,
   getSemua,
   getById,
   getRawById,

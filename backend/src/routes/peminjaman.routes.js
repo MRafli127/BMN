@@ -10,7 +10,7 @@ const roleMiddleware = require('../middleware/role.middleware');
 const validate = require('../middleware/validate.middleware');
 const { validateCsrfTokenMiddleware } = require('../middleware/csrf.middleware');
 const { uploadDokumenPeminjaman } = require('../middleware/upload.middleware');
-const { createPeminjamanSchema, tolakSchema, setujuiSchema } = require('../validators/peminjaman.validator');
+const { createPeminjamanSchema, tolakSchema, setujuiSchema, previewSuratSchema } = require('../validators/peminjaman.validator');
 
 const router = express.Router();
 
@@ -19,6 +19,8 @@ router.use(authMiddleware);
 
 // Daftar & pengajuan
 router.get('/', peminjamanController.getSemua);
+// Pratinjau Surat Pernyataan Peminjaman (PDF) sebelum pengajuan dibuat.
+router.post('/preview-surat', validateCsrfTokenMiddleware, validate(previewSuratSchema), peminjamanController.previewSurat);
 router.post('/', validateCsrfTokenMiddleware, uploadDokumenPeminjaman, validate(createPeminjamanSchema), peminjamanController.create);
 
 // Aksi massal (khusus admin) — didefinisikan sebelum '/:id' agar tidak

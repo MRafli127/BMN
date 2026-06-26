@@ -14,11 +14,10 @@ import { FormPeminjaman } from '@/components/peminjaman/FormPeminjaman';
 import { LoadingSpinner } from '@/components/shared/LoadingSpinner';
 import { notify } from '@/components/ui/toast';
 import { barangService } from '@/services/barang.service';
-import { peminjamanService } from '@/services/peminjaman.service';
 import { ambilPesanError } from '@/lib/utils';
 import { RUTE } from '@/constants/routes';
 import type { Barang } from '@/types/barang.type';
-import type { DataPengajuan } from '@/types/peminjaman.type';
+import type { Peminjaman } from '@/types/peminjaman.type';
 
 export default function AjukanPage() {
   const router = useRouter();
@@ -40,9 +39,8 @@ export default function AjukanPage() {
       .finally(() => setMemuat(false));
   }, []);
 
-  // Kirim pengajuan (error ditangani di FormPeminjaman)
-  const ajukan = async (data: DataPengajuan) => {
-    const p = await peminjamanService.create(data);
+  // Pengajuan selesai dibuat (lewat LangkahSuratPernyataan di dalam FormPeminjaman)
+  const selesai = (p: Peminjaman) => {
     notify.sukses('Pengajuan peminjaman berhasil dikirim!');
     router.push(RUTE.peminjamRiwayatReview(p.id));
   };
@@ -59,14 +57,14 @@ export default function AjukanPage() {
         <CardHeader>
           <CardTitle>Ajukan Peminjaman Barang</CardTitle>
           <p className="text-sm text-muted-foreground">
-            Pilih barang dan tentukan tanggal peminjaman Anda.
+            Pilih barang &amp; tanggal, lalu cetak surat pernyataan, tanda tangan fisik, dan unggah kembali.
           </p>
         </CardHeader>
         <CardContent>
           {memuat ? (
             <LoadingSpinner />
           ) : (
-            <FormPeminjaman daftarBarang={barang} onAjukan={ajukan} praPilihId={praId} />
+            <FormPeminjaman daftarBarang={barang} onSelesai={selesai} praPilihId={praId} />
           )}
         </CardContent>
       </Card>

@@ -3,7 +3,7 @@
 // ============================================================
 
 import api from '@/lib/api';
-import type { DataPengajuan, Peminjaman, StatusPeminjaman } from '@/types/peminjaman.type';
+import type { DataPengajuan, DataPreviewSurat, Peminjaman, StatusPeminjaman } from '@/types/peminjaman.type';
 import type { MetaPagination } from '@/types/barang.type';
 
 export interface FilterPeminjaman {
@@ -30,13 +30,20 @@ export const peminjamanService = {
     return res.data.data;
   },
 
-  // Pengajuan peminjaman (multipart: items JSON)
+  // Buat Surat Pernyataan Peminjaman (PDF, data URL) untuk diunduh/cetak peminjam
+  // sebelum pengajuan dibuat. Tidak menyimpan apa pun di server.
+  async previewSurat(data: DataPreviewSurat): Promise<string> {
+    const res = await api.post('/peminjaman/preview-surat', data);
+    return res.data.data.suratUrl;
+  },
+
+  // Pengajuan peminjaman (multipart: items JSON + surat ber-tanda tangan).
   async create(data: DataPengajuan): Promise<Peminjaman> {
     const fd = new FormData();
     if (data.tanggalPinjamRencana) fd.append('tanggalPinjamRencana', data.tanggalPinjamRencana);
     if (data.tanggalKembaliRencana) fd.append('tanggalKembaliRencana', data.tanggalKembaliRencana);
     fd.append('items', JSON.stringify(data.items));
-    fd.append('tandaTangan', data.tandaTangan);
+    fd.append('dokumen', data.dokumen);
 
     const res = await api.post('/peminjaman', fd, {
       headers: { 'Content-Type': 'multipart/form-data' },

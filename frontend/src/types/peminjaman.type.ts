@@ -57,5 +57,12 @@ export interface DataPengajuan {
   tanggalPinjamRencana?: string;
   tanggalKembaliRencana?: string;
   items: ItemPengajuan[];
-  tandaTangan: string; // PNG data URL tanda tangan elektronik
+  dokumen: File; // Surat Pernyataan Peminjaman (PDF) yang sudah ditandatangani fisik
+}
+
+// Payload pratinjau surat pernyataan (sebelum pengajuan dibuat).
+export interface DataPreviewSurat {
+  tanggalPinjamRencana?: string;
+  tanggalKembaliRencana?: string;
+  items: ItemPengajuan[];
 }
