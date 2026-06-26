@@ -64,11 +64,22 @@ const tanggalOpsional = (pesan, minDate) =>
       .optional()
   );
 
+// Refinement bersama: tanggal kembali harus setelah tanggal pinjam (bila keduanya ada).
+const tglKembaliSetelahPinjam = (data) =>
+  !data.tanggalKembaliRencana ||
+  !data.tanggalPinjamRencana ||
+  data.tanggalKembaliRencana > data.tanggalPinjamRencana;
+const pesanTglKembali = {
+  message: 'Tanggal rencana kembali harus setelah tanggal pinjam.',
+  path: ['tanggalKembaliRencana'],
+};
+
 // Validasi pengajuan peminjaman.
 // - Tanggal pinjam: OPSIONAL, tapi jika diisi tidak boleh backdate
 // - Tanggal kembali: OPSIONAL, tapi jika ada harus > tanggal pinjam
 // - Alasan: OPSIONAL tapi minimal 5 karakter jika diisi
-// tandaTangan (data URL PNG) ikut divalidasi agar tidak dibuang saat sanitasi
+// Surat pernyataan yang sudah ditandatangani diunggah sebagai file "dokumen"
+// (divalidasi di service), bukan lewat skema body ini.
 const createPeminjamanSchema = z
   .object({
     alasanPeminjaman: z
@@ -78,19 +89,19 @@ const createPeminjamanSchema = z
       .or(z.literal('')),
     tanggalPinjamRencana: tanggalOpsional('Tanggal pinjam tidak valid.'),
     tanggalKembaliRencana: tanggalOpsional('Tanggal kembali tidak valid.'),
-    tandaTangan: z.string().optional(),
     items: parseItems,
   })
-  .refine(
-    (data) =>
-      !data.tanggalKembaliRencana ||
-      !data.tanggalPinjamRencana ||
-      data.tanggalKembaliRencana > data.tanggalPinjamRencana,
-    {
-      message: 'Tanggal rencana kembali harus setelah tanggal pinjam.',
-      path: ['tanggalKembaliRencana'],
-    }
-  );
+  .refine(tglKembaliSetelahPinjam, pesanTglKembali);
+
+// Validasi pratinjau surat pernyataan (sebelum pengajuan dibuat).
+// Sama seperti pengajuan namun tanpa alasan; dikirim sebagai JSON.
+const previewSuratSchema = z
+  .object({
+    tanggalPinjamRencana: tanggalOpsional('Tanggal pinjam tidak valid.'),
+    tanggalKembaliRencana: tanggalOpsional('Tanggal kembali tidak valid.'),
+    items: parseItems,
+  })
+  .refine(tglKembaliSetelahPinjam, pesanTglKembali);
 
 // Validasi penolakan (wajib isi catatan)
 const tolakSchema = z.object({
@@ -111,4 +122,4 @@ const scanSchema = z.object({
     .min(3, 'Kode peminjaman tidak valid.'),
 });
 
-module.exports = { createPeminjamanSchema, tolakSchema, setujuiSchema, scanSchema };
+module.exports = { createPeminjamanSchema, previewSuratSchema, tolakSchema, setujuiSchema, scanSchema };

@@ -25,6 +25,11 @@ const create = asyncHandler(async (req, res) => {
   });
 });
 
+const previewSurat = asyncHandler(async (req, res) => {
+  const suratUrl = await peminjamanService.previewSurat(req.user.id, req.body);
+  return responsSukses(res, { pesan: 'Pratinjau surat pernyataan dibuat.', data: { suratUrl } });
+});
+
 const getSemua = asyncHandler(async (req, res) => {
   const { status, q, page, limit } = req.query;
   const hasil = await peminjamanService.getSemua({
@@ -126,6 +131,7 @@ const setujuiMassal = asyncHandler(async (req, res) => {
 
 module.exports = {
   create,
+  previewSurat,
   getSemua,
   getById,
   setujui,

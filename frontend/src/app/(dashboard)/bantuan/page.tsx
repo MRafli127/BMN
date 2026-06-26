@@ -37,7 +37,7 @@ type Langkah = { ikon: typeof Boxes; judul: string; teks: string };
 // ---------- Data konten per peran ----------
 const peminjamPinjam: Langkah[] = [
   { ikon: Boxes, judul: 'Telusuri Katalog', teks: 'Buka menu Katalog untuk melihat barang yang tersedia beserta sisa stoknya.' },
-  { ikon: FileUp, judul: 'Ajukan & Unggah Dokumen', teks: 'Pilih barang + jumlah, isi tanggal pinjam/kembali & alasan, lalu unggah dokumen pendukung (PDF/JPG/PNG).' },
+  { ikon: FileUp, judul: 'Cetak, Tanda Tangani & Unggah Surat', teks: 'Pilih barang + jumlah & tanggal, cetak Surat Pernyataan Peminjaman, tanda tangani secara fisik, lalu unggah kembali (PDF) untuk mengajukan.' },
   { ikon: Hourglass, judul: 'Tunggu Persetujuan', teks: 'Admin memverifikasi pengajuan Anda. Pantau perubahan status secara realtime di menu Riwayat.' },
   { ikon: QrCode, judul: 'Ambil Barang & Simpan QR', teks: 'Setelah disetujui, QR Code dibuat otomatis. Unduh/cetak QR untuk dibawa saat pengembalian.' },
 ];
@@ -59,7 +59,7 @@ const adminKelola: Langkah[] = [
 const faqPeminjam = [
   { t: 'Apa yang terjadi jika saya terlambat mengembalikan?', j: 'Sistem otomatis menandai peminjaman sebagai "Terlambat" bila melewati tanggal rencana kembali. Segera kembalikan barang untuk menghindari sanksi administratif.' },
   { t: 'Bagaimana jika QR Code saya hilang?', j: 'QR Code dapat dibuka & dicetak ulang kapan saja melalui menu Riwayat → detail peminjaman.' },
-  { t: 'Dokumen apa yang perlu saya unggah?', j: 'Dokumen pendukung peminjaman berupa PDF, JPG, atau PNG (maksimum 5 MB).' },
+  { t: 'Dokumen apa yang perlu saya unggah?', j: 'Surat Pernyataan Peminjaman yang sudah dicetak dan ditandatangani secara fisik, dalam format PDF (maksimum 5 MB).' },
 ];
 
 const faqAdmin = [

@@ -1,14 +1,15 @@
 // ============================================================
 //  Generator Surat Pernyataan Peminjaman BMN (PDF, pdf-lib).
-//  Dibuat otomatis saat peminjam mengajukan pinjaman dan
-//  langsung ditandatangani (tanda tangan disisipkan).
-//  Hasil dikembalikan sebagai data URL (application/pdf).
+//  Surat ini DITAMPILKAN sebagai pratinjau, lalu DIUNDUH &
+//  DICETAK peminjam untuk ditandatangani secara FISIK. Karena
+//  itu blok tanda tangan dibiarkan kosong (bukan tanda tangan
+//  elektronik). Hasil dikembalikan sebagai data URL (PDF).
 // ============================================================
 
 const { PDFDocument, rgb, StandardFonts } = require('pdf-lib');
 const path = require('path');
 const fs = require('fs');
-const { bufferKeDataUrl, dataUrlKeBuffer } = require('../utils/fileData');
+const { bufferKeDataUrl } = require('../utils/fileData');
 const { formatTanggalSaja } = require('../utils/formatTanggal');
 
 const PAGE_W = 595.28;
@@ -69,7 +70,7 @@ function nomorSurat(peminjaman) {
   return `PRN-${seq}/BMN/PP.1/${tahun}`;
 }
 
-async function generate(peminjaman, tandaTanganDataUrl) {
+async function generate(peminjaman) {
   const pdf = await PDFDocument.create();
   const font = await pdf.embedFont(StandardFonts.Helvetica);
   const fontBold = await pdf.embedFont(StandardFonts.HelveticaBold);
@@ -280,6 +281,8 @@ async function generate(peminjaman, tandaTanganDataUrl) {
   y -= 16;
 
   // ---------- Blok tanda tangan (kanan) ----------
+  // Area tanda tangan dibiarkan KOSONG: surat dicetak lalu ditandatangani
+  // secara fisik oleh peminjam sebelum diunggah kembali.
   const SIG_AREA_H = 60;
   pastikanRuang(SIG_AREA_H + 70);
   const blokKiri = PAGE_W - MARGIN - 200;
@@ -289,29 +292,15 @@ async function generate(peminjaman, tandaTanganDataUrl) {
   teks('Peminjam BMN', blokKiri, { size: 10 });
   y -= 8;
 
-  // Tanda tangan (gambar) — ditempatkan dalam area tetap, rata bawah ke garis.
+  // Ruang kosong untuk tanda tangan & cap basah.
   const garisY = y - SIG_AREA_H;
-  if (tandaTanganDataUrl) {
-    try {
-      const f = dataUrlKeBuffer(tandaTanganDataUrl);
-      if (f) {
-        const img = f.mime === 'image/png' ? await pdf.embedPng(f.buffer) : await pdf.embedJpg(f.buffer);
-        const skala = Math.min(180 / img.width, SIG_AREA_H / img.height);
-        const w = img.width * skala;
-        const h = img.height * skala;
-        page.drawImage(img, { x: blokKiri, y: garisY + 2, width: w, height: h });
-      }
-    } catch {
-      // abaikan bila tanda tangan gagal disisipkan
-    }
-  }
   y = garisY;
 
   page.drawLine({ start: { x: blokKiri, y }, end: { x: blokKiri + 190, y }, thickness: 0.8, color: hitam });
   y -= 14;
   teks(u.nama || 'Peminjam BMN', blokKiri, { font: fontBold, size: 10 });
   y -= 14;
-  teks('Ditandatangani secara elektronik', blokKiri, { font: fontItalic, size: 8, color: abu });
+  teks('Tanda tangan & nama jelas', blokKiri, { font: fontItalic, size: 8, color: abu });
   y -= 22;
 
   // ---------- Catatan kaki ----------

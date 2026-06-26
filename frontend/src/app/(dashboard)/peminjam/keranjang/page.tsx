@@ -1,8 +1,9 @@
 // ============================================================
 //  Peminjam — Keranjang & Checkout Peminjaman.
-//   - Tinjau barang yang dipilih dari katalog (atur jumlah).
-//   - Tentukan tanggal pinjam (wajib) & rencana kembali (opsional).
-//   - Ajukan seluruh barang dalam satu pengajuan.
+//   Langkah 1: Tinjau barang yang dipilih dari katalog (atur jumlah)
+//              & tentukan tanggal pinjam/kembali.
+//   Langkah 2: Tinjau Surat Pernyataan Peminjaman, unduh & cetak,
+//              tanda tangan fisik, unggah kembali (PDF), lalu ajukan.
 // ============================================================
 
 'use client';
@@ -10,18 +11,19 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { ShoppingCart, Trash2, Plus, Minus, Package, Loader2, ArrowLeft } from 'lucide-react';
+import { ShoppingCart, Trash2, Plus, Minus, Package, ArrowLeft, ArrowRight, FileText } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input, Label } from '@/components/ui/input';
 import { EmptyState } from '@/components/shared/EmptyState';
 import { LoadingSpinner } from '@/components/shared/LoadingSpinner';
 import { notify } from '@/components/ui/toast';
-import { TandaTanganInput } from '@/components/peminjaman/TandaTanganInput';
+import { LangkahSuratPernyataan } from '@/components/peminjaman/LangkahSuratPernyataan';
 import { useKeranjangStore } from '@/store/keranjangStore';
-import { peminjamanService } from '@/services/peminjaman.service';
-import { ambilPesanError, urlFile } from '@/lib/utils';
+import { urlFile } from '@/lib/utils';
 import { RUTE } from '@/constants/routes';
+
+type Langkah = 'tinjau' | 'surat';
 
 export default function KeranjangPage() {
   const router = useRouter();
@@ -32,8 +34,7 @@ export default function KeranjangPage() {
 
   const [tglPinjam, setTglPinjam] = useState('');
   const [tglKembali, setTglKembali] = useState('');
-  const [tandaTangan, setTandaTangan] = useState<string | null>(null);
-  const [sedangKirim, setSedangKirim] = useState(false);
+  const [langkah, setLangkah] = useState<Langkah>('tinjau');
 
   // Hindari hydration mismatch: isi keranjang (persisted) baru dibaca setelah mount.
   const [mounted, setMounted] = useState(false);
@@ -41,28 +42,11 @@ export default function KeranjangPage() {
 
   const daftar = Object.values(items);
 
-  const ajukan = async () => {
+  const keSurat = () => {
     if (daftar.length === 0) return notify.gagal('Keranjang masih kosong.');
     if (tglPinjam && tglKembali && new Date(tglKembali) <= new Date(tglPinjam))
       return notify.gagal('Tanggal kembali harus setelah tanggal pinjam.');
-    if (!tandaTangan) return notify.gagal('Tanda tangan wajib diisi.');
-
-    setSedangKirim(true);
-    try {
-      const p = await peminjamanService.create({
-        tanggalPinjamRencana: tglPinjam || undefined,
-        tanggalKembaliRencana: tglKembali || undefined,
-        items: daftar.map((it) => ({ barangId: it.barangId, jumlahPinjam: it.jumlah })),
-        tandaTangan,
-      });
-      notify.sukses('Pengajuan peminjaman berhasil dikirim!');
-      kosongkan();
-      router.push(RUTE.peminjamRiwayatReview(p.id));
-    } catch (error) {
-      notify.gagal(ambilPesanError(error, 'Gagal mengirim pengajuan.'));
-    } finally {
-      setSedangKirim(false);
-    }
+    setLangkah('surat');
   };
 
   if (!mounted) return <LoadingSpinner layarPenuh />;
@@ -79,7 +63,11 @@ export default function KeranjangPage() {
         <h1 className="flex items-center gap-2 text-2xl font-bold text-foreground">
           <ShoppingCart className="h-6 w-6" /> Keranjang Peminjaman
         </h1>
-        <p className="text-muted-foreground">Tinjau barang yang dipilih, lalu ajukan dalam satu pengajuan.</p>
+        <p className="text-muted-foreground">
+          {langkah === 'tinjau'
+            ? 'Tinjau barang yang dipilih, lalu lanjut ke surat pernyataan.'
+            : 'Tinjau & cetak surat pernyataan, tanda tangan fisik, unggah kembali, lalu ajukan.'}
+        </p>
       </div>
 
       {daftar.length === 0 ? (
@@ -92,7 +80,7 @@ export default function KeranjangPage() {
             </Button>
           }
         />
-      ) : (
+      ) : langkah === 'tinjau' ? (
         <div className="grid grid-cols-1 gap-5 lg:grid-cols-3">
           {/* Daftar barang */}
           <div className="space-y-3 lg:col-span-2">
@@ -137,19 +125,9 @@ export default function KeranjangPage() {
                 </CardContent>
               </Card>
             ))}
-
-            {/* Tanda tangan untuk surat pernyataan */}
-            <Card>
-              <CardContent className="p-4">
-                <TandaTanganInput value={tandaTangan} onChange={setTandaTangan} />
-                <p className="mt-2 text-xs text-muted-foreground">
-                  Tanda tangan akan otomatis dimasukkan ke Surat Pernyataan Peminjaman (PDF).
-                </p>
-              </CardContent>
-            </Card>
           </div>
 
-          {/* Ringkasan & checkout */}
+          {/* Ringkasan & lanjut */}
           <div>
             <Card className="lg:sticky lg:top-4">
               <CardHeader>
@@ -176,14 +154,26 @@ export default function KeranjangPage() {
                   <span className="font-semibold text-foreground">{daftar.reduce((t, it) => t + it.jumlah, 0)}</span>
                 </div>
 
-                <Button className="w-full" disabled={sedangKirim} onClick={ajukan}>
-                  {sedangKirim && <Loader2 className="h-4 w-4 animate-spin" />}
-                  Ajukan Peminjaman
+                <Button className="w-full" onClick={keSurat}>
+                  <FileText className="h-4 w-4" /> Lanjut ke Surat Pernyataan
+                  <ArrowRight className="h-4 w-4" />
                 </Button>
               </CardContent>
             </Card>
           </div>
         </div>
+      ) : (
+        <LangkahSuratPernyataan
+          items={daftar.map((it) => ({ barangId: it.barangId, jumlahPinjam: it.jumlah }))}
+          tanggalPinjamRencana={tglPinjam || undefined}
+          tanggalKembaliRencana={tglKembali || undefined}
+          onKembali={() => setLangkah('tinjau')}
+          onSelesai={(p) => {
+            notify.sukses('Pengajuan peminjaman berhasil dikirim!');
+            kosongkan();
+            router.push(RUTE.peminjamRiwayatReview(p.id));
+          }}
+        />
       )}
     </div>
   );
