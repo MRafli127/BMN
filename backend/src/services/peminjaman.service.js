@@ -215,7 +215,11 @@ async function getSemua({ status, q, userId, role, page = 1, limit = 10 } = {}) 
   const perHalaman = Math.min(200, Math.max(1, parseInt(limit, 10) || 10));
 
   const where = {};
-  if (status) where.status = status;
+  if (status) {
+    // Mendukung beberapa status sekaligus via koma, mis. "DISETUJUI,DIPINJAM,TERLAMBAT".
+    const daftar = String(status).split(',').map((x) => x.trim()).filter(Boolean);
+    where.status = daftar.length > 1 ? { in: daftar } : daftar[0];
+  }
   // Peminjam hanya melihat miliknya sendiri
   if (role === 'PEMINJAM') where.userId = userId;
   if (q) {

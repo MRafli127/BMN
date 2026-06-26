@@ -30,6 +30,9 @@ export const RUTE = {
   peminjamKeranjang: '/peminjam/keranjang',
   peminjamAjukan: '/peminjam/ajukan',
   peminjamRiwayat: '/peminjam/riwayat',
+  // Riwayat dengan filter status awal (mis. dari kartu ringkasan dashboard).
+  peminjamRiwayatStatus: (status?: string) =>
+    status ? `/peminjam/riwayat?status=${encodeURIComponent(status)}` : '/peminjam/riwayat',
   peminjamRiwayatDetail: (id: string) => `/peminjam/riwayat/${id}`,
   peminjamRiwayatReview: (id: string) => `/peminjam/riwayat/${id}/review`,
 } as const;

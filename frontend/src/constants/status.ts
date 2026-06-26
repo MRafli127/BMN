@@ -53,6 +53,11 @@ export const ALUR_TIMELINE: StatusPeminjaman[] = [
   'DIKEMBALIKAN',
 ];
 
+// Status yang dihitung sebagai "peminjaman aktif" (selaras dengan backend STATUS_AKTIF).
+export const STATUS_AKTIF: StatusPeminjaman[] = ['DISETUJUI', 'DIPINJAM', 'TERLAMBAT'];
+// Nilai query gabungan untuk filter "sedang aktif" — dipakai di kartu dashboard & dropdown riwayat.
+export const FILTER_STATUS_AKTIF = STATUS_AKTIF.join(',');
+
 export const JENIS_BARANG: Record<JenisBarang, string> = {
   ELEKTRONIK: 'Elektronik',
   FURNITUR: 'Furnitur',
