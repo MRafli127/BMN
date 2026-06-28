@@ -12,9 +12,25 @@ import { TabelPeminjaman } from '@/components/peminjaman/TabelPeminjaman';
 import { dashboardService } from '@/services/dashboard.service';
 import { useQuery } from '@/lib/cache';
 import { cn } from '@/lib/utils';
-import { STATUS_PEMINJAMAN } from '@/constants/status';
+import { STATUS_PEMINJAMAN, FILTER_STATUS_AKTIF } from '@/constants/status';
 import { RUTE } from '@/constants/routes';
 import type { KategoriDashboard } from '@/services/dashboard.service';
+
+// Kartu yang mewakili status peminjaman diarahkan ke Manajemen Peminjaman
+// dengan filter status terkait (alih-alih halaman kategori dashboard).
+const STATUS_KARTU: Partial<Record<KategoriDashboard, string>> = {
+  pengajuan_menunggu: 'MENUNGGU',
+  peminjaman_aktif: FILTER_STATUS_AKTIF,
+  barang_terlambat: 'TERLAMBAT',
+};
+
+// Tentukan tujuan navigasi untuk sebuah kartu/baris dashboard.
+function tujuanKategori(kategori: KategoriDashboard): string {
+  if (kategori === 'barang') return RUTE.adminBarang;
+  const status = STATUS_KARTU[kategori];
+  if (status) return RUTE.adminPeminjamanStatus(status);
+  return RUTE.adminKategori(kategori);
+}
 
 interface GayaWarna {
   orb: string;
@@ -86,7 +102,7 @@ export default function AdminDashboardPage() {
           return (
             <div
               key={k.label}
-              onClick={() => router.push(k.kategori === 'barang' ? RUTE.adminBarang : RUTE.adminKategori(k.kategori))}
+              onClick={() => router.push(tujuanKategori(k.kategori))}
               className="glass-card group relative cursor-pointer overflow-hidden rounded-2xl p-stack-lg transition-all duration-300 hover:-translate-y-1 hover:shadow-elevated"
             >
               <div className={cn('absolute -right-4 -top-4 h-24 w-24 rounded-full blur-2xl transition-colors', g.orb)} />
@@ -138,7 +154,7 @@ export default function AdminDashboardPage() {
           <h3 className="mb-6 font-jakarta text-headline-md text-primary">Status Sistem</h3>
           <div className="space-y-4">
             <div
-              onClick={() => router.push(RUTE.adminKategori('pengajuan_menunggu'))}
+              onClick={() => router.push(tujuanKategori('pengajuan_menunggu'))}
               className="flex cursor-pointer gap-4 rounded-xl p-3 transition-all hover:bg-primary/5"
             >
               <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-tertiary/10 text-tertiary">
@@ -150,7 +166,7 @@ export default function AdminDashboardPage() {
               </div>
             </div>
             <div
-              onClick={() => router.push(RUTE.adminKategori('barang_terlambat'))}
+              onClick={() => router.push(tujuanKategori('barang_terlambat'))}
               className="flex cursor-pointer gap-4 rounded-xl p-3 transition-all hover:bg-primary/5"
             >
               <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-error/10 text-error">
@@ -162,7 +178,7 @@ export default function AdminDashboardPage() {
               </div>
             </div>
             <div
-              onClick={() => router.push(RUTE.adminKategori('peminjaman_aktif'))}
+              onClick={() => router.push(tujuanKategori('peminjaman_aktif'))}
               className="flex cursor-pointer gap-4 rounded-xl p-3 transition-all hover:bg-primary/5"
             >
               <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-secondary/10 text-secondary">

@@ -26,7 +26,7 @@ const fitur = [
 
 export default function BerandaPage() {
   return (
-    <div className="flex min-h-screen flex-col bg-gradient-to-b from-brand-50 via-white to-white">
+    <div className="flex min-h-screen flex-col bg-gradient-to-b from-brand-50 via-white to-white animate-page-in">
       {/* Header publik */}
       <header className="sticky top-0 z-20 border-b bg-white/75 shadow-soft backdrop-blur-md">
         <div className="container flex h-16 items-center justify-between">

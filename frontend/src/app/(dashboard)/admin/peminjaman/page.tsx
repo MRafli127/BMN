@@ -18,7 +18,7 @@ import { notify } from '@/components/ui/toast';
 import { peminjamanService, type FilterPeminjaman } from '@/services/peminjaman.service';
 import { useQuery } from '@/lib/cache';
 import { ambilPesanError } from '@/lib/utils';
-import { OPSI_STATUS } from '@/constants/status';
+import { OPSI_STATUS, FILTER_STATUS_AKTIF } from '@/constants/status';
 import { RUTE } from '@/constants/routes';
 import type { Peminjaman } from '@/types/peminjaman.type';
 import type { MetaPagination } from '@/types/barang.type';
@@ -34,6 +34,14 @@ export default function AdminPeminjamanPage() {
   const [sedangMassal, setSedangMassal] = useState(false);
   const [dialogSetujui, setDialogSetujui] = useState(false);
   const [sedangSetujui, setSedangSetujui] = useState(false);
+
+  // Terapkan filter status dari query (?status=...) saat halaman dibuka — mis. ketika
+  // datang dari kartu dashboard. Mendukung gabungan dipisah koma (Sedang Aktif).
+  // Dibaca di useEffect agar render server & klien identik (aman dari hydration mismatch).
+  useEffect(() => {
+    const status = new URLSearchParams(window.location.search).get('status');
+    if (status) setFilter((f) => ({ ...f, status: status as never, page: 1 }));
+  }, []);
 
   const key = useMemo(() => `peminjaman:${JSON.stringify(filter)}`, [filter]);
 
@@ -134,6 +142,7 @@ export default function AdminPeminjamanPage() {
             onChange={(e) => setFilter((f) => ({ ...f, status: (e.target.value || undefined) as never, page: 1 }))}
           >
             <option value="">Semua Status</option>
+            <option value={FILTER_STATUS_AKTIF}>Sedang Aktif</option>
             {OPSI_STATUS.map((o) => (
               <option key={o.value} value={o.value}>
                 {o.label}
