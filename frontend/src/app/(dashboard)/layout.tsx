@@ -8,7 +8,7 @@
 'use client';
 
 import { useEffect } from 'react';
-import { useRouter, usePathname } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import { Sidebar } from '@/components/layout/Sidebar';
 import { Header } from '@/components/layout/Header';
 import { Footer } from '@/components/layout/Footer';
@@ -19,7 +19,6 @@ import { RUTE } from '@/constants/routes';
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const { user, sedangMemuat } = useAuth();
   const router = useRouter();
-  const pathname = usePathname();
 
   useEffect(() => {
     if (!sedangMemuat && !user) {
@@ -38,9 +37,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       <div className="flex min-w-0 flex-1 flex-col">
         <Header />
         <main className="flex-1 p-margin-mobile sm:p-6 lg:p-margin-desktop">
-          <div key={pathname} className="mx-auto max-w-container-max animate-page-in space-y-gutter">
-            {children}
-          </div>
+          {/* Transisi & container konten ditangani oleh (dashboard)/template.tsx */}
+          {children}
         </main>
         <Footer />
       </div>

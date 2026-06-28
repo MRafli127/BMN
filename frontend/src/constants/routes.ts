@@ -19,6 +19,10 @@ export const RUTE = {
   adminBarangTambah: '/admin/barang/tambah',
   adminBarangDetail: (id: string) => `/admin/barang/${id}`,
   adminPeminjaman: '/admin/peminjaman',
+  // Manajemen Peminjaman dengan filter status awal (mis. dari kartu dashboard).
+  // status boleh gabungan dipisah koma, mis. "DISETUJUI,DIPINJAM,TERLAMBAT".
+  adminPeminjamanStatus: (status?: string) =>
+    status ? `/admin/peminjaman?status=${encodeURIComponent(status)}` : '/admin/peminjaman',
   adminPeminjamanDetail: (id: string) => `/admin/peminjaman/${id}`,
   adminScan: '/admin/scan',
   adminKategori: (kategori: string) => `/admin/dashboard/kategori/${kategori}`,
