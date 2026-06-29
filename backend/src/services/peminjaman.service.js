@@ -102,14 +102,18 @@ async function previewSurat(userId, data) {
   const user = await prisma.user.findUnique({ where: { id: userId } });
   if (!user) throw new AppError('Data peminjam tidak ditemukan.', 404);
 
-  const item = data.items[0];
-  const barang = await prisma.barang.findUnique({ where: { id: item.barangId } });
-  if (!barang) throw new AppError('Barang yang dipilih tidak ditemukan.', 404);
+  // Proses semua items
+  const detailItems = [];
+  for (const item of data.items) {
+    const barang = await prisma.barang.findUnique({ where: { id: item.barangId } });
+    if (!barang) throw new AppError('Barang yang dipilih tidak ditemukan.', 404);
+    detailItems.push({ barang, jumlahPinjam: item.jumlahPinjam });
+  }
 
   const peminjamanSemu = {
     peminjam: user,
-    detail: [{ barang, jumlahPinjam: item.jumlahPinjam }],
-    kodePeminjaman: barang.kodeBarang,
+    detail: detailItems,
+    kodePeminjaman: detailItems.length === 1 ? detailItems[0].barang.kodeBarang : null,
     tanggalPengajuan: new Date(),
     tanggalPinjamRencana: data.tanggalPinjamRencana || null,
     tanggalKembaliRencana: data.tanggalKembaliRencana || null,
@@ -121,17 +125,8 @@ async function previewSurat(userId, data) {
 // --- Buat pengajuan peminjaman baru ---
 // Dibatasi 1 barang per pengajuan (lihat peminjaman.validator.js) karena
 // kodePeminjaman memakai kode aset barang yang dipinjam.
-// Wajib melampirkan Surat Pernyataan Peminjaman yang sudah ditandatangani
-// fisik (PDF) — disimpan sebagai dokumenUrl.
+// Dokumen (surat pernyataan) sekarang opsional — cukup tanda tangan digital.
 async function create(userId, data, dokumenPath, requestInfo = {}) {
-  // Wajib unggah surat pernyataan yang sudah ditandatangani.
-  if (!dokumenPath) {
-    throw new AppError(
-      'Unggah Surat Pernyataan Peminjaman yang sudah ditandatangani (PDF) sebelum mengajukan pinjaman.',
-      400
-    );
-  }
-
   // CEK: Batas maksimal peminjaman aktif per user
   const peminjamanAktif = await prisma.peminjaman.count({
     where: {
@@ -154,20 +149,26 @@ async function create(userId, data, dokumenPath, requestInfo = {}) {
   const kodeTransaksi = await kodeTransaksiUnik();
 
   const created = await prisma.$transaction(async (tx) => {
-    const item = data.items[0];
-    const barang = await tx.barang.findUnique({ where: { id: item.barangId } });
-    if (!barang) throw new AppError(`Barang dengan id ${item.barangId} tidak ditemukan.`, 404);
-    if (item.jumlahPinjam > barang.jumlahTersedia) {
-      throw new AppError(
-        `Stok "${barang.nama}" tidak mencukupi. Tersedia ${barang.jumlahTersedia}, diminta ${item.jumlahPinjam}.`,
-        400
-      );
+    // Proses semua items
+    const detailItems = [];
+    const barangList = [];
+    for (const item of data.items) {
+      const barang = await tx.barang.findUnique({ where: { id: item.barangId } });
+      if (!barang) throw new AppError(`Barang dengan id ${item.barangId} tidak ditemukan.`, 404);
+      if (item.jumlahPinjam > barang.jumlahTersedia) {
+        throw new AppError(
+          `Stok "${barang.nama}" tidak mencukupi. Tersedia ${barang.jumlahTersedia}, diminta ${item.jumlahPinjam}.`,
+          400
+        );
+      }
+      detailItems.push({ barangId: item.barangId, jumlahPinjam: item.jumlahPinjam });
+      barangList.push(barang);
     }
 
     return tx.peminjaman.create({
       data: {
         kodeTransaksi,
-        kodePeminjaman: barang.kodeBarang,
+        kodePeminjaman: data.items.length === 1 ? barangList[0].kodeBarang : null,
         userId,
         // Tanggal pinjam OPSIONAL (lihat validator)
         tanggalPinjamRencana: data.tanggalPinjamRencana || null,
@@ -176,7 +177,7 @@ async function create(userId, data, dokumenPath, requestInfo = {}) {
         dokumenUrl: dokumenPath || null,
         status: 'MENUNGGU',
         detail: {
-          create: [{ barangId: item.barangId, jumlahPinjam: item.jumlahPinjam }],
+          create: detailItems,
         },
       },
       include: includeLengkap,
@@ -184,6 +185,7 @@ async function create(userId, data, dokumenPath, requestInfo = {}) {
   }, { timeout: 20000, maxWait: 10000 });
 
   // Audit log: catat pembuatan peminjaman baru
+  const barangNames = created.detail?.map(d => d.barang?.nama).filter(Boolean).join(', ') || 'Barang';
   auditLogService.log({
     userId,
     userEmail: user?.email,
@@ -195,8 +197,7 @@ async function create(userId, data, dokumenPath, requestInfo = {}) {
       kodeTransaksi: created.kodeTransaksi,
       kodePeminjaman: created.kodePeminjaman,
       status: created.status,
-      barangId: data.items[0].barangId,
-      jumlahPinjam: data.items[0].jumlahPinjam,
+      items: data.items,
     },
     requestInfo,
   }).catch(() => {});
@@ -208,11 +209,10 @@ async function create(userId, data, dokumenPath, requestInfo = {}) {
   emailService.kirimNotifikasiAdmin(created, user, env.email?.notifyAdmin).catch(() => {});
 
   // Kirim notifikasi ke semua admin tentang pengajuan baru
-  const barangDipinjam = created.detail?.[0]?.barang?.nama || 'Barang';
   notificationService.kirimKeSemuaAdmin({
     tipe: notificationService.TIPE_NOTIFIKASI.PEMINJAMAN_BARU,
     judul: 'Pengajuan Peminjaman Baru',
-    pesan: `${user?.nama || 'Peminjam'} mengajukan peminjaman ${barangDipinjam}`,
+    pesan: `${user?.nama || 'Peminjam'} mengajukan peminjaman ${barangNames}`,
     referenceId: created.id,
     referenceType: 'PEMINJAMAN',
   }).catch(() => {});

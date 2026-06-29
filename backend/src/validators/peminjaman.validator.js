@@ -26,8 +26,7 @@ const parseItems = z.preprocess((val) => {
         .min(1, 'Jumlah pinjam minimal 1.'),
     })
   )
-  .min(1, 'Minimal pilih 1 barang untuk dipinjam.')
-  .max(1, 'Maksimal 1 barang per pengajuan peminjaman.'));
+  .min(1, 'Minimal pilih 1 barang untuk dipinjam.'));
 
 // Tanggal required dengan validasi tidak boleh backdate
 const tanggalRequired = (pesan) =>
