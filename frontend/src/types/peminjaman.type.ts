@@ -57,7 +57,7 @@ export interface DataPengajuan {
   tanggalPinjamRencana?: string;
   tanggalKembaliRencana?: string;
   items: ItemPengajuan[];
-  dokumen: File; // Surat Pernyataan Peminjaman (PDF) yang sudah ditandatangani fisik
+  dokumen?: File; // Surat Pernyataan Peminjaman (PDF) - opsional jika pakai signature digital
 }
 
 // Payload pratinjau surat pernyataan (sebelum pengajuan dibuat).
