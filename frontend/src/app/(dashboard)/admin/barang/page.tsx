@@ -6,8 +6,9 @@
 
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { Suspense, useCallback, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { Search, Plus, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Input, Select } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -25,11 +26,44 @@ import { RUTE } from '@/constants/routes';
 // Pilihan jumlah folder yang ditampilkan per halaman
 const OPSI_FOLDER = [8, 16, 32, 64];
 
-export default function AdminBarangPage() {
-  const { data, filter, ubahFilter, sedangMemuat, refetch } = useBarangFolder();
+function KontenBarang() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+
+  // Filter ketersediaan dari query URL (?stok=tersedia|habis), mis. saat datang
+  // dari kartu "Inventaris Barang" di dashboard.
+  const stok = searchParams.get('stok');
+  const ketersediaanUrl = stok === 'tersedia' || stok === 'habis' ? stok : undefined;
+
+  // Pakai nilai URL sebagai filter AWAL. Karena `template.tsx` me-mount ulang
+  // konten tiap navigasi, halaman yang dibuka dari dashboard langsung memuat
+  // stok yang dimaksud tanpa menunggu effect.
+  const { data, filter, ubahFilter, sedangMemuat, refetch } = useBarangFolder(
+    ketersediaanUrl ? { ketersediaan: ketersediaanUrl } : {}
+  );
   const [cari, setCari] = useState('');
   const [halaman, setHalaman] = useState(1);
   const [perHalaman, setPerHalaman] = useState(8);
+
+  // Cadangan bila konten TIDAK di-mount ulang (perubahan query pada rute yang
+  // sama): selaraskan filter saat ?stok berubah agar tak balik ke "Semua Stok".
+  useEffect(() => {
+    ubahFilter({ ketersediaan: ketersediaanUrl });
+  }, [ketersediaanUrl, ubahFilter]);
+
+  // Ubah filter ketersediaan dari dropdown: perbarui filter + URL sekaligus,
+  // sehingga konsisten dan bertahan saat refresh.
+  const ubahKetersediaan = useCallback(
+    (nilai: string) => {
+      ubahFilter({ ketersediaan: (nilai || undefined) as 'tersedia' | 'habis' | undefined });
+      const params = new URLSearchParams(window.location.search);
+      if (nilai) params.set('stok', nilai);
+      else params.delete('stok');
+      const qs = params.toString();
+      router.replace(qs ? `${RUTE.adminBarang}?${qs}` : RUTE.adminBarang, { scroll: false });
+    },
+    [router, ubahFilter]
+  );
 
   // Debounce pencarian
   useEffect(() => {
@@ -99,7 +133,7 @@ export default function AdminBarangPage() {
             </option>
           ))}
         </Select>
-        <Select value={filter.ketersediaan || ''} onChange={(e) => ubahFilter({ ketersediaan: (e.target.value || undefined) as never })}>
+        <Select value={filter.ketersediaan || ''} onChange={(e) => ubahKetersediaan(e.target.value)}>
           <option value="">Semua Stok</option>
           <option value="tersedia">Tersedia (mis. 1/1)</option>
           <option value="habis">Stok Habis (mis. 0/1)</option>
@@ -161,5 +195,14 @@ export default function AdminBarangPage() {
         </>
       )}
     </div>
+  );
+}
+
+export default function AdminBarangPage() {
+  // useSearchParams butuh batas Suspense agar tidak memaksa render statis gagal.
+  return (
+    <Suspense fallback={<LoadingSpinner />}>
+      <KontenBarang />
+    </Suspense>
   );
 }

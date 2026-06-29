@@ -9,6 +9,8 @@ import type { Barang } from '@/types/barang.type';
 export interface DashboardAdmin {
   statistik: {
     totalBarang: number;
+    stokTersedia: number;
+    stokHabis: number;
     pengajuanMenunggu: number;
     peminjamanAktif: number;
     barangTerlambat: number;
