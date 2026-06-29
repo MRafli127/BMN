@@ -18,6 +18,7 @@ const suratPengembalianService = require('./suratPengembalian.service');
 const { kodeTransaksiUnik } = require('../utils/generateKode');
 const auditLogService = require('./auditLog.service');
 const emailService = require('./email.service');
+const notificationService = require('./notification.service');
 const env = require('../config/env');
 
 // Bentuk include lengkap untuk relasi
@@ -205,6 +206,16 @@ async function create(userId, data, dokumenPath, requestInfo = {}) {
 
   // Kirim notifikasi ke admin (async, tidak blocking)
   emailService.kirimNotifikasiAdmin(created, user, env.email?.notifyAdmin).catch(() => {});
+
+  // Kirim notifikasi ke semua admin tentang pengajuan baru
+  const barangDipinjam = created.detail?.[0]?.barang?.nama || 'Barang';
+  notificationService.kirimKeSemuaAdmin({
+    tipe: notificationService.TIPE_NOTIFIKASI.PEMINJAMAN_BARU,
+    judul: 'Pengajuan Peminjaman Baru',
+    pesan: `${user?.nama || 'Peminjam'} mengajukan peminjaman ${barangDipinjam}`,
+    referenceId: created.id,
+    referenceType: 'PEMINJAMAN',
+  }).catch(() => {});
 
   return serialisasi(created);
 }
@@ -402,6 +413,16 @@ async function setujui(id, adminId, catatan, requestInfo = {}) {
   // Kirim email notifikasi ke peminjam
   emailService.kirimStatusUpdate(updated, pCheck.peminjam, 'MENUNGGU', 'DISETUJUI', catatan).catch(() => {});
 
+  // Kirim notifikasi ke peminjam bahwa pengajuan disetujui
+  const barangDipinjam = updated.detail?.[0]?.barang?.nama || 'Barang';
+  notificationService.kirimKeUser(pCheck.peminjam.id, {
+    tipe: notificationService.TIPE_NOTIFIKASI.PEMINJAMAN_DISETUJUI,
+    judul: 'Pengajuan Disetujui',
+    pesan: `Pengajuan peminjaman ${barangDipinjam} telah disetujui. Silakan ambil barang.`,
+    referenceId: id,
+    referenceType: 'PEMINJAMAN',
+  }).catch(() => {});
+
   return serialisasi(updated);
 }
 
@@ -463,6 +484,16 @@ async function tolak(id, adminId, catatan, requestInfo = {}) {
 
   // Kirim email notifikasi ke peminjam
   emailService.kirimStatusUpdate(updated, p.peminjam, 'MENUNGGU', 'DITOLAK', catatan).catch(() => {});
+
+  // Kirim notifikasi ke peminjam bahwa pengajuan ditolak
+  const barangDipinjam = updated.detail?.[0]?.barang?.nama || 'Barang';
+  notificationService.kirimKeUser(p.peminjam.id, {
+    tipe: notificationService.TIPE_NOTIFIKASI.PEMINJAMAN_DITOLAK,
+    judul: 'Pengajuan Ditolak',
+    pesan: `Pengajuan peminjaman ${barangDipinjam} ditolak. ${catatan ? `Alasan: ${catatan}` : ''}`,
+    referenceId: id,
+    referenceType: 'PEMINJAMAN',
+  }).catch(() => {});
 
   return serialisasi(updated);
 }
@@ -609,6 +640,16 @@ async function kembalikan(id, requestInfo = {}) {
 
   // Kirim email notifikasi ke peminjam
   emailService.kirimStatusUpdate(updated, pLama.peminjam, statusLama, 'DIKEMBALIKAN').catch(() => {});
+
+  // Kirim notifikasi ke peminjam bahwa barang telah dikembalikan
+  const barangDikembalikan = updated.detail?.[0]?.barang?.nama || 'Barang';
+  notificationService.kirimKeUser(pLama.peminjam.id, {
+    tipe: notificationService.TIPE_NOTIFIKASI.PENGEMBALIAN,
+    judul: 'Barang Dikembalikan',
+    pesan: `Barang ${barangDikembalikan} telah berhasil dikembalikan.`,
+    referenceId: id,
+    referenceType: 'PEMINJAMAN',
+  }).catch(() => {});
 
   return serialisasi(updated);
 }
