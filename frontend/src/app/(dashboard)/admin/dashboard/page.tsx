@@ -71,6 +71,13 @@ export default function AdminDashboardPage() {
     { label: 'Total Peminjam', nilai: s.totalPeminjam, ikon: 'group', warna: 'primary', keterangan: 'Pengguna terdaftar', kategori: 'peminjam' },
   ];
 
+  // Ringkasan stok inventaris (data dari Manajemen Barang).
+  const inventaris = [
+    { label: 'Total Barang', nilai: s.totalBarang, ikon: 'inventory', warna: 'primary', keterangan: 'Aset terdaftar aktif', tujuan: RUTE.adminBarang },
+    { label: 'Stok Tersedia', nilai: s.stokTersedia, ikon: 'check_circle', warna: 'secondary', keterangan: '', tujuan: RUTE.adminBarangStok('tersedia') },
+    { label: 'Stok Habis', nilai: s.stokHabis, ikon: 'error', warna: 'error', keterangan: '', tujuan: RUTE.adminBarangStok('habis') },
+  ] as const;
+
   const maxGrafik = Math.max(1, ...data.grafikStatus.map((g) => g.jumlah));
 
   return (
@@ -149,46 +156,33 @@ export default function AdminDashboardPage() {
           </div>
         </section>
 
-        {/* Ringkasan cepat */}
+        {/* Inventaris Barang — ringkasan stok dari Manajemen Barang */}
         <section className="glass-card rounded-2xl p-stack-lg">
-          <h3 className="mb-6 font-jakarta text-headline-md text-primary">Status Sistem</h3>
+          <h3 className="mb-6 flex items-center gap-2 font-jakarta text-headline-md text-primary">
+            <Icon name="inventory_2" className="text-[22px]" />
+            Inventaris Barang
+          </h3>
           <div className="space-y-4">
-            <div
-              onClick={() => router.push(tujuanKategori('pengajuan_menunggu'))}
-              className="flex cursor-pointer gap-4 rounded-xl p-3 transition-all hover:bg-primary/5"
-            >
-              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-tertiary/10 text-tertiary">
-                <Icon name="pending_actions" className="text-[20px]" />
-              </div>
-              <div>
-                <p className="font-label-md font-bold text-on-surface">{s.pengajuanMenunggu} Pengajuan Baru</p>
-                <p className="font-label-sm text-on-surface-variant">Menunggu verifikasi admin.</p>
-              </div>
-            </div>
-            <div
-              onClick={() => router.push(tujuanKategori('barang_terlambat'))}
-              className="flex cursor-pointer gap-4 rounded-xl p-3 transition-all hover:bg-primary/5"
-            >
-              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-error/10 text-error">
-                <Icon name="priority_high" className="text-[20px]" />
-              </div>
-              <div>
-                <p className="font-label-md font-bold text-on-surface">{s.barangTerlambat} Barang Terlambat</p>
-                <p className="font-label-sm text-on-surface-variant">Melebihi batas waktu pengembalian.</p>
-              </div>
-            </div>
-            <div
-              onClick={() => router.push(tujuanKategori('peminjaman_aktif'))}
-              className="flex cursor-pointer gap-4 rounded-xl p-3 transition-all hover:bg-primary/5"
-            >
-              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-secondary/10 text-secondary">
-                <Icon name="task_alt" className="text-[20px]" />
-              </div>
-              <div>
-                <p className="font-label-md font-bold text-on-surface">{s.peminjamanAktif} Peminjaman Aktif</p>
-                <p className="font-label-sm text-on-surface-variant">Aset sedang digunakan.</p>
-              </div>
-            </div>
+            {inventaris.map((it) => {
+              const g = GAYA[it.warna];
+              return (
+                <div
+                  key={it.label}
+                  onClick={() => router.push(it.tujuan)}
+                  className="group flex cursor-pointer items-center gap-4 rounded-xl bg-surface-container/40 p-4 transition-all hover:bg-primary/5"
+                >
+                  <div className={cn('flex h-12 w-12 shrink-0 items-center justify-center rounded-xl', g.ikonBox)}>
+                    <Icon name={it.ikon} className="text-[22px]" fill />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="font-label-md uppercase tracking-wider text-on-surface-variant">{it.label}</p>
+                    <p className={cn('font-jakarta text-headline-md', g.nilai)}>{it.nilai}</p>
+                    {it.keterangan && <p className="font-label-sm text-on-surface-variant">{it.keterangan}</p>}
+                  </div>
+                  <Icon name="chevron_right" className="h-5 w-5 shrink-0 text-on-surface-variant" />
+                </div>
+              );
+            })}
           </div>
         </section>
       </div>

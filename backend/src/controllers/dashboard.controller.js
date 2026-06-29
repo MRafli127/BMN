@@ -58,9 +58,13 @@ async function tandaiTerlambat(paksa = false) {
 const dashboardAdmin = asyncHandler(async (req, res) => {
   await tandaiTerlambat();
 
-  const [totalBarang, pengajuanMenunggu, peminjamanAktif, barangTerlambat, totalPeminjam, grupStatus, terbaru] =
+  const [totalBarang, stokTersedia, stokHabis, pengajuanMenunggu, peminjamanAktif, barangTerlambat, totalPeminjam, grupStatus, terbaru] =
     await Promise.all([
       prisma.barang.count(),
+      // Stok tersedia: barang yang masih punya unit (>0); habis: nol/terpinjam penuh.
+      // Sejajar dengan filter ketersediaan di Manajemen Barang.
+      prisma.barang.count({ where: { jumlahTersedia: { gt: 0 } } }),
+      prisma.barang.count({ where: { jumlahTersedia: { lte: 0 } } }),
       prisma.peminjaman.count({ where: { status: 'MENUNGGU' } }),
       prisma.peminjaman.count({ where: { status: { in: STATUS_AKTIF } } }),
       prisma.peminjaman.count({ where: { status: 'TERLAMBAT' } }),
@@ -84,7 +88,7 @@ const dashboardAdmin = asyncHandler(async (req, res) => {
   return responsSukses(res, {
     pesan: 'Ringkasan dashboard admin.',
     data: {
-      statistik: { totalBarang, pengajuanMenunggu, peminjamanAktif, barangTerlambat, totalPeminjam },
+      statistik: { totalBarang, stokTersedia, stokHabis, pengajuanMenunggu, peminjamanAktif, barangTerlambat, totalPeminjam },
       grafikStatus,
       peminjamanTerbaru: terbaru.map(peminjamanService.serialisasiRingkas),
     },

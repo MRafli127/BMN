@@ -17,6 +17,9 @@ export const RUTE = {
   // Admin
   adminDashboard: '/admin/dashboard',
   adminBarang: '/admin/barang',
+  // Manajemen Barang dengan filter ketersediaan stok awal (mis. dari kartu dashboard).
+  adminBarangStok: (ketersediaan?: string) =>
+    ketersediaan ? `/admin/barang?stok=${encodeURIComponent(ketersediaan)}` : '/admin/barang',
   adminBarangTambah: '/admin/barang/tambah',
   adminBarangDetail: (id: string) => `/admin/barang/${id}`,
   adminPeminjaman: '/admin/peminjaman',
