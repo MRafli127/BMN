@@ -78,7 +78,7 @@ export default function AdminBarangPage() {
       </div>
 
       {/* Filter */}
-      <div className="grid grid-cols-1 gap-3 rounded-xl border bg-card p-4 sm:grid-cols-3">
+      <div className="grid grid-cols-1 gap-3 rounded-xl border bg-card p-4 sm:grid-cols-2 lg:grid-cols-4">
         <div className="relative">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input value={cari} onChange={(e) => setCari(e.target.value)} placeholder="Cari kode / nama / merk / lokasi..." className="pl-9" />
@@ -98,6 +98,11 @@ export default function AdminBarangPage() {
               {o.label}
             </option>
           ))}
+        </Select>
+        <Select value={filter.ketersediaan || ''} onChange={(e) => ubahFilter({ ketersediaan: (e.target.value || undefined) as never })}>
+          <option value="">Semua Stok</option>
+          <option value="tersedia">Tersedia (mis. 1/1)</option>
+          <option value="habis">Stok Habis (mis. 0/1)</option>
         </Select>
       </div>
 

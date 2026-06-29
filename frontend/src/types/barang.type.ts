@@ -35,10 +35,13 @@ export interface MetaPagination {
   totalHalaman: number;
 }
 
+export type Ketersediaan = 'tersedia' | 'habis';
+
 export interface FilterBarang {
   q?: string;
   jenis?: JenisBarang | '';
   kondisi?: KondisiBarang | '';
+  ketersediaan?: Ketersediaan | '';
   page?: number;
   limit?: number;
 }
