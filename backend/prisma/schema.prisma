@@ -68,6 +68,13 @@ enum SumberAkun {
   IMPORT
 }
 
+// Prioritas notifikasi
+enum PrioritasNotifikasi {
+  TINGGI
+  SEDANG
+  RENDAH
+}
+
 // ------------------------------------------------------------
 //  MODEL
 // ------------------------------------------------------------
@@ -107,6 +114,8 @@ model User {
   peminjaman  Peminjaman[] @relation("PeminjamanOlehPeminjam")
   // Relasi: peminjaman yang disetujui oleh user ini (sebagai admin)
   persetujuan Peminjaman[] @relation("PeminjamanDisetujuiAdmin")
+  // Relasi: notifikasi yang diterima user ini
+  notifikasi  Notifikasi[]
 
   @@map("users")
 }
@@ -216,4 +225,26 @@ model AuditLog {
   @@index([aksi])
   @@index([timestamp])
   @@map("audit_logs")
+}
+
+// 6) Notifikasi — untuk menampilkan notifikasi kepada pengguna
+model Notifikasi {
+  id            String            @id @default(uuid())
+  userId        String            // Pengguna yang menerima notifikasi
+  tipe          String            // Jenis notifikasi: PEMINJAMAN_BARU, PEMINJAMAN_DISETUJUI, PEMINJAMAN_DITOLAK, PENGEMBALIAN, TERLAMBAT, dll
+  judul         String            // Judul notifikasi
+  pesan         String            // Isi pesan notifikasi
+  prioritas    PrioritasNotifikasi @default(SEDANG)
+  isBaca        Boolean           @default(false) // Apakah sudah dibaca
+  referenceId   String?           // ID referensi (mis. peminjamanId)
+  referenceType String?           // Tipe referensi (mis. PEMINJAMAN)
+  createdAt     DateTime          @default(now())
+
+  // Relasi ke user
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([isBaca])
+  @@index([createdAt])
+  @@map("notifikasi")
 }

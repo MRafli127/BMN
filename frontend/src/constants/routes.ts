@@ -12,6 +12,7 @@ export const RUTE = {
   // Dalam aplikasi (perlu login)
   bantuan: '/bantuan',
   pengaturan: '/pengaturan',
+  notifikasi: '/notifikasi',
 
   // Admin
   adminDashboard: '/admin/dashboard',

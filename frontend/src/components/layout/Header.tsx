@@ -11,18 +11,30 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Icon } from '@/components/ui/icon';
 import { JamRealtime } from './JamRealtime';
+import { NotificationDropdown } from './NotificationDropdown';
 import { useUIStore } from '@/store/uiStore';
 import { useAuth } from '@/hooks/useAuth';
+import { useNotificationStore } from '@/store/notificationStore';
 import { inisial } from '@/lib/utils';
 import { RUTE } from '@/constants/routes';
 
 export function Header() {
   const bukaSidebar = useUIStore((s) => s.bukaSidebar);
   const { user, isAdmin, logout } = useAuth();
+  const notifikasiStore = useNotificationStore();
+  const jumlahBelumBaca = notifikasiStore.jumlahBelumBaca ?? 0;
+  const init = notifikasiStore.init;
   const router = useRouter();
 
   const [menuBuka, setMenuBuka] = useState(false);
+  const [notifikasiBuka, setNotifikasiBuka] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
+  const notifikasiRef = useRef<HTMLDivElement>(null);
+
+  // Inisialisasi notifikasi saat mount
+  useEffect(() => {
+    init();
+  }, [init]);
 
   // Tutup menu saat klik di luar atau menekan Escape
   useEffect(() => {
@@ -76,10 +88,26 @@ export function Header() {
 
         {/* Notifikasi & pengaturan */}
         <div className="hidden items-center gap-1 sm:flex">
-          <button className="relative rounded-full p-2 text-on-surface-variant transition-all hover:bg-primary/5">
-            <Icon name="notifications" />
-            <span className="absolute right-1.5 top-1.5 h-2.5 w-2.5 rounded-full border-2 border-white bg-error" />
-          </button>
+          <div className="relative" ref={notifikasiRef}>
+            <button
+              onClick={() => setNotifikasiBuka((v) => !v)}
+              className="relative rounded-full p-2 text-on-surface-variant transition-all hover:bg-primary/5"
+              aria-label="Notifikasi"
+              aria-haspopup="menu"
+              aria-expanded={notifikasiBuka}
+            >
+              <Icon name="notifications" />
+              {jumlahBelumBaca > 0 && (
+                <span className="absolute right-1 top-1 flex h-5 min-w-5 items-center justify-center rounded-full border-2 border-white bg-error px-1 text-xs font-bold text-white">
+                  {jumlahBelumBaca > 9 ? '9+' : jumlahBelumBaca}
+                </span>
+              )}
+            </button>
+            <NotificationDropdown
+              terbuka={notifikasiBuka}
+              onTutup={() => setNotifikasiBuka(false)}
+            />
+          </div>
           <Link
             href={RUTE.pengaturan}
             className="rounded-full p-2 text-on-surface-variant transition-all hover:bg-primary/5"
