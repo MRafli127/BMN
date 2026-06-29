@@ -16,7 +16,7 @@ function serialisasi(barang) {
 }
 
 // --- Ambil daftar barang dengan pencarian/filter/pagination ---
-async function getSemua({ q, jenis, kondisi, page = 1, limit = 10 } = {}) {
+async function getSemua({ q, jenis, kondisi, ketersediaan, page = 1, limit = 10 } = {}) {
   const halaman = Math.max(1, parseInt(page, 10) || 1);
   const perHalaman = Math.min(200, Math.max(1, parseInt(limit, 10) || 10));
 
@@ -31,6 +31,9 @@ async function getSemua({ q, jenis, kondisi, page = 1, limit = 10 } = {}) {
   }
   if (jenis) where.jenis = jenis;
   if (kondisi) where.kondisi = kondisi;
+  // Ketersediaan stok: 'tersedia' = masih ada unit (>0), 'habis' = nol/terpinjam penuh.
+  if (ketersediaan === 'tersedia') where.jumlahTersedia = { gt: 0 };
+  else if (ketersediaan === 'habis') where.jumlahTersedia = { lte: 0 };
 
   const [data, total] = await Promise.all([
     prisma.barang.findMany({
