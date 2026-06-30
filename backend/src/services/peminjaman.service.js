@@ -123,9 +123,11 @@ async function previewSurat(userId, data) {
 }
 
 // --- Buat pengajuan peminjaman baru ---
-// Signature digital WAJIB - di-embed ke PDF surat pernyataan.
-// Dibatasi multiple items per pengajuan dengan kodePeminjaman null.
-async function create(userId, data, signatureDataUrl, requestInfo = {}) {
+// Peminjam mengunduh Surat Pernyataan, menandatanganinya secara mandiri
+// (manual/elektronik), lalu mengunggahnya kembali. Berkas yang diunggah inilah
+// yang disimpan sebagai dokumenUrl. Dibatasi multiple items per pengajuan
+// dengan kodePeminjaman null.
+async function create(userId, data, dokumenDataUrl, requestInfo = {}) {
   // CEK: Batas maksimal peminjaman aktif per user
   const peminjamanAktif = await prisma.peminjaman.count({
     where: {
@@ -141,9 +143,12 @@ async function create(userId, data, signatureDataUrl, requestInfo = {}) {
     );
   }
 
-  // CEK: Signature WAJIB
-  if (!signatureDataUrl) {
-    throw new AppError('Tanda tangan wajib diisi.', 400);
+  // CEK: Surat pernyataan yang sudah ditandatangani WAJIB diunggah
+  if (!dokumenDataUrl) {
+    throw new AppError(
+      'Unggah Surat Pernyataan Peminjaman yang sudah Anda tandatangani sebelum mengirim pengajuan.',
+      400
+    );
   }
 
   // Ambil data user untuk audit log dan email
@@ -154,7 +159,7 @@ async function create(userId, data, signatureDataUrl, requestInfo = {}) {
 
   // Proses semua items
   const detailItems = [];
-  const barangList = [];
+  let kodeSnapshot = null;
   for (const item of data.items) {
     const barang = await prisma.barang.findUnique({ where: { id: item.barangId } });
     if (!barang) throw new AppError(`Barang dengan id ${item.barangId} tidak ditemukan.`, 404);
@@ -164,40 +169,22 @@ async function create(userId, data, signatureDataUrl, requestInfo = {}) {
         400
       );
     }
+    // Snapshot kode aset dari barang pertama (kolom kodePeminjaman NOT NULL).
+    // Saat dibaca, kode di-resync via kodeDariBarang() dari barang terkait.
+    if (!kodeSnapshot) kodeSnapshot = barang.kodeBarang;
     detailItems.push({ barangId: item.barangId, jumlahPinjam: item.jumlahPinjam });
-    barangList.push(barang);
-  }
-
-  // Bangun objek peminjaman semu untuk generate PDF dengan signature
-  const peminjamanSemu = {
-    peminjam: user,
-    detail: detailItems.map((d, i) => ({ ...d, barang: barangList[i] })),
-    kodePeminjaman: null,
-    tanggalPengajuan: new Date(),
-    tanggalPinjamRencana: data.tanggalPinjamRencana || null,
-    tanggalKembaliRencana: data.tanggalKembaliRencana || null,
-    signatureDataUrl: signatureDataUrl,
-  };
-
-  // Generate PDF surat pernyataan dengan signature embedded
-  let suratUrl = null;
-  try {
-    suratUrl = await suratPernyataanService.generate(peminjamanSemu);
-  } catch (err) {
-    console.error('Gagal generate surat pernyataan:', err);
-    throw new AppError('Gagal membuat surat pernyataan. Silakan coba lagi.', 500);
   }
 
   const created = await prisma.$transaction(async (tx) => {
     return tx.peminjaman.create({
       data: {
         kodeTransaksi,
-        kodePeminjaman: null, // Multiple items - tidak pakai kode barang
+        kodePeminjaman: kodeSnapshot, // Snapshot kode barang pertama (kolom wajib)
         userId,
         tanggalPinjamRencana: data.tanggalPinjamRencana || null,
         tanggalKembaliRencana: data.tanggalKembaliRencana || null,
         alasanPeminjaman: data.alasanPeminjaman || null,
-        dokumenUrl: suratUrl, // PDF dengan signature embedded
+        dokumenUrl: dokumenDataUrl, // Surat pernyataan yang sudah ditandatangani peminjam
         status: 'MENUNGGU',
         detail: {
           create: detailItems,
