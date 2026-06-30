@@ -54,9 +54,18 @@ interface UserList {
   createdAt: string;
 }
 
+export interface DashboardFilter {
+  dari?: string;
+  sampai?: string;
+}
+
 export const dashboardService = {
-  async admin(): Promise<DashboardAdmin> {
-    const res = await api.get('/dashboard/admin');
+  async admin(filter?: DashboardFilter): Promise<DashboardAdmin> {
+    const params = new URLSearchParams();
+    if (filter?.dari) params.append('dari', filter.dari);
+    if (filter?.sampai) params.append('sampai', filter.sampai);
+    const query = params.toString();
+    const res = await api.get(`/dashboard/admin${query ? `?${query}` : ''}`);
     return res.data.data;
   },
 

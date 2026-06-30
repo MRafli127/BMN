@@ -4,18 +4,22 @@
 
 'use client';
 
+import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Icon } from '@/components/ui/icon';
 import { LoadingSpinner } from '@/components/shared/LoadingSpinner';
 import { EmptyState } from '@/components/shared/EmptyState';
 import { TabelPeminjaman } from '@/components/peminjaman/TabelPeminjaman';
 import { ExportModal } from '@/components/export/ExportModal';
-import { dashboardService } from '@/services/dashboard.service';
+import { dashboardService, type DashboardFilter } from '@/services/dashboard.service';
 import { useQuery } from '@/lib/cache';
 import { cn } from '@/lib/utils';
 import { STATUS_PEMINJAMAN, FILTER_STATUS_AKTIF } from '@/constants/status';
 import { RUTE } from '@/constants/routes';
 import type { KategoriDashboard } from '@/services/dashboard.service';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { X, CalendarDays } from 'lucide-react';
 
 // Kartu yang mewakili status peminjaman diarahkan ke Manajemen Peminjaman
 // dengan filter status terkait (alih-alih halaman kategori dashboard).
@@ -56,9 +60,95 @@ interface KartuStat {
   kategori: KategoriDashboard;
 }
 
+function DialogRentangWaktu({
+  terbuka,
+  onUbahTerbuka,
+  filterAktif,
+  onFilter,
+}: {
+  terbuka: boolean;
+  onUbahTerbuka: (o: boolean) => void;
+  filterAktif: DashboardFilter;
+  onFilter: (f: DashboardFilter) => void;
+}) {
+  const [dari, setDari] = useState(filterAktif.dari || '');
+  const [sampai, setSampai] = useState(filterAktif.sampai || '');
+
+  const handleTerapkan = () => {
+    onFilter({ dari: dari || undefined, sampai: sampai || undefined });
+    onUbahTerbuka(false);
+  };
+
+  const handleReset = () => {
+    setDari('');
+    setSampai('');
+    onFilter({});
+    onUbahTerbuka(false);
+  };
+
+  if (!terbuka) return null;
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+      <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl">
+        <div className="mb-4 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <CalendarDays className="h-5 w-5 text-primary" />
+            <h2 className="font-jakarta text-lg font-semibold text-primary">Rentang Waktu</h2>
+          </div>
+          <button onClick={() => onUbahTerbuka(false)} className="rounded-lg p-1 hover:bg-muted">
+            <X className="h-5 w-5" />
+          </button>
+        </div>
+
+        <p className="mb-4 text-sm text-muted-foreground">
+          Filter data dashboard berdasarkan rentang waktu pengajuan peminjaman.
+        </p>
+
+        <div className="space-y-4">
+          <div className="space-y-2">
+            <label htmlFor="dari" className="text-sm font-medium">
+              Dari Tanggal
+            </label>
+            <Input
+              id="dari"
+              type="date"
+              value={dari}
+              onChange={(e) => setDari(e.target.value)}
+            />
+          </div>
+          <div className="space-y-2">
+            <label htmlFor="sampai" className="text-sm font-medium">
+              Sampai Tanggal
+            </label>
+            <Input
+              id="sampai"
+              type="date"
+              value={sampai}
+              onChange={(e) => setSampai(e.target.value)}
+            />
+          </div>
+        </div>
+
+        <div className="mt-6 flex justify-end gap-2">
+          <Button variant="outline" onClick={handleReset}>
+            Reset
+          </Button>
+          <Button onClick={handleTerapkan}>Terapkan</Button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function AdminDashboardPage() {
   const router = useRouter();
-  const { data, sedangMemuat } = useQuery('dashboard-admin', () => dashboardService.admin());
+  const [filterTanggal, setFilterTanggal] = useState<DashboardFilter>({});
+  const [dialogTerbuka, setDialogTerbuka] = useState(false);
+
+  // Cache key berdasarkan filter agar data berubah saat filter berubah
+  const cacheKey = `dashboard-admin:${JSON.stringify(filterTanggal)}`;
+  const { data, sedangMemuat } = useQuery(cacheKey, () => dashboardService.admin(filterTanggal));
 
   if (sedangMemuat && !data) return <LoadingSpinner layarPenuh />;
   if (!data) return null;
@@ -81,8 +171,17 @@ export default function AdminDashboardPage() {
 
   const maxGrafik = Math.max(1, ...data.grafikStatus.map((g) => g.jumlah));
 
+  const adaFilter = filterTanggal.dari || filterTanggal.sampai;
+
   return (
     <div className="space-y-gutter">
+      <DialogRentangWaktu
+        terbuka={dialogTerbuka}
+        onUbahTerbuka={setDialogTerbuka}
+        filterAktif={filterTanggal}
+        onFilter={setFilterTanggal}
+      />
+
       {/* Header eksekutif */}
       <section className="flex flex-col items-start justify-between gap-4 md:flex-row md:items-center">
         <div>
@@ -92,13 +191,38 @@ export default function AdminDashboardPage() {
           </p>
         </div>
         <div className="flex gap-3">
-          <button className="flex items-center gap-2 rounded-lg border border-outline-variant bg-white px-4 py-2 font-label-md transition-all hover:bg-surface-container-low">
-            <Icon name="calendar_today" className="text-[18px] text-primary" />
+          <Button
+            variant={adaFilter ? 'default' : 'outline'}
+            onClick={() => setDialogTerbuka(true)}
+            className={cn(adaFilter && 'gap-2')}
+          >
+            <Icon name="calendar_today" className="text-[18px]" />
             <span>Rentang Waktu</span>
-          </button>
+            {adaFilter && (
+              <span className="ml-1 flex h-5 w-5 items-center justify-center rounded-full bg-white/20 text-xs">
+                <X className="h-3 w-3" onClick={(e) => {
+                  e.stopPropagation();
+                  setFilterTanggal({});
+                }} />
+              </span>
+            )}
+          </Button>
           <ExportModal />
         </div>
       </section>
+
+      {/* Label filter aktif */}
+      {adaFilter && (
+        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+          <Icon name="filter_list" className="text-[16px]" />
+          <span>
+            Menampilkan data dari{' '}
+            <strong>{filterTanggal.dari || 'tanggal awal'}</strong>
+            {' '}sampai{' '}
+            <strong>{filterTanggal.sampai || 'sekarang'}</strong>
+          </span>
+        </div>
+      )}
 
       {/* Kartu statistik */}
       <section className="grid grid-cols-1 gap-gutter sm:grid-cols-2 lg:grid-cols-5">
