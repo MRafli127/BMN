@@ -45,7 +45,7 @@ export default function RegisterPage() {
     setSedangProses(true);
     try {
       const user = await daftar(data);
-      notify.sukses(`Registrasi berhasil. Selamat datang, ${user.nama}!`);
+      notify.suksess(`Registrasi berhasil. Selamat datang, ${user.nama}!`);
       router.push(RUTE.peminjamDashboard);
     } catch (error) {
       notify.gagal(ambilPesanError(error, 'Registrasi gagal.'));

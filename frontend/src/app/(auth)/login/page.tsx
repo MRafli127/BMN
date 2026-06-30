@@ -39,7 +39,7 @@ export default function LoginPage() {
     setSedangProses(true);
     try {
       const user = await login(data);
-      notify.sukses(`Selamat datang, ${user.nama}!`);
+      notify.suksess(`Selamat datang, ${user.nama}!`);
       router.push(RUTE_DEFAULT[user.role]);
     } catch (error) {
       notify.gagal(ambilPesanError(error, 'Login gagal. Periksa email & kata sandi.'));

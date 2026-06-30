@@ -59,7 +59,7 @@ export default function AjukanPage() {
 
   // Pengajuan selesai dibuat (lewat LangkahSuratPernyataan di dalam FormPeminjaman)
   const selesai = (p: Peminjaman) => {
-    notify.sukses('Pengajuan peminjaman berhasil dikirim!');
+    notify.suksess('Pengajuan peminjaman berhasil dikirim!');
     router.push(RUTE.peminjamRiwayatReview(p.id));
   };
 

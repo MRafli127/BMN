@@ -50,7 +50,7 @@ export default function DetailBarangPage() {
       const updated = await barangService.update(id, data);
       setBarang(updated);
       setMode('lihat');
-      notify.sukses('Barang berhasil diperbarui.');
+      notify.suksess('Barang berhasil diperbarui.');
     } catch (error) {
       notify.gagal(ambilPesanError(error, 'Gagal memperbarui barang.'));
     }
@@ -60,7 +60,7 @@ export default function DetailBarangPage() {
     setSedangHapus(true);
     try {
       await barangService.remove(id);
-      notify.sukses('Barang berhasil dihapus.');
+      notify.suksess('Barang berhasil dihapus.');
       router.push(RUTE.adminBarang);
     } catch (error) {
       notify.gagal(ambilPesanError(error, 'Gagal menghapus barang.'));

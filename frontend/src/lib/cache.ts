@@ -47,6 +47,12 @@ interface OpsiQuery {
    * (stale-while-revalidate): data cache tampil instan, lalu diperbarui.
    */
   segarMs?: number;
+  /**
+   * Bila true, tampilkan data cache (bila ada) sambil tetap menyegarkan
+   * di latar belakang — tidak pernah tampilkan loading spinner penuh.
+   * Default false (perilaku standar: tampilkan spinner jika belum ada cache).
+   */
+  tampilkanCache?: boolean;
 }
 
 /**
@@ -58,12 +64,12 @@ export function useQuery<T>(
   pengambil: () => Promise<T>,
   opsi: OpsiQuery = {}
 ) {
-  const { aktif = true, segarMs = 0 } = opsi;
+  const { aktif = true, segarMs = 0, tampilkanCache = false } = opsi;
 
   const entriAwal = key ? (cache.get(key) as Entri<T> | undefined) : undefined;
   const [data, setData] = useState<T | undefined>(entriAwal?.data);
-  // Hanya tampilkan loading penuh bila belum ada data cache sama sekali
-  const [sedangMemuat, setSedangMemuat] = useState(!entriAwal?.data && aktif && !!key);
+  // Hanya tampilkan loading penuh bila belum ada data cache sama sekali DAN tidak pakai tampilkanCache
+  const [sedangMemuat, setSedangMemuat] = useState(!tampilkanCache && !entriAwal?.data && aktif && !!key);
   const [error, setError] = useState<unknown>(null);
 
   // Simpan pengambil terbaru tanpa memicu efek berulang
@@ -96,7 +102,8 @@ export function useQuery<T>(
         return;
       }
 
-      if (entri?.data === undefined) setSedangMemuat(true);
+      // Dengan tampilkanCache, TIDAK pernah tampilkan spinner — fetch diam-diam
+      if (entri?.data === undefined && !tampilkanCache) setSedangMemuat(true);
 
       const promise = refPengambil.current();
       cache.set(key, { ...(entri ?? { ts: 0 }), promise });
@@ -116,7 +123,7 @@ export function useQuery<T>(
         setSedangMemuat(false);
       }
     },
-    [key, aktif, segarMs]
+    [key, aktif, segarMs, tampilkanCache]
   );
 
   // Berlangganan perubahan cache untuk key ini
