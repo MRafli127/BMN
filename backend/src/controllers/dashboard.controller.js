@@ -58,15 +58,26 @@ async function tandaiTerlambat(paksa = false) {
 const dashboardAdmin = asyncHandler(async (req, res) => {
   await tandaiTerlambat();
 
+  // Filter rentang waktu opsional (berdasarkan tanggal pengajuan)
+  const dari = req.query.dari ? new Date(req.query.dari) : null;
+  const sampai = req.query.sampai ? new Date(req.query.sampai + 'T23:59:59.999Z') : null;
+
+  const filterTanggal = {};
+  if (dari) filterTanggal.gte = dari;
+  if (sampai) filterTanggal.lte = sampai;
+
+  const whereTanggal = Object.keys(filterTanggal).length > 0 ? { createdAt: filterTanggal } : {};
+
   const [totalBarang, pengajuanMenunggu, peminjamanAktif, barangTerlambat, totalPeminjam, grupStatus, terbaru] =
     await Promise.all([
       prisma.barang.count(),
-      prisma.peminjaman.count({ where: { status: 'MENUNGGU' } }),
-      prisma.peminjaman.count({ where: { status: { in: STATUS_AKTIF } } }),
-      prisma.peminjaman.count({ where: { status: 'TERLAMBAT' } }),
+      prisma.peminjaman.count({ where: { ...whereTanggal, status: 'MENUNGGU' } }),
+      prisma.peminjaman.count({ where: { ...whereTanggal, status: { in: STATUS_AKTIF } } }),
+      prisma.peminjaman.count({ where: { ...whereTanggal, status: 'TERLAMBAT' } }),
       prisma.user.count({ where: { role: 'PEMINJAM' } }),
-      prisma.peminjaman.groupBy({ by: ['status'], _count: { status: true } }),
+      prisma.peminjaman.groupBy({ by: ['status'], _count: { status: true }, where: whereTanggal }),
       prisma.peminjaman.findMany({
+        where: whereTanggal,
         take: 5,
         orderBy: { createdAt: 'desc' },
         include: {
