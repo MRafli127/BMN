@@ -5,11 +5,12 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
-import { ChevronLeft, ChevronRight, ClipboardList, Trash2, X, CheckCheck } from 'lucide-react';
+import { ChevronLeft, ChevronRight, ClipboardList, Trash2, X, CheckCheck, List, FolderTree } from 'lucide-react';
 import { Icon } from '@/components/ui/icon';
 import { Input, Select } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { TabelPeminjaman } from '@/components/peminjaman/TabelPeminjaman';
+import { FolderPeminjaman } from '@/components/peminjaman/FolderPeminjaman';
 import { ImportPeminjamDialog } from '@/components/peminjaman/ImportPeminjamDialog';
 import { ExportModal } from '@/components/export/ExportModal';
 import { KonfirmasiDialog } from '@/components/shared/KonfirmasiDialog';
@@ -18,7 +19,7 @@ import { EmptyState } from '@/components/shared/EmptyState';
 import { notify } from '@/components/ui/toast';
 import { peminjamanService, type FilterPeminjaman } from '@/services/peminjaman.service';
 import { useQuery } from '@/lib/cache';
-import { ambilPesanError } from '@/lib/utils';
+import { ambilPesanError, cn } from '@/lib/utils';
 import { OPSI_STATUS, FILTER_STATUS_AKTIF } from '@/constants/status';
 import { RUTE } from '@/constants/routes';
 import type { Peminjaman } from '@/types/peminjaman.type';
@@ -30,6 +31,7 @@ const OPSI_LIMIT = [12, 50, 100, 200];
 export default function AdminPeminjamanPage() {
   const [filter, setFilter] = useState<FilterPeminjaman>({ page: 1, limit: 12 });
   const [cari, setCari] = useState('');
+  const [mode, setMode] = useState<'list' | 'folder'>('list');
   const [terpilih, setTerpilih] = useState<string[]>([]);
   const [dialogMassal, setDialogMassal] = useState(false);
   const [sedangMassal, setSedangMassal] = useState(false);
@@ -141,18 +143,57 @@ export default function AdminPeminjamanPage() {
             />
             <Input value={cari} onChange={(e) => setCari(e.target.value)} placeholder="Cari kode / nama barang / merk / nama peminjam..." className="pl-10" />
           </div>
-          <Select
-            value={filter.status || ''}
-            onChange={(e) => setFilter((f) => ({ ...f, status: (e.target.value || undefined) as never, page: 1 }))}
-          >
-            <option value="">Semua Status</option>
-            <option value={FILTER_STATUS_AKTIF}>Sedang Aktif</option>
-            {OPSI_STATUS.map((o) => (
-              <option key={o.value} value={o.value}>
-                {o.label}
-              </option>
-            ))}
-          </Select>
+          <div className="flex items-center gap-2">
+            <Select
+              value={filter.status || ''}
+              onChange={(e) => setFilter((f) => ({ ...f, status: (e.target.value || undefined) as never, page: 1 }))}
+              className="flex-1"
+            >
+              <option value="">Semua Status</option>
+              <option value={FILTER_STATUS_AKTIF}>Sedang Aktif</option>
+              {OPSI_STATUS.map((o) => (
+                <option key={o.value} value={o.value}>
+                  {o.label}
+                </option>
+              ))}
+            </Select>
+
+            {/* Switch tampilan: list ↔ folder (folder dikelompokkan per peminjam) */}
+            <button
+              type="button"
+              role="switch"
+              aria-checked={mode === 'folder'}
+              onClick={() => {
+                setMode((m) => (m === 'list' ? 'folder' : 'list'));
+                setTerpilih([]); // folder tak mendukung pilih massal
+              }}
+              title={mode === 'list' ? 'Beralih ke tampilan folder' : 'Beralih ke tampilan list'}
+              className="flex h-11 shrink-0 items-center gap-2 rounded-lg border border-input bg-background px-3 transition-colors hover:bg-primary/5 sm:h-10"
+            >
+              <span className="whitespace-nowrap text-sm text-on-surface-variant">
+                {mode === 'list' ? 'Tampilan list' : 'Tampilan folder'}
+              </span>
+              <span
+                className={cn(
+                  'relative flex h-6 w-11 shrink-0 items-center rounded-full transition-colors',
+                  mode === 'folder' ? 'bg-primary' : 'bg-outline-variant'
+                )}
+              >
+                <span
+                  className={cn(
+                    'flex h-5 w-5 items-center justify-center rounded-full bg-white shadow transition-transform',
+                    mode === 'folder' ? 'translate-x-5' : 'translate-x-0.5'
+                  )}
+                >
+                  {mode === 'folder' ? (
+                    <FolderTree className="h-3 w-3 text-primary" />
+                  ) : (
+                    <List className="h-3 w-3 text-on-surface-variant" />
+                  )}
+                </span>
+              </span>
+            </button>
+          </div>
         </div>
 
         {/* Bilah aksi massal — muncul saat ada baris terpilih */}
@@ -185,15 +226,19 @@ export default function AdminPeminjamanPage() {
           </div>
         ) : (
           <div className="p-stack-md">
-            <TabelPeminjaman
-              data={data}
-              hrefDetail={RUTE.adminPeminjamanDetail}
-              tampilkanPeminjam
-              tampilkanMerk
-              onHapus={hapus}
-              terpilih={terpilih}
-              onUbahTerpilih={setTerpilih}
-            />
+            {mode === 'list' ? (
+              <TabelPeminjaman
+                data={data}
+                hrefDetail={RUTE.adminPeminjamanDetail}
+                tampilkanPeminjam
+                tampilkanMerk
+                onHapus={hapus}
+                terpilih={terpilih}
+                onUbahTerpilih={setTerpilih}
+              />
+            ) : (
+              <FolderPeminjaman data={data} hrefDetail={RUTE.adminPeminjamanDetail} onHapus={hapus} />
+            )}
             <div className="mt-4 flex flex-col items-center justify-between gap-3 sm:flex-row">
               <div className="flex items-center gap-2 text-sm text-on-surface-variant">
                 <span>Tampilkan</span>
