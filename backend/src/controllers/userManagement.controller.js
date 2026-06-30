@@ -60,6 +60,16 @@ const remove = asyncHandler(async (req, res) => {
   return responsSukses(res, { pesan: 'User berhasil dihapus.' });
 });
 
+// Hapus banyak peminjam sekaligus (berdasarkan ID terpilih; lewati yang aktif)
+const hapusMassalPeminjam = asyncHandler(async (req, res) => {
+  const hasil = await userManagementService.hapusBanyakPeminjam(req.body.ids);
+  const pesan =
+    hasil.dilewati > 0
+      ? `${hasil.dihapus} peminjam dihapus, ${hasil.dilewati} dilewati karena masih punya peminjaman aktif.`
+      : `${hasil.dihapus} peminjam berhasil dihapus.`;
+  return responsSukses(res, { pesan, data: hasil });
+});
+
 module.exports = {
   getSemua,
   getById,
@@ -68,4 +78,5 @@ module.exports = {
   update,
   resetPassword,
   remove,
+  hapusMassalPeminjam,
 };

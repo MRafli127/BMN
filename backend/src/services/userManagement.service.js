@@ -10,6 +10,10 @@ const { AppError } = require('../middleware/error.middleware');
 // Password default untuk user baru hasil reset
 const PASSWORD_DEFAULT_RESET = 'BMN@Reset123';
 
+// Status peminjaman yang dianggap "aktif" — user dengan salah satu status ini
+// tidak boleh dihapus karena barang masih tercatat sedang digunakan.
+const STATUS_AKTIF = ['MENUNGGU', 'DISETUJUI', 'DIPINJAM', 'TERLAMBAT'];
+
 // Hilangkan field password sebelum kirim ke client
 function tanpaPassword(user) {
   if (!user) return user;
@@ -235,18 +239,56 @@ async function remove(id) {
 
   // Cek: user punya peminjaman aktif?
   const peminjamanAktif = await prisma.peminjaman.count({
-    where: {
-      userId: id,
-      status: { in: ['MENUNGGU', 'DISETUJUI', 'DIPINJAM', 'TERLAMBAT'] },
-    },
+    where: { userId: id, status: { in: STATUS_AKTIF } },
   });
   if (peminjamanAktif > 0) {
     throw new AppError(`User memiliki ${peminjamanAktif} peminjaman aktif. Selesaikan dulu sebelum menghapus.`, 400);
   }
 
-  await prisma.user.delete({ where: { id } });
+  // Hapus riwayat peminjaman (semua tinggal status non-aktif) lalu user-nya,
+  // dalam satu transaksi. Tanpa ini, relasi Peminjaman→User memblokir delete.
+  // Detail peminjaman ikut terhapus otomatis (onDelete: Cascade).
+  await prisma.$transaction([
+    prisma.peminjaman.deleteMany({ where: { userId: id } }),
+    prisma.user.delete({ where: { id } }),
+  ]);
 
   return { id, nama: user.nama };
+}
+
+// --- Hapus banyak peminjam sekaligus (berdasarkan ID terpilih) ---
+// Hanya menghapus user ber-role PEMINJAM. Peminjam yang masih punya peminjaman
+// aktif dilewati (tidak dihapus). Sisanya dihapus beserta seluruh riwayat
+// peminjamannya. Mengembalikan ringkasan { dihapus, dilewati }.
+async function hapusBanyakPeminjam(ids) {
+  const daftarId = Array.isArray(ids) ? [...new Set(ids.filter((v) => typeof v === 'string' && v))] : [];
+  if (daftarId.length === 0) throw new AppError('Tidak ada peminjam yang dipilih.', 400);
+
+  // Batasi hanya ke user ber-role PEMINJAM yang benar-benar ada.
+  const peminjam = await prisma.user.findMany({
+    where: { id: { in: daftarId }, role: 'PEMINJAM' },
+    select: { id: true },
+  });
+  const idPeminjam = peminjam.map((p) => p.id);
+  if (idPeminjam.length === 0) return { dihapus: 0, dilewati: 0 };
+
+  // Peminjam yang masih punya peminjaman aktif tidak boleh dihapus → dilewati.
+  const aktif = await prisma.peminjaman.findMany({
+    where: { userId: { in: idPeminjam }, status: { in: STATUS_AKTIF } },
+    select: { userId: true },
+    distinct: ['userId'],
+  });
+  const idAktif = new Set(aktif.map((p) => p.userId));
+  const idHapus = idPeminjam.filter((id) => !idAktif.has(id));
+
+  if (idHapus.length > 0) {
+    await prisma.$transaction([
+      prisma.peminjaman.deleteMany({ where: { userId: { in: idHapus } } }),
+      prisma.user.deleteMany({ where: { id: { in: idHapus } } }),
+    ]);
+  }
+
+  return { dihapus: idHapus.length, dilewati: idAktif.size };
 }
 
 // --- Statistik user ---
@@ -267,6 +309,7 @@ module.exports = {
   update,
   resetPassword,
   remove,
+  hapusBanyakPeminjam,
   getStatistik,
   tanpaPassword,
   PASSWORD_DEFAULT_RESET,

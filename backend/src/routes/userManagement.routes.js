@@ -23,6 +23,10 @@ router.get('/', userManagementController.getSemua);
 // Statistik user
 router.get('/statistik', userManagementController.getStatistik);
 
+// Hapus banyak peminjam sekaligus (berdasarkan ID terpilih; lewati yang aktif).
+// Didaftarkan sebelum rute '/:id' agar tidak tertangkap sebagai parameter id.
+router.post('/peminjam/hapus-massal', validateCsrfTokenMiddleware, userManagementController.hapusMassalPeminjam);
+
 // Buat user baru
 router.post('/', validateCsrfTokenMiddleware, validate(createUserSchema), userManagementController.create);
 
