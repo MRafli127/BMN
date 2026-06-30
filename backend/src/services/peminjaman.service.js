@@ -143,6 +143,32 @@ async function create(userId, data, dokumenDataUrl, requestInfo = {}) {
     );
   }
 
+  // CEK: Tidak boleh mengajukan barang yang sama lebih dari sekali.
+  // Bila peminjam masih punya peminjaman AKTIF (menunggu/disetujui/dipinjam/
+  // terlambat) atas salah satu barang yang diajukan, tolak pengajuan ini.
+  // Barang baru dapat diajukan lagi hanya setelah peminjaman sebelumnya
+  // selesai (dikembalikan/ditolak/dibatalkan).
+  const barangIds = [...new Set((data.items || []).map((i) => i.barangId).filter(Boolean))];
+  if (barangIds.length) {
+    const sudahAktif = await prisma.peminjaman.findFirst({
+      where: {
+        userId,
+        status: { in: ['MENUNGGU', 'DISETUJUI', 'DIPINJAM', 'TERLAMBAT'] },
+        detail: { some: { barangId: { in: barangIds } } },
+      },
+      include: { detail: { include: { barang: { select: { id: true, nama: true } } } } },
+    });
+    if (sudahAktif) {
+      const bentrok = sudahAktif.detail.find((d) => barangIds.includes(d.barangId));
+      const namaBarang = bentrok?.barang?.nama || 'barang tersebut';
+      throw new AppError(
+        `Anda sudah memiliki pengajuan/peminjaman aktif untuk "${namaBarang}". ` +
+          'Barang yang sama tidak dapat diajukan lebih dari sekali sampai peminjaman tersebut selesai.',
+        400
+      );
+    }
+  }
+
   // CEK: Surat pernyataan yang sudah ditandatangani WAJIB diunggah
   if (!dokumenDataUrl) {
     throw new AppError(

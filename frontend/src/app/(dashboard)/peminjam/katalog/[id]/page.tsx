@@ -15,6 +15,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { EmptyState } from '@/components/shared/EmptyState';
 import { LoadingSpinner } from '@/components/shared/LoadingSpinner';
+import { QrBarang } from '@/components/barang/QrBarang';
 import { notify } from '@/components/ui/toast';
 import { barangService } from '@/services/barang.service';
 import { useKeranjangStore } from '@/store/keranjangStore';
@@ -139,6 +140,8 @@ export default function DetailKatalogPage() {
               </ul>
             </div>
           )}
+
+          <QrBarang barang={barang} />
 
           <div className="flex flex-col gap-2 pt-2 sm:flex-row">
             {tersedia ? (

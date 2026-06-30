@@ -14,14 +14,20 @@ import { FormPeminjaman } from '@/components/peminjaman/FormPeminjaman';
 import { LoadingSpinner } from '@/components/shared/LoadingSpinner';
 import { notify } from '@/components/ui/toast';
 import { barangService } from '@/services/barang.service';
+import { peminjamanService } from '@/services/peminjaman.service';
 import { ambilPesanError } from '@/lib/utils';
 import { RUTE } from '@/constants/routes';
 import type { Barang } from '@/types/barang.type';
 import type { Peminjaman } from '@/types/peminjaman.type';
 
+// Status peminjaman yang masih "menahan" barang sehingga barang yang sama
+// tidak boleh diajukan ulang oleh peminjam yang sama.
+const STATUS_AKTIF = ['MENUNGGU', 'DISETUJUI', 'DIPINJAM', 'TERLAMBAT'];
+
 export default function AjukanPage() {
   const router = useRouter();
   const [barang, setBarang] = useState<Barang[]>([]);
+  const [barangAktifIds, setBarangAktifIds] = useState<string[]>([]);
   const [memuat, setMemuat] = useState(true);
   const [praId, setPraId] = useState<string | undefined>();
 
@@ -32,9 +38,21 @@ export default function AjukanPage() {
   }, []);
 
   useEffect(() => {
-    barangService
-      .getSemua({ limit: 100 })
-      .then((r) => setBarang(r.data))
+    // Muat katalog barang & peminjaman aktif milik peminjam secara paralel.
+    // Barang yang sedang dalam peminjaman aktif dikunci agar tidak bisa
+    // diajukan dua kali.
+    Promise.all([
+      barangService.getSemua({ limit: 100 }),
+      peminjamanService.getSemua({ limit: 200 }),
+    ])
+      .then(([rBarang, rPeminjaman]) => {
+        setBarang(rBarang.data);
+        const aktif = new Set<string>();
+        rPeminjaman.data
+          .filter((p) => STATUS_AKTIF.includes(p.status))
+          .forEach((p) => p.detail?.forEach((d) => d.barangId && aktif.add(d.barangId)));
+        setBarangAktifIds([...aktif]);
+      })
       .catch((e) => notify.gagal(ambilPesanError(e, 'Gagal memuat katalog barang.')))
       .finally(() => setMemuat(false));
   }, []);
@@ -64,7 +82,12 @@ export default function AjukanPage() {
           {memuat ? (
             <LoadingSpinner />
           ) : (
-            <FormPeminjaman daftarBarang={barang} onSelesai={selesai} praPilihId={praId} />
+            <FormPeminjaman
+              daftarBarang={barang}
+              onSelesai={selesai}
+              praPilihId={praId}
+              barangAktifIds={barangAktifIds}
+            />
           )}
         </CardContent>
       </Card>
