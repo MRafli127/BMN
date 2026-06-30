@@ -9,7 +9,7 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { Folder, FolderOpen, ChevronDown, Eye, ShoppingCart, Check, Plus, Package, Trash2, Loader2 } from 'lucide-react';
+import { Folder, FolderOpen, ChevronDown, Eye, ShoppingCart, Check, Plus, Package, Loader2, Trash2 } from 'lucide-react';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -18,6 +18,7 @@ import { JENIS_BARANG, KONDISI_BARANG } from '@/constants/status';
 import { RUTE } from '@/constants/routes';
 import { useKeranjangStore } from '@/store/keranjangStore';
 import { notify } from '@/components/ui/toast';
+import { PeringatanKondisiDialog } from '@/components/shared/PeringatanKondisiDialog';
 import type { Barang } from '@/types/barang.type';
 
 export interface GrupMerk {
@@ -72,6 +73,12 @@ export function FolderBarangPeminjam({ grup }: Props) {
   const tambah = useKeranjangStore((s) => s.tambah);
   const hapus = useKeranjangStore((s) => s.hapus);
 
+  // Dialog peringatan kondisi rusak berat
+  const [dialogRusakBerat, setDialogRusakBerat] = useState<{ terbuka: boolean; barang: Barang | null }>({
+    terbuka: false,
+    barang: null,
+  });
+
   // Hindari hydration mismatch
   const [mounted, setMounted] = useState(false);
   useEffect(() => setMounted(true), []);
@@ -105,16 +112,30 @@ export function FolderBarangPeminjam({ grup }: Props) {
         notify.gagal('Stok barang ini sudah habis.');
         return;
       }
+      // Peringatan jika kondisi rusak berat
+      if (barang.kondisi === 'RUSAK_BERAT') {
+        setDialogRusakBerat({ terbuka: true, barang });
+        return;
+      }
       tambah(barang);
-      notify.sukses(`"${barang.nama}" ditambahkan ke keranjang.`);
+      notify.suksess(`"${barang.nama}" ditambahkan ke keranjang.`);
     }
   };
 
+  // Tangani konfirmasi dari dialog rusak berat
+  const handleKonfirmasiRusakBerat = () => {
+    if (dialogRusakBerat.barang) {
+      tambah(dialogRusakBerat.barang);
+      notify.suksess(`"${dialogRusakBerat.barang.nama}" ditambahkan ke keranjang.`);
+    }
+    setDialogRusakBerat({ terbuka: false, barang: null });
+  };
+
   // Tambah semua unit tersedia di folder ke keranjang
-  const [sedangTambahSemua, setSedangTambahSemua] = useState<Set<string>>(new Set());
+  const [sedangProses, setSedangProses] = useState<Set<string>>(new Set());
   const tambahSemuaFolder = (g: GrupMerk) => {
     if (!mounted) return;
-    setSedangTambahSemua((lama) => new Set(lama).add(g.merk));
+    setSedangProses((lama) => new Set(lama).add(g.merk));
 
     const tersedia = g.items.filter((b) => b.jumlahTersedia > 0);
     let berhasil = 0;
@@ -123,6 +144,16 @@ export function FolderBarangPeminjam({ grup }: Props) {
     for (const barang of tersedia) {
       if (!items[barang.id]) {
         if (barang.jumlahTersedia > 0) {
+          // Peringatan jika kondisi rusak berat
+          if (barang.kondisi === 'RUSAK_BERAT') {
+            setDialogRusakBerat({ terbuka: true, barang });
+            setSedangProses((lama) => {
+              const baru = new Set(lama);
+              baru.delete(g.merk);
+              return baru;
+            });
+            return;
+          }
           tambah(barang);
           berhasil++;
         }
@@ -133,14 +164,14 @@ export function FolderBarangPeminjam({ grup }: Props) {
     }
 
     setTimeout(() => {
-      setSedangTambahSemua((lama) => {
+      setSedangProses((lama) => {
         const baru = new Set(lama);
         baru.delete(g.merk);
         return baru;
       });
 
       if (berhasil > 0) {
-        notify.sukses(`Berhasil menambahkan ${berhasil} unit dari folder "${g.merk}" ke keranjang.`);
+        notify.suksess(`Berhasil menambahkan ${berhasil} unit dari folder "${g.merk}" ke keranjang.`);
       }
       if (gagal > 0) {
         notify.info(`${gagal} unit sudah ada di keranjang, dilewati.`);
@@ -151,6 +182,37 @@ export function FolderBarangPeminjam({ grup }: Props) {
     }, 100);
   };
 
+  // Hapus semua unit dari folder di keranjang
+  const hapusSemuaFolder = (g: GrupMerk) => {
+    if (!mounted) return;
+    setSedangProses((lama) => new Set(lama).add(g.merk));
+
+    let berhasil = 0;
+    for (const barang of g.items) {
+      if (items[barang.id]) {
+        hapus(barang.id);
+        berhasil++;
+      }
+    }
+
+    setTimeout(() => {
+      setSedangProses((lama) => {
+        const baru = new Set(lama);
+        baru.delete(g.merk);
+        return baru;
+      });
+
+      if (berhasil > 0) {
+        notify.suksess(`Berhasil menghapus ${berhasil} unit dari folder "${g.merk}" dari keranjang.`);
+      }
+    }, 100);
+  };
+
+  // Cek apakah ada unit di folder yang sudah di keranjang
+  const adaDiKeranjang = (g: GrupMerk) => {
+    return g.items.some((b) => !!items[b.id]);
+  };
+
   // Cek apakah semua unit di folder sudah di keranjang
   const semuaSudahDiKeranjang = (g: GrupMerk) => {
     return g.items.every((b) => b.jumlahTersedia < 1 || !!items[b.id]);
@@ -158,6 +220,14 @@ export function FolderBarangPeminjam({ grup }: Props) {
 
   return (
     <>
+      {/* Dialog peringatan kondisi rusak berat */}
+      <PeringatanKondisiDialog
+        terbuka={dialogRusakBerat.terbuka}
+        onUbahTerbuka={(o) => setDialogRusakBerat({ terbuka: o, barang: dialogRusakBerat.barang })}
+        namaBarang={dialogRusakBerat.barang?.nama || ''}
+        onKonfirmasi={handleKonfirmasiRusakBerat}
+      />
+
       <div className="flex justify-end">
         <Button variant="ghost" size="sm" onClick={bukaTutupSemua}>
           {semuaTerbuka ? 'Tutup semua folder' : 'Buka semua folder'}
@@ -167,6 +237,10 @@ export function FolderBarangPeminjam({ grup }: Props) {
       <div className="space-y-3">
         {grup.map((g) => {
           const aktif = terbuka.has(g.merk);
+          const adaDiKeranjangFolder = adaDiKeranjang(g);
+          const semuaDiKeranjangFolder = semuaSudahDiKeranjang(g);
+          const dalamProses = sedangProses.has(g.merk);
+
           return (
             <div key={g.merk} className="overflow-hidden rounded-xl border bg-card">
               {/* Header folder */}
@@ -187,28 +261,46 @@ export function FolderBarangPeminjam({ grup }: Props) {
                 </div>
                 <Badge className="border-primary/20 bg-primary/10 text-primary">{g.totalUnit} unit</Badge>
                 {aktif && g.totalTersedia > 0 && (
-                  <Button
-                    type="button"
-                    size="sm"
-                    variant={semuaSudahDiKeranjang(g) ? 'secondary' : 'default'}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      if (!semuaSudahDiKeranjang(g)) {
-                        tambahSemuaFolder(g);
-                      }
-                    }}
-                    disabled={sedangTambahSemua.has(g.merk)}
-                    className="shrink-0"
-                  >
-                    {sedangTambahSemua.has(g.merk) ? (
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                    ) : semuaSudahDiKeranjang(g) ? (
-                      <Check className="h-4 w-4" />
+                  <div className="flex gap-2 shrink-0" onClick={(e) => e.stopPropagation()}>
+                    {dalamProses ? (
+                      <Button size="sm" variant="secondary" disabled className="min-w-[120px]">
+                        <Loader2 className="h-4 w-4 animate-spin" /> Memuat...
+                      </Button>
+                    ) : adaDiKeranjangFolder ? (
+                      // Mode: ada barang di keranjang - tampilkan tombol hapus semua
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="destructive"
+                        onClick={() => hapusSemuaFolder(g)}
+                        className="min-w-[120px]"
+                      >
+                        <Trash2 className="h-4 w-4" /> Hapus Semua
+                      </Button>
+                    ) : semuaDiKeranjangFolder ? (
+                      // Mode: semua sudah di keranjang
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="secondary"
+                        disabled
+                        className="min-w-[120px]"
+                      >
+                        <Check className="h-4 w-4" /> Semua Ditambahkan
+                      </Button>
                     ) : (
-                      <Plus className="h-4 w-4" />
+                      // Mode: belum ada yang di keranjang - tampilkan tombol tambah semua
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="default"
+                        onClick={() => tambahSemuaFolder(g)}
+                        className="min-w-[120px]"
+                      >
+                        <Plus className="h-4 w-4" /> Tambah Semua
+                      </Button>
                     )}
-                    {sedangTambahSemua.has(g.merk) ? 'Memuat...' : semuaSudahDiKeranjang(g) ? 'Semua Ditambahkan' : 'Tambah Semua'}
-                  </Button>
+                  </div>
                 )}
                 <ChevronDown
                   className={cn('h-4 w-4 shrink-0 text-muted-foreground transition-transform', aktif && 'rotate-180')}

@@ -68,7 +68,7 @@ export function ImportPeminjamDialog({ onSelesai }: Props) {
       const adaPerubahan =
         res.akunDitambahkan > 0 || res.akunDiperbarui > 0 || res.peminjamanDibuat > 0;
       if (adaPerubahan) {
-        notify.sukses(
+        notify.suksess(
           `Sinkron: +${res.akunDitambahkan} akun baru, ${res.akunDiperbarui} diperbarui, ${res.peminjamanDibuat} peminjaman dibuat.`
         );
         onSelesai?.();

@@ -85,7 +85,7 @@ export default function DetailRiwayatPage() {
       setData(hasil);
       setDialogKembali(false);
       setFileKembali(null);
-      notify.sukses('Permintaan pengembalian terkirim. Menunggu konfirmasi admin.');
+      notify.suksess('Permintaan pengembalian terkirim. Menunggu konfirmasi admin.');
     } catch (error) {
       notify.gagal(ambilPesanError(error, 'Gagal mengajukan pengembalian.'));
     } finally {

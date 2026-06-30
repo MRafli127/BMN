@@ -66,7 +66,7 @@ export function ImportBarangDialog({ onSelesai }: Props) {
       setHasil(res);
       const adaPerubahan = res.ditambahkan + res.diperbarui + res.dihapus > 0;
       if (adaPerubahan) {
-        notify.sukses(
+        notify.suksess(
           `Impor: +${res.ditambahkan} baru, ${res.diperbarui} diperbarui, ${res.dihapus} dihapus.`
         );
         onSelesai?.();

@@ -145,7 +145,7 @@ export default function KeranjangPage() {
         tanggalKembaliRencana={tglKembali || undefined}
         onKembali={() => setLangkah('tinjau')}
         onSelesai={(p) => {
-          notify.sukes('Pengajuan peminjaman berhasil dikirim!');
+          notify.suksess('Pengajuan peminjaman berhasil dikirim!');
           kosongkan();
           router.push(RUTE.peminjamRiwayatReview(p.id));
         }}
