@@ -2,19 +2,23 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { ArrowLeft, Package } from 'lucide-react';
+import { ArrowLeft, Package, Trash2, X } from 'lucide-react';
 import Link from 'next/link';
 import { Icon } from '@/components/ui/icon';
 import { LoadingSpinner } from '@/components/shared/LoadingSpinner';
 import { EmptyState } from '@/components/shared/EmptyState';
 import { TabelPeminjaman } from '@/components/peminjaman/TabelPeminjaman';
+import { TabelDaftarPeminjam, type PeminjamRow } from '@/components/peminjaman/TabelDaftarPeminjam';
+import { KonfirmasiDialog } from '@/components/shared/KonfirmasiDialog';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table';
-import { urlFile } from '@/lib/utils';
+import { notify } from '@/components/ui/toast';
+import { urlFile, ambilPesanError } from '@/lib/utils';
 import { JENIS_BARANG, KONDISI_BARANG } from '@/constants/status';
 import { dashboardService, type KategoriDashboard, type ResponseKategori } from '@/services/dashboard.service';
-import { useQuery } from '@/lib/cache';
+import { userManagementService } from '@/services/userManagement.service';
+import { useQuery, invalidasiCache } from '@/lib/cache';
 import { RUTE } from '@/constants/routes';
 import type { Barang } from '@/types/barang.type';
 import type { Peminjaman } from '@/types/peminjaman.type';
@@ -39,6 +43,12 @@ export default function KategoriDashboardPage() {
   const [cari, setCari] = useState('');
   const [cariDebounced, setCariDebounced] = useState('');
 
+  // State fitur hapus peminjam (mengikuti pola Manajemen Peminjaman): hapus
+  // per-baris ditangani di dalam tabel, hapus massal lewat seleksi checkbox.
+  const [terpilih, setTerpilih] = useState<string[]>([]);
+  const [dialogMassal, setDialogMassal] = useState(false);
+  const [sedangMassal, setSedangMassal] = useState(false);
+
   const info = INFO_KATEGORI[kategori] || INFO_KATEGORI.semua;
   const adalahBarang = kategori === 'barang';
   const adalahPeminjam = kategori === 'peminjam';
@@ -59,7 +69,7 @@ export default function KategoriDashboardPage() {
     () => `kategori:${kategori}:${halaman}:${limit}:${qCari}`,
     [kategori, halaman, limit, qCari]
   );
-  const { data, sedangMemuat: memuat, error } = useQuery<ResponseKategori>(
+  const { data, sedangMemuat: memuat, error, refetch } = useQuery<ResponseKategori>(
     key,
     () => dashboardService.ambilKategori(kategori, halaman, limit, qCari)
   );
@@ -68,6 +78,38 @@ export default function KategoriDashboardPage() {
   useEffect(() => {
     if (error) router.push(RUTE.adminDashboard);
   }, [error, router]);
+
+  // Reset pilihan setiap kali data dimuat ulang / halaman berubah.
+  useEffect(() => {
+    setTerpilih([]);
+  }, [data]);
+
+  // Bersihkan cache daftar peminjam & statistik dashboard, lalu muat ulang.
+  const segarkanData = () => {
+    invalidasiCache('kategori:peminjam');
+    invalidasiCache('dashboard-admin');
+    refetch();
+  };
+
+  // Hapus peminjam terpilih sekaligus (yang punya peminjaman aktif dilewati).
+  const hapusMassal = async () => {
+    setSedangMassal(true);
+    try {
+      const { dihapus, dilewati } = await userManagementService.hapusMassal(terpilih);
+      if (dilewati > 0) {
+        notify.info(`${dihapus} peminjam dihapus, ${dilewati} dilewati karena masih punya peminjaman aktif.`);
+      } else {
+        notify.sukses(`${dihapus} peminjam berhasil dihapus.`);
+      }
+      setDialogMassal(false);
+      setTerpilih([]);
+      segarkanData();
+    } catch (error) {
+      notify.gagal(ambilPesanError(error, 'Gagal menghapus peminjam terpilih.'));
+    } finally {
+      setSedangMassal(false);
+    }
+  };
 
   // Spinner layar penuh hanya saat pemuatan awal; saat mencari, biarkan
   // toolbar tetap terpasang agar fokus input tidak hilang.
@@ -213,33 +255,27 @@ export default function KategoriDashboardPage() {
           </Table>
         </div>
       ) : adalahPeminjam ? (
-        <div className="rounded-xl border bg-card">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead className="w-16">#</TableHead>
-                <TableHead>Nama</TableHead>
-                <TableHead>NIP</TableHead>
-                <TableHead>Eselon III</TableHead>
-                <TableHead>Eselon IV</TableHead>
-                <TableHead>Email</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {(items as { id: string; nama: string; nip: string; email: string; jabatan: string | null; unitKerja: string | null }[]).map(
-                (user, index) => (
-                  <TableRow key={user.id}>
-                    <TableCell className="text-muted-foreground">{(halaman - 1) * limit + index + 1}</TableCell>
-                    <TableCell className="font-medium text-on-surface">{user.nama}</TableCell>
-                    <TableCell className="font-mono text-sm text-primary">{user.nip}</TableCell>
-                    <TableCell className="text-sm text-on-surface-variant">{user.unitKerja || '-'}</TableCell>
-                    <TableCell className="text-sm text-on-surface-variant">{user.jabatan || '-'}</TableCell>
-                    <TableCell className="text-sm text-on-surface-variant">{user.email}</TableCell>
-                  </TableRow>
-                )
-              )}
-            </TableBody>
-          </Table>
+        <div className="space-y-3">
+          {/* Bilah aksi massal — muncul saat ada baris terpilih */}
+          {terpilih.length > 0 && (
+            <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-outline-variant bg-primary/5 p-3">
+              <span className="text-sm font-medium text-on-surface">{terpilih.length} peminjam dipilih</span>
+              <div className="flex items-center gap-2">
+                <Button variant="outline" size="sm" onClick={() => setTerpilih([])}>
+                  <X className="h-4 w-4" /> Batal
+                </Button>
+                <Button variant="destructive" size="sm" onClick={() => setDialogMassal(true)}>
+                  <Trash2 className="h-4 w-4" /> Hapus Terpilih
+                </Button>
+              </div>
+            </div>
+          )}
+          <TabelDaftarPeminjam
+            data={items as PeminjamRow[]}
+            nomorAwal={(halaman - 1) * limit}
+            terpilih={terpilih}
+            onUbahTerpilih={setTerpilih}
+          />
         </div>
       ) : (
         <div className="rounded-xl border bg-card p-4">
@@ -273,6 +309,18 @@ export default function KategoriDashboardPage() {
           </button>
         </div>
       )}
+
+      {/* Dialog konfirmasi hapus massal peminjam terpilih */}
+      <KonfirmasiDialog
+        terbuka={dialogMassal}
+        onUbahTerbuka={(o) => !o && setDialogMassal(false)}
+        judul="Hapus Peminjam Terpilih"
+        deskripsi={`Hapus ${terpilih.length} peminjam yang dipilih? Seluruh riwayat peminjamannya ikut terhapus. Peminjam yang masih memiliki peminjaman aktif akan dilewati. Tindakan ini tidak dapat dibatalkan.`}
+        teksKonfirmasi={`Ya, Hapus ${terpilih.length} Peminjam`}
+        variantKonfirmasi="destructive"
+        sedangProses={sedangMassal}
+        onKonfirmasi={hapusMassal}
+      />
     </div>
   );
 }
