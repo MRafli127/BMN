@@ -1,9 +1,7 @@
 // ============================================================
 //  Langkah Surat Pernyataan - Design User-Friendly.
-//   Layout vertikal: Data peminjam, barang, unggah surat.
-//   Alur: peminjam mengunduh surat pernyataan, menandatanganinya
-//   sendiri (manual/elektronik), lalu mengunggahnya kembali (PDF)
-//   sebelum mengirim pengajuan.
+//   Layout: Data peminjam & form tanda tangan bersebelahan,
+//   preview surat pernyataan full-width di bawah.
 // ============================================================
 
 'use client';
@@ -106,16 +104,6 @@ export function LangkahSuratPernyataan({
     }
   };
 
-  const formatTanggal = (tgl?: string) => {
-    if (!tgl) return '-';
-    const date = new Date(tgl);
-    return date.toLocaleDateString('id-ID', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
-    });
-  };
-
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -137,201 +125,148 @@ export function LangkahSuratPernyataan({
         )}
       </div>
 
-      {/* Main Content - 2 Columns */}
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-5">
-        {/* KIRI: Form (3/5) */}
-        <div className="space-y-5 lg:col-span-3">
-          {/* Data Peminjam */}
-          <Card className="border-l-4 border-l-primary">
-            <CardHeader className="pb-3">
-              <CardTitle className="text-lg">Data Peminjam</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-1 gap-3 text-base sm:grid-cols-3">
-                <div>
-                  <span className="text-sm text-muted-foreground">Nama</span>
-                  <p className="font-semibold">{user?.nama ?? '-'}</p>
-                </div>
-                <div>
-                  <span className="text-sm text-muted-foreground">NIP</span>
-                  <p className="font-semibold">{user?.nip ?? '-'}</p>
-                </div>
-                <div>
-                  <span className="text-sm text-muted-foreground">Unit Kerja</span>
-                  <p className="font-semibold">{user?.unitKerjaPegawai ?? user?.unitKerja ?? '-'}</p>
-                </div>
+      {/* Data Peminjam & Tanda Tangan - Side by Side */}
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+        {/* Data Peminjam */}
+        <Card className="border-l-4 border-l-primary">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-lg">Data Peminjam</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 gap-3 text-base sm:grid-cols-3 lg:grid-cols-1">
+              <div>
+                <span className="text-sm text-muted-foreground">Nama</span>
+                <p className="font-semibold">{user?.nama ?? '-'}</p>
               </div>
-            </CardContent>
-          </Card>
+              <div>
+                <span className="text-sm text-muted-foreground">NIP</span>
+                <p className="font-semibold">{user?.nip ?? '-'}</p>
+              </div>
+              <div>
+                <span className="text-sm text-muted-foreground">Unit Kerja</span>
+                <p className="font-semibold">{user?.unitKerjaPegawai ?? user?.unitKerja ?? '-'}</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
 
-          {/* Barang Dipinjam */}
-          <Card className="border-l-4 border-l-primary">
-            <CardHeader className="pb-3">
-              <div className="flex items-center justify-between">
-                <CardTitle className="text-lg">Barang Dipinjam</CardTitle>
-                <span className="flex h-8 min-w-[2rem] items-center justify-center rounded-full bg-primary px-3 text-sm font-bold text-white">
-                  {items.length}
-                </span>
-              </div>
-            </CardHeader>
-            <CardContent>
-              <div className="max-h-40 space-y-2 overflow-y-auto">
-                {items.map((item, index) => (
-                  <div
-                    key={`${item.barangId}-${index}`}
-                    className="flex items-center justify-between rounded-lg bg-muted/60 px-4 py-3"
-                  >
-                    <div className="flex items-center gap-3">
-                      <span className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10 text-sm font-bold text-primary">
-                        {index + 1}
-                      </span>
-                      <span className="font-medium">
-                        {'namaBarang' in item ? item.namaBarang : `Barang #${index + 1}`}
-                      </span>
-                    </div>
-                    <span className="text-lg font-bold text-muted-foreground">x{item.jumlahPinjam}</span>
-                  </div>
-                ))}
-              </div>
-              {(tanggalPinjamRencana || tanggalKembaliRencana) && (
-                <div className="mt-4 grid grid-cols-2 gap-4 border-t pt-4 text-sm">
-                  {tanggalPinjamRencana && (
-                    <div>
-                      <span className="text-muted-foreground">Tanggal Pinjam:</span>{' '}
-                      <span className="font-medium">{formatTanggal(tanggalPinjamRencana)}</span>
-                    </div>
-                  )}
-                  {tanggalKembaliRencana && (
-                    <div>
-                      <span className="text-muted-foreground">Rencana Kembali:</span>{' '}
-                      <span className="font-medium">{formatTanggal(tanggalKembaliRencana)}</span>
-                    </div>
-                  )}
+        {/* Tanda Tangan & Unggah Surat */}
+        <Card className="border-l-4 border-l-red-500">
+          <CardHeader className="pb-3">
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-lg">Tanda Tangan &amp; Unggah Surat</CardTitle>
+              <span className="rounded bg-red-500 px-3 py-1 text-sm font-semibold text-white">WAJIB</span>
+            </div>
+            <p className="text-sm text-muted-foreground">
+              Unduh surat pernyataan, tanda tangani secara manual/elektronik, lalu unggah kembali.
+            </p>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {/* Langkah 1 — unduh surat */}
+            <div className="space-y-2">
+              <p className="text-sm font-medium text-foreground">
+                1. Unduh Surat Pernyataan Peminjaman
+              </p>
+              {memuatSurat ? (
+                <Button variant="outline" size="sm" disabled>
+                  <Loader2 className="h-4 w-4 animate-spin" /> Menyiapkan surat…
+                </Button>
+              ) : suratUrl ? (
+                <Button asChild variant="outline" size="sm">
+                  <a href={suratUrl} download="surat-pernyataan-peminjaman.pdf">
+                    <Download className="h-4 w-4" /> Unduh Surat
+                  </a>
+                </Button>
+              ) : (
+                <p className="text-xs text-muted-foreground">Surat belum tersedia.</p>
+              )}
+            </div>
+
+            {/* Langkah 2 — tanda tangani */}
+            <div className="space-y-1 border-t pt-3">
+              <p className="text-sm font-medium text-foreground">
+                2. Tanda tangani surat secara manual/elektronik
+              </p>
+              <p className="text-xs text-muted-foreground">
+                Bubuhkan tanda tangan Anda pada surat sebagai persetujuan peminjaman.
+              </p>
+            </div>
+
+            {/* Langkah 3 — unggah surat yang sudah ditandatangani */}
+            <div className="space-y-2 border-t pt-3">
+              <p className="text-sm font-medium text-foreground">
+                3. Unggah surat yang sudah ditandatangani (PDF)
+              </p>
+              <input
+                ref={fileRef}
+                type="file"
+                accept="application/pdf"
+                onChange={pilihBerkas}
+                className="hidden"
+              />
+              <Button variant="outline" size="sm" className="w-full" onClick={() => fileRef.current?.click()}>
+                <Upload className="h-4 w-4" /> {berkas ? 'Ganti Berkas' : 'Pilih Berkas PDF'}
+              </Button>
+              {berkas && (
+                <div className="flex items-center gap-2 rounded-lg bg-green-50 p-2 text-sm text-green-800">
+                  <CheckCircle2 className="h-4 w-4 shrink-0" />
+                  <span className="truncate">{berkas.name}</span>
                 </div>
               )}
-            </CardContent>
-          </Card>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
 
-          {/* Tanda Tangan & Unggah Surat */}
-          <Card className="border-l-4 border-l-red-500">
-            <CardHeader className="pb-3">
-              <div className="flex items-center justify-between">
-                <CardTitle className="text-lg">Tanda Tangan &amp; Unggah Surat</CardTitle>
-                <span className="rounded bg-red-500 px-3 py-1 text-sm font-semibold text-white">WAJIB</span>
-              </div>
-              <p className="text-sm text-muted-foreground">
-                Unduh surat pernyataan, tanda tangani secara manual/elektronik, lalu unggah kembali.
-              </p>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              {/* Langkah 1 — unduh surat */}
-              <div className="space-y-2">
-                <p className="text-sm font-medium text-foreground">
-                  1. Unduh Surat Pernyataan Peminjaman
-                </p>
-                {memuatSurat ? (
-                  <Button variant="outline" size="sm" disabled>
-                    <Loader2 className="h-4 w-4 animate-spin" /> Menyiapkan surat…
-                  </Button>
-                ) : suratUrl ? (
-                  <Button asChild variant="outline" size="sm">
-                    <a href={suratUrl} download="surat-pernyataan-peminjaman.pdf">
-                      <Download className="h-4 w-4" /> Unduh Surat
+      {/* Preview Surat Pernyataan - Full Width, Larger */}
+      <Card className="border-l-4 border-l-primary">
+        <CardHeader className="pb-3">
+          <div className="flex items-center justify-between">
+            <CardTitle className="text-lg">Preview Surat Pernyataan</CardTitle>
+            <div className="flex gap-2">
+              {suratUrl && (
+                <>
+                  <Button asChild variant="ghost" size="sm">
+                    <a href={suratUrl} target="_blank" rel="noreferrer">
+                      <ExternalLink className="h-4 w-4" />
                     </a>
                   </Button>
-                ) : (
-                  <p className="text-xs text-muted-foreground">Surat belum tersedia.</p>
-                )}
-              </div>
-
-              {/* Langkah 2 — tanda tangani */}
-              <div className="space-y-1 border-t pt-3">
-                <p className="text-sm font-medium text-foreground">
-                  2. Tanda tangani surat secara manual/elektronik
-                </p>
-                <p className="text-xs text-muted-foreground">
-                  Bubuhkan tanda tangan Anda pada surat sebagai persetujuan peminjaman.
-                </p>
-              </div>
-
-              {/* Langkah 3 — unggah surat yang sudah ditandatangani */}
-              <div className="space-y-2 border-t pt-3">
-                <p className="text-sm font-medium text-foreground">
-                  3. Unggah surat yang sudah ditandatangani (PDF)
-                </p>
-                <input
-                  ref={fileRef}
-                  type="file"
-                  accept="application/pdf"
-                  onChange={pilihBerkas}
-                  className="hidden"
-                />
-                <Button variant="outline" size="sm" className="w-full" onClick={() => fileRef.current?.click()}>
-                  <Upload className="h-4 w-4" /> {berkas ? 'Ganti Berkas' : 'Pilih Berkas PDF'}
-                </Button>
-                {berkas && (
-                  <div className="flex items-center gap-2 rounded-lg bg-green-50 p-2 text-sm text-green-800">
-                    <CheckCircle2 className="h-4 w-4 shrink-0" />
-                    <span className="truncate">{berkas.name}</span>
-                  </div>
-                )}
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* KANAN: Preview Surat (2/5) */}
-        <div className="lg:col-span-2">
-          <Card className="h-full">
-            <CardHeader className="pb-3">
-              <div className="flex items-center justify-between">
-                <CardTitle className="text-lg">Preview Surat Pernyataan</CardTitle>
-                <div className="flex gap-2">
-                  {suratUrl && (
-                    <>
-                      <Button asChild variant="ghost" size="sm">
-                        <a href={suratUrl} target="_blank" rel="noreferrer">
-                          <ExternalLink className="h-4 w-4" />
-                        </a>
-                      </Button>
-                      <Button asChild variant="outline" size="sm">
-                        <a href={suratUrl} download="surat-pernyataan-peminjaman.pdf">
-                          <Download className="h-4 w-4" />
-                          Unduh
-                        </a>
-                      </Button>
-                    </>
-                  )}
-                </div>
-              </div>
-            </CardHeader>
-            <CardContent className="p-0">
-              {memuatSurat ? (
-                <div className="flex h-[400px] items-center justify-center">
-                  <span className="flex items-center gap-3 text-base text-muted-foreground">
-                    <Loader2 className="h-5 w-5 animate-spin" />
-                    Menyiapkan surat...
-                  </span>
-                </div>
-              ) : gagalSurat ? (
-                <div className="flex h-[200px] flex-col items-center justify-center gap-4">
-                  <p className="text-base text-muted-foreground">Surat gagal dibuat.</p>
-                  <Button variant="outline" onClick={buatSurat}>
-                    <RefreshCw className="h-4 w-4" />
-                    Coba Lagi
+                  <Button asChild variant="outline" size="sm">
+                    <a href={suratUrl} download="surat-pernyataan-peminjaman.pdf">
+                      <Download className="h-4 w-4" />
+                      Unduh
+                    </a>
                   </Button>
-                </div>
-              ) : suratUrl ? (
-                <iframe
-                  src={suratUrl}
-                  title="Surat Pernyataan Peminjaman"
-                  className="h-[500px] w-full rounded-b-lg border-0"
-                />
-              ) : null}
-            </CardContent>
-          </Card>
-        </div>
-      </div>
+                </>
+              )}
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent className="p-0">
+          {memuatSurat ? (
+            <div className="flex h-[500px] items-center justify-center">
+              <span className="flex items-center gap-3 text-base text-muted-foreground">
+                <Loader2 className="h-5 w-5 animate-spin" />
+                Menyiapkan surat...
+              </span>
+            </div>
+          ) : gagalSurat ? (
+            <div className="flex h-[300px] flex-col items-center justify-center gap-4">
+              <p className="text-base text-muted-foreground">Surat gagal dibuat.</p>
+              <Button variant="outline" onClick={buatSurat}>
+                <RefreshCw className="h-4 w-4" />
+                Coba Lagi
+              </Button>
+            </div>
+          ) : suratUrl ? (
+            <iframe
+              src={suratUrl}
+              title="Surat Pernyataan Peminjaman"
+              className="h-[700px] w-full rounded-b-lg border-0"
+            />
+          ) : null}
+        </CardContent>
+      </Card>
 
       {/* Action */}
       <div className="flex items-center justify-end border-t pt-6">
