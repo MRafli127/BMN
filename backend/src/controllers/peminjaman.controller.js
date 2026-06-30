@@ -8,6 +8,12 @@ function pathDokumen(file) {
   return file ? bufferKeDataUrl(file.buffer, file.mimetype) : null;
 }
 
+// Helper untuk ekstrak signature dari request body (multipart/form-data)
+function getSignatureDataUrl(req) {
+  // signatureDataUrl dikirim sebagai field teks biasa (bukan file upload)
+  return req.body.signatureDataUrl || null;
+}
+
 // Helper untuk ekstrak info request
 function getRequestInfo(req) {
   return {
@@ -17,7 +23,13 @@ function getRequestInfo(req) {
 }
 
 const create = asyncHandler(async (req, res) => {
-  const peminjaman = await peminjamanService.create(req.user.id, req.body, pathDokumen(req.file), getRequestInfo(req));
+  const signatureDataUrl = getSignatureDataUrl(req);
+  const peminjaman = await peminjamanService.create(
+    req.user.id,
+    req.body,
+    signatureDataUrl,
+    getRequestInfo(req)
+  );
   return responsSukses(res, {
     pesan: 'Pengajuan peminjaman berhasil dikirim. Menunggu persetujuan admin.',
     data: peminjaman,

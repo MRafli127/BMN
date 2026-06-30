@@ -11,6 +11,7 @@ import { Input, Select } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { TabelPeminjaman } from '@/components/peminjaman/TabelPeminjaman';
 import { ImportPeminjamDialog } from '@/components/peminjaman/ImportPeminjamDialog';
+import { ExportModal } from '@/components/export/ExportModal';
 import { KonfirmasiDialog } from '@/components/shared/KonfirmasiDialog';
 import { LoadingSpinner } from '@/components/shared/LoadingSpinner';
 import { EmptyState } from '@/components/shared/EmptyState';
@@ -123,7 +124,10 @@ export default function AdminPeminjamanPage() {
           <h1 className="font-jakarta text-headline-lg text-primary">Manajemen Peminjaman</h1>
           <p className="text-on-surface-variant">Tinjau, setujui, atau tolak pengajuan peminjaman.</p>
         </div>
-        <ImportPeminjamDialog onSelesai={muat} />
+        <div className="flex flex-wrap gap-2">
+          <ExportModal />
+          <ImportPeminjamDialog onSelesai={muat} />
+        </div>
       </div>
 
       {/* Panel tabel */}

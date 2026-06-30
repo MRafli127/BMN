@@ -37,14 +37,15 @@ export const peminjamanService = {
     return res.data.data.suratUrl;
   },
 
-  // Pengajuan peminjaman (multipart: items JSON + optional surat ber-tanda tangan).
+  // Pengajuan peminjaman (multipart: items JSON + signature digital).
   async create(data: DataPengajuan): Promise<Peminjaman> {
     const fd = new FormData();
     if (data.tanggalPinjamRencana) fd.append('tanggalPinjamRencana', data.tanggalPinjamRencana);
     if (data.tanggalKembaliRencana) fd.append('tanggalKembaliRencana', data.tanggalKembaliRencana);
     fd.append('items', JSON.stringify(data.items));
-    if (data.dokumen) {
-      fd.append('dokumen', data.dokumen);
+    // Signature digital WAJIB - convert canvas ke PNG base64
+    if (data.signatureDataUrl) {
+      fd.append('signatureDataUrl', data.signatureDataUrl);
     }
 
     const res = await api.post('/peminjaman', fd, {
