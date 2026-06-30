@@ -1,9 +1,10 @@
 // ============================================================
 //  Peminjam — Keranjang & Checkout Peminjaman.
-//   Langkah 1: Tinjau barang yang dipilih dari katalog (atur jumlah)
-//              & tentukan tanggal pinjam/kembali.
+//   Langkah 1: Tinjau barang yang dipilih dari katalog.
 //   Langkah 2: Tinjau Surat Pernyataan Peminjaman, unduh & cetak,
 //              tanda tangan fisik, unggah kembali (PDF), lalu ajukan.
+//  Tampilan folder per nama barang (mirip katalog).
+//  Setiap unit barang hanya berjumlah 1.
 // ============================================================
 
 'use client';
@@ -11,16 +12,16 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { ShoppingCart, Trash2, Plus, Minus, Package, ArrowLeft, ArrowRight, FileText } from 'lucide-react';
+import { ShoppingCart, Trash2, ArrowLeft, ArrowRight, FileText } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input, Label } from '@/components/ui/input';
 import { EmptyState } from '@/components/shared/EmptyState';
 import { LoadingSpinner } from '@/components/shared/LoadingSpinner';
 import { notify } from '@/components/ui/toast';
+import { FolderKeranjang } from '@/components/keranjang/FolderKeranjang';
 import { LangkahSuratPernyataan } from '@/components/peminjaman/LangkahSuratPernyataan';
-import { useKeranjangStore } from '@/store/keranjangStore';
-import { urlFile } from '@/lib/utils';
+import { useKeranjangStore, useJumlahKeranjang, useTotalUnitKeranjang } from '@/store/keranjangStore';
 import { RUTE } from '@/constants/routes';
 
 type Langkah = 'tinjau' | 'surat';
@@ -28,8 +29,6 @@ type Langkah = 'tinjau' | 'surat';
 export default function KeranjangPage() {
   const router = useRouter();
   const items = useKeranjangStore((s) => s.items);
-  const ubahJumlah = useKeranjangStore((s) => s.ubahJumlah);
-  const hapus = useKeranjangStore((s) => s.hapus);
   const kosongkan = useKeranjangStore((s) => s.kosongkan);
 
   const [tglPinjam, setTglPinjam] = useState('');
@@ -41,6 +40,8 @@ export default function KeranjangPage() {
   useEffect(() => setMounted(true), []);
 
   const daftar = Object.values(items);
+  const jumlahKeranjang = useJumlahKeranjang();
+  const totalUnit = useTotalUnitKeranjang();
 
   const keSurat = () => {
     if (daftar.length === 0) return notify.gagal('Keranjang masih kosong.');
@@ -59,15 +60,22 @@ export default function KeranjangPage() {
         </Link>
       </Button>
 
-      <div>
-        <h1 className="flex items-center gap-2 text-2xl font-bold text-foreground">
-          <ShoppingCart className="h-6 w-6" /> Keranjang Peminjaman
-        </h1>
-        <p className="text-muted-foreground">
-          {langkah === 'tinjau'
-            ? 'Tinjau barang yang dipilih, lalu lanjut ke surat pernyataan.'
-            : 'Tinjau & cetak surat pernyataan, tanda tangan fisik, unggah kembali, lalu ajukan.'}
-        </p>
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h1 className="flex items-center gap-2 text-2xl font-bold text-foreground">
+            <ShoppingCart className="h-6 w-6" /> Keranjang Peminjaman
+          </h1>
+          <p className="text-muted-foreground">
+            {langkah === 'tinjau'
+              ? 'Tinjau barang yang dipilih, lalu lanjut ke surat pernyataan.'
+              : 'Tinjau & cetak surat pernyataan, tanda tangan fisik, unggah kembali, lalu ajukan.'}
+          </p>
+        </div>
+        {daftar.length > 0 && (
+          <Button variant="ghost" size="sm" className="text-red-600" onClick={kosongkan}>
+            <Trash2 className="h-4 w-4" /> Kosongkan Keranjang
+          </Button>
+        )}
       </div>
 
       {daftar.length === 0 ? (
@@ -82,49 +90,14 @@ export default function KeranjangPage() {
         />
       ) : langkah === 'tinjau' ? (
         <div className="grid grid-cols-1 gap-5 lg:grid-cols-3">
-          {/* Daftar barang */}
-          <div className="space-y-3 lg:col-span-2">
-            <div className="flex items-center justify-between">
-              <Label>Barang Dipilih ({daftar.length})</Label>
-              <Button variant="ghost" size="sm" className="text-red-600" onClick={kosongkan}>
-                <Trash2 className="h-4 w-4" /> Kosongkan
-              </Button>
+          {/* Folder barang */}
+          <div className="lg:col-span-2">
+            <div className="mb-3 flex items-center justify-between">
+              <Label className="text-base font-semibold">
+                {jumlahKeranjang} unit barang dipilih
+              </Label>
             </div>
-
-            {daftar.map((it) => (
-              <Card key={it.barangId}>
-                <CardContent className="flex items-center gap-3 p-3">
-                  <div className="h-14 w-14 shrink-0 overflow-hidden rounded-md bg-muted">
-                    {it.fotoUrl ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img src={urlFile(it.fotoUrl)} alt={it.nama} className="h-full w-full object-cover" />
-                    ) : (
-                      <div className="flex h-full w-full items-center justify-center text-muted-foreground">
-                        <Package className="h-6 w-6" />
-                      </div>
-                    )}
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-semibold text-foreground">{it.nama}</p>
-                    {it.merk && <p className="truncate text-xs text-muted-foreground">Merk: {it.merk}</p>}
-                    <p className="truncate font-mono text-xs text-muted-foreground">{it.kodeBarang}</p>
-                    <p className="text-xs text-muted-foreground">Tersedia: {it.jumlahTersedia}</p>
-                  </div>
-                  <div className="flex items-center gap-1">
-                    <Button type="button" size="icon" variant="outline" className="h-7 w-7" onClick={() => ubahJumlah(it.barangId, it.jumlah - 1)}>
-                      <Minus className="h-3 w-3" />
-                    </Button>
-                    <span className="w-8 text-center text-sm font-semibold">{it.jumlah}</span>
-                    <Button type="button" size="icon" variant="outline" className="h-7 w-7" onClick={() => ubahJumlah(it.barangId, it.jumlah + 1)}>
-                      <Plus className="h-3 w-3" />
-                    </Button>
-                  </div>
-                  <Button type="button" size="icon" variant="ghost" className="h-7 w-7 text-red-600" onClick={() => hapus(it.barangId)} aria-label="Hapus">
-                    <Trash2 className="h-3.5 w-3.5" />
-                  </Button>
-                </CardContent>
-              </Card>
-            ))}
+            <FolderKeranjang />
           </div>
 
           {/* Ringkasan & lanjut */}
@@ -146,12 +119,8 @@ export default function KeranjangPage() {
                 </div>
 
                 <div className="flex items-center justify-between border-t pt-3 text-sm">
-                  <span className="text-muted-foreground">Total jenis barang</span>
-                  <span className="font-semibold text-foreground">{daftar.length}</span>
-                </div>
-                <div className="flex items-center justify-between text-sm">
-                  <span className="text-muted-foreground">Total unit</span>
-                  <span className="font-semibold text-foreground">{daftar.reduce((t, it) => t + it.jumlah, 0)}</span>
+                  <span className="text-muted-foreground">Total unit dipilih</span>
+                  <span className="font-semibold text-foreground">{totalUnit}</span>
                 </div>
 
                 <Button className="w-full" onClick={keSurat}>
@@ -164,7 +133,7 @@ export default function KeranjangPage() {
         </div>
       ) : (
         <LangkahSuratPernyataan
-          items={daftar.map((it) => ({ barangId: it.barangId, jumlahPinjam: it.jumlah }))}
+          items={daftar.map((it) => ({ barangId: it.barangId, jumlahPinjam: it.jumlah, namaBarang: it.nama }))}
           tanggalPinjamRencana={tglPinjam || undefined}
           tanggalKembaliRencana={tglKembali || undefined}
           onKembali={() => setLangkah('tinjau')}

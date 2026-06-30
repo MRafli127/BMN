@@ -57,7 +57,7 @@ export interface DataPengajuan {
   tanggalPinjamRencana?: string;
   tanggalKembaliRencana?: string;
   items: ItemPengajuan[];
-  dokumen: File; // Surat Pernyataan Peminjaman (PDF) yang sudah ditandatangani fisik
+  dokumen?: File; // Surat pernyataan yang sudah ditandatangani peminjam (PDF) - WAJIB
 }
 
 // Payload pratinjau surat pernyataan (sebelum pengajuan dibuat).
@@ -65,4 +65,13 @@ export interface DataPreviewSurat {
   tanggalPinjamRencana?: string;
   tanggalKembaliRencana?: string;
   items: ItemPengajuan[];
+}
+
+// Payload pengajuan peminjaman (multipart: items JSON + dokumen surat
+// pernyataan yang sudah ditandatangani).
+export interface DataPengajuan {
+  tanggalPinjamRencana?: string;
+  tanggalKembaliRencana?: string;
+  items: ItemPengajuan[];
+  dokumen?: File; // Surat pernyataan yang sudah ditandatangani peminjam (PDF) - WAJIB
 }

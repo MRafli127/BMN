@@ -2,6 +2,8 @@
 //  Store Keranjang Peminjaman (Zustand + persist).
 //  Menyimpan barang yang dipilih peminjam sebelum diajukan.
 //  Bertahan di localStorage agar tidak hilang saat refresh.
+//  Support MULTI BARANG - user bisa meminjam banyak barang sekaligus.
+//  Setiap unit barang hanya berjumlah 1.
 // ============================================================
 
 'use client';
@@ -18,17 +20,15 @@ export interface ItemKeranjang {
   kodeBarang: string;
   fotoUrl?: string | null;
   jumlahTersedia: number;
-  jumlah: number; // jumlah yang ingin dipinjam
+  jumlah: number; // selalu 1
 }
 
 interface KeranjangState {
   items: Record<string, ItemKeranjang>;
-  /** Tambah barang ke keranjang (default 1 unit, tidak melebihi stok). */
-  tambah: (barang: Barang, jumlah?: number) => void;
+  /** Tambah barang ke keranjang (selalu 1 unit). */
+  tambah: (barang: Barang) => void;
   /** Hapus satu barang dari keranjang. */
   hapus: (barangId: string) => void;
-  /** Ubah jumlah unit suatu barang (dibatasi 1..stok). */
-  ubahJumlah: (barangId: string, jumlah: number) => void;
   /** Kosongkan seluruh keranjang. */
   kosongkan: () => void;
 }
@@ -38,14 +38,20 @@ export const useKeranjangStore = create<KeranjangState>()(
     (set) => ({
       items: {},
 
-      // Hanya boleh 1 barang per pengajuan — menambah barang baru
-      // menggantikan seluruh isi keranjang sebelumnya.
-      tambah: (b, jumlah = 1) =>
+      // MULTI BARANG: menambahkan barang tidak menggantikan yang sudah ada.
+      tambah: (b) =>
         set((s) => {
           if (b.jumlahTersedia < 1) return s; // stok habis
-          const baru = Math.min(b.jumlahTersedia, Math.max(1, jumlah));
+
+          // Jika barang sudah ada, tidak perlu tambahkan lagi
+          if (s.items[b.id]) {
+            return s;
+          }
+
+          // Barang baru, tambahkan ke keranjang
           return {
             items: {
+              ...s.items,
               [b.id]: {
                 barangId: b.id,
                 nama: b.nama,
@@ -53,7 +59,7 @@ export const useKeranjangStore = create<KeranjangState>()(
                 kodeBarang: b.kodeBarang,
                 fotoUrl: b.fotoUrl ?? null,
                 jumlahTersedia: b.jumlahTersedia,
-                jumlah: baru,
+                jumlah: 1, // selalu 1
               },
             },
           };
@@ -66,14 +72,6 @@ export const useKeranjangStore = create<KeranjangState>()(
           return { items: salin };
         }),
 
-      ubahJumlah: (id, jumlah) =>
-        set((s) => {
-          const it = s.items[id];
-          if (!it) return s;
-          const j = Math.min(it.jumlahTersedia, Math.max(1, jumlah));
-          return { items: { ...s.items, [id]: { ...it, jumlah: j } } };
-        }),
-
       kosongkan: () => set({ items: {} }),
     }),
     { name: 'keranjang-peminjam' }
@@ -81,7 +79,7 @@ export const useKeranjangStore = create<KeranjangState>()(
 );
 
 /**
- * Jumlah jenis barang di keranjang, aman dari hydration mismatch
+ * Jumlah unit di keranjang, aman dari hydration mismatch
  * (mengembalikan 0 sampai komponen ter-mount di klien).
  */
 export function useJumlahKeranjang(): number {
@@ -89,4 +87,11 @@ export function useJumlahKeranjang(): number {
   const [mounted, setMounted] = useState(false);
   useEffect(() => setMounted(true), []);
   return mounted ? Object.keys(items).length : 0;
+}
+
+/**
+ * Alias untuk useJumlahKeranjang - total unit = jumlah item
+ */
+export function useTotalUnitKeranjang(): number {
+  return useJumlahKeranjang();
 }

@@ -17,7 +17,13 @@ function getRequestInfo(req) {
 }
 
 const create = asyncHandler(async (req, res) => {
-  const peminjaman = await peminjamanService.create(req.user.id, req.body, pathDokumen(req.file), getRequestInfo(req));
+  // Surat pernyataan yang sudah ditandatangani diunggah sebagai file (field "dokumen").
+  const peminjaman = await peminjamanService.create(
+    req.user.id,
+    req.body,
+    pathDokumen(req.file),
+    getRequestInfo(req)
+  );
   return responsSukses(res, {
     pesan: 'Pengajuan peminjaman berhasil dikirim. Menunggu persetujuan admin.',
     data: peminjaman,
