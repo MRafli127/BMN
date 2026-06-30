@@ -24,6 +24,7 @@ import { notify } from '@/components/ui/toast';
 import { peminjamanService } from '@/services/peminjaman.service';
 import { ambilPesanError } from '@/lib/utils';
 import { useAuth } from '@/hooks/useAuth';
+import { useDebounceSubmit } from '@/hooks/useDebounceSubmit';
 import type { ItemPengajuan, Peminjaman } from '@/types/peminjaman.type';
 
 interface ItemDenganNama extends ItemPengajuan {
@@ -53,7 +54,32 @@ export function LangkahSuratPernyataan({
   const [sedangKirim, setSedangKirim] = useState(false);
   const [berkas, setBerkas] = useState<File | null>(null);
 
-  // Generate surat preview
+  // Anti-spam: cegah submit berkali-kali dalam 2 detik
+  const { callback: ajukan, sedangDiblokir: diblokirSpam } = useDebounceSubmit(
+    async () => {
+      if (!berkas) {
+        notify.gagal('Unggah surat pernyataan yang sudah ditandatangani terlebih dahulu.');
+        return;
+      }
+      setSedangKirim(true);
+      try {
+        const p = await peminjamanService.create({
+          items,
+          tanggalPinjamRencana,
+          tanggalKembaliRencana,
+          dokumen: berkas,
+        });
+        onSelesai(p);
+      } catch (error) {
+        notify.gagal(ambilPesanError(error, 'Gagal mengirim pengajuan.'));
+      } finally {
+        setSedangKirim(false);
+      }
+    },
+    { jeda: 2000 }
+  );
+
+  // Generate surat preview (dengan debounce agar tidak spam saat props berubah)
   const buatSurat = useCallback(() => {
     if (items.length === 0) return;
     setMemuatSurat(true);
@@ -70,7 +96,8 @@ export function LangkahSuratPernyataan({
   }, [items, tanggalPinjamRencana, tanggalKembaliRencana]);
 
   useEffect(() => {
-    buatSurat();
+    const timer = setTimeout(buatSurat, 300);
+    return () => clearTimeout(timer);
   }, [buatSurat]);
 
   const pilihBerkas = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -81,27 +108,6 @@ export function LangkahSuratPernyataan({
       return;
     }
     setBerkas(f);
-  };
-
-  // Submit
-  const ajukan = async () => {
-    if (!berkas) return notify.gagal('Unggah surat pernyataan yang sudah ditandatangani terlebih dahulu.');
-
-    setSedangKirim(true);
-    try {
-      const p = await peminjamanService.create({
-        items,
-        tanggalPinjamRencana,
-        tanggalKembaliRencana,
-        dokumen: berkas,
-      });
-
-      onSelesai(p);
-    } catch (error) {
-      notify.gagal(ambilPesanError(error, 'Gagal mengirim pengajuan.'));
-    } finally {
-      setSedangKirim(false);
-    }
   };
 
   return (
@@ -272,16 +278,16 @@ export function LangkahSuratPernyataan({
       <div className="flex items-center justify-end border-t pt-6">
         <Button
           onClick={ajukan}
-          disabled={!berkas || sedangKirim}
+          disabled={!berkas || sedangKirim || diblokirSpam}
           size="lg"
           className="px-8 text-base"
         >
-          {sedangKirim ? (
+          {sedangKirim || diblokirSpam ? (
             <Loader2 className="h-5 w-5 animate-spin" />
           ) : (
             <Send className="h-5 w-5" />
           )}
-          Kirim Pengajuan
+          {diblokirSpam ? 'Mohon Tunggu...' : 'Kirim Pengajuan'}
         </Button>
       </div>
     </div>

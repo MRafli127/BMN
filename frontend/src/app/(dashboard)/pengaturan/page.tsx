@@ -76,7 +76,7 @@ export default function PengaturanPage() {
     setSimpanProfil(true);
     try {
       const pembaruan = await perbaruiProfil(data);
-      notify.sukses('Profil berhasil diperbarui.');
+      notify.suksess('Profil berhasil diperbarui.');
       resetProfil({
         nama: pembaruan.nama,
         nip: pembaruan.nip,
@@ -106,7 +106,7 @@ export default function PengaturanPage() {
     setSimpanPassword(true);
     try {
       await gantiPassword({ passwordLama: data.passwordLama, passwordBaru: data.passwordBaru });
-      notify.sukses('Kata sandi berhasil diperbarui.');
+      notify.suksess('Kata sandi berhasil diperbarui.');
       resetPassword({ passwordLama: '', passwordBaru: '', konfirmasi: '' });
     } catch (error) {
       notify.gagal(ambilPesanError(error, 'Gagal mengganti kata sandi.'));

@@ -40,7 +40,7 @@ export default function ScanPage() {
     try {
       const updated = await peminjamanService.kembalikan(hasil.id);
       setHasil(updated);
-      notify.sukses('Pengembalian dikonfirmasi. Stok telah diperbarui.');
+      notify.suksess('Pengembalian dikonfirmasi. Stok telah diperbarui.');
     } catch (error) {
       notify.gagal(ambilPesanError(error, 'Gagal mengonfirmasi pengembalian.'));
     } finally {

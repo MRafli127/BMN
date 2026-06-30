@@ -21,7 +21,7 @@ export default function TambahBarangPage() {
   const simpan = async (data: DataBarangForm) => {
     try {
       const barang = await barangService.create(data);
-      notify.sukses(`Barang "${barang.nama}" berhasil ditambahkan (${barang.kodeBarang}).`);
+      notify.suksess(`Barang "${barang.nama}" berhasil ditambahkan (${barang.kodeBarang}).`);
       router.push(RUTE.adminBarang);
     } catch (error) {
       notify.gagal(ambilPesanError(error, 'Gagal menambahkan barang.'));
