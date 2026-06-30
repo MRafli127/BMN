@@ -161,16 +161,27 @@ export function LangkahSuratPernyataan({
     }
   };
 
+  // Convert canvas signature to data URL PNG
+  const getSignatureDataUrl = (): string | null => {
+    const canvas = canvasRef.current;
+    if (!canvas || !hasSignature) return null;
+    return canvas.toDataURL('image/png');
+  };
+
   // Submit
   const ajukan = async () => {
     if (!hasSignature) return notify.gagal('Silakan tanda tangan terlebih dahulu.');
 
     setSedangKirim(true);
     try {
+      // Capture signature as data URL
+      const signatureDataUrl = getSignatureDataUrl();
+
       const p = await peminjamanService.create({
         items,
         tanggalPinjamRencana,
         tanggalKembaliRencana,
+        signatureDataUrl,
       });
 
       onSelesai(p);

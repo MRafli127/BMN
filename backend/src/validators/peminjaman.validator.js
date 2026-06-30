@@ -77,8 +77,7 @@ const pesanTglKembali = {
 // - Tanggal pinjam: OPSIONAL, tapi jika diisi tidak boleh backdate
 // - Tanggal kembali: OPSIONAL, tapi jika ada harus > tanggal pinjam
 // - Alasan: OPSIONAL tapi minimal 5 karakter jika diisi
-// Surat pernyataan yang sudah ditandatangani diunggah sebagai file "dokumen"
-// (divalidasi di service), bukan lewat skema body ini.
+// - Signature digital WAJIB (data URL PNG)
 const createPeminjamanSchema = z
   .object({
     alasanPeminjaman: z
@@ -89,6 +88,13 @@ const createPeminjamanSchema = z
     tanggalPinjamRencana: tanggalOpsional('Tanggal pinjam tidak valid.'),
     tanggalKembaliRencana: tanggalOpsional('Tanggal kembali tidak valid.'),
     items: parseItems,
+    signatureDataUrl: z
+      .string({ required_error: 'Tanda tangan wajib diisi.' })
+      .min(22, 'Tanda tangan wajib diisi.')
+      .refine(
+        (val) => typeof val === 'string' && val.startsWith('data:image/png;base64,'),
+        'Format tanda tangan tidak valid.'
+      ),
   })
   .refine(tglKembaliSetelahPinjam, pesanTglKembali);
 

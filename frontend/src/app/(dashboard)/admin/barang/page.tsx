@@ -13,6 +13,7 @@ import { Input, Select } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { FolderBarang, kelompokkanPerMerk } from '@/components/barang/FolderBarang';
 import { ImportBarangDialog } from '@/components/barang/ImportBarangDialog';
+import { ExportModal } from '@/components/export/ExportModal';
 import { LoadingSpinner } from '@/components/shared/LoadingSpinner';
 import { EmptyState } from '@/components/shared/EmptyState';
 import { notify } from '@/components/ui/toast';
@@ -68,6 +69,7 @@ export default function AdminBarangPage() {
           <p className="text-muted-foreground">Kelola data Barang Milik Negara, dikelompokkan per merk.</p>
         </div>
         <div className="flex flex-wrap gap-2">
+          <ExportModal />
           <ImportBarangDialog onSelesai={refetch} />
           <Button asChild>
             <Link href={RUTE.adminBarangTambah}>

@@ -57,7 +57,7 @@ export interface DataPengajuan {
   tanggalPinjamRencana?: string;
   tanggalKembaliRencana?: string;
   items: ItemPengajuan[];
-  dokumen?: File; // Surat Pernyataan Peminjaman (PDF) - opsional jika pakai signature digital
+  signatureDataUrl?: string; // Tanda tangan digital (base64 PNG) - WAJIB
 }
 
 // Payload pratinjau surat pernyataan (sebelum pengajuan dibuat).
@@ -65,4 +65,12 @@ export interface DataPreviewSurat {
   tanggalPinjamRencana?: string;
   tanggalKembaliRencana?: string;
   items: ItemPengajuan[];
+}
+
+// Payload pengajuan peminjaman (multipart: items JSON + signature digital).
+export interface DataPengajuan {
+  tanggalPinjamRencana?: string;
+  tanggalKembaliRencana?: string;
+  items: ItemPengajuan[];
+  signatureDataUrl?: string; // Tanda tangan digital (base64 PNG) - WAJIB
 }

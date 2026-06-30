@@ -9,6 +9,7 @@ import { Icon } from '@/components/ui/icon';
 import { LoadingSpinner } from '@/components/shared/LoadingSpinner';
 import { EmptyState } from '@/components/shared/EmptyState';
 import { TabelPeminjaman } from '@/components/peminjaman/TabelPeminjaman';
+import { ExportModal } from '@/components/export/ExportModal';
 import { dashboardService } from '@/services/dashboard.service';
 import { useQuery } from '@/lib/cache';
 import { cn } from '@/lib/utils';
@@ -88,10 +89,7 @@ export default function AdminDashboardPage() {
             <Icon name="calendar_today" className="text-[18px] text-primary" />
             <span>Rentang Waktu</span>
           </button>
-          <button className="flex items-center gap-2 rounded-lg bg-primary px-4 py-2 font-label-md text-white transition-all hover:brightness-110">
-            <Icon name="download" className="text-[18px]" />
-            <span>Ekspor Laporan</span>
-          </button>
+          <ExportModal />
         </div>
       </section>
 
