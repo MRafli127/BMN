@@ -51,7 +51,8 @@ export default function AdminPeminjamanPage() {
   // muat (refetch) memaksa pemuatan ulang sambil tetap menampilkan data lama.
   const { data: hasil, sedangMemuat: memuat, refetch: muat } = useQuery<{ data: Peminjaman[]; meta: MetaPagination | null }>(
     key,
-    () => peminjamanService.getSemua(filter)
+    () => peminjamanService.getSemua(filter),
+    { tampilkanCache: true } // tampilkan data lama saat navigasi pagination
   );
   const data = hasil?.data ?? [];
   const meta = hasil?.meta ?? null;
@@ -69,7 +70,7 @@ export default function AdminPeminjamanPage() {
   const hapus = async (id: string) => {
     try {
       await peminjamanService.hapus(id);
-      notify.sukses('Data peminjaman berhasil dihapus.');
+      notify.suksess('Data peminjaman berhasil dihapus.');
       await muat();
     } catch (error) {
       notify.gagal(ambilPesanError(error, 'Gagal menghapus data peminjaman.'));
@@ -82,7 +83,7 @@ export default function AdminPeminjamanPage() {
     try {
       const { disetujui, dilewati } = await peminjamanService.setujuiMassal(terpilih);
       if (disetujui > 0) {
-        notify.sukses(
+        notify.suksess(
           dilewati > 0
             ? `${disetujui} pengajuan disetujui, ${dilewati} dilewati (stok kurang / bukan menunggu).`
             : `${disetujui} pengajuan berhasil disetujui.`
@@ -103,7 +104,7 @@ export default function AdminPeminjamanPage() {
     setSedangMassal(true);
     try {
       const jumlah = await peminjamanService.hapusMassal(terpilih);
-      notify.sukses(`${jumlah} data peminjaman berhasil dihapus.`);
+      notify.suksess(`${jumlah} data peminjaman berhasil dihapus.`);
       setDialogMassal(false);
       await muat();
     } catch (error) {

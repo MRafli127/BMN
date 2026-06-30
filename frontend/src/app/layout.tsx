@@ -6,6 +6,7 @@ import type { Metadata } from 'next';
 import { Inter, Plus_Jakarta_Sans } from 'next/font/google';
 import './globals.css';
 import { Providers } from './providers';
+import { PreventDragScript } from './PreventDragScript';
 
 const inter = Inter({ subsets: ['latin'], variable: '--font-inter' });
 const jakarta = Plus_Jakarta_Sans({
@@ -30,6 +31,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         />
       </head>
       <body className="font-sans antialiased" suppressHydrationWarning>
+        <PreventDragScript />
         <Providers>{children}</Providers>
       </body>
     </html>

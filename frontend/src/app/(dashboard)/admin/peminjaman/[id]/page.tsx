@@ -82,7 +82,7 @@ export default function DetailPeminjamanAdminPage() {
       setData(hasil);
       setAksi(null);
       setCatatan('');
-      notify.sukses('Tindakan berhasil dilakukan.');
+      notify.suksess('Tindakan berhasil dilakukan.');
     } catch (error) {
       notify.gagal(ambilPesanError(error, 'Gagal melakukan tindakan.'));
     } finally {
@@ -96,7 +96,7 @@ export default function DetailPeminjamanAdminPage() {
     try {
       const hasil = await peminjamanService.stempel(data.id);
       setData(hasil);
-      notify.sukses('Dokumen berhasil distempel & ditandatangani digital.');
+      notify.suksess('Dokumen berhasil distempel & ditandatangani digital.');
     } catch (error) {
       notify.gagal(ambilPesanError(error, 'Gagal menstempel dokumen.'));
     } finally {

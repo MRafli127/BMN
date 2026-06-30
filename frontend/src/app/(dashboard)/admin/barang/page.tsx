@@ -87,7 +87,7 @@ function KontenBarang() {
   const hapus = async (id: string) => {
     try {
       await barangService.remove(id);
-      notify.sukses('Barang berhasil dihapus.');
+      notify.suksess('Barang berhasil dihapus.');
       refetch();
     } catch (error) {
       notify.gagal(ambilPesanError(error, 'Gagal menghapus barang.'));

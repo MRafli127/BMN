@@ -34,7 +34,8 @@ export default function RiwayatPage() {
   const key = useMemo(() => `riwayat:${JSON.stringify(filter)}`, [filter]);
   const { data: hasil, sedangMemuat: memuat } = useQuery<{ data: Peminjaman[]; meta: MetaPagination | null }>(
     key,
-    () => peminjamanService.getSemua(filter)
+    () => peminjamanService.getSemua(filter),
+    { tampilkanCache: true } // tampilkan data lama saat navigasi pagination
   );
   const data = hasil?.data ?? [];
   const meta = hasil?.meta ?? null;
