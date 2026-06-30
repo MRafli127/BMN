@@ -1,7 +1,9 @@
 // ============================================================
 //  Langkah Surat Pernyataan - Design User-Friendly.
-//   Layout vertikal: Data peminjam, barang, signature pad besar.
-//   Langsung kirim tanpa upload PDF (signature digital).
+//   Layout vertikal: Data peminjam, barang, unggah surat.
+//   Alur: peminjam mengunduh surat pernyataan, menandatanganinya
+//   sendiri (manual/elektronik), lalu mengunggahnya kembali (PDF)
+//   sebelum mengirim pengajuan.
 // ============================================================
 
 'use client';
@@ -15,7 +17,8 @@ import {
   Download,
   ExternalLink,
   RefreshCw,
-  Eraser,
+  Upload,
+  CheckCircle2,
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -45,16 +48,12 @@ export function LangkahSuratPernyataan({
   onKembali,
 }: Props) {
   const { user } = useAuth();
-  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const fileRef = useRef<HTMLInputElement>(null);
   const [suratUrl, setSuratUrl] = useState<string | null>(null);
   const [memuatSurat, setMemuatSurat] = useState(false);
   const [gagalSurat, setGagalSurat] = useState(false);
   const [sedangKirim, setSedangKirim] = useState(false);
-  const [hasSignature, setHasSignature] = useState(false);
-
-  const [isDrawing, setIsDrawing] = useState(false);
-  const [lastX, setLastX] = useState(0);
-  const [lastY, setLastY] = useState(0);
+  const [berkas, setBerkas] = useState<File | null>(null);
 
   // Generate surat preview
   const buatSurat = useCallback(() => {
@@ -76,112 +75,27 @@ export function LangkahSuratPernyataan({
     buatSurat();
   }, [buatSurat]);
 
-  // Initialize canvas
-  useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-
-    const resize = () => {
-      const container = canvas.parentElement;
-      if (container) {
-        canvas.width = container.clientWidth;
-      }
-      canvas.height = 150;
-      const ctx = canvas.getContext('2d');
-      if (ctx) {
-        ctx.strokeStyle = '#1a1a1a';
-        ctx.lineWidth = 3;
-        ctx.lineCap = 'round';
-        ctx.lineJoin = 'round';
-      }
-    };
-
-    resize();
-    window.addEventListener('resize', resize);
-    return () => window.removeEventListener('resize', resize);
-  }, []);
-
-  // Drawing functions
-  const getPosition = (e: React.MouseEvent | React.TouchEvent) => {
-    const canvas = canvasRef.current;
-    if (!canvas) return { x: 0, y: 0 };
-
-    const rect = canvas.getBoundingClientRect();
-    const scaleX = canvas.width / rect.width;
-    const scaleY = canvas.height / rect.height;
-
-    if ('touches' in e) {
-      return {
-        x: (e.touches[0].clientX - rect.left) * scaleX,
-        y: (e.touches[0].clientY - rect.top) * scaleY,
-      };
+  const pilihBerkas = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const f = e.target.files?.[0] ?? null;
+    if (f && f.type !== 'application/pdf') {
+      notify.gagal('Berkas harus berformat PDF.');
+      e.target.value = '';
+      return;
     }
-    return {
-      x: (e.clientX - rect.left) * scaleX,
-      y: (e.clientY - rect.top) * scaleY,
-    };
-  };
-
-  const startDrawing = (e: React.MouseEvent | React.TouchEvent) => {
-    e.preventDefault();
-    const pos = getPosition(e);
-    setLastX(pos.x);
-    setLastY(pos.y);
-    setIsDrawing(true);
-  };
-
-  const draw = (e: React.MouseEvent | React.TouchEvent) => {
-    e.preventDefault();
-    if (!isDrawing) return;
-
-    const canvas = canvasRef.current;
-    const ctx = canvas?.getContext('2d');
-    if (!canvas || !ctx) return;
-
-    const pos = getPosition(e);
-    ctx.beginPath();
-    ctx.moveTo(lastX, lastY);
-    ctx.lineTo(pos.x, pos.y);
-    ctx.stroke();
-    setLastX(pos.x);
-    setLastY(pos.y);
-    setHasSignature(true);
-  };
-
-  const stopDrawing = () => {
-    setIsDrawing(false);
-  };
-
-  const clearSignature = () => {
-    const canvas = canvasRef.current;
-    const ctx = canvas?.getContext('2d');
-    if (canvas && ctx) {
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      setHasSignature(false);
-    }
-  };
-
-  // Convert canvas signature to data URL PNG
-  const getSignatureDataUrl = (): string | null => {
-    const canvas = canvasRef.current;
-    if (!canvas || !hasSignature) return null;
-    return canvas.toDataURL('image/png');
+    setBerkas(f);
   };
 
   // Submit
   const ajukan = async () => {
-    if (!hasSignature) return notify.gagal('Silakan tanda tangan terlebih dahulu.');
+    if (!berkas) return notify.gagal('Unggah surat pernyataan yang sudah ditandatangani terlebih dahulu.');
 
     setSedangKirim(true);
     try {
-      // Capture signature as data URL
-      const signatureDataUrl = getSignatureDataUrl();
-
       const p = await peminjamanService.create({
         items,
         tanggalPinjamRencana,
         tanggalKembaliRencana,
-        signatureDataUrl,
+        dokumen: berkas,
       });
 
       onSelesai(p);
@@ -212,7 +126,7 @@ export function LangkahSuratPernyataan({
             Formulir Pengajuan Peminjaman
           </h2>
           <p className="mt-1 text-base text-muted-foreground">
-            Tanda tangani surat pernyataan untuk mengajukan peminjaman barang.
+            Unduh surat pernyataan, tanda tangani, lalu unggah kembali untuk mengajukan peminjaman.
           </p>
         </div>
         {onKembali && (
@@ -298,44 +212,69 @@ export function LangkahSuratPernyataan({
             </CardContent>
           </Card>
 
-          {/* Tanda Tangan */}
+          {/* Tanda Tangan & Unggah Surat */}
           <Card className="border-l-4 border-l-red-500">
             <CardHeader className="pb-3">
               <div className="flex items-center justify-between">
-                <CardTitle className="text-lg">Tanda Tangan</CardTitle>
+                <CardTitle className="text-lg">Tanda Tangan &amp; Unggah Surat</CardTitle>
                 <span className="rounded bg-red-500 px-3 py-1 text-sm font-semibold text-white">WAJIB</span>
               </div>
               <p className="text-sm text-muted-foreground">
-                Tanda tangan di bawah ini sebagai persetujuan peminjaman
+                Unduh surat pernyataan, tanda tangani secara manual/elektronik, lalu unggah kembali.
               </p>
             </CardHeader>
-            <CardContent>
-              <div className="rounded-lg bg-white shadow-inner">
-                <div className="flex justify-end border-b p-2">
-                  <button
-                    type="button"
-                    onClick={clearSignature}
-                    className="flex items-center gap-2 text-sm font-medium text-red-500 hover:text-red-700"
-                  >
-                    <Eraser className="h-4 w-4" />
-                    Hapus Tanda Tangan
-                  </button>
-                </div>
-                <canvas
-                  ref={canvasRef}
-                  className="block w-full cursor-crosshair"
-                  style={{ height: '180px', touchAction: 'none' }}
-                  onMouseDown={startDrawing}
-                  onMouseMove={draw}
-                  onMouseUp={stopDrawing}
-                  onMouseLeave={stopDrawing}
-                  onTouchStart={startDrawing}
-                  onTouchMove={draw}
-                  onTouchEnd={stopDrawing}
+            <CardContent className="space-y-4">
+              {/* Langkah 1 — unduh surat */}
+              <div className="space-y-2">
+                <p className="text-sm font-medium text-foreground">
+                  1. Unduh Surat Pernyataan Peminjaman
+                </p>
+                {memuatSurat ? (
+                  <Button variant="outline" size="sm" disabled>
+                    <Loader2 className="h-4 w-4 animate-spin" /> Menyiapkan surat…
+                  </Button>
+                ) : suratUrl ? (
+                  <Button asChild variant="outline" size="sm">
+                    <a href={suratUrl} download="surat-pernyataan-peminjaman.pdf">
+                      <Download className="h-4 w-4" /> Unduh Surat
+                    </a>
+                  </Button>
+                ) : (
+                  <p className="text-xs text-muted-foreground">Surat belum tersedia.</p>
+                )}
+              </div>
+
+              {/* Langkah 2 — tanda tangani */}
+              <div className="space-y-1 border-t pt-3">
+                <p className="text-sm font-medium text-foreground">
+                  2. Tanda tangani surat secara manual/elektronik
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  Bubuhkan tanda tangan Anda pada surat sebagai persetujuan peminjaman.
+                </p>
+              </div>
+
+              {/* Langkah 3 — unggah surat yang sudah ditandatangani */}
+              <div className="space-y-2 border-t pt-3">
+                <p className="text-sm font-medium text-foreground">
+                  3. Unggah surat yang sudah ditandatangani (PDF)
+                </p>
+                <input
+                  ref={fileRef}
+                  type="file"
+                  accept="application/pdf"
+                  onChange={pilihBerkas}
+                  className="hidden"
                 />
-                <div className="border-t p-3 text-center text-sm text-muted-foreground">
-                  Klik dan drag untuk membuat tanda tangan
-                </div>
+                <Button variant="outline" size="sm" className="w-full" onClick={() => fileRef.current?.click()}>
+                  <Upload className="h-4 w-4" /> {berkas ? 'Ganti Berkas' : 'Pilih Berkas PDF'}
+                </Button>
+                {berkas && (
+                  <div className="flex items-center gap-2 rounded-lg bg-green-50 p-2 text-sm text-green-800">
+                    <CheckCircle2 className="h-4 w-4 shrink-0" />
+                    <span className="truncate">{berkas.name}</span>
+                  </div>
+                )}
               </div>
             </CardContent>
           </Card>
@@ -398,7 +337,7 @@ export function LangkahSuratPernyataan({
       <div className="flex items-center justify-end border-t pt-6">
         <Button
           onClick={ajukan}
-          disabled={!hasSignature || sedangKirim}
+          disabled={!berkas || sedangKirim}
           size="lg"
           className="px-8 text-base"
         >
