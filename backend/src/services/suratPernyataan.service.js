@@ -70,6 +70,21 @@ function nomorSurat(peminjaman) {
   return `PRN-${seq}/BMN/PP.1/${tahun}`;
 }
 
+// Decode base64 signature image
+async function loadSignatureImage(pdf, signatureDataUrl) {
+  if (!signatureDataUrl || !signatureDataUrl.startsWith('data:image/png;base64,')) {
+    return null;
+  }
+  try {
+    const base64Data = signatureDataUrl.replace('data:image/png;base64,', '');
+    const imageBytes = Buffer.from(base64Data, 'base64');
+    return await pdf.embedPng(imageBytes);
+  } catch (err) {
+    console.error('Gagal embed signature:', err);
+    return null;
+  }
+}
+
 async function generate(peminjaman) {
   const pdf = await PDFDocument.create();
   const font = await pdf.embedFont(StandardFonts.Helvetica);
@@ -281,8 +296,7 @@ async function generate(peminjaman) {
   y -= 16;
 
   // ---------- Blok tanda tangan (kanan) ----------
-  // Area tanda tangan dibiarkan KOSONG: surat dicetak lalu ditandatangani
-  // secara fisik oleh peminjam sebelum diunggah kembali.
+  // Signature digital di-embed ke PDF jika tersedia
   const SIG_AREA_H = 60;
   pastikanRuang(SIG_AREA_H + 70);
   const blokKiri = PAGE_W - MARGIN - 200;
@@ -292,12 +306,26 @@ async function generate(peminjaman) {
   teks('Peminjam BMN', blokKiri, { size: 10 });
   y -= 8;
 
-  // Ruang kosong untuk tanda tangan & cap basah.
-  const garisY = y - SIG_AREA_H;
+  // Load dan embed signature jika ada
+  const signatureImage = await loadSignatureImage(pdf, peminjaman.signatureDataUrl);
+  const garisY = y - (signatureImage ? 70 : SIG_AREA_H);
   y = garisY;
 
+  // Gambar garis untuk tanda tangan
   page.drawLine({ start: { x: blokKiri, y }, end: { x: blokKiri + 190, y }, thickness: 0.8, color: hitam });
   y -= 14;
+
+  // Embed signature image jika ada
+  if (signatureImage) {
+    const maxSigW = 120;
+    const maxSigH = 45;
+    const sigScale = Math.min(maxSigW / signatureImage.width, maxSigH / signatureImage.height);
+    const sigW = signatureImage.width * sigScale;
+    const sigH = signatureImage.height * sigScale;
+    page.drawImage(signatureImage, { x: blokKiri, y: y - sigH, width: sigW, height: sigH });
+    y -= sigH + 5;
+  }
+
   teks(u.nama || 'Peminjam BMN', blokKiri, { font: fontBold, size: 10 });
   y -= 14;
   teks('Tanda tangan & nama jelas', blokKiri, { font: fontItalic, size: 8, color: abu });

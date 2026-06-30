@@ -1,0 +1,500 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Demo: Formulir Peminjaman BMN</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Times New Roman', serif; background: #f0f2f5; padding: 20px; min-height: 100vh; }
+    .container { max-width: 1100px; margin: 0 auto; }
+
+    .step-indicator { display: flex; justify-content: center; align-items: center; gap: 20px; margin-bottom: 32px; }
+    .step { display: flex; align-items: center; gap: 12px; }
+    .step-number { width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 16px; transition: all 0.3s; }
+    .step.active .step-number { background: #1a73e8; color: white; }
+    .step.completed .step-number { background: #34a853; color: white; }
+    .step.inactive .step-number { background: #e0e0e0; color: #999; }
+    .step-label { font-size: 14px; font-weight: 600; color: #666; }
+    .step.active .step-label { color: #1a73e8; }
+    .step.completed .step-label { color: #34a853; }
+    .step-connector { width: 60px; height: 2px; background: #e0e0e0; }
+    .step-connector.active { background: #1a73e8; }
+
+    .card { background: white; border-radius: 16px; box-shadow: 0 4px 20px rgba(0,0,0,0.08); overflow: hidden; }
+    .card-header { padding: 24px 32px; border-bottom: 1px solid #e0e0e0; }
+    .card-header h2 { font-size: 20px; color: #1a1a1a; margin-bottom: 4px; }
+    .card-header p { font-size: 14px; color: #666; }
+    .card-body { padding: 24px 32px; }
+
+    .catalog-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px; margin-bottom: 24px; }
+    .catalog-item { border: 2px solid #e0e0e0; border-radius: 12px; padding: 16px; cursor: pointer; transition: all 0.2s; position: relative; }
+    .catalog-item:hover { border-color: #1a73e8; background: #f8f9ff; }
+    .catalog-item.selected { border-color: #1a73e8; background: #e8f0fe; }
+    .catalog-item.selected::after { content: '✓'; position: absolute; top: 12px; right: 12px; width: 24px; height: 24px; background: #1a73e8; color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 14px; }
+    .catalog-item .nama { font-weight: 600; color: #1a1a1a; margin-bottom: 4px; }
+    .catalog-item .kode { font-size: 12px; color: #666; margin-bottom: 8px; }
+    .catalog-item .stok { font-size: 12px; color: #34a853; }
+    .catalog-item .jumlah-input { margin-top: 12px; display: none; }
+    .catalog-item.selected .jumlah-input { display: flex; align-items: center; gap: 8px; }
+    .catalog-item .jumlah-input label { font-size: 12px; color: #666; }
+    .catalog-item .jumlah-input input { width: 60px; padding: 6px 8px; border: 1px solid #e0e0e0; border-radius: 6px; text-align: center; font-size: 14px; }
+
+    .selected-summary { background: #e8f5e9; border: 1px solid #a5d6a7; border-radius: 12px; padding: 16px 20px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center; }
+    .selected-summary .count { font-size: 16px; font-weight: 600; color: #2e7d32; }
+    .selected-summary .clear-btn { background: none; border: none; color: #ea4335; font-size: 13px; cursor: pointer; padding: 6px 12px; border-radius: 6px; }
+    .selected-summary .clear-btn:hover { background: #fee; }
+
+    .form-group { margin-bottom: 20px; }
+    .form-group label { display: block; font-size: 14px; font-weight: 600; color: #1a1a1a; margin-bottom: 8px; }
+    .form-group label .optional { color: #666; font-weight: normal; font-size: 12px; }
+    .form-input { width: 100%; padding: 12px 16px; border: 2px solid #e0e0e0; border-radius: 10px; font-size: 14px; transition: border-color 0.2s; }
+    .form-input:focus { outline: none; border-color: #1a73e8; }
+    .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+
+    .data-peminjam { background: #f5f5f5; border-radius: 10px; padding: 16px; margin-bottom: 20px; }
+    .data-peminjam .row { display: flex; gap: 8px; margin-bottom: 8px; font-size: 14px; }
+    .data-peminjam .row:last-child { margin-bottom: 0; }
+    .data-peminjam .label { color: #666; min-width: 100px; }
+    .data-peminjam .value { color: #1a1a1a; font-weight: 500; }
+
+    .items-signature-row { display: grid; grid-template-columns: 1fr 260px; gap: 16px; margin-top: 20px; }
+
+    .items-selected { background: #f8f9fa; border: 1px solid #e0e0e0; border-radius: 10px; padding: 14px; }
+    .items-selected h4 { font-size: 13px; color: #1a1a1a; margin-bottom: 10px; display: flex; align-items: center; gap: 6px; }
+    .items-selected h4 span { background: #1a73e8; color: white; padding: 1px 6px; border-radius: 10px; font-size: 11px; }
+    .items-selected .item-list { display: flex; flex-direction: column; gap: 4px; max-height: 120px; overflow-y: auto; }
+    .items-selected .item-row { display: flex; justify-content: space-between; align-items: center; padding: 5px 8px; background: white; border-radius: 4px; font-size: 11px; }
+    .items-selected .item-row .nama { color: #1a1a1a; font-weight: 500; }
+    .items-selected .item-row .jumlah { color: #666; font-size: 10px; }
+    .items-selected .change-btn { background: none; border: none; color: #1a73e8; font-size: 10px; cursor: pointer; padding: 4px 0; }
+    .items-selected .change-btn:hover { text-decoration: underline; }
+
+    .signature-section { background: #fafafa; border: 1px solid #e0e0e0; border-radius: 10px; padding: 12px; display: flex; flex-direction: column; }
+    .signature-section h3 { font-size: 12px; color: #1a1a1a; margin-bottom: 8px; display: flex; align-items: center; gap: 6px; }
+    .signature-section h3 span { background: #ea4335; color: white; padding: 1px 5px; border-radius: 4px; font-size: 9px; }
+    .signature-wrapper { display: flex; flex-direction: column; align-items: center; gap: 6px; flex: 1; }
+    .signature-pad-container { background: white; border-radius: 6px; overflow: hidden; width: 100%; }
+    .signature-pad-header { padding: 2px 0; display: flex; justify-content: flex-end; }
+    .btn-clear { background: none; border: none; color: #1a73e8; font-size: 10px; cursor: pointer; padding: 2px 4px; border-radius: 4px; }
+    .btn-clear:hover { background: #e8f0fe; }
+    .signature-canvas { display: block; width: 100%; height: 85px; cursor: crosshair; touch-action: none; background: white; border: none; border-top: 1px solid #eee; border-bottom: 1px solid #eee; }
+    .signature-hint { font-size: 9px; color: #999; }
+
+    .document-preview { background: white; border: 1px solid #e0e0e0; border-radius: 12px; padding: 40px 50px; margin-top: 20px; font-family: 'Times New Roman', serif; font-size: 12px; line-height: 1.5; max-height: 600px; overflow-y: auto; }
+    .document-preview .header { text-align: center; margin-bottom: 20px; }
+    .document-preview .header .ministry { font-size: 11px; }
+    .document-preview .header .institution { font-size: 14px; font-weight: bold; }
+    .document-preview .header .unit { font-size: 12px; }
+    .document-preview .header .address { font-size: 10px; color: #666; margin-top: 4px; }
+    .document-preview .title { text-align: center; font-weight: bold; font-size: 14px; text-decoration: underline; margin: 20px 0; }
+    .document-preview .number { text-align: center; font-size: 12px; margin-bottom: 20px; }
+    .document-preview .intro { margin-bottom: 16px; }
+    .document-preview .data-table { width: 100%; border-collapse: collapse; margin: 16px 0; font-size: 11px; }
+    .document-preview .data-table th, .document-preview .data-table td { border: 1px solid #000; padding: 6px 8px; text-align: left; }
+    .document-preview .data-table th { background: #f0f0f0; font-weight: bold; text-align: center; }
+    .document-preview .statements { margin: 16px 0; padding-left: 20px; }
+    .document-preview .statements li { margin-bottom: 6px; }
+    .document-preview .closing { margin-top: 24px; }
+    .document-preview .signature-area { display: flex; justify-content: flex-end; margin-top: 20px; margin-bottom: 10px; }
+    .document-preview .signature-box { text-align: center; width: 180px; }
+    .document-preview .signature-box .date { margin-bottom: 8px; font-size: 11px; }
+    .document-preview .signature-box .label { margin-bottom: 4px; font-size: 11px; }
+    .document-preview .signature-box .signature-canvas-preview { border: none; height: 40px; display: flex; align-items: center; justify-content: center; font-size: 10px; color: #ccc; margin-bottom: 4px; background: transparent; }
+    .document-preview .signature-box .signature-canvas-preview canvas { max-width: 160px; max-height: 40px; }
+    .document-preview .signature-box .name { font-size: 11px; padding-top: 4px; }
+
+    .form-actions { display: flex; gap: 12px; margin-top: 24px; padding-top: 24px; border-top: 1px solid #e0e0e0; }
+    .btn { padding: 12px 24px; border-radius: 10px; font-size: 14px; font-weight: 600; cursor: pointer; transition: all 0.2s; }
+    .btn-primary { background: #1a73e8; color: white; border: none; flex: 1; }
+    .btn-primary:hover { background: #1557b0; }
+    .btn-primary:disabled { background: #ccc; cursor: not-allowed; }
+    .btn-secondary { background: white; color: #666; border: 2px solid #e0e0e0; }
+    .btn-secondary:hover { background: #f5f5f5; }
+
+    .status-bar { background: #e8f5e9; border: 1px solid #a5d6a7; border-radius: 8px; padding: 12px 16px; margin-bottom: 20px; display: flex; align-items: center; gap: 12px; font-size: 14px; color: #2e7d32; }
+
+    @media (max-width: 768px) {
+      .form-row, .items-signature-row { grid-template-columns: 1fr; }
+      .step-indicator { flex-direction: column; gap: 10px; }
+      .step-connector { display: none; }
+      .document-preview { padding: 20px; font-size: 11px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="step-indicator">
+      <div class="step active" id="step1Indicator">
+        <div class="step-number">1</div>
+        <div class="step-label">Pilih Barang</div>
+      </div>
+      <div class="step-connector" id="connector1"></div>
+      <div class="step inactive" id="step2Indicator">
+        <div class="step-number">2</div>
+        <div class="step-label">Isi Formulir & Tanda Tangan</div>
+      </div>
+    </div>
+
+    <div class="status-bar" id="statusBar" style="display: none;">
+      <span>✓</span>
+      <span id="statusText"></span>
+    </div>
+
+    <div class="card" id="step1">
+      <div class="card-header" style="background: linear-gradient(135deg, #1a73e8, #0d47a1); color: white;">
+        <h2>📦 Langkah 1: Pilih Barang yang Ingin Dipinjam</h2>
+        <p style="color: rgba(255,255,255,0.9);">Pilih satu atau lebih barang dari katalog</p>
+      </div>
+      <div class="card-body">
+        <div class="selected-summary" id="selectedSummary" style="display: none;">
+          <div class="count" id="selectedCount">0 barang dipilih</div>
+          <button class="clear-btn" onclick="clearSelection()">🗑️ Hapus Semua</button>
+        </div>
+
+        <div class="catalog-grid">
+          <div class="catalog-item" data-id="1" data-nama="Laptop ASUS ROG" data-kode="3100102002" data-nup="1180" data-merk="ASUS ROG" data-stok="3">
+            <div class="nama">Laptop ASUS ROG</div>
+            <div class="kode">NUP: 3100102002-1180</div>
+            <div class="stok">Tersedia: 3 unit</div>
+            <div class="jumlah-input">
+              <label>Jumlah:</label>
+              <input type="number" value="1" min="1" max="3" class="jumlah">
+            </div>
+          </div>
+
+          <div class="catalog-item" data-id="2" data-nama="Proyektor Epson EB-X51" data-kode="3100103005" data-nup="0042" data-merk="Epson EB-X51" data-stok="5">
+            <div class="nama">Proyektor Epson EB-X51</div>
+            <div class="kode">NUP: 3100103005-0042</div>
+            <div class="stok">Tersedia: 5 unit</div>
+            <div class="jumlah-input">
+              <label>Jumlah:</label>
+              <input type="number" value="1" min="1" max="5" class="jumlah">
+            </div>
+          </div>
+
+          <div class="catalog-item" data-id="3" data-nama="Monitor LG 24 inch" data-kode="3100104001" data-nup="0012" data-merk="LG 24MK600" data-stok="8">
+            <div class="nama">Monitor LG 24 inch</div>
+            <div class="kode">NUP: 3100104001-0012</div>
+            <div class="stok">Tersedia: 8 unit</div>
+            <div class="jumlah-input">
+              <label>Jumlah:</label>
+              <input type="number" value="1" min="1" max="8" class="jumlah">
+            </div>
+          </div>
+
+          <div class="catalog-item" data-id="4" data-nama="Printer Canon MF644" data-kode="3100105003" data-nup="0008" data-merk="Canon MF644cdn" data-stok="4">
+            <div class="nama">Printer Canon MF644</div>
+            <div class="kode">NUP: 3100105003-0008</div>
+            <div class="stok">Tersedia: 4 unit</div>
+            <div class="jumlah-input">
+              <label>Jumlah:</label>
+              <input type="number" value="1" min="1" max="4" class="jumlah">
+            </div>
+          </div>
+        </div>
+
+        <button class="btn btn-primary" id="btnNextStep" onclick="goToStep2()" disabled>
+          Lanjut ke Formulir & Tanda Tangan →
+        </button>
+      </div>
+    </div>
+
+    <div class="card" id="step2" style="display: none;">
+      <div class="card-header" style="background: linear-gradient(135deg, #34a853, #0d8040); color: white;">
+        <h2>📋 Langkah 2: Isi Formulir & Tanda Tangani Surat</h2>
+        <p style="color: rgba(255,255,255,0.9);">Lengkapi data dan tanda tangani surat</p>
+      </div>
+      <div class="card-body">
+        <div class="data-peminjam">
+          <div class="row"><span class="label">Nama:</span><span class="value">Ahmad Fauzi Rahman</span></div>
+          <div class="row"><span class="label">NIP:</span><span class="value">199501012020121001</span></div>
+          <div class="row"><span class="label">Pangkat/Gol.:</span><span class="value">Penata Tk. I / III/d</span></div>
+          <div class="row"><span class="label">Unit Kerja:</span><span class="value">Bidang Perencanaan, BPPK</span></div>
+        </div>
+
+        <div class="items-signature-row">
+          <div class="items-selected">
+            <h4>Barang yang Dipinjam <span id="itemCount">0</span></h4>
+            <div class="item-list" id="itemList"></div>
+            <button class="change-btn" onclick="goToStep1()">← Ubah pilihan barang</button>
+          </div>
+
+          <div class="signature-section">
+            <h3>✍️ Tanda Tangan <span>WAJIB</span></h3>
+            <div class="signature-wrapper">
+              <div class="signature-pad-container">
+                <div class="signature-pad-header">
+                  <button class="btn-clear" onclick="clearSignature()">Hapus</button>
+                </div>
+                <canvas id="signaturePad" class="signature-canvas"></canvas>
+              </div>
+              <p class="signature-hint">Klik dan drag untuk tanda tangan</p>
+            </div>
+          </div>
+        </div>
+
+        <div style="margin-top: 24px;">
+          <button class="btn btn-secondary" style="width: 100%; margin-bottom: 12px;" onclick="togglePreview()">
+            <span id="previewToggleText">📄 Lihat Preview Surat</span>
+          </button>
+
+          <div id="documentPreviewContainer" style="display: none;">
+            <div class="document-preview" id="documentPreview">
+              <div class="header">
+                <div class="ministry">KEMENTERIAN KEUANGAN REPUBLIK INDONESIA</div>
+                <div class="institution">BADAN PENDIDIKAN DAN PELATIHAN KEUANGAN</div>
+                <div class="unit">SEKRETARIAT BADAN PENDIDIKAN DAN PELATIHAN KEUANGAN</div>
+                <div class="address">GEDUNG ARIMURTI LANTAI 3, JALAN PURNAWARMAN NO. 99, JAKARTA SELATAN 12110</div>
+              </div>
+              <div class="title">SURAT PERNYATAAN PEMINJAMAN BARANG MILIK NEGARA</div>
+              <div class="number">NOMOR PRN-___/BMN/PP.1/2026</div>
+              <div class="intro">Yang bertanda tangan di bawah ini:</div>
+              <table style="margin-left: 20px; font-size: 12px;">
+                <tr><td style="width: 120px;">Nama</td><td>: Ahmad Fauzi Rahman</td></tr>
+                <tr><td>NIP</td><td>: 199501012020121001</td></tr>
+                <tr><td>Pangkat/Gol.</td><td>: Penata Tk. I / III/d</td></tr>
+                <tr><td>Unit Kerja</td><td>: Bidang Perencanaan, BPPK</td></tr>
+              </table>
+              <div style="margin: 16px 0;">melakukan peminjaman BMN dengan perincian data:</div>
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th style="width: 40px; text-align: center;">No.</th>
+                    <th>Nama Barang</th>
+                    <th>Merek dan Tipe</th>
+                    <th style="width: 100px; text-align: center;">NUP</th>
+                    <th style="width: 50px; text-align: center;">Jumlah</th>
+                    <th style="width: 60px; text-align: center;">Kondisi</th>
+                    <th style="width: 60px; text-align: center;">Status</th>
+                  </tr>
+                </thead>
+                <tbody id="itemsTableBody"></tbody>
+              </table>
+              <div style="margin: 16px 0;">dengan ini menyatakan bahwa:</div>
+              <ol class="statements">
+                <li>menggunakan BMN dalam rangka melaksanakan tugas dan fungsi;</li>
+                <li>menjaga dan memelihara BMN;</li>
+                <li>melaporkan kepada atasan langsung jika BMN rusak/hilang;</li>
+                <li>memperbaiki jika BMN yang dipinjam rusak;</li>
+                <li>mengganti jika BMN yang dipinjam hilang; dan</li>
+                <li>mengembalikan BMN sesuai kondisi semula.</li>
+              </ol>
+              <div class="closing">Demikian pernyataan ini dibuat dengan sebenar-benarnya.</div>
+              <div class="signature-area">
+                <div class="signature-box">
+                  <div class="date" id="tanggalSurat">Jakarta, [@Tanggal]</div>
+                  <div class="label">Peminjam BMN</div>
+                  <div class="signature-canvas-preview" id="signaturePreview">[Tanda Tangan]</div>
+                  <div class="name">Ahmad Fauzi Rahman</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="form-actions">
+          <button class="btn btn-secondary" onclick="goToStep1()">← Kembali</button>
+          <button class="btn btn-primary" onclick="submitForm()">✓ Kirim Pengajuan</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let selectedItems = [];
+    let hasSignature = false;
+    let previewVisible = false;
+
+    document.querySelectorAll('.catalog-item').forEach(item => {
+      item.addEventListener('click', function(e) {
+        if (e.target.classList.contains('jumlah')) return;
+        const id = this.dataset.id;
+        const isSelected = this.classList.contains('selected');
+
+        if (isSelected) {
+          this.classList.remove('selected');
+          selectedItems = selectedItems.filter(i => i.id !== id);
+        } else {
+          this.classList.add('selected');
+          selectedItems.push({
+            id,
+            nama: this.dataset.nama,
+            kode: this.dataset.kode,
+            nup: this.dataset.nup,
+            merk: this.dataset.merk,
+            stok: parseInt(this.dataset.stok),
+            jumlah: parseInt(this.querySelector('.jumlah').value) || 1
+          });
+        }
+        updateSelectedSummary();
+      });
+
+      item.querySelector('.jumlah').addEventListener('change', function(e) {
+        e.stopPropagation();
+        const id = item.dataset.id;
+        const idx = selectedItems.findIndex(i => i.id === id);
+        if (idx !== -1) selectedItems[idx].jumlah = parseInt(this.value) || 1;
+      });
+
+      item.querySelector('.jumlah').addEventListener('click', function(e) {
+        e.stopPropagation();
+      });
+    });
+
+    function updateSelectedSummary() {
+      const summary = document.getElementById('selectedSummary');
+      const count = document.getElementById('selectedCount');
+      const btnNext = document.getElementById('btnNextStep');
+
+      if (selectedItems.length > 0) {
+        summary.style.display = 'flex';
+        const total = selectedItems.reduce((s, i) => s + i.jumlah, 0);
+        count.textContent = selectedItems.length + ' barang dipilih (' + total + ' unit)';
+        btnNext.disabled = false;
+      } else {
+        summary.style.display = 'none';
+        btnNext.disabled = true;
+      }
+    }
+
+    function clearSelection() {
+      selectedItems = [];
+      document.querySelectorAll('.catalog-item').forEach(i => i.classList.remove('selected'));
+      updateSelectedSummary();
+      showStatus('Pilihan dibersihkan');
+    }
+
+    function goToStep2() {
+      document.getElementById('step1Indicator').className = 'step completed';
+      document.getElementById('connector1').className = 'step-connector active';
+      document.getElementById('step2Indicator').className = 'step active';
+      document.getElementById('step1').style.display = 'none';
+      document.getElementById('step2').style.display = 'block';
+      renderSelectedItems();
+      renderItemsTable();
+      initSignaturePad();
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    function goToStep1() {
+      document.getElementById('step1Indicator').className = 'step active';
+      document.getElementById('connector1').className = 'step-connector';
+      document.getElementById('step2Indicator').className = 'step inactive';
+      document.getElementById('step1').style.display = 'block';
+      document.getElementById('step2').style.display = 'none';
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    function renderSelectedItems() {
+      document.getElementById('itemCount').textContent = selectedItems.length;
+      document.getElementById('itemList').innerHTML = selectedItems.map(item =>
+        '<div class="item-row"><span class="nama">' + item.nama + '</span><span class="jumlah">x' + item.jumlah + '</span></div>'
+      ).join('');
+    }
+
+    function renderItemsTable() {
+      document.getElementById('itemsTableBody').innerHTML = selectedItems.map((item, idx) =>
+        '<tr><td style="text-align:center">' + (idx + 1) + '</td><td>' + item.nama + '</td><td>' + item.merk + '</td><td style="text-align:center">' + item.kode + '-' + item.nup + '</td><td style="text-align:center">' + item.jumlah + '</td><td style="text-align:center">Baik</td><td style="text-align:center">-</td></tr>'
+      ).join('');
+    }
+
+    const canvas = document.getElementById('signaturePad');
+    let ctx;
+
+    function initSignaturePad() {
+      if (!ctx) {
+        ctx = canvas.getContext('2d');
+        resizeCanvas();
+        let isDrawing = false, lastX = 0, lastY = 0;
+
+        function getPos(e) {
+          const rect = canvas.getBoundingClientRect();
+          if (e.touches) return { x: e.touches[0].clientX - rect.left, y: e.touches[0].clientY - rect.top };
+          return { x: e.clientX - rect.left, y: e.clientY - rect.top };
+        }
+
+        canvas.addEventListener('mousedown', e => { isDrawing = true; const p = getPos(e); lastX = p.x; lastY = p.y; });
+        canvas.addEventListener('mousemove', e => {
+          if (!isDrawing) return;
+          const p = getPos(e);
+          ctx.beginPath();
+          ctx.moveTo(lastX, lastY);
+          ctx.lineTo(p.x, p.y);
+          ctx.stroke();
+          lastX = p.x; lastY = p.y;
+          hasSignature = true;
+        });
+        canvas.addEventListener('mouseup', () => { isDrawing = false; if (hasSignature) { updateSignaturePreview(); showStatus('Tanda tangan disimpan!'); } });
+
+        canvas.addEventListener('touchstart', e => { isDrawing = true; const p = getPos(e); lastX = p.x; lastY = p.y; e.preventDefault(); });
+        canvas.addEventListener('touchmove', e => {
+          if (!isDrawing) return;
+          const p = getPos(e);
+          ctx.beginPath();
+          ctx.moveTo(lastX, lastY);
+          ctx.lineTo(p.x, p.y);
+          ctx.stroke();
+          lastX = p.x; lastY = p.y;
+          hasSignature = true;
+          e.preventDefault();
+        });
+        canvas.addEventListener('touchend', () => { isDrawing = false; if (hasSignature) { updateSignaturePreview(); showStatus('Tanda tangan disimpan!'); } });
+      }
+    }
+
+    function resizeCanvas() {
+      canvas.width = canvas.parentElement.offsetWidth;
+      canvas.height = 85;
+      ctx.strokeStyle = '#000';
+      ctx.lineWidth = 2;
+      ctx.lineCap = 'round';
+      ctx.lineJoin = 'round';
+    }
+
+    function clearSignature() {
+      if (ctx) { ctx.clearRect(0, 0, canvas.width, canvas.height); hasSignature = false; }
+      document.getElementById('signaturePreview').innerHTML = '[Tanda Tangan]';
+    }
+
+    function updateSignaturePreview() {
+      if (!hasSignature) return;
+      const preview = document.getElementById('signaturePreview');
+      const docCanvas = document.createElement('canvas');
+      docCanvas.width = 160; docCanvas.height = 40;
+      docCanvas.getContext('2d').drawImage(canvas, 0, 0, 160, 40);
+      preview.innerHTML = '';
+      preview.appendChild(docCanvas);
+    }
+
+    function togglePreview() {
+      previewVisible = !previewVisible;
+      const container = document.getElementById('documentPreviewContainer');
+      const text = document.getElementById('previewToggleText');
+      if (previewVisible) {
+        container.style.display = 'block';
+        text.textContent = '🙈 Sembunyikan Preview Surat';
+        document.getElementById('tanggalSurat').textContent = 'Jakarta, ' + new Date().toLocaleDateString('id-ID', { year: 'numeric', month: 'long', day: 'numeric' });
+      } else {
+        container.style.display = 'none';
+        text.textContent = '📄 Lihat Preview Surat';
+      }
+    }
+
+    function submitForm() {
+      if (!hasSignature) { alert('Mohon isi tanda tangan!'); return; }
+      if (confirm('Kirim pengajuan peminjaman?')) {
+        alert('✅ Pengajuan berhasil dikirim!');
+        clearSelection(); clearSignature(); goToStep1();
+      }
+    }
+
+    function showStatus(message) {
+      const bar = document.getElementById('statusBar');
+      document.getElementById('statusText').textContent = message;
+      bar.style.display = 'flex';
+      setTimeout(() => bar.style.display = 'none', 3000);
+    }
+  </script>
+</body>
+</html>

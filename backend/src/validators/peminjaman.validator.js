@@ -26,8 +26,7 @@ const parseItems = z.preprocess((val) => {
         .min(1, 'Jumlah pinjam minimal 1.'),
     })
   )
-  .min(1, 'Minimal pilih 1 barang untuk dipinjam.')
-  .max(1, 'Maksimal 1 barang per pengajuan peminjaman.'));
+  .min(1, 'Minimal pilih 1 barang untuk dipinjam.'));
 
 // Tanggal required dengan validasi tidak boleh backdate
 const tanggalRequired = (pesan) =>
@@ -78,8 +77,8 @@ const pesanTglKembali = {
 // - Tanggal pinjam: OPSIONAL, tapi jika diisi tidak boleh backdate
 // - Tanggal kembali: OPSIONAL, tapi jika ada harus > tanggal pinjam
 // - Alasan: OPSIONAL tapi minimal 5 karakter jika diisi
-// Surat pernyataan yang sudah ditandatangani diunggah sebagai file "dokumen"
-// (divalidasi di service), bukan lewat skema body ini.
+// - Surat pernyataan yang sudah ditandatangani WAJIB diunggah (field file
+//   "dokumen", divalidasi di controller/service — bukan di skema body ini).
 const createPeminjamanSchema = z
   .object({
     alasanPeminjaman: z

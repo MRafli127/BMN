@@ -37,13 +37,17 @@ export const peminjamanService = {
     return res.data.data.suratUrl;
   },
 
-  // Pengajuan peminjaman (multipart: items JSON + surat ber-tanda tangan).
+  // Pengajuan peminjaman (multipart: items JSON + dokumen surat pernyataan
+  // yang sudah ditandatangani peminjam).
   async create(data: DataPengajuan): Promise<Peminjaman> {
     const fd = new FormData();
     if (data.tanggalPinjamRencana) fd.append('tanggalPinjamRencana', data.tanggalPinjamRencana);
     if (data.tanggalKembaliRencana) fd.append('tanggalKembaliRencana', data.tanggalKembaliRencana);
     fd.append('items', JSON.stringify(data.items));
-    fd.append('dokumen', data.dokumen);
+    // Surat pernyataan yang sudah ditandatangani (PDF) WAJIB diunggah.
+    if (data.dokumen) {
+      fd.append('dokumen', data.dokumen);
+    }
 
     const res = await api.post('/peminjaman', fd, {
       headers: { 'Content-Type': 'multipart/form-data' },
