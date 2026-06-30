@@ -31,7 +31,7 @@ export function KartuQrPeminjaman({ peminjaman }: { peminjaman: Peminjaman }) {
     let aktif = true;
     setMemuat(true);
     peminjamanService
-      .getQrcode(peminjaman.id, 'pengembalian')
+      .getQrcode(peminjaman.id)
       .then((d) => {
         if (aktif) setQrKembali(d.qrCodeUrl);
       })
