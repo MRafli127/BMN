@@ -23,14 +23,20 @@ interface Props {
   /** Dipanggil setelah pengajuan berhasil dibuat. */
   onSelesai: (peminjaman: Peminjaman) => void;
   praPilihId?: string;
+  /** Id barang yang sedang dalam peminjaman aktif milik peminjam ini —
+   *  tidak boleh diajukan ulang (1 barang hanya 1 peminjaman aktif). */
+  barangAktifIds?: string[];
 }
 
 type Langkah = 'pilih' | 'surat';
 
-export function FormPeminjaman({ daftarBarang, onSelesai, praPilihId }: Props) {
-  // Map barangId -> jumlah dipilih
+export function FormPeminjaman({ daftarBarang, onSelesai, praPilihId, barangAktifIds = [] }: Props) {
+  const aktifSet = useMemo(() => new Set(barangAktifIds), [barangAktifIds]);
+
+  // Map barangId -> jumlah dipilih.
+  // Barang pra-pilih diabaikan bila sedang dalam peminjaman aktif.
   const [terpilih, setTerpilih] = useState<Record<string, number>>(
-    praPilihId ? { [praPilihId]: 1 } : {}
+    praPilihId && !aktifSet.has(praPilihId) ? { [praPilihId]: 1 } : {}
   );
   const [cari, setCari] = useState('');
   const [tglPinjam, setTglPinjam] = useState('');
@@ -55,6 +61,10 @@ export function FormPeminjaman({ daftarBarang, onSelesai, praPilihId }: Props) {
   // Hanya boleh 1 barang per pengajuan — memilih barang baru
   // menggantikan pilihan sebelumnya.
   const tambah = (barang: Barang) => {
+    if (aktifSet.has(barang.id)) {
+      notify.gagal('Anda sudah memiliki peminjaman aktif untuk barang ini. Tidak dapat diajukan lagi.');
+      return;
+    }
     if (barang.jumlahTersedia < 1) {
       notify.gagal('Stok barang ini sedang habis.');
       return;
@@ -118,6 +128,7 @@ export function FormPeminjaman({ daftarBarang, onSelesai, praPilihId }: Props) {
           )}
           {hasilCari.map((barang) => {
             const dipilih = barang.id in terpilih;
+            const sedangAktif = aktifSet.has(barang.id);
             const habis = barang.jumlahTersedia < 1;
             return (
               <div
@@ -137,16 +148,20 @@ export function FormPeminjaman({ daftarBarang, onSelesai, praPilihId }: Props) {
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-sm font-medium">{barang.nama}</p>
                   {barang.merk && <p className="truncate text-xs text-muted-foreground">Merk: {barang.merk}</p>}
-                  <p className="text-xs text-muted-foreground">Tersedia: {barang.jumlahTersedia}</p>
+                  {sedangAktif ? (
+                    <p className="text-xs font-medium text-amber-600">Sedang Anda pinjam</p>
+                  ) : (
+                    <p className="text-xs text-muted-foreground">Tersedia: {barang.jumlahTersedia}</p>
+                  )}
                 </div>
                 <Button
                   type="button"
                   size="sm"
                   variant={dipilih ? 'secondary' : 'outline'}
-                  disabled={habis || dipilih}
+                  disabled={habis || dipilih || sedangAktif}
                   onClick={() => tambah(barang)}
                 >
-                  {dipilih ? 'Dipilih' : habis ? 'Habis' : 'Tambah'}
+                  {dipilih ? 'Dipilih' : sedangAktif ? 'Aktif' : habis ? 'Habis' : 'Tambah'}
                 </Button>
               </div>
             );

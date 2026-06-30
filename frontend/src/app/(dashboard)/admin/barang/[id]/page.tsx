@@ -12,6 +12,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { FormBarang } from '@/components/barang/FormBarang';
+import { QrBarang } from '@/components/barang/QrBarang';
 import { KonfirmasiDialog } from '@/components/shared/KonfirmasiDialog';
 import { LoadingSpinner } from '@/components/shared/LoadingSpinner';
 import { notify } from '@/components/ui/toast';
@@ -155,6 +156,8 @@ export default function DetailBarangPage() {
                 </ul>
               </div>
             )}
+
+            <QrBarang barang={barang} />
           </CardContent>
         </Card>
       )}

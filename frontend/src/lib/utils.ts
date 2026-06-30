@@ -55,6 +55,23 @@ export function inisial(nama?: string): string {
     .join('');
 }
 
+// Bentuk kunci unik aset BMN untuk isi QR: "Kode Satker-Kode Barang-NUP"
+// (mis. "015110199411868006KP-3100102002-87"). Bila komponen identitas
+// register tidak lengkap (mis. barang input manual), pakai kodeBarang
+// yang sudah tersimpan sebagai kode unik barang.
+export function kodeUnikBarang(barang: {
+  kodeBarang?: string | null;
+  kodeSatker?: string | null;
+  kodeBarangBmn?: string | null;
+  nup?: string | null;
+}): string {
+  const natural = [barang.kodeSatker, barang.kodeBarangBmn, barang.nup]
+    .map((v) => (v == null ? '' : String(v).trim()))
+    .filter(Boolean)
+    .join('-');
+  return natural || (barang.kodeBarang ? String(barang.kodeBarang).trim() : '');
+}
+
 // Ambil pesan error dari respons axios
 export function ambilPesanError(error: unknown, fallback = 'Terjadi kesalahan.'): string {
   const e = error as { response?: { data?: { pesan?: string } }; message?: string };
