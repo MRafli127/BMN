@@ -16,7 +16,7 @@ import { Input, Label } from '@/components/ui/input';
 import { Icon } from '@/components/ui/icon';
 import { notify } from '@/components/ui/toast';
 import { useAuth } from '@/hooks/useAuth';
-import { ambilPesanError, inisial } from '@/lib/utils';
+import { ambilPesanError, inisial, tanggalLahirDariNip } from '@/lib/utils';
 
 // ---------- Skema validasi ----------
 const profilSchema = z.object({
@@ -53,8 +53,12 @@ export default function PengaturanPage() {
     register: regProfil,
     handleSubmit: submitProfil,
     reset: resetProfil,
+    watch: watchProfil,
     formState: { errors: errProfil, isDirty },
   } = useForm<ProfilValues>({ resolver: zodResolver(profilSchema) });
+
+  // Tanggal lahir diturunkan otomatis dari 8 digit pertama NIP (format PNS: YYYYMMDD)
+  const tanggalLahir = tanggalLahirDariNip(watchProfil('nip'));
 
   // Isi form dengan data pengguna saat tersedia
   useEffect(() => {
@@ -158,6 +162,12 @@ export default function PengaturanPage() {
                 <Input id="nip" {...regProfil('nip')} />
                 {errProfil.nip && <p className="text-xs text-error">{errProfil.nip.message}</p>}
               </div>
+            </div>
+
+            <div className="space-y-1.5">
+              <Label htmlFor="tanggalLahir">Tanggal Lahir</Label>
+              <Input id="tanggalLahir" value={tanggalLahir} disabled readOnly />
+              <p className="text-xs text-muted-foreground">Diturunkan otomatis dari 8 digit pertama NIP.</p>
             </div>
 
             <div className="space-y-1.5">
