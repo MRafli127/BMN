@@ -150,7 +150,7 @@ export function LangkahSuratPernyataan({
               </div>
               <div>
                 <span className="text-sm text-muted-foreground">Unit Kerja</span>
-                <p className="font-semibold">{user?.unitKerjaPegawai ?? user?.unitKerja ?? '-'}</p>
+                <p className="font-semibold">{user?.unitKerja ?? user?.eselon3 ?? '-'}</p>
               </div>
             </div>
           </CardContent>

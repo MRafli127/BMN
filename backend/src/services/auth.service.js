@@ -134,8 +134,8 @@ async function register(data) {
       nip: data.nip,
       email: data.email,
       password: passwordHash,
-      jabatan: data.jabatan || null,
-      unitKerja: data.unitKerja || null,
+      eselon4: data.eselon4 || null, // form registrasi: label "Eselon IV"
+      eselon3: data.eselon3 || null, // form registrasi: label "Eselon III"
       role: 'PEMINJAM', // registrasi publik selalu peminjam
       tokenVersion: 1,
     },
@@ -199,11 +199,11 @@ async function perbaruiProfil(userId, data) {
       nama: data.nama,
       nip: data.nip,
       email: data.email,
-      jabatan: data.jabatan ? data.jabatan : null,
-      unitKerja: data.unitKerja ? data.unitKerja : null,
-      eselon2: data.eselon2 ? data.eselon2 : null,
-      jabatanPegawai: data.jabatanPegawai ? data.jabatanPegawai : null,
-      unitKerjaPegawai: data.unitKerjaPegawai ? data.unitKerjaPegawai : null,
+      jabatan: data.jabatan ? data.jabatan : null, //     "Jabatan"
+      unitKerja: data.unitKerja ? data.unitKerja : null, // "Unit Kerja"
+      eselon2: data.eselon2 ? data.eselon2 : null, //     "Eselon II"
+      eselon3: data.eselon3 ? data.eselon3 : null, //     "Eselon III"
+      eselon4: data.eselon4 ? data.eselon4 : null, //     "Eselon IV"
     },
   });
 

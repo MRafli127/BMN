@@ -10,11 +10,11 @@
 //    NIP                  NIP                     nip
 //    Nama                 Nama                    nama
 //    Email                Alamat Email            email
-//    Jabatan / Jabatan1   Jabatan                 jabatanPegawai
-//    Unit Kerja           Unit Kerja              unitKerjaPegawai
+//    Jabatan / Jabatan1   Jabatan                 jabatan
+//    Unit Kerja           Unit Kerja              unitKerja
 //    UE2 / Eselon II      Eselon II               eselon2
-//    UE3 / Eselon III     Eselon III              unitKerja  (legacy)
-//    UE4 / Eselon IV      Eselon IV               jabatan    (legacy)
+//    UE3 / Eselon III     Eselon III              eselon3
+//    UE4 / Eselon IV      Eselon IV               eselon4
 //
 //  Perilaku sinkronisasi (HANYA-TAMBAH/PERBARUI, TIDAK MENGHAPUS):
 //    - NIP belum terdaftar  -> dibuatkan akun PEMINJAM baru
@@ -63,25 +63,25 @@ const ALIAS_KOLOM = {
   name: 'nama',
   email: 'email',
   'alamat email': 'email',
-  // Jabatan pegawai (fungsional) — BUKAN eselon
-  jabatan: 'jabatanPegawai',
-  jabatan1: 'jabatanPegawai',
-  'unit kerja': 'unitKerjaPegawai',
+  // Jabatan pegawai (fungsional)
+  jabatan: 'jabatan',
+  jabatan1: 'jabatan',
+  'unit kerja': 'unitKerja',
   // Eselon II
   ue2: 'eselon2',
   'ue 2': 'eselon2',
   'eselon ii': 'eselon2',
   'eselon 2': 'eselon2',
-  // Eselon III -> unitKerja (legacy)
-  ue3: 'unitKerja',
-  'ue 3': 'unitKerja',
-  'eselon iii': 'unitKerja',
-  'eselon 3': 'unitKerja',
-  // Eselon IV -> jabatan (legacy)
-  ue4: 'jabatan',
-  'ue 4': 'jabatan',
-  'eselon iv': 'jabatan',
-  'eselon 4': 'jabatan',
+  // Eselon III
+  ue3: 'eselon3',
+  'ue 3': 'eselon3',
+  'eselon iii': 'eselon3',
+  'eselon 3': 'eselon3',
+  // Eselon IV
+  ue4: 'eselon4',
+  'ue 4': 'eselon4',
+  'eselon iv': 'eselon4',
+  'eselon 4': 'eselon4',
 };
 
 // Field data diri yang boleh diisi/diperbarui pada akun yang SUDAH ADA
@@ -89,11 +89,11 @@ const ALIAS_KOLOM = {
 // label yang ramah untuk laporan perubahan.
 const FIELD_DATA_DIRI = [
   { key: 'nama', label: 'Nama' },
-  { key: 'jabatanPegawai', label: 'Jabatan' },
-  { key: 'unitKerjaPegawai', label: 'Unit Kerja' },
+  { key: 'jabatan', label: 'Jabatan' },
+  { key: 'unitKerja', label: 'Unit Kerja' },
   { key: 'eselon2', label: 'Eselon II' },
-  { key: 'unitKerja', label: 'Eselon III' },
-  { key: 'jabatan', label: 'Eselon IV' },
+  { key: 'eselon3', label: 'Eselon III' },
+  { key: 'eselon4', label: 'Eselon IV' },
 ];
 
 const REGEX_EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -203,11 +203,11 @@ function parse(buffer) {
       nip,
       nama,
       email,
-      jabatanPegawai: teksAtauNull(ambil(row, 'jabatanPegawai')),
-      unitKerjaPegawai: teksAtauNull(ambil(row, 'unitKerjaPegawai')),
-      eselon2: teksAtauNull(ambil(row, 'eselon2')),
-      unitKerja: teksAtauNull(ambil(row, 'unitKerja')), // Eselon III
-      jabatan: teksAtauNull(ambil(row, 'jabatan')), //   Eselon IV
+      jabatan: teksAtauNull(ambil(row, 'jabatan')), //     Jabatan
+      unitKerja: teksAtauNull(ambil(row, 'unitKerja')), // Unit Kerja
+      eselon2: teksAtauNull(ambil(row, 'eselon2')), //     Eselon II
+      eselon3: teksAtauNull(ambil(row, 'eselon3')), //     Eselon III
+      eselon4: teksAtauNull(ambil(row, 'eselon4')), //     Eselon IV
     });
   }
 
@@ -237,8 +237,8 @@ async function importDariExcel(buffer) {
       jabatan: true,
       unitKerja: true,
       eselon2: true,
-      jabatanPegawai: true,
-      unitKerjaPegawai: true,
+      eselon3: true,
+      eselon4: true,
       role: true,
     },
   });
@@ -278,11 +278,11 @@ async function importDariExcel(buffer) {
         password: passwordHash,
         role: 'PEMINJAM',
         sumber: 'IMPORT',
-        jabatanPegawai: r.jabatanPegawai,
-        unitKerjaPegawai: r.unitKerjaPegawai,
+        jabatan: r.jabatan,
+        unitKerja: r.unitKerja,
         eselon2: r.eselon2,
-        unitKerja: r.unitKerja, // Eselon III
-        jabatan: r.jabatan, //     Eselon IV
+        eselon3: r.eselon3,
+        eselon4: r.eselon4,
       });
       ditambahkanList.push({ nama: r.nama, nip: r.nip, email: r.email });
       continue;

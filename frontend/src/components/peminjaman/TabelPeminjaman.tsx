@@ -158,7 +158,7 @@ export function TabelPeminjaman({
                   {tampilkanPeminjam && (
                     <TableCell>
                       <p className="font-medium text-foreground">{p.peminjam?.nama ?? '-'}</p>
-                      <p className="text-xs text-muted-foreground">{p.peminjam?.unitKerja ?? ''}</p>
+                      <p className="text-xs text-muted-foreground">{p.peminjam?.eselon3 ?? ''}</p>
                     </TableCell>
                   )}
                   <TableCell className="max-w-[200px] truncate text-sm">{ringkasBarang}</TableCell>

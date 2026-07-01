@@ -9,11 +9,11 @@ export interface User {
   nama: string;
   nip: string;
   email: string;
-  jabatan?: string | null;
-  unitKerja?: string | null;
-  eselon2?: string | null;
-  jabatanPegawai?: string | null;
-  unitKerjaPegawai?: string | null;
+  jabatan?: string | null; //   Jabatan
+  unitKerja?: string | null; // Unit Kerja
+  eselon2?: string | null; //   Eselon II
+  eselon3?: string | null; //   Eselon III
+  eselon4?: string | null; //   Eselon IV
   role: Role;
   createdAt?: string;
   updatedAt?: string;
@@ -29,8 +29,8 @@ export interface DataRegister {
   nip: string;
   email: string;
   password: string;
-  jabatan?: string;
-  unitKerja?: string;
+  eselon4?: string; // form registrasi: "Eselon IV"
+  eselon3?: string; // form registrasi: "Eselon III"
 }
 
 export interface HasilAuth {
@@ -43,11 +43,11 @@ export interface DataUpdateProfil {
   nama: string;
   nip: string;
   email: string;
-  jabatan?: string;
-  unitKerja?: string;
-  eselon2?: string;
-  jabatanPegawai?: string;
-  unitKerjaPegawai?: string;
+  jabatan?: string; //   Jabatan
+  unitKerja?: string; // Unit Kerja
+  eselon2?: string; //   Eselon II
+  eselon3?: string; //   Eselon III
+  eselon4?: string; //   Eselon IV
 }
 
 export interface DataGantiPassword {

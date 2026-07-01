@@ -49,11 +49,11 @@ interface UserList {
   nama: string;
   nip: string;
   email: string;
-  jabatanPegawai: string | null; //   Jabatan (fungsional)
-  unitKerjaPegawai: string | null; // Unit Kerja
-  eselon2: string | null; //          Eselon II
-  jabatan: string | null; //          Eselon IV (legacy)
-  unitKerja: string | null; //        Eselon III (legacy)
+  jabatan: string | null; //   Jabatan
+  unitKerja: string | null; // Unit Kerja
+  eselon2: string | null; //   Eselon II
+  eselon3: string | null; //   Eselon III
+  eselon4: string | null; //   Eselon IV
   createdAt: string;
 }
 

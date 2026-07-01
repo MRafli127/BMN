@@ -198,7 +198,7 @@ function tambahKe(map, kunci, nilai) {
 // --- Proses import: TAMBAH/PERBARUI data peminjam dari file ---
 //  Import bersifat HANYA-TAMBAH/PERBARUI (tidak pernah menghapus akun):
 //    - NIP/email baru di file  -> akun dibuat (sumber IMPORT)
-//    - NIP/email cocok          -> data (nama/jabatan/unitKerja) diperbarui
+//    - NIP/email cocok          -> data (nama/Eselon III/Eselon IV) diperbarui
 //                                  bila berubah
 //    - akun yang hilang/baris tanpa NUP -> DIBIARKAN (tidak dihapus).
 //  Akun peminjam bersifat PERMANEN; penghapusan hanya lewat aksi admin
@@ -235,8 +235,8 @@ async function importDariExcel(buffer, { dryRun = false } = {}) {
       nama: true,
       email: true,
       nip: true,
-      jabatan: true,
-      unitKerja: true,
+      eselon4: true, // kolom "Eselon IV"
+      eselon3: true, // kolom "Eselon III"
       role: true,
       sumber: true,
     },
@@ -332,8 +332,8 @@ async function importDariExcel(buffer, { dryRun = false } = {}) {
               nip: r.nip,
               email: r.email,
               password: passwordHash,
-              jabatan: r.eselonIV, //   jabatan   <- kolom "Eselon IV"
-              unitKerja: r.eselonIII, // unitKerja <- kolom "Eselon III"
+              eselon4: r.eselonIV, // kolom "Eselon IV"
+              eselon3: r.eselonIII, // kolom "Eselon III"
               role: 'PEMINJAM',
               sumber: 'IMPORT',
             },
@@ -343,8 +343,8 @@ async function importDariExcel(buffer, { dryRun = false } = {}) {
             email: dibuat.email,
             nip: dibuat.nip,
             nama: r.nama,
-            jabatan: r.eselonIV,
-            unitKerja: r.eselonIII,
+            eselon4: r.eselonIV,
+            eselon3: r.eselonIII,
             role: 'PEMINJAM',
             sumber: 'IMPORT',
           };
@@ -360,19 +360,19 @@ async function importDariExcel(buffer, { dryRun = false } = {}) {
           // Catat field yang berubah agar admin tahu APA yang diperbarui.
           const perubahan = [];
           if (!sama(user.nama, r.nama)) perubahan.push('Nama');
-          if (!sama(user.jabatan, r.eselonIV)) perubahan.push('Eselon IV');
-          if (!sama(user.unitKerja, r.eselonIII)) perubahan.push('Eselon III');
+          if (!sama(user.eselon4, r.eselonIV)) perubahan.push('Eselon IV');
+          if (!sama(user.eselon3, r.eselonIII)) perubahan.push('Eselon III');
           const fieldBerubah = perubahan.length > 0;
           const perluClaim = user.sumber !== 'IMPORT';
           if (fieldBerubah || perluClaim) {
             await tx.user.update({
               where: { id: user.id },
-              data: { nama: r.nama, jabatan: r.eselonIV, unitKerja: r.eselonIII, sumber: 'IMPORT' },
+              data: { nama: r.nama, eselon4: r.eselonIV, eselon3: r.eselonIII, sumber: 'IMPORT' },
             });
             // Sinkronkan in-memory agar baris berikutnya tidak terdeteksi berubah lagi.
             user.nama = r.nama;
-            user.jabatan = r.eselonIV;
-            user.unitKerja = r.eselonIII;
+            user.eselon4 = r.eselonIV;
+            user.eselon3 = r.eselonIII;
             user.sumber = 'IMPORT';
             if (fieldBerubah) {
               akunDiperbarui += 1;

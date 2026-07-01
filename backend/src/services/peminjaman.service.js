@@ -24,7 +24,19 @@ const env = require('../config/env');
 
 // Bentuk include lengkap untuk relasi
 const includeLengkap = {
-  peminjam: { select: { id: true, nama: true, nip: true, email: true, jabatan: true, unitKerja: true } },
+  peminjam: {
+    select: {
+      id: true,
+      nama: true,
+      nip: true,
+      email: true,
+      jabatan: true, //   "Jabatan"
+      unitKerja: true, // "Unit Kerja"
+      eselon2: true, //   "Eselon II"
+      eselon3: true, //   "Eselon III"
+      eselon4: true, //   "Eselon IV"
+    },
+  },
   admin: { select: { id: true, nama: true } },
   detail: { include: { barang: true } },
 };
