@@ -62,11 +62,6 @@ export default function PeminjamDashboardPage() {
               <Icon name="inventory_2" className="text-[18px]" /> Katalog
             </Link>
           </Button>
-          <Button asChild>
-            <Link href={RUTE.peminjamAjukan}>
-              <Icon name="add" className="text-[18px]" /> Ajukan Peminjaman
-            </Link>
-          </Button>
         </div>
       </div>
 
