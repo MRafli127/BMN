@@ -12,12 +12,12 @@ html {
   user-drag: none !important;
 }
 
-/* Nonaktifkan drag di level body */
+/* Nonaktifkan drag di level body (seleksi teks tetap diizinkan) */
 body {
   -webkit-user-drag: none !important;
   user-drag: none !important;
-  -webkit-user-select: none !important;
-  user-select: none !important;
+  -webkit-user-select: text !important;
+  user-select: text !important;
 }
 
 /* Cegah drag di SEMUA elemen */

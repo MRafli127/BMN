@@ -17,8 +17,23 @@ export interface PeminjamRow {
   nama: string;
   nip: string;
   email: string;
-  jabatan: string | null; //   Eselon IV
-  unitKerja: string | null; // Eselon III
+  jabatanPegawai: string | null; //   Jabatan (fungsional)
+  unitKerjaPegawai: string | null; // Unit Kerja
+  eselon2: string | null; //          Eselon II
+  jabatan: string | null; //          Eselon IV (legacy)
+  unitKerja: string | null; //        Eselon III (legacy)
+}
+
+// Sel teks yang panjang (nama unit/eselon) dipangkas dengan elipsis; teks
+// lengkap tampil saat kursor diarahkan (title).
+function SelTeks({ nilai, className }: { nilai: string | null; className?: string }) {
+  return (
+    <TableCell className={className}>
+      <span className="block max-w-[16rem] truncate" title={nilai || undefined}>
+        {nilai || '-'}
+      </span>
+    </TableCell>
+  );
 }
 
 interface Props {
@@ -103,7 +118,8 @@ export function TabelDaftarPeminjam({ data, nomorAwal = 0, onHapus, terpilih, on
     }
   };
 
-  const jumlahKolom = (pilihAktif ? 1 : 0) + 6 + (onHapus ? 1 : 0); // checkbox + #, nama, nip, 2 eselon, email + aksi
+  // checkbox + (#, nama, nip, jabatan, email, unit kerja, eselon II/III/IV) + aksi
+  const jumlahKolom = (pilihAktif ? 1 : 0) + 9 + (onHapus ? 1 : 0);
 
   return (
     <>
@@ -124,9 +140,12 @@ export function TabelDaftarPeminjam({ data, nomorAwal = 0, onHapus, terpilih, on
               <TableHead className="w-16">#</TableHead>
               <TableHead>Nama</TableHead>
               <TableHead>NIP</TableHead>
+              <TableHead>Jabatan</TableHead>
+              <TableHead>Email</TableHead>
+              <TableHead>Unit Kerja</TableHead>
+              <TableHead>Eselon II</TableHead>
               <TableHead>Eselon III</TableHead>
               <TableHead>Eselon IV</TableHead>
-              <TableHead>Email</TableHead>
               {onHapus && <TableHead className="w-16 text-right">Aksi</TableHead>}
             </TableRow>
           </TableHeader>
@@ -143,9 +162,12 @@ export function TabelDaftarPeminjam({ data, nomorAwal = 0, onHapus, terpilih, on
                   <TableCell className="text-muted-foreground">{nomorAwal + index + 1}</TableCell>
                   <TableCell className="font-medium text-on-surface">{user.nama}</TableCell>
                   <TableCell className="font-mono text-sm text-primary">{user.nip}</TableCell>
-                  <TableCell className="text-sm text-on-surface-variant">{user.unitKerja || '-'}</TableCell>
-                  <TableCell className="text-sm text-on-surface-variant">{user.jabatan || '-'}</TableCell>
+                  <SelTeks nilai={user.jabatanPegawai} className="text-sm text-on-surface-variant" />
                   <TableCell className="text-sm text-on-surface-variant">{user.email}</TableCell>
+                  <SelTeks nilai={user.unitKerjaPegawai} className="text-sm text-on-surface-variant" />
+                  <SelTeks nilai={user.eselon2} className="text-sm text-on-surface-variant" />
+                  <SelTeks nilai={user.unitKerja} className="text-sm text-on-surface-variant" />
+                  <SelTeks nilai={user.jabatan} className="text-sm text-on-surface-variant" />
                   {onHapus && (
                     <TableCell className="text-right">
                       <Button variant="destructive" size="icon" onClick={() => setTarget(user)} aria-label={`Hapus ${user.nama}`}>

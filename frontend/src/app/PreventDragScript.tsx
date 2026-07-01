@@ -47,13 +47,16 @@ export function PreventDragScript() {
     if (!style) {
       style = document.createElement('style');
       style.id = styleId;
+      // Catatan: JANGAN set `user-select: none` di sini. Itu yang membuat
+      // teks tidak bisa diblok/di-copy. Kita hanya mencegah drag, dan tetap
+      // mengizinkan seleksi teks agar mudah menyalin kata/kalimat.
       style.textContent = `
         * {
           -webkit-user-drag: none !important;
           user-drag: none !important;
           draggable: false !important;
-          -webkit-user-select: none !important;
-          user-select: none !important;
+          -webkit-user-select: text !important;
+          user-select: text !important;
         }
         input, textarea, select {
           -webkit-user-select: auto !important;
