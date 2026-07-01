@@ -15,6 +15,7 @@ const { AppError } = require('../middleware/error.middleware');
 const qrcodeService = require('./qrcode.service');
 const suratPernyataanService = require('./suratPernyataan.service');
 const suratPengembalianService = require('./suratPengembalian.service');
+const nomorSuratService = require('./nomorSurat.service');
 const { kodeTransaksiUnik } = require('../utils/generateKode');
 const auditLogService = require('./auditLog.service');
 const emailService = require('./email.service');
@@ -110,6 +111,12 @@ async function previewSurat(userId, data) {
     detailItems.push({ barang, jumlahPinjam: item.jumlahPinjam });
   }
 
+  // Intip nomor surat berikutnya untuk tahun ini agar pratinjau menampilkan
+  // nomor yang (kemungkinan besar) akan diperoleh saat pengajuan disimpan.
+  // Nomor definitif baru ditetapkan atomik di create().
+  const tahunSurat = new Date().getFullYear();
+  const nomorSurat = await nomorSuratService.intip(nomorSuratService.JENIS.PEMINJAMAN, tahunSurat);
+
   const peminjamanSemu = {
     peminjam: user,
     detail: detailItems,
@@ -117,6 +124,8 @@ async function previewSurat(userId, data) {
     tanggalPengajuan: new Date(),
     tanggalPinjamRencana: data.tanggalPinjamRencana || null,
     tanggalKembaliRencana: data.tanggalKembaliRencana || null,
+    nomorSurat,
+    tahunSurat,
   };
 
   return suratPernyataanService.generate(peminjamanSemu);
@@ -201,12 +210,19 @@ async function create(userId, data, dokumenDataUrl, requestInfo = {}) {
     detailItems.push({ barangId: item.barangId, jumlahPinjam: item.jumlahPinjam });
   }
 
+  const tahunSurat = new Date().getFullYear();
+
   const created = await prisma.$transaction(async (tx) => {
+    // Nomor surat berurut & unik per tahun (atomik, anti race condition).
+    const nomorSurat = await nomorSuratService.ambil(tx, nomorSuratService.JENIS.PEMINJAMAN, tahunSurat);
+
     return tx.peminjaman.create({
       data: {
         kodeTransaksi,
         kodePeminjaman: kodeSnapshot, // Snapshot kode barang pertama (kolom wajib)
         userId,
+        nomorSurat,
+        tahunSurat,
         tanggalPinjamRencana: data.tanggalPinjamRencana || null,
         tanggalKembaliRencana: data.tanggalKembaliRencana || null,
         alasanPeminjaman: data.alasanPeminjaman || null,

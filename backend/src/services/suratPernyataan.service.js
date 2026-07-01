@@ -1,9 +1,12 @@
 // ============================================================
 //  Generator Surat Pernyataan Peminjaman BMN (PDF, pdf-lib).
-//  Surat ini DITAMPILKAN sebagai pratinjau, lalu DIUNDUH &
-//  DICETAK peminjam untuk ditandatangani secara FISIK. Karena
-//  itu blok tanda tangan dibiarkan kosong (bukan tanda tangan
-//  elektronik). Hasil dikembalikan sebagai data URL (PDF).
+//  Tata letak, font (Arial/Helvetica), ukuran, dan susunan mengikuti
+//  templat resmi backend/assets/Surat-Pernyataan-Peminjaman-BMN.docx.
+//
+//  Surat DITAMPILKAN sebagai pratinjau, lalu DIUNDUH & DICETAK/ditandatangani
+//  peminjam. Blok tanda tangan memakai keterangan "Ditandatangani secara
+//  elektronik" sesuai templat. Nomor surat berurut otomatis per tahun
+//  (lihat nomorSurat.service). Hasil dikembalikan sebagai data URL (PDF).
 // ============================================================
 
 const { PDFDocument, rgb, StandardFonts } = require('pdf-lib');
@@ -11,6 +14,7 @@ const path = require('path');
 const fs = require('fs');
 const { bufferKeDataUrl } = require('../utils/fileData');
 const { formatTanggalSaja } = require('../utils/formatTanggal');
+const nomorSuratService = require('./nomorSurat.service');
 
 const PAGE_W = 595.28;
 const PAGE_H = 841.89;
@@ -61,37 +65,29 @@ function wrapText(text, font, size, maxWidth) {
   return hasil.length ? hasil : [''];
 }
 
+// Nomor surat: pakai nomor tersimpan (nomorSurat/tahunSurat) bila ada;
+// saat pratinjau nilai tersebut diisi hasil "intip" di peminjaman.service.
 function nomorSurat(peminjaman) {
-  // Kode mengikuti kode barang terkini (kunci natural); seq = segmen terakhir (NUP).
-  const kode =
-    peminjaman.detail?.find((d) => d.barang)?.barang?.kodeBarang || peminjaman.kodePeminjaman || '';
-  const seq = String(kode).split('-').pop() || '0000';
-  const tahun = new Date(peminjaman.tanggalPengajuan || Date.now()).getFullYear();
-  return `PRN-${seq}/BMN/PP.1/${tahun}`;
+  const tahun =
+    peminjaman.tahunSurat ||
+    new Date(peminjaman.tanggalPengajuan || Date.now()).getFullYear();
+  return nomorSuratService.formatPeminjaman(peminjaman.nomorSurat, tahun);
 }
 
-// Decode base64 signature image
-async function loadSignatureImage(pdf, signatureDataUrl) {
-  if (!signatureDataUrl || !signatureDataUrl.startsWith('data:image/png;base64,')) {
-    return null;
-  }
-  try {
-    const base64Data = signatureDataUrl.replace('data:image/png;base64,', '');
-    const imageBytes = Buffer.from(base64Data, 'base64');
-    return await pdf.embedPng(imageBytes);
-  } catch (err) {
-    console.error('Gagal embed signature:', err);
-    return null;
-  }
+// Susun "Unit Kerja" lengkap mulai dari Eselon IV, III, dst. (sesuai catatan templat).
+function unitKerjaLengkap(u) {
+  const bagian = [u.jabatan, u.unitKerja, u.eselon2].map((x) => (x || '').trim()).filter(Boolean);
+  if (bagian.length) return bagian.join(', ');
+  return u.unitKerjaPegawai || u.unitKerja || '-';
 }
 
 async function generate(peminjaman) {
   const pdf = await PDFDocument.create();
   const font = await pdf.embedFont(StandardFonts.Helvetica);
   const fontBold = await pdf.embedFont(StandardFonts.HelveticaBold);
-  const fontItalic = await pdf.embedFont(StandardFonts.HelveticaOblique);
   const hitam = rgb(0.1, 0.1, 0.1);
   const abu = rgb(0.45, 0.45, 0.45);
+  const abuTtd = rgb(0.749, 0.749, 0.749); // BFBFBF — sesuai warna teks "Ditandatangani secara elektronik" pada templat
 
   let page = pdf.addPage([PAGE_W, PAGE_H]);
   let y = PAGE_H - MARGIN;
@@ -156,7 +152,7 @@ async function generate(peminjaman) {
   teksTengah(`NOMOR ${nomorSurat(peminjaman)}`, { font: fontBold, size: 11 });
   y -= 26;
 
-  // ---------- Identitas ----------
+  // ---------- Identitas peminjam ----------
   const u = peminjaman.peminjam || {};
   teks('Yang bertanda tangan di bawah ini:', MARGIN, { size: 10 });
   y -= 18;
@@ -164,8 +160,8 @@ async function generate(peminjaman) {
   const identitas = [
     ['Nama', u.nama || '-'],
     ['NIP', u.nip || '-'],
-    ['Eselon IV', u.jabatan || '-'],
-    ['Eselon III', u.unitKerja || '-'],
+    ['Pangkat/Gol.', u.pangkatGolongan || '-'],
+    ['Unit Kerja', unitKerjaLengkap(u)],
   ];
   const xLabel = MARGIN;
   const xTitik = MARGIN + 90;
@@ -296,39 +292,18 @@ async function generate(peminjaman) {
   y -= 16;
 
   // ---------- Blok tanda tangan (kanan) ----------
-  // Signature digital di-embed ke PDF jika tersedia
-  const SIG_AREA_H = 60;
-  pastikanRuang(SIG_AREA_H + 70);
+  // Sesuai templat: "Jakarta, <tanggal>" / "Peminjam BMN" / (ruang) /
+  // "Ditandatangani secara elektronik" (abu) / Nama.
+  pastikanRuang(90);
   const blokKiri = PAGE_W - MARGIN - 200;
   const tanggal = formatTanggalSaja(peminjaman.tanggalPengajuan || new Date());
   teks(`Jakarta, ${tanggal}`, blokKiri, { size: 10 });
   y -= 14;
   teks('Peminjam BMN', blokKiri, { size: 10 });
-  y -= 8;
-
-  // Load dan embed signature jika ada
-  const signatureImage = await loadSignatureImage(pdf, peminjaman.signatureDataUrl);
-  const garisY = y - (signatureImage ? 70 : SIG_AREA_H);
-  y = garisY;
-
-  // Gambar garis untuk tanda tangan
-  page.drawLine({ start: { x: blokKiri, y }, end: { x: blokKiri + 190, y }, thickness: 0.8, color: hitam });
-  y -= 14;
-
-  // Embed signature image jika ada
-  if (signatureImage) {
-    const maxSigW = 120;
-    const maxSigH = 45;
-    const sigScale = Math.min(maxSigW / signatureImage.width, maxSigH / signatureImage.height);
-    const sigW = signatureImage.width * sigScale;
-    const sigH = signatureImage.height * sigScale;
-    page.drawImage(signatureImage, { x: blokKiri, y: y - sigH, width: sigW, height: sigH });
-    y -= sigH + 5;
-  }
-
-  teks(u.nama || 'Peminjam BMN', blokKiri, { font: fontBold, size: 10 });
-  y -= 14;
-  teks('Tanda tangan & nama jelas', blokKiri, { font: fontItalic, size: 8, color: abu });
+  y -= 46; // ruang tanda tangan elektronik
+  teks('Ditandatangani secara elektronik', blokKiri, { size: 9, color: abuTtd });
+  y -= 13;
+  teks(u.nama || 'Nama Lengkap', blokKiri, { font: fontBold, size: 10 });
   y -= 22;
 
   // ---------- Catatan kaki ----------
@@ -336,7 +311,7 @@ async function generate(peminjaman) {
     x: MARGIN,
     y: MARGIN - 6,
     size: 8,
-    font: fontItalic,
+    font,
     color: abu,
   });
 
