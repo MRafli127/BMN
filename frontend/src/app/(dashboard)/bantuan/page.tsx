@@ -23,7 +23,6 @@ import {
   Lightbulb,
   ChevronDown,
   Sparkles,
-  PlusCircle,
   Undo2,
 } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
@@ -167,11 +166,6 @@ export default function BantuanPage() {
                 <Button asChild variant="outline">
                   <Link href={RUTE.peminjamKatalog}>
                     <Boxes className="h-4 w-4" /> Lihat Katalog
-                  </Link>
-                </Button>
-                <Button asChild>
-                  <Link href={RUTE.peminjamAjukan}>
-                    <PlusCircle className="h-4 w-4" /> Ajukan Peminjaman
                   </Link>
                 </Button>
               </>
