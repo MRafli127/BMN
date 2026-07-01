@@ -9,6 +9,7 @@ import { LoadingSpinner } from '@/components/shared/LoadingSpinner';
 import { EmptyState } from '@/components/shared/EmptyState';
 import { TabelPeminjaman } from '@/components/peminjaman/TabelPeminjaman';
 import { TabelDaftarPeminjam, type PeminjamRow } from '@/components/peminjaman/TabelDaftarPeminjam';
+import { ImportPegawaiDialog } from '@/components/peminjaman/ImportPegawaiDialog';
 import { KonfirmasiDialog } from '@/components/shared/KonfirmasiDialog';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -138,6 +139,12 @@ export default function KategoriDashboardPage() {
             <p className="text-sm text-on-surface-variant">{info.deskripsi}</p>
           </div>
         </div>
+        {/* Import data pegawai — mengisi & menyinkronkan data diri peminjam */}
+        {adalahPeminjam && (
+          <div className="ml-auto">
+            <ImportPegawaiDialog onSelesai={segarkanData} />
+          </div>
+        )}
       </section>
 
       {/* Toolbar pencarian & ukuran halaman (khusus daftar peminjam) */}

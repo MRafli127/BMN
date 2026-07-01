@@ -194,14 +194,29 @@ const ambilDataKategori = asyncHandler(async (req, res) => {
         wherePeminjam.OR = [
           { nama: { contains: q, mode: 'insensitive' } },
           { nip: { contains: q, mode: 'insensitive' } },
-          { unitKerja: { contains: q, mode: 'insensitive' } }, // Eselon III
-          { jabatan: { contains: q, mode: 'insensitive' } }, //   Eselon IV
+          { email: { contains: q, mode: 'insensitive' } },
+          { jabatanPegawai: { contains: q, mode: 'insensitive' } }, //  Jabatan
+          { unitKerjaPegawai: { contains: q, mode: 'insensitive' } }, // Unit Kerja
+          { eselon2: { contains: q, mode: 'insensitive' } }, //         Eselon II
+          { unitKerja: { contains: q, mode: 'insensitive' } }, //       Eselon III
+          { jabatan: { contains: q, mode: 'insensitive' } }, //         Eselon IV
         ];
       }
       [data, total] = await Promise.all([
         prisma.user.findMany({
           where: wherePeminjam,
-          select: { id: true, nama: true, nip: true, email: true, jabatan: true, unitKerja: true, createdAt: true },
+          select: {
+            id: true,
+            nama: true,
+            nip: true,
+            email: true,
+            jabatanPegawai: true,
+            unitKerjaPegawai: true,
+            eselon2: true,
+            jabatan: true,
+            unitKerja: true,
+            createdAt: true,
+          },
           orderBy: { createdAt: 'desc' },
           skip: (page - 1) * limit,
           take: limit,
