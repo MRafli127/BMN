@@ -170,8 +170,8 @@ async function generate(peminjaman) {
   blokIdentitas([
     ['nama', u.nama || '-'],
     ['NIP', u.nip || '-'],
-    ['unit kerja', u.unitKerjaPegawai || u.unitKerja || '-'],
-    ['bagian', u.jabatanPegawai || u.jabatan || '-'],
+    ['unit kerja', u.unitKerja || u.eselon3 || '-'],
+    ['bagian', u.jabatan || u.eselon4 || '-'],
   ]);
   y -= 4;
   teks('berupa :', MARGIN, { size: 10 });

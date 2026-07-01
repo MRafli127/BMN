@@ -17,11 +17,11 @@ export interface PeminjamRow {
   nama: string;
   nip: string;
   email: string;
-  jabatanPegawai: string | null; //   Jabatan (fungsional)
-  unitKerjaPegawai: string | null; // Unit Kerja
-  eselon2: string | null; //          Eselon II
-  jabatan: string | null; //          Eselon IV (legacy)
-  unitKerja: string | null; //        Eselon III (legacy)
+  jabatan: string | null; //   Jabatan
+  unitKerja: string | null; // Unit Kerja
+  eselon2: string | null; //   Eselon II
+  eselon3: string | null; //   Eselon III
+  eselon4: string | null; //   Eselon IV
 }
 
 // Sel teks yang panjang (nama unit/eselon) dipangkas dengan elipsis; teks
@@ -162,12 +162,12 @@ export function TabelDaftarPeminjam({ data, nomorAwal = 0, onHapus, terpilih, on
                   <TableCell className="text-muted-foreground">{nomorAwal + index + 1}</TableCell>
                   <TableCell className="font-medium text-on-surface">{user.nama}</TableCell>
                   <TableCell className="font-mono text-sm text-primary">{user.nip}</TableCell>
-                  <SelTeks nilai={user.jabatanPegawai} className="text-sm text-on-surface-variant" />
-                  <TableCell className="text-sm text-on-surface-variant">{user.email}</TableCell>
-                  <SelTeks nilai={user.unitKerjaPegawai} className="text-sm text-on-surface-variant" />
-                  <SelTeks nilai={user.eselon2} className="text-sm text-on-surface-variant" />
-                  <SelTeks nilai={user.unitKerja} className="text-sm text-on-surface-variant" />
                   <SelTeks nilai={user.jabatan} className="text-sm text-on-surface-variant" />
+                  <TableCell className="text-sm text-on-surface-variant">{user.email}</TableCell>
+                  <SelTeks nilai={user.unitKerja} className="text-sm text-on-surface-variant" />
+                  <SelTeks nilai={user.eselon2} className="text-sm text-on-surface-variant" />
+                  <SelTeks nilai={user.eselon3} className="text-sm text-on-surface-variant" />
+                  <SelTeks nilai={user.eselon4} className="text-sm text-on-surface-variant" />
                   {onHapus && (
                     <TableCell className="text-right">
                       <Button variant="destructive" size="icon" onClick={() => setTarget(user)} aria-label={`Hapus ${user.nama}`}>

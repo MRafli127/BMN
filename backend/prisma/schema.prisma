@@ -99,11 +99,11 @@ model User {
   nip       String     @unique // Nomor Induk Pegawai (unik)
   email     String     @unique
   password  String // Disimpan dalam bentuk hash bcrypt
-  jabatan          String? // (legacy) berisi data "Eselon IV" dari import; ditampilkan sebagai Eselon IV
-  unitKerja        String? // (legacy) berisi data "Eselon III" dari import; ditampilkan sebagai Eselon III
-  eselon2          String? // "Eselon II" (diisi manual/import)
-  jabatanPegawai   String? // "Jabatan" pegawai (diisi manual/import)
-  unitKerjaPegawai String? // "Unit Kerja" pegawai (diisi manual/import)
+  jabatan   String? // "Jabatan" pegawai / fungsional (diisi manual/import)
+  unitKerja String? // "Unit Kerja" pegawai (diisi manual/import)
+  eselon2   String? // "Eselon II" (diisi manual/import)
+  eselon3   String? // "Eselon III" (diisi manual/import)
+  eselon4   String? // "Eselon IV" (diisi manual/import)
   role      Role       @default(PEMINJAM)
   sumber    SumberAkun @default(MANUAL) // MANUAL (admin/registrasi) atau IMPORT (sinkron Excel)
   tokenVersion Int      @default(1) // Increment saat password diubah untuk invalidate semua token
