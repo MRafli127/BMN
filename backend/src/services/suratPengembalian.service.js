@@ -12,6 +12,7 @@ const path = require('path');
 const fs = require('fs');
 const { bufferKeDataUrl } = require('../utils/fileData');
 const { formatTanggalSaja } = require('../utils/formatTanggal');
+const nomorSuratService = require('./nomorSurat.service');
 const env = require('../config/env');
 
 const PAGE_W = 595.28;
@@ -54,12 +55,13 @@ function wrapText(text, font, size, maxWidth) {
 }
 
 function nomorSurat(peminjaman) {
-  // Kode mengikuti kode barang terkini (kunci natural); seq = segmen terakhir (NUP).
-  const kode =
-    peminjaman.detail?.find((d) => d.barang)?.barang?.kodeBarang || peminjaman.kodePeminjaman || '';
-  const seq = String(kode).split('-').pop() || '0000';
-  const tahun = new Date().getFullYear();
-  return `PRN-${seq}/BMN/${tahun}`;
+  // Surat pengembalian memakai nomor & tahun yang sama dengan surat
+  // peminjamannya (satu transaksi = satu nomor PRN), hanya beda format
+  // (tanpa segmen "PP.1"). Nomor ditetapkan saat pengajuan peminjaman dibuat.
+  const tahun =
+    peminjaman.tahunSurat ||
+    new Date(peminjaman.tanggalPengajuan || Date.now()).getFullYear();
+  return nomorSuratService.formatPengembalian(peminjaman.nomorSurat, tahun);
 }
 
 async function generate(peminjaman) {
@@ -128,7 +130,7 @@ async function generate(peminjaman) {
   y -= 14;
   teksTengah('BADAN PENDIDIKAN DAN PELATIHAN KEUANGAN', { font: fontBold, size: 11 });
   y -= 13;
-  teksTengah('SEKRETARIAT BADAN PENDIDIKAN DAN PELATIHAN KEUANGAN', { font: fontBold, size: 10 });
+  teksTengah('SEKRETARIAT BADAN', { font: fontBold, size: 10 });
   y -= 12;
   teksTengah(
     'GEDUNG ARIMURTI LANTAI 3, JALAN PURNAWARMAN NOMOR 99 KEBAYORAN BARU, JAKARTA SELATAN 12110',
@@ -258,16 +260,18 @@ async function generate(peminjaman) {
   }
   y -= 26;
 
-  // ---------- Blok tanda tangan fisik (kanan) ----------
-  // Tanda tangan dibubuhkan secara FISIK setelah surat dicetak, sehingga
-  // hanya disediakan ruang kosong di atas nama penerima BMN.
-  const SIG_AREA_H = 60;
-  pastikanRuang(SIG_AREA_H + 60);
+  // ---------- Blok tanda tangan (kanan) ----------
+  // Sesuai templat: "Jakarta," / "Yang menerima BMN," / (ruang) /
+  // "Ditandatangani secara elektronik" (abu) / Nama / NIP penerima BMN.
+  const abuTtd = rgb(0.749, 0.749, 0.749); // BFBFBF — warna teks tanda tangan elektronik pada templat
+  pastikanRuang(100);
   const blokKiri = PAGE_W - MARGIN - 200;
   teks('Jakarta,', blokKiri, { size: 10 });
   y -= 14;
   teks('Yang menerima BMN,', blokKiri, { size: 10 });
-  y -= SIG_AREA_H;
+  y -= 46; // ruang tanda tangan elektronik
+  teks('Ditandatangani secara elektronik', blokKiri, { size: 9, color: abuTtd });
+  y -= 13;
   teks(petugas.nama || 'Petugas BMN', blokKiri, { font: fontBold, size: 10 });
   y -= 14;
   teks(`NIP ${petugas.nip || '-'}`, blokKiri, { size: 10 });
