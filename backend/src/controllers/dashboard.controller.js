@@ -187,7 +187,7 @@ const ambilDataKategori = asyncHandler(async (req, res) => {
 
     case 'peminjam': {
       // Semua peminjam (user dengan role PEMINJAM), dengan pencarian opsional.
-      // Eselon III tersimpan di unitKerja, Eselon IV di jabatan (lihat import).
+      // Data pegawai: jabatan, unitKerja, eselon2/eselon3/eselon4 (lihat import).
       const q = String(req.query.q || '').trim();
       const wherePeminjam = { role: 'PEMINJAM' };
       if (q) {
@@ -195,11 +195,11 @@ const ambilDataKategori = asyncHandler(async (req, res) => {
           { nama: { contains: q, mode: 'insensitive' } },
           { nip: { contains: q, mode: 'insensitive' } },
           { email: { contains: q, mode: 'insensitive' } },
-          { jabatanPegawai: { contains: q, mode: 'insensitive' } }, //  Jabatan
-          { unitKerjaPegawai: { contains: q, mode: 'insensitive' } }, // Unit Kerja
-          { eselon2: { contains: q, mode: 'insensitive' } }, //         Eselon II
-          { unitKerja: { contains: q, mode: 'insensitive' } }, //       Eselon III
-          { jabatan: { contains: q, mode: 'insensitive' } }, //         Eselon IV
+          { jabatan: { contains: q, mode: 'insensitive' } }, //   Jabatan
+          { unitKerja: { contains: q, mode: 'insensitive' } }, // Unit Kerja
+          { eselon2: { contains: q, mode: 'insensitive' } }, //   Eselon II
+          { eselon3: { contains: q, mode: 'insensitive' } }, //   Eselon III
+          { eselon4: { contains: q, mode: 'insensitive' } }, //   Eselon IV
         ];
       }
       [data, total] = await Promise.all([
@@ -210,11 +210,11 @@ const ambilDataKategori = asyncHandler(async (req, res) => {
             nama: true,
             nip: true,
             email: true,
-            jabatanPegawai: true,
-            unitKerjaPegawai: true,
-            eselon2: true,
             jabatan: true,
             unitKerja: true,
+            eselon2: true,
+            eselon3: true,
+            eselon4: true,
             createdAt: true,
           },
           orderBy: { createdAt: 'desc' },

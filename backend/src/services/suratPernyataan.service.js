@@ -76,9 +76,9 @@ function nomorSurat(peminjaman) {
 
 // Susun "Unit Kerja" lengkap mulai dari Eselon IV, III, dst. (sesuai catatan templat).
 function unitKerjaLengkap(u) {
-  const bagian = [u.jabatan, u.unitKerja, u.eselon2].map((x) => (x || '').trim()).filter(Boolean);
+  const bagian = [u.eselon4, u.eselon3, u.eselon2].map((x) => (x || '').trim()).filter(Boolean);
   if (bagian.length) return bagian.join(', ');
-  return u.unitKerjaPegawai || u.unitKerja || '-';
+  return u.unitKerja || u.eselon3 || '-';
 }
 
 async function generate(peminjaman) {

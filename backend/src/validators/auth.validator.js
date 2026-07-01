@@ -48,8 +48,8 @@ const registerSchema = z.object({
     .max(30, 'NIP maksimal 30 karakter.'),
   email: z.string({ required_error: 'Email wajib diisi.' }).email('Format email tidak valid.'),
   password: passwordSchema(),
-  jabatan: z.string().optional().or(z.literal('')),
-  unitKerja: z.string().optional().or(z.literal('')),
+  eselon4: z.string().optional().or(z.literal('')), // form registrasi: "Eselon IV"
+  eselon3: z.string().optional().or(z.literal('')), // form registrasi: "Eselon III"
 });
 
 // Validasi login
@@ -66,11 +66,11 @@ const updateProfilSchema = z.object({
     .min(5, 'NIP minimal 5 karakter.')
     .max(30, 'NIP maksimal 30 karakter.'),
   email: z.string({ required_error: 'Email wajib diisi.' }).email('Format email tidak valid.'),
-  jabatan: z.string().optional().or(z.literal('')),
-  unitKerja: z.string().optional().or(z.literal('')),
-  eselon2: z.string().optional().or(z.literal('')),
-  jabatanPegawai: z.string().optional().or(z.literal('')),
-  unitKerjaPegawai: z.string().optional().or(z.literal('')),
+  jabatan: z.string().optional().or(z.literal('')), //   "Jabatan"
+  unitKerja: z.string().optional().or(z.literal('')), // "Unit Kerja"
+  eselon2: z.string().optional().or(z.literal('')), //   "Eselon II"
+  eselon3: z.string().optional().or(z.literal('')), //   "Eselon III"
+  eselon4: z.string().optional().or(z.literal('')), //   "Eselon IV"
 });
 
 // Validasi penggantian kata sandi

@@ -22,8 +22,8 @@ const schema = z.object({
   nip: z.string().min(5, 'NIP minimal 5 karakter.'),
   email: z.string().min(1, 'Email wajib diisi.').email('Format email tidak valid.'),
   password: z.string().min(6, 'Kata sandi minimal 6 karakter.'),
-  jabatan: z.string().optional(),
-  unitKerja: z.string().optional(),
+  eselon4: z.string().optional(), // label "Eselon IV"
+  eselon3: z.string().optional(), // label "Eselon III"
 });
 type FormValues = z.infer<typeof schema>;
 
@@ -117,13 +117,13 @@ export default function RegisterPage() {
             </div>
 
             <div className="floating-label-group">
-              <input id="jabatan" placeholder=" " {...register('jabatan')} className={inputClass} />
-              <label htmlFor="jabatan" className="font-label-md text-on-surface-variant">Eselon IV</label>
+              <input id="eselon4" placeholder=" " {...register('eselon4')} className={inputClass} />
+              <label htmlFor="eselon4" className="font-label-md text-on-surface-variant">Eselon IV</label>
             </div>
 
             <div className="floating-label-group">
-              <input id="unitKerja" placeholder=" " {...register('unitKerja')} className={inputClass} />
-              <label htmlFor="unitKerja" className="font-label-md text-on-surface-variant">Eselon III</label>
+              <input id="eselon3" placeholder=" " {...register('eselon3')} className={inputClass} />
+              <label htmlFor="eselon3" className="font-label-md text-on-surface-variant">Eselon III</label>
             </div>
 
             <div>

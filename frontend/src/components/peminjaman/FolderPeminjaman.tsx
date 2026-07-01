@@ -22,7 +22,7 @@ interface Props {
 interface Grup {
   kunci: string;
   nama: string;
-  unitKerja?: string;
+  eselon3?: string; // Eselon III (info sekunder di header folder)
   items: Peminjaman[];
 }
 
@@ -40,7 +40,7 @@ export function FolderPeminjaman({ data, hrefDetail, onHapus }: Props) {
       if (ada) {
         ada.items.push(p);
       } else {
-        peta.set(kunci, { kunci, nama, unitKerja: p.peminjam?.unitKerja ?? undefined, items: [p] });
+        peta.set(kunci, { kunci, nama, eselon3: p.peminjam?.eselon3 ?? undefined, items: [p] });
       }
     }
     return [...peta.values()].sort((a, b) => a.nama.localeCompare(b.nama, 'id'));
@@ -78,7 +78,7 @@ export function FolderPeminjaman({ data, hrefDetail, onHapus }: Props) {
               )}
               <div className="min-w-0 flex-1">
                 <p className="truncate font-medium text-foreground">{g.nama}</p>
-                {g.unitKerja && <p className="truncate text-xs text-muted-foreground">{g.unitKerja}</p>}
+                {g.eselon3 && <p className="truncate text-xs text-muted-foreground">{g.eselon3}</p>}
               </div>
               <span className="shrink-0 rounded-full bg-primary/10 px-2.5 py-0.5 text-xs font-semibold text-primary">
                 {g.items.length} peminjaman
