@@ -99,7 +99,7 @@ export default function KategoriDashboardPage() {
       if (dilewati > 0) {
         notify.info(`${dihapus} peminjam dihapus, ${dilewati} dilewati karena masih punya peminjaman aktif.`);
       } else {
-        notify.sukses(`${dihapus} peminjam berhasil dihapus.`);
+        notify.suksess(`${dihapus} peminjam berhasil dihapus.`);
       }
       setDialogMassal(false);
       setTerpilih([]);
