@@ -6,7 +6,7 @@
 
 'use client';
 
-import { Check, Clock, ThumbsUp, PackageCheck, Undo2, XCircle, AlertTriangle } from 'lucide-react';
+import { Check, Clock, ThumbsUp, PackageCheck, Undo2, XCircle, AlertTriangle, FileEdit } from 'lucide-react';
 import { cn, formatTanggalLengkap } from '@/lib/utils';
 import type { Peminjaman, StatusPeminjaman } from '@/types/peminjaman.type';
 
@@ -17,6 +17,7 @@ interface Langkah {
 }
 
 const LANGKAH: Langkah[] = [
+  { kunci: 'DRAFT', label: 'Draft Pengajuan', ikon: FileEdit },
   { kunci: 'MENUNGGU', label: 'Menunggu Persetujuan', ikon: Clock },
   { kunci: 'DISETUJUI', label: 'Disetujui', ikon: ThumbsUp },
   { kunci: 'DIPINJAM', label: 'Barang Dipinjam', ikon: PackageCheck },
@@ -26,15 +27,17 @@ const LANGKAH: Langkah[] = [
 // Indeks langkah aktif berdasarkan status
 function indeksAktif(status: StatusPeminjaman): number {
   switch (status) {
-    case 'MENUNGGU':
+    case 'DRAFT':
       return 0;
-    case 'DISETUJUI':
+    case 'MENUNGGU':
       return 1;
+    case 'DISETUJUI':
+      return 2;
     case 'DIPINJAM':
     case 'TERLAMBAT':
-      return 2;
-    case 'DIKEMBALIKAN':
       return 3;
+    case 'DIKEMBALIKAN':
+      return 4;
     default:
       return -1;
   }
@@ -69,23 +72,31 @@ export function TimelineStatus({ peminjaman }: { peminjaman: Peminjaman }) {
       {LANGKAH.map((langkah, i) => {
         const selesai = i < aktif;
         const sedangBerjalan = i === aktif;
-        const Ikon = terlambat && i === 2 ? AlertTriangle : langkah.ikon;
+        const Ikon = terlambat && i === 3 ? AlertTriangle : langkah.ikon;
+        // Waktu tiap langkah:
+        //  0 Draft Pengajuan  -> tanggal record dibuat
+        //  1 Menunggu         -> tanggal pengajuan dikirim ke admin (tanggalKirim);
+        //                        untuk data lama tanpa tanggalKirim, pakai tanggalPengajuan
+        //  4 Dikembalikan     -> tanggal kembali aktual
+        const waktu =
+          i === 0
+            ? peminjaman.tanggalPengajuan
+            : i === 1
+            ? peminjaman.tanggalKirim ??
+              (status !== 'DRAFT' ? peminjaman.tanggalPengajuan : undefined)
+            : i === 4
+            ? peminjaman.tanggalKembaliAktual
+            : undefined;
         return (
           <BarisTimeline
             key={langkah.kunci}
             ikon={selesai ? Check : Ikon}
-            label={terlambat && i === 2 ? 'Sedang Dipinjam (Terlambat)' : langkah.label}
+            label={terlambat && i === 3 ? 'Sedang Dipinjam (Terlambat)' : langkah.label}
             selesai={selesai}
             aktif={selesai || sedangBerjalan}
             warna={terlambat && sedangBerjalan ? 'merah' : undefined}
             terakhir={i === LANGKAH.length - 1}
-            waktu={
-              i === 0
-                ? peminjaman.tanggalPengajuan
-                : i === 3
-                ? peminjaman.tanggalKembaliAktual
-                : undefined
-            }
+            waktu={waktu}
           />
         );
       })}

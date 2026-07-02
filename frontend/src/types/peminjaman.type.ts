@@ -30,6 +30,7 @@ export interface Peminjaman {
   kodePeminjaman: string;
   userId: string;
   tanggalPengajuan: string;
+  tanggalKirim?: string | null; // Saat pengajuan dikirim ke admin (status MENUNGGU); null selama DRAFT
   tanggalPinjamRencana?: string | null;
   tanggalKembaliRencana?: string | null;
   tanggalKembaliAktual?: string | null;

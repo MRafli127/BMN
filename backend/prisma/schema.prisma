@@ -162,7 +162,8 @@ model Peminjaman {
   kodeTransaksi         String?          @unique // Kode unik per transaksi (untuk QR scan & referensi). Format: BMN-YYYYMMDD-XXXXX. Nullable untuk kompatibilitas data lama.
   kodePeminjaman        String // Snapshot kode aset barang saat dipinjam. Saat dibaca, kode di-resync dari kodeBarang barang terkait (kunci natural kodeSatker-kodeBarangBmn-NUP).
   userId                String
-  tanggalPengajuan      DateTime         @default(now())
+  tanggalPengajuan      DateTime         @default(now()) // Saat record dibuat (draft atau pengajuan langsung) = "Draft Pengajuan"
+  tanggalKirim          DateTime? // Saat pengajuan resmi dikirim ke admin (status mencapai MENUNGGU) = "Menunggu Persetujuan". Null selama masih DRAFT.
   tanggalPinjamRencana  DateTime?
   tanggalKembaliRencana DateTime?
   tanggalKembaliAktual  DateTime?

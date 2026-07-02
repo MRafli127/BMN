@@ -267,6 +267,9 @@ async function create(userId, data, dokumenDataUrl, requestInfo = {}) {
         tahunSurat,
         tanggalPinjamRencana: data.tanggalPinjamRencana || null,
         tanggalKembaliRencana: data.tanggalKembaliRencana || null,
+        // Pengajuan langsung: waktu kirim = sekarang. Draft: belum dikirim (null),
+        // diisi nanti saat surat diunggah (unggahSurat()).
+        tanggalKirim: isDraft ? null : new Date(),
         alasanPeminjaman: data.alasanPeminjaman || null,
         pangkatGolongan: data.pangkatGolongan || null, // Tercantum pada surat; disimpan agar surat draft bisa diunduh menyusul
         dokumenUrl: dokumenDataUrl, // Surat pernyataan yang sudah ditandatangani peminjam (null bila DRAFT)
@@ -329,7 +332,7 @@ async function unggahSurat(id, { userId, role } = {}, dokumenDataUrl, requestInf
 
   const updated = await prisma.peminjaman.update({
     where: { id },
-    data: { dokumenUrl: dokumenDataUrl, status: 'MENUNGGU' },
+    data: { dokumenUrl: dokumenDataUrl, status: 'MENUNGGU', tanggalKirim: new Date() },
     include: includeLengkap,
   });
 
