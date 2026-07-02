@@ -1,7 +1,7 @@
 // ============================================================
-//  Peminjam — Tinjau Pengajuan (setelah submit + tanda tangan).
+//  Peminjam — Tinjau Pengajuan (setelah surat diunggah & diajukan).
 //   - Ringkasan barang yang dipinjam.
-//   - Pratinjau isi Surat Pernyataan (PDF) yang baru dibuat.
+//   - Pratinjau Surat Pernyataan yang sudah ditandatangani & diunggah.
 //   - Lanjut ke detail peminjaman.
 // ============================================================
 
@@ -48,9 +48,9 @@ export default function ReviewPengajuanPage() {
       <div className="flex items-start gap-3 rounded-xl border border-green-200 bg-green-50 p-4">
         <CheckCircle2 className="mt-0.5 h-6 w-6 shrink-0 text-green-600" />
         <div>
-          <p className="font-semibold text-green-900">Pengajuan & tanda tangan berhasil dikirim</p>
+          <p className="font-semibold text-green-900">Pengajuan berhasil dikirim</p>
           <p className="text-sm text-green-800">
-            Silakan tinjau kembali barang yang dipinjam dan Surat Pernyataan Anda sebelum melanjutkan.
+            Surat pernyataan yang Anda unggah sedang menunggu verifikasi admin. Silakan tinjau kembali sebelum melanjutkan.
           </p>
         </div>
       </div>

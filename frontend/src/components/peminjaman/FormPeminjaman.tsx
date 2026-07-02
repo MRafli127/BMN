@@ -1,38 +1,47 @@
 // ============================================================
-//  Form pengajuan peminjaman.
-//   - Pilih satu atau beberapa barang + jumlah.
-//   - Isi tanggal pinjam (wajib) & rencana kembali (opsional).
+//  Form pengajuan peminjaman (2 langkah).
+//   Langkah 1: Pilih barang + jumlah, isi tanggal pinjam/kembali.
+//   Langkah 2: Tinjau & cetak Surat Pernyataan, tanda tangan fisik,
+//              unggah kembali (PDF), lalu ajukan.
 // ============================================================
 
 'use client';
 
 import { useMemo, useState } from 'react';
-import { Search, Plus, Minus, Trash2, Loader2, Package } from 'lucide-react';
+import { Search, Plus, Minus, Trash2, Package, FileText, ArrowRight } from 'lucide-react';
 import { Input, Label } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { notify } from '@/components/ui/toast';
-import { TandaTanganInput } from '@/components/peminjaman/TandaTanganInput';
-import { urlFile, ambilPesanError } from '@/lib/utils';
+import { LangkahSuratPernyataan } from '@/components/peminjaman/LangkahSuratPernyataan';
+import { urlFile } from '@/lib/utils';
 import type { Barang } from '@/types/barang.type';
-import type { DataPengajuan } from '@/types/peminjaman.type';
+import type { Peminjaman } from '@/types/peminjaman.type';
 
 interface Props {
   daftarBarang: Barang[];
-  onAjukan: (data: DataPengajuan) => Promise<void>;
+  /** Dipanggil setelah pengajuan berhasil dibuat. */
+  onSelesai: (peminjaman: Peminjaman) => void;
   praPilihId?: string;
+  /** Id barang yang sedang dalam peminjaman aktif milik peminjam ini —
+   *  tidak boleh diajukan ulang (1 barang hanya 1 peminjaman aktif). */
+  barangAktifIds?: string[];
 }
 
-export function FormPeminjaman({ daftarBarang, onAjukan, praPilihId }: Props) {
-  // Map barangId -> jumlah dipilih
+type Langkah = 'pilih' | 'surat';
+
+export function FormPeminjaman({ daftarBarang, onSelesai, praPilihId, barangAktifIds = [] }: Props) {
+  const aktifSet = useMemo(() => new Set(barangAktifIds), [barangAktifIds]);
+
+  // Map barangId -> jumlah dipilih.
+  // Barang pra-pilih diabaikan bila sedang dalam peminjaman aktif.
   const [terpilih, setTerpilih] = useState<Record<string, number>>(
-    praPilihId ? { [praPilihId]: 1 } : {}
+    praPilihId && !aktifSet.has(praPilihId) ? { [praPilihId]: 1 } : {}
   );
   const [cari, setCari] = useState('');
   const [tglPinjam, setTglPinjam] = useState('');
   const [tglKembali, setTglKembali] = useState('');
-  const [tandaTangan, setTandaTangan] = useState<string | null>(null);
-  const [sedangKirim, setSedangKirim] = useState(false);
+  const [langkah, setLangkah] = useState<Langkah>('pilih');
 
   const petaBarang = useMemo(() => {
     const m: Record<string, Barang> = {};
@@ -52,6 +61,10 @@ export function FormPeminjaman({ daftarBarang, onAjukan, praPilihId }: Props) {
   // Hanya boleh 1 barang per pengajuan — memilih barang baru
   // menggantikan pilihan sebelumnya.
   const tambah = (barang: Barang) => {
+    if (aktifSet.has(barang.id)) {
+      notify.gagal('Anda sudah memiliki peminjaman aktif untuk barang ini. Tidak dapat diajukan lagi.');
+      return;
+    }
     if (barang.jumlahTersedia < 1) {
       notify.gagal('Stok barang ini sedang habis.');
       return;
@@ -75,35 +88,27 @@ export function FormPeminjaman({ daftarBarang, onAjukan, praPilihId }: Props) {
     });
   };
 
-  const kirim = async (e: React.FormEvent) => {
-    e.preventDefault();
-
-    // Validasi sisi klien
+  const keSurat = () => {
     if (idTerpilih.length === 0) return notify.gagal('Pilih minimal satu barang untuk dipinjam.');
-    if (!tglPinjam) return notify.gagal('Tanggal pinjam wajib diisi.');
-    if (tglKembali && new Date(tglKembali) <= new Date(tglPinjam))
+    if (tglPinjam && tglKembali && new Date(tglKembali) <= new Date(tglPinjam))
       return notify.gagal('Tanggal kembali harus setelah tanggal pinjam.');
-    if (!tandaTangan) return notify.gagal('Tanda tangan wajib diisi.');
-
-    const data: DataPengajuan = {
-      tanggalPinjamRencana: tglPinjam,
-      tanggalKembaliRencana: tglKembali || undefined,
-      items: idTerpilih.map((barangId) => ({ barangId, jumlahPinjam: terpilih[barangId] })),
-      tandaTangan,
-    };
-
-    setSedangKirim(true);
-    try {
-      await onAjukan(data);
-    } catch (error) {
-      notify.gagal(ambilPesanError(error, 'Gagal mengirim pengajuan.'));
-    } finally {
-      setSedangKirim(false);
-    }
+    setLangkah('surat');
   };
 
+  if (langkah === 'surat') {
+    return (
+      <LangkahSuratPernyataan
+        items={idTerpilih.map((barangId) => ({ barangId, jumlahPinjam: terpilih[barangId] }))}
+        tanggalPinjamRencana={tglPinjam || undefined}
+        tanggalKembaliRencana={tglKembali || undefined}
+        onKembali={() => setLangkah('pilih')}
+        onSelesai={onSelesai}
+      />
+    );
+  }
+
   return (
-    <form onSubmit={kirim} className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+    <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
       {/* Kolom kiri: pilih barang */}
       <div className="space-y-3">
         <Label>1. Pilih Barang (maksimal 1 barang per pengajuan)</Label>
@@ -123,6 +128,7 @@ export function FormPeminjaman({ daftarBarang, onAjukan, praPilihId }: Props) {
           )}
           {hasilCari.map((barang) => {
             const dipilih = barang.id in terpilih;
+            const sedangAktif = aktifSet.has(barang.id);
             const habis = barang.jumlahTersedia < 1;
             return (
               <div
@@ -142,16 +148,20 @@ export function FormPeminjaman({ daftarBarang, onAjukan, praPilihId }: Props) {
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-sm font-medium">{barang.nama}</p>
                   {barang.merk && <p className="truncate text-xs text-muted-foreground">Merk: {barang.merk}</p>}
-                  <p className="text-xs text-muted-foreground">Tersedia: {barang.jumlahTersedia}</p>
+                  {sedangAktif ? (
+                    <p className="text-xs font-medium text-amber-600">Sedang Anda pinjam</p>
+                  ) : (
+                    <p className="text-xs text-muted-foreground">Tersedia: {barang.jumlahTersedia}</p>
+                  )}
                 </div>
                 <Button
                   type="button"
                   size="sm"
                   variant={dipilih ? 'secondary' : 'outline'}
-                  disabled={habis || dipilih}
+                  disabled={habis || dipilih || sedangAktif}
                   onClick={() => tambah(barang)}
                 >
-                  {dipilih ? 'Dipilih' : habis ? 'Habis' : 'Tambah'}
+                  {dipilih ? 'Dipilih' : sedangAktif ? 'Aktif' : habis ? 'Habis' : 'Tambah'}
                 </Button>
               </div>
             );
@@ -197,8 +207,9 @@ export function FormPeminjaman({ daftarBarang, onAjukan, praPilihId }: Props) {
         {/* Tanggal */}
         <div className="grid grid-cols-1 gap-3 xs:grid-cols-2">
           <div>
-            <Label htmlFor="tglPinjam">2. Tanggal Pinjam</Label>
+            <Label htmlFor="tglPinjam">2. Tanggal Pinjam (opsional)</Label>
             <Input id="tglPinjam" type="date" value={tglPinjam} onChange={(e) => setTglPinjam(e.target.value)} className="mt-1" />
+            <p className="mt-1 text-xs text-muted-foreground">Kosongkan bila belum ditentukan.</p>
           </div>
           <div>
             <Label htmlFor="tglKembali">Rencana Kembali (opsional)</Label>
@@ -207,19 +218,11 @@ export function FormPeminjaman({ daftarBarang, onAjukan, praPilihId }: Props) {
           </div>
         </div>
 
-        {/* Tanda tangan untuk surat pernyataan */}
-        <div className="rounded-lg border p-3">
-          <TandaTanganInput value={tandaTangan} onChange={setTandaTangan} />
-          <p className="mt-2 text-xs text-muted-foreground">
-            Tanda tangan akan otomatis dimasukkan ke Surat Pernyataan Peminjaman (PDF).
-          </p>
-        </div>
-
-        <Button type="submit" disabled={sedangKirim} className="w-full">
-          {sedangKirim && <Loader2 className="h-4 w-4 animate-spin" />}
-          Kirim Pengajuan
+        <Button type="button" onClick={keSurat} className="w-full">
+          <FileText className="h-4 w-4" /> Lanjut ke Surat Pernyataan
+          <ArrowRight className="h-4 w-4" />
         </Button>
       </div>
-    </form>
+    </div>
   );
 }

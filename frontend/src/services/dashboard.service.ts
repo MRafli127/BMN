@@ -9,6 +9,8 @@ import type { Barang } from '@/types/barang.type';
 export interface DashboardAdmin {
   statistik: {
     totalBarang: number;
+    stokTersedia: number;
+    stokHabis: number;
     pengajuanMenunggu: number;
     peminjamanAktif: number;
     barangTerlambat: number;
@@ -47,14 +49,26 @@ interface UserList {
   nama: string;
   nip: string;
   email: string;
-  jabatan: string | null; //   Eselon IV
-  unitKerja: string | null; // Eselon III
+  jabatan: string | null; //   Jabatan
+  unitKerja: string | null; // Unit Kerja
+  eselon2: string | null; //   Eselon II
+  eselon3: string | null; //   Eselon III
+  eselon4: string | null; //   Eselon IV
   createdAt: string;
 }
 
+export interface DashboardFilter {
+  dari?: string;
+  sampai?: string;
+}
+
 export const dashboardService = {
-  async admin(): Promise<DashboardAdmin> {
-    const res = await api.get('/dashboard/admin');
+  async admin(filter?: DashboardFilter): Promise<DashboardAdmin> {
+    const params = new URLSearchParams();
+    if (filter?.dari) params.append('dari', filter.dari);
+    if (filter?.sampai) params.append('sampai', filter.sampai);
+    const query = params.toString();
+    const res = await api.get(`/dashboard/admin${query ? `?${query}` : ''}`);
     return res.data.data;
   },
 

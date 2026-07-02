@@ -1,141 +1,93 @@
 // ============================================================
 //  Konfigurasi variabel lingkungan (environment)
 //  Memuat .env dan menyediakan nilai default yang aman.
-//  Auto-generate JWT secrets jika tidak ada.
 // ============================================================
 
-const crypto = require('crypto');
 const dotenv = require('dotenv');
-const fs = require('fs');
 const path = require('path');
+const crypto = require('crypto');
+const fs = require('fs');
 
-// Minimum 32 karakter untuk keamanan yang memadai (256-bit)
-const MIN_SECRET_LENGTH = 32;
+// Muat file .env dari root folder backend
+dotenv.config({ path: path.resolve(__dirname, '../../.env') });
 
-// Path ke file .env (bisa override via ENV_CONFIG_PATH)
-const ENV_PATH = process.env.ENV_CONFIG_PATH || path.resolve(__dirname, '../../.env');
+const isProduction = process.env.NODE_ENV === 'production';
+const envFilePath = path.resolve(__dirname, '../../.env');
 
-// Generate secret acak
-function generateSecret() {
-  return crypto.randomBytes(32).toString('hex');
-}
+// =============================================================================
+//  AUTO-GENERATE JWT SECRETS
+//  Sekali generate, simpan ke .env, tidak berubah sampai di-reset manual
+// =============================================================================
 
-// Baca isi file .env saat ini
-function bacaEnv() {
-  if (fs.existsSync(ENV_PATH)) {
-    const content = fs.readFileSync(ENV_PATH, 'utf-8');
-    const result = {};
-    for (const line of content.split('\n')) {
-      const trimmed = line.trim();
-      if (trimmed && !trimmed.startsWith('#')) {
-        const idx = trimmed.indexOf('=');
-        if (idx > 0) {
-          const key = trimmed.substring(0, idx).trim();
-          const value = trimmed.substring(idx + 1).trim();
-          result[key] = value;
-        }
-      }
-    }
-    return result;
+function ensureJwtSecrets() {
+  const accessVar = 'JWT_ACCESS_SECRET';
+  const refreshVar = 'JWT_REFRESH_SECRET';
+
+  // Cek apakah secrets sudah ada di .env
+  const hasAccessSecret = process.env[accessVar] && process.env[accessVar] !== 'dev_access_secret_minimum_32_chars_xx';
+  const hasRefreshSecret = process.env[refreshVar] && process.env[refreshVar] !== 'dev_refresh_secret_minimum_32_chars_yy';
+
+  // Kalau sudah ada, tidak perlu generate ulang
+  if (hasAccessSecret && hasRefreshSecret) {
+    return;
   }
-  return {};
-}
 
-// Simpan key=value ke file .env
-function simpanKeEnv(key, value) {
-  try {
-    let content = '';
-    if (fs.existsSync(ENV_PATH)) {
-      content = fs.readFileSync(ENV_PATH, 'utf-8');
-    }
+  // Generate secrets baru
+  const newAccessSecret = crypto.randomBytes(32).toString('hex');
+  const newRefreshSecret = crypto.randomBytes(32).toString('hex');
 
-    // Cek apakah key sudah ada
-    const pattern = new RegExp(`^${key}=.*$`, 'm');
-    if (pattern.test(content)) {
-      // Replace existing
-      content = content.replace(pattern, `${key}=${value}`);
+  // Baca file .env yang ada
+  let envContent = '';
+  if (fs.existsSync(envFilePath)) {
+    envContent = fs.readFileSync(envFilePath, 'utf8');
+  }
+
+  // Update atau tambahkan secrets
+  const updateOrAdd = (content, key, value) => {
+    const regex = new RegExp(`^${key}=.*$`, 'm');
+    if (regex.test(content)) {
+      // Update existing
+      return content.replace(regex, `${key}=${value}`);
     } else {
-      // Append new
-      content += (content.endsWith('\n') ? '' : '\n') + `${key}=${value}\n`;
+      // Add new line
+      return content ? `${content.trim()}\n${key}=${value}` : `${key}=${value}`;
     }
+  };
 
-    fs.writeFileSync(ENV_PATH, content, 'utf-8');
-    return true;
-  } catch (err) {
-    console.error(`Gagal menyimpan ${key} ke .env:`, err.message);
-    return false;
+  envContent = updateOrAdd(envContent, accessVar, newAccessSecret);
+  envContent = updateOrAdd(envContent, refreshVar, newRefreshSecret);
+
+  // Simpan ke .env
+  fs.writeFileSync(envFilePath, envContent + '\n', 'utf8');
+
+  // Reload environment variables
+  dotenv.config({ path: envFilePath, override: true });
+
+  if (isProduction) {
+    console.log('✅ JWT Secrets auto-generated dan disimpan ke .env');
+  } else {
+    console.log('\n🔐 JWT Secrets baru di-generate:');
+    console.log(`   JWT_ACCESS_SECRET=${newAccessSecret}`);
+    console.log(`   JWT_REFRESH_SECRET=${newRefreshSecret}`);
+    console.log('');
   }
 }
 
-// Cek apakah secret perlu auto-generate
-function butuhGenerate(nilai) {
-  if (!nilai || nilai.trim() === '') return true;
+// Jalankan auto-generate
+ensureJwtSecrets();
 
-  const lowerNilai = nilai.toLowerCase();
-  const placeholder = ['default', 'secret', 'ganti', 'generate', 'change', 'please_replace', 'your_', 'placeholder', 'xxx'];
-  for (const p of placeholder) {
-    if (lowerNilai.includes(p)) return true;
+// Validasi panjang secret
+function validateSecret(secret, name) {
+  if (!secret) return null;
+  if (secret.length < 32) {
+    console.warn(`⚠️  PERINGATAN: ${name} kurang dari 32 karakter. Disarankan menggunakan 64+ karakter.`);
   }
-
-  return false;
+  return secret;
 }
-
-// Validasi dan generate JWT secret
-function prosesJwtSecret(nama, nilai, isProduction) {
-  const varName = nama === 'JWT_ACCESS_SECRET' ? 'JWT_ACCESS_SECRET' : 'JWT_REFRESH_SECRET';
-
-  // Cek apakah perlu generate
-  if (butuhGenerate(nilai)) {
-    if (isProduction) {
-      const hint = nama === 'JWT_ACCESS_SECRET'
-        ? 'node -e "console.log(require(\'crypto\').randomBytes(32).toString(\'hex\'))"'
-        : 'node -e "console.log(require(\'crypto\').randomBytes(32).toString(\'hex\'))"';
-
-      throw new Error(
-        `❌ FATAL: ${varName} WAJIB diisi di production!\n` +
-        `   Generate secret aman:\n` +
-        `   ${hint}\n` +
-        `   Atau jalankan: npm run setup`
-      );
-    }
-
-    // Development: auto-generate + save
-    const generated = generateSecret();
-    console.log(`🔑 Auto-generating ${varName}...`);
-
-    if (simpanKeEnv(varName, generated)) {
-      console.log(`   ✅ Saved ke .env`);
-    } else {
-      console.log(`   ⚠️  Gagal simpan, pakai in-memory (akan beda setiap restart)`);
-    }
-
-    return generated;
-  }
-
-  // Validasi panjang
-  if (nilai.length < MIN_SECRET_LENGTH) {
-    if (isProduction) {
-      throw new Error(
-        `❌ FATAL: ${varName} terlalu pendek (${nilai.length}/${MIN_SECRET_LENGTH} chars).\n` +
-        `   Minimum ${MIN_SECRET_LENGTH} karakter diperlukan untuk keamanan.`
-      );
-    }
-    console.warn(`⚠️  ${varName} terlalu pendek (${nilai.length}/${MIN_SECRET_LENGTH} chars).`);
-  }
-
-  return nilai;
-}
-
-// Muat dotenv SEBELUM kita proses agar dapat nilai saat ini
-dotenv.config({ path: ENV_PATH });
-
-const isProduction = (process.env.NODE_ENV || 'development') === 'production';
-
-// Load existing .env values
-const envLama = bacaEnv();
 
 const env = {
   nodeEnv: process.env.NODE_ENV || 'development',
+  isProduction,
   port: parseInt(process.env.PORT, 10) || 5000,
   clientUrl: process.env.CLIENT_URL || 'http://localhost:3000',
   appUrl: process.env.APP_URL || 'http://localhost:5000',
@@ -143,16 +95,8 @@ const env = {
   databaseUrl: process.env.DATABASE_URL,
 
   jwt: {
-    accessSecret: prosesJwtSecret(
-      'JWT_ACCESS_SECRET',
-      envLama.JWT_ACCESS_SECRET || process.env.JWT_ACCESS_SECRET,
-      isProduction
-    ),
-    refreshSecret: prosesJwtSecret(
-      'JWT_REFRESH_SECRET',
-      envLama.JWT_REFRESH_SECRET || process.env.JWT_REFRESH_SECRET,
-      isProduction
-    ),
+    accessSecret: validateSecret(process.env.JWT_ACCESS_SECRET, 'JWT_ACCESS_SECRET'),
+    refreshSecret: validateSecret(process.env.JWT_REFRESH_SECRET, 'JWT_REFRESH_SECRET'),
     accessExpiresIn: process.env.JWT_ACCESS_EXPIRES_IN || '15m',
     refreshExpiresIn: process.env.JWT_REFRESH_EXPIRES_IN || '7d',
   },
@@ -160,25 +104,67 @@ const env = {
   // Ukuran maksimum file upload (byte)
   maxFileSize: (parseInt(process.env.MAX_FILE_SIZE_MB, 10) || 5) * 1024 * 1024,
 
+  // Konfigurasi peminjaman
+  peminjaman: {
+    maxAktif: parseInt(process.env.MAX_PEMINJAMAN_AKTIF, 10) || 3, // Maksimum peminjaman aktif per user
+    maxHari: parseInt(process.env.MAX_HARI_PINJAM, 10) || 365, // Maksimum hari pinjam (opsional, 0 = tidak terbatas)
+  },
+
+  // Cookie security - production pakai strict settings
+  cookie: {
+    secure: isProduction,
+    sameSite: isProduction ? 'none' : 'lax',
+    httpOnly: true,
+    maxAge: 7 * 24 * 60 * 60 * 1000, // 7 hari
+  },
+
   admin: {
     nama: process.env.ADMIN_NAMA || 'Administrator BMN',
     nip: process.env.ADMIN_NIP || '198001012010011001',
     email: process.env.ADMIN_EMAIL || 'admin@bmn.go.id',
     password: process.env.ADMIN_PASSWORD || 'Admin123!',
   },
+
+  // Petugas BMN penerima pengembalian — ditandatangani secara fisik pada
+  // "Surat Pernyataan Pengembalian BMN" sebagai "Yang menerima BMN".
+  petugasBmn: {
+    nama: process.env.PETUGAS_BMN_NAMA || 'Taufan Sukma Nugraha',
+    nip: process.env.PETUGAS_BMN_NIP || '198605132007011001',
+    unitKerja: process.env.PETUGAS_BMN_UNIT_KERJA || 'Sekretariat BPPK',
+    bagian: process.env.PETUGAS_BMN_BAGIAN || 'Umum',
+  },
+
+  // Konfigurasi email/SMTP
+  email: {
+    enabled: process.env.EMAIL_ENABLED === 'true',
+    smtp: {
+      host: process.env.SMTP_HOST || 'smtp.gmail.com',
+      port: parseInt(process.env.SMTP_PORT, 10) || 587,
+      user: process.env.SMTP_USER || '',
+      pass: process.env.SMTP_PASS || '',
+    },
+    from: process.env.SMTP_FROM || '"SIPP-BMN" <noreply@bmn.go.id>',
+    // Email admin untuk notifikasi (jika ada pengajuan baru)
+    notifyAdmin: process.env.EMAIL_NOTIFY_ADMIN || process.env.ADMIN_EMAIL || 'admin@bmn.go.id',
+  },
 };
+
+// Helper untuk reset JWT secrets (panggil dari CLI: node -r ./config/env.js reset-secrets)
+if (process.argv.includes('reset-secrets')) {
+  const fs2 = require('fs');
+  if (fs2.existsSync(envFilePath)) {
+    let content = fs2.readFileSync(envFilePath, 'utf8');
+    content = content.replace(/^JWT_ACCESS_SECRET=.*$/m, 'JWT_ACCESS_SECRET=');
+    content = content.replace(/^JWT_REFRESH_SECRET=.*$/m, 'JWT_REFRESH_SECRET=');
+    fs2.writeFileSync(envFilePath, content.trim() + '\n', 'utf8');
+  }
+  console.log('🔄 JWT Secrets di-reset. Jalankan ulang server untuk generate yang baru.');
+  process.exit(0);
+}
 
 // Peringatkan bila variabel penting belum diisi
 if (!env.databaseUrl) {
-  if (isProduction) {
-    console.error('❌ FATAL: DATABASE_URL belum diatur di .env!');
-    console.error('   Set DATABASE_URL dengan connection string PostgreSQL Anda.');
-    process.exit(1);
-  }
   console.warn('⚠️  PERINGATAN: DATABASE_URL belum diatur di file .env');
 }
-
-// Catat startup info (tidak log secret)
-console.log(`📦 SIPP-BMN Config: Node=${env.nodeEnv}, Port=${env.port}`);
 
 module.exports = env;

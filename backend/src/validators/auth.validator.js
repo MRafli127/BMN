@@ -4,6 +4,41 @@
 
 const { z } = require('zod');
 
+// Pola validasi password: minimal 8 karakter, huruf besar, huruf kecil, angka, spesial
+const PASSWORD_PATTERN = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*(),.?":{}|<>])[a-zA-Z\d!@#$%^&*(),.?":{}|<>]{8,}$/;
+
+const pesanPassword = {
+  required: 'Kata sandi wajib diisi.',
+  minLength: 'Kata sandi minimal 8 karakter.',
+  uppercase: 'Kata sandi harus mengandung minimal 1 huruf besar.',
+  lowercase: 'Kata sandi harus mengandung minimal 1 huruf kecil.',
+  number: 'Kata sandi harus mengandung minimal 1 angka.',
+  special: 'Kata sandi harus mengandung minimal 1 karakter spesial (!@#$%^&* dll).',
+};
+
+// Validasi password dengan rules组合
+function passwordSchema(messageOverride = null) {
+  return z
+    .string({ required_error: pesanPassword.required })
+    .min(8, messageOverride || pesanPassword.minLength)
+    .refine(
+      (pwd) => /[A-Z]/.test(pwd),
+      { message: pesanPassword.uppercase }
+    )
+    .refine(
+      (pwd) => /[a-z]/.test(pwd),
+      { message: pesanPassword.lowercase }
+    )
+    .refine(
+      (pwd) => /\d/.test(pwd),
+      { message: pesanPassword.number }
+    )
+    .refine(
+      (pwd) => /[!@#$%^&*(),.?":{}|<>]/.test(pwd),
+      { message: pesanPassword.special }
+    );
+}
+
 // Validasi registrasi peminjam baru
 const registerSchema = z.object({
   nama: z.string({ required_error: 'Nama wajib diisi.' }).min(3, 'Nama minimal 3 karakter.'),
@@ -12,11 +47,9 @@ const registerSchema = z.object({
     .min(5, 'NIP minimal 5 karakter.')
     .max(30, 'NIP maksimal 30 karakter.'),
   email: z.string({ required_error: 'Email wajib diisi.' }).email('Format email tidak valid.'),
-  password: z
-    .string({ required_error: 'Kata sandi wajib diisi.' })
-    .min(6, 'Kata sandi minimal 6 karakter.'),
-  jabatan: z.string().optional().or(z.literal('')),
-  unitKerja: z.string().optional().or(z.literal('')),
+  password: passwordSchema(),
+  eselon4: z.string().optional().or(z.literal('')), // form registrasi: "Eselon IV"
+  eselon3: z.string().optional().or(z.literal('')), // form registrasi: "Eselon III"
 });
 
 // Validasi login
@@ -33,16 +66,17 @@ const updateProfilSchema = z.object({
     .min(5, 'NIP minimal 5 karakter.')
     .max(30, 'NIP maksimal 30 karakter.'),
   email: z.string({ required_error: 'Email wajib diisi.' }).email('Format email tidak valid.'),
-  jabatan: z.string().optional().or(z.literal('')),
-  unitKerja: z.string().optional().or(z.literal('')),
+  jabatan: z.string().optional().or(z.literal('')), //   "Jabatan"
+  unitKerja: z.string().optional().or(z.literal('')), // "Unit Kerja"
+  eselon2: z.string().optional().or(z.literal('')), //   "Eselon II"
+  eselon3: z.string().optional().or(z.literal('')), //   "Eselon III"
+  eselon4: z.string().optional().or(z.literal('')), //   "Eselon IV"
 });
 
 // Validasi penggantian kata sandi
 const gantiPasswordSchema = z.object({
   passwordLama: z.string({ required_error: 'Kata sandi lama wajib diisi.' }).min(1, 'Kata sandi lama wajib diisi.'),
-  passwordBaru: z
-    .string({ required_error: 'Kata sandi baru wajib diisi.' })
-    .min(6, 'Kata sandi baru minimal 6 karakter.'),
+  passwordBaru: passwordSchema('Kata sandi baru tidak memenuhi syarat.'),
 });
 
 module.exports = { registerSchema, loginSchema, updateProfilSchema, gantiPasswordSchema };

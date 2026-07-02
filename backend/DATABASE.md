@@ -14,7 +14,7 @@ Skema ini **identik** dengan `prisma/schema.prisma`. Anda bebas memilih cara mem
 | Objek            | Nama                                                        |
 | ---------------- | ----------------------------------------------------------- |
 | Nama database    | `sipp_bmn` (bebas; cocokkan dengan `DATABASE_URL`)          |
-| Jumlah tabel     | 4 → `users`, `barang`, `peminjaman`, `detail_peminjaman`    |
+| Jumlah tabel     | 5 → `blacklisted_tokens`, `users`, `barang`, `peminjaman`, `detail_peminjaman` |
 | Jumlah enum      | 5 → `Role`, `JenisBarang`, `KondisiBarang`, `StatusPeminjaman`, `StatusItem` |
 | Tipe primary key | `TEXT` berisi UUID (di-generate oleh aplikasi/Prisma)       |
 | Tipe tanggal     | `TIMESTAMP(3)`                                              |
@@ -25,11 +25,19 @@ Skema ini **identik** dengan `prisma/schema.prisma`. Anda bebas memilih cara mem
 
 ```mermaid
 erDiagram
+    blacklisted_tokens ||--o| users : "user logout (userId)"
     users ||--o{ peminjaman : "mengajukan (userId)"
     users ||--o{ peminjaman : "menyetujui (disetujuiOleh)"
     peminjaman ||--|{ detail_peminjaman : "memiliki"
     barang ||--o{ detail_peminjaman : "dipinjam pada"
 
+    blacklisted_tokens {
+        text id PK
+        text token UK
+        timestamp expiresAt
+        text userId FK
+        timestamp createdAt
+    }
     users {
         text id PK
         text nama
@@ -98,6 +106,16 @@ erDiagram
 ---
 
 ## 4. Struktur Tabel
+
+### 4.0 `blacklisted_tokens` — Token yang di-blacklist (logout)
+
+| Kolom       | Tipe           | Null | Default             | Keterangan                       |
+| ----------- | -------------- | ---- | ------------------- | -------------------------------- |
+| `id`        | `TEXT`         | ❌   | UUID                | Primary key                      |
+| `token`     | `TEXT`         | ❌   | —                   | **Unik** — Refresh token yang di-blacklist |
+| `expiresAt` | `TIMESTAMP(3)` | ❌   | —                   | kapan token expire (untuk cleanup)|
+| `userId`    | `TEXT`         | ✅   | `NULL`              | User yang logout (tracking)       |
+| `createdAt` | `TIMESTAMP(3)` | ❌   | `CURRENT_TIMESTAMP` | Waktu dibuat                     |
 
 ### 4.1 `users` — Pengguna (admin & peminjam)
 
@@ -168,25 +186,27 @@ erDiagram
 
 **Foreign Key**
 
-| Tabel               | Kolom          | Mereferensi      | ON DELETE  | ON UPDATE |
-| ------------------- | -------------- | ---------------- | ---------- | --------- |
-| `peminjaman`        | `userId`       | `users(id)`      | `RESTRICT` | `CASCADE` |
-| `peminjaman`        | `disetujuiOleh`| `users(id)`      | `SET NULL` | `CASCADE` |
-| `detail_peminjaman` | `peminjamanId` | `peminjaman(id)` | `CASCADE`  | `CASCADE` |
-| `detail_peminjaman` | `barangId`     | `barang(id)`     | `RESTRICT` | `CASCADE` |
+| Tabel                | Kolom          | Mereferensi      | ON DELETE  | ON UPDATE |
+| -------------------- | -------------- | ---------------- | ---------- | --------- |
+| `blacklisted_tokens` | `userId`       | `users(id)`      | `SET NULL` | `CASCADE` |
+| `peminjaman`         | `userId`       | `users(id)`      | `RESTRICT` | `CASCADE` |
+| `peminjaman`         | `disetujuiOleh`| `users(id)`      | `SET NULL` | `CASCADE` |
+| `detail_peminjaman`  | `peminjamanId` | `peminjaman(id)` | `CASCADE`  | `CASCADE` |
+| `detail_peminjaman`  | `barangId`     | `barang(id)`     | `RESTRICT` | `CASCADE` |
 
 **Indeks**
 
-| Indeks                              | Tabel               | Kolom            | Tipe   |
-| ----------------------------------- | ------------------- | ---------------- | ------ |
-| `users_nip_key`                     | `users`             | `nip`            | UNIQUE |
-| `users_email_key`                   | `users`             | `email`          | UNIQUE |
-| `barang_kodeBarang_key`             | `barang`            | `kodeBarang`     | UNIQUE |
-| `peminjaman_kodePeminjaman_key`     | `peminjaman`        | `kodePeminjaman` | UNIQUE |
-| `peminjaman_userId_idx`             | `peminjaman`        | `userId`         | INDEX  |
-| `peminjaman_status_idx`             | `peminjaman`        | `status`         | INDEX  |
-| `detail_peminjaman_peminjamanId_idx`| `detail_peminjaman` | `peminjamanId`   | INDEX  |
-| `detail_peminjaman_barangId_idx`    | `detail_peminjaman` | `barangId`       | INDEX  |
+| Indeks                              | Tabel                | Kolom            | Tipe   |
+| ----------------------------------- | -------------------- | ---------------- | ------ |
+| `blacklisted_tokens_token_key`      | `blacklisted_tokens` | `token`          | UNIQUE |
+| `blacklisted_tokens_expiresAt_idx`  | `blacklisted_tokens` | `expiresAt`      | INDEX  |
+| `users_nip_key`                     | `users`              | `nip`            | UNIQUE |
+| `users_email_key`                   | `users`              | `email`          | UNIQUE |
+| `barang_kodeBarang_key`             | `barang`             | `kodeBarang`     | UNIQUE |
+| `peminjaman_userId_idx`             | `peminjaman`         | `userId`         | INDEX  |
+| `peminjaman_status_idx`             | `peminjaman`         | `status`         | INDEX  |
+| `detail_peminjaman_peminjamanId_idx`| `detail_peminjaman`  | `peminjamanId`   | INDEX  |
+| `detail_peminjaman_barangId_idx`    | `detail_peminjaman`  | `barangId`       | INDEX  |
 
 ---
 
@@ -199,6 +219,16 @@ erDiagram
 -- ============================================================
 --  SIPP-BMN — Skema Database PostgreSQL
 -- ============================================================
+
+-- 0) TABEL blacklisted_tokens --------------------------------
+CREATE TABLE "blacklisted_tokens" (
+    "id"        TEXT NOT NULL,
+    "token"     TEXT NOT NULL,
+    "expiresAt" TIMESTAMP(3) NOT NULL,
+    "userId"    TEXT,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT "blacklisted_tokens_pkey" PRIMARY KEY ("id")
+);
 
 -- 1) ENUM ----------------------------------------------------
 CREATE TYPE "Role" AS ENUM ('ADMIN', 'PEMINJAM');
@@ -271,16 +301,22 @@ CREATE TABLE "detail_peminjaman" (
 );
 
 -- 6) INDEKS & UNIQUE ----------------------------------------
+CREATE UNIQUE INDEX "blacklisted_tokens_token_key"    ON "blacklisted_tokens"("token");
+CREATE INDEX "blacklisted_tokens_expiresAt_idx"      ON "blacklisted_tokens"("expiresAt");
 CREATE UNIQUE INDEX "users_nip_key"                  ON "users"("nip");
 CREATE UNIQUE INDEX "users_email_key"                ON "users"("email");
 CREATE UNIQUE INDEX "barang_kodeBarang_key"          ON "barang"("kodeBarang");
-CREATE UNIQUE INDEX "peminjaman_kodePeminjaman_key"  ON "peminjaman"("kodePeminjaman");
 CREATE INDEX "peminjaman_userId_idx"                 ON "peminjaman"("userId");
 CREATE INDEX "peminjaman_status_idx"                 ON "peminjaman"("status");
 CREATE INDEX "detail_peminjaman_peminjamanId_idx"    ON "detail_peminjaman"("peminjamanId");
 CREATE INDEX "detail_peminjaman_barangId_idx"        ON "detail_peminjaman"("barangId");
 
 -- 7) FOREIGN KEY --------------------------------------------
+ALTER TABLE "blacklisted_tokens"
+    ADD CONSTRAINT "blacklisted_tokens_userId_fkey"
+    FOREIGN KEY ("userId") REFERENCES "users"("id")
+    ON DELETE SET NULL ON UPDATE CASCADE;
+
 ALTER TABLE "peminjaman"
     ADD CONSTRAINT "peminjaman_userId_fkey"
     FOREIGN KEY ("userId") REFERENCES "users"("id")

@@ -18,11 +18,16 @@ import { peminjamanService } from '@/services/peminjaman.service';
 import { ambilPesanError } from '@/lib/utils';
 import { RUTE } from '@/constants/routes';
 import type { Barang } from '@/types/barang.type';
-import type { DataPengajuan } from '@/types/peminjaman.type';
+import type { Peminjaman } from '@/types/peminjaman.type';
+
+// Status peminjaman yang masih "menahan" barang sehingga barang yang sama
+// tidak boleh diajukan ulang oleh peminjam yang sama.
+const STATUS_AKTIF = ['MENUNGGU', 'DISETUJUI', 'DIPINJAM', 'TERLAMBAT'];
 
 export default function AjukanPage() {
   const router = useRouter();
   const [barang, setBarang] = useState<Barang[]>([]);
+  const [barangAktifIds, setBarangAktifIds] = useState<string[]>([]);
   const [memuat, setMemuat] = useState(true);
   const [praId, setPraId] = useState<string | undefined>();
 
@@ -33,17 +38,28 @@ export default function AjukanPage() {
   }, []);
 
   useEffect(() => {
-    barangService
-      .getSemua({ limit: 100 })
-      .then((r) => setBarang(r.data))
+    // Muat katalog barang & peminjaman aktif milik peminjam secara paralel.
+    // Barang yang sedang dalam peminjaman aktif dikunci agar tidak bisa
+    // diajukan dua kali.
+    Promise.all([
+      barangService.getSemua({ limit: 100 }),
+      peminjamanService.getSemua({ limit: 200 }),
+    ])
+      .then(([rBarang, rPeminjaman]) => {
+        setBarang(rBarang.data);
+        const aktif = new Set<string>();
+        rPeminjaman.data
+          .filter((p) => STATUS_AKTIF.includes(p.status))
+          .forEach((p) => p.detail?.forEach((d) => d.barangId && aktif.add(d.barangId)));
+        setBarangAktifIds([...aktif]);
+      })
       .catch((e) => notify.gagal(ambilPesanError(e, 'Gagal memuat katalog barang.')))
       .finally(() => setMemuat(false));
   }, []);
 
-  // Kirim pengajuan (error ditangani di FormPeminjaman)
-  const ajukan = async (data: DataPengajuan) => {
-    const p = await peminjamanService.create(data);
-    notify.sukses('Pengajuan peminjaman berhasil dikirim!');
+  // Pengajuan selesai dibuat (lewat LangkahSuratPernyataan di dalam FormPeminjaman)
+  const selesai = (p: Peminjaman) => {
+    notify.suksess('Pengajuan peminjaman berhasil dikirim!');
     router.push(RUTE.peminjamRiwayatReview(p.id));
   };
 
@@ -59,14 +75,19 @@ export default function AjukanPage() {
         <CardHeader>
           <CardTitle>Ajukan Peminjaman Barang</CardTitle>
           <p className="text-sm text-muted-foreground">
-            Pilih barang dan tentukan tanggal peminjaman Anda.
+            Pilih barang &amp; tanggal, lalu cetak surat pernyataan, tanda tangan fisik, dan unggah kembali.
           </p>
         </CardHeader>
         <CardContent>
           {memuat ? (
             <LoadingSpinner />
           ) : (
-            <FormPeminjaman daftarBarang={barang} onAjukan={ajukan} praPilihId={praId} />
+            <FormPeminjaman
+              daftarBarang={barang}
+              onSelesai={selesai}
+              praPilihId={praId}
+              barangAktifIds={barangAktifIds}
+            />
           )}
         </CardContent>
       </Card>

@@ -8,7 +8,7 @@
 'use client';
 
 import { useEffect } from 'react';
-import { useRouter, usePathname } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import { Sidebar } from '@/components/layout/Sidebar';
 import { Header } from '@/components/layout/Header';
 import { Footer } from '@/components/layout/Footer';
@@ -19,13 +19,50 @@ import { RUTE } from '@/constants/routes';
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const { user, sedangMemuat } = useAuth();
   const router = useRouter();
-  const pathname = usePathname();
 
   useEffect(() => {
     if (!sedangMemuat && !user) {
       router.replace(RUTE.login);
     }
   }, [sedangMemuat, user, router]);
+
+  // Cegah drag & drop dengan event listener
+  useEffect(() => {
+    const events = [
+      'dragstart', 'drag', 'dragend', 'dragover', 'dragenter', 'dragleave', 'drop'
+    ];
+
+    const handler = (e: Event) => {
+      e.preventDefault();
+      e.stopPropagation();
+    };
+
+    events.forEach(event => {
+      document.addEventListener(event, handler, true);
+    });
+
+    // Nonaktifkan draggable secara berkala
+    const interval = setInterval(() => {
+      document.querySelectorAll('[draggable="true"]').forEach((el) => {
+        (el as HTMLElement).setAttribute('draggable', 'false');
+      });
+    }, 500);
+
+    const observer = new MutationObserver(() => {
+      document.querySelectorAll('[draggable="true"]').forEach((el) => {
+        (el as HTMLElement).setAttribute('draggable', 'false');
+      });
+    });
+    observer.observe(document.body, { childList: true, subtree: true });
+
+    return () => {
+      events.forEach(event => {
+        document.removeEventListener(event, handler, true);
+      });
+      clearInterval(interval);
+      observer.disconnect();
+    };
+  }, []);
 
   if (sedangMemuat) {
     return <LoadingSpinner layarPenuh teks="Memuat aplikasi..." />;
@@ -38,9 +75,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       <div className="flex min-w-0 flex-1 flex-col">
         <Header />
         <main className="flex-1 p-margin-mobile sm:p-6 lg:p-margin-desktop">
-          <div key={pathname} className="mx-auto max-w-container-max animate-fade-up space-y-gutter">
-            {children}
-          </div>
+          {children}
         </main>
         <Footer />
       </div>

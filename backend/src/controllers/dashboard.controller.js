@@ -16,44 +16,72 @@ const KATEGORI_PEMINJAMAN = {
   BARANG_TERLAMBAT: 'TERLAMBAT',
 };
 
-// Sinkronkan status keterlambatan berdasarkan tanggal.
-async function tandaiTerlambat() {
-  // Lewat tenggat -> TERLAMBAT. Peminjaman tanpa tanggal kembali tidak ikut
-  // karena nilai NULL tidak terjaring perbandingan 'lt'.
-  await prisma.peminjaman.updateMany({
-    where: {
-      status: { in: ['DISETUJUI', 'DIPINJAM'] },
-      tanggalKembaliAktual: null,
-      tanggalKembaliRencana: { lt: new Date() },
-    },
-    data: { status: 'TERLAMBAT' },
-  });
+// Throttle: status keterlambatan cukup disinkronkan berkala, bukan pada
+// SETIAP request. Tanpa ini, tiap load dashboard menambah 2 query tulis
+// (round-trip ekstra ke DB remote/Neon yang berlatensi tinggi). Granularitas
+// menit sudah memadai untuk deteksi TERLAMBAT.
+let terakhirTandai = 0;
+const JEDA_TANDAI_MS = 60_000;
 
-  // Pulihkan: peminjaman tanpa tanggal kembali (tanpa batas waktu) yang
-  // terlanjur TERLAMBAT dikembalikan ke DIPINJAM.
-  await prisma.peminjaman.updateMany({
-    where: {
-      status: 'TERLAMBAT',
-      tanggalKembaliAktual: null,
-      tanggalKembaliRencana: null,
-    },
-    data: { status: 'DIPINJAM' },
-  });
+// Sinkronkan status keterlambatan berdasarkan tanggal.
+async function tandaiTerlambat(paksa = false) {
+  if (!paksa && Date.now() - terakhirTandai < JEDA_TANDAI_MS) return;
+  terakhirTandai = Date.now(); // set optimistis agar request paralel tidak menjalankan ganda
+
+  // Kedua update menyasar baris yang saling lepas (tenggat terisi vs NULL),
+  // jadi aman dijalankan paralel → 1 round-trip alih-alih 2.
+  await Promise.all([
+    // Lewat tenggat -> TERLAMBAT. Peminjaman tanpa tanggal kembali tidak ikut
+    // karena nilai NULL tidak terjaring perbandingan 'lt'.
+    prisma.peminjaman.updateMany({
+      where: {
+        status: { in: ['DISETUJUI', 'DIPINJAM'] },
+        tanggalKembaliAktual: null,
+        tanggalKembaliRencana: { lt: new Date() },
+      },
+      data: { status: 'TERLAMBAT' },
+    }),
+    // Pulihkan: peminjaman tanpa tanggal kembali (tanpa batas waktu) yang
+    // terlanjur TERLAMBAT dikembalikan ke DIPINJAM.
+    prisma.peminjaman.updateMany({
+      where: {
+        status: 'TERLAMBAT',
+        tanggalKembaliAktual: null,
+        tanggalKembaliRencana: null,
+      },
+      data: { status: 'DIPINJAM' },
+    }),
+  ]);
 }
 
 // --- Dashboard Admin ---
 const dashboardAdmin = asyncHandler(async (req, res) => {
   await tandaiTerlambat();
 
-  const [totalBarang, pengajuanMenunggu, peminjamanAktif, barangTerlambat, totalPeminjam, grupStatus, terbaru] =
+  // Filter rentang waktu opsional (berdasarkan tanggal pengajuan)
+  const dari = req.query.dari ? new Date(req.query.dari) : null;
+  const sampai = req.query.sampai ? new Date(req.query.sampai + 'T23:59:59.999Z') : null;
+
+  const filterTanggal = {};
+  if (dari) filterTanggal.gte = dari;
+  if (sampai) filterTanggal.lte = sampai;
+
+  const whereTanggal = Object.keys(filterTanggal).length > 0 ? { createdAt: filterTanggal } : {};
+
+  const [totalBarang, stokTersedia, stokHabis, pengajuanMenunggu, peminjamanAktif, barangTerlambat, totalPeminjam, grupStatus, terbaru] =
     await Promise.all([
       prisma.barang.count(),
-      prisma.peminjaman.count({ where: { status: 'MENUNGGU' } }),
-      prisma.peminjaman.count({ where: { status: { in: STATUS_AKTIF } } }),
-      prisma.peminjaman.count({ where: { status: 'TERLAMBAT' } }),
+      // Stok tersedia: barang yang masih punya unit (>0); habis: nol/terpinjam penuh.
+      // Sejajar dengan filter ketersediaan di Manajemen Barang.
+      prisma.barang.count({ where: { jumlahTersedia: { gt: 0 } } }),
+      prisma.barang.count({ where: { jumlahTersedia: { lte: 0 } } }),
+      prisma.peminjaman.count({ where: { ...whereTanggal, status: 'MENUNGGU' } }),
+      prisma.peminjaman.count({ where: { ...whereTanggal, status: { in: STATUS_AKTIF } } }),
+      prisma.peminjaman.count({ where: { ...whereTanggal, status: 'TERLAMBAT' } }),
       prisma.user.count({ where: { role: 'PEMINJAM' } }),
-      prisma.peminjaman.groupBy({ by: ['status'], _count: { status: true } }),
+      prisma.peminjaman.groupBy({ by: ['status'], _count: { status: true }, where: whereTanggal }),
       prisma.peminjaman.findMany({
+        where: whereTanggal,
         take: 5,
         orderBy: { createdAt: 'desc' },
         include: {
@@ -71,9 +99,9 @@ const dashboardAdmin = asyncHandler(async (req, res) => {
   return responsSukses(res, {
     pesan: 'Ringkasan dashboard admin.',
     data: {
-      statistik: { totalBarang, pengajuanMenunggu, peminjamanAktif, barangTerlambat, totalPeminjam },
+      statistik: { totalBarang, stokTersedia, stokHabis, pengajuanMenunggu, peminjamanAktif, barangTerlambat, totalPeminjam },
       grafikStatus,
-      peminjamanTerbaru: terbaru.map(peminjamanService.serialisasi),
+      peminjamanTerbaru: terbaru.map(peminjamanService.serialisasiRingkas),
     },
   });
 });
@@ -111,8 +139,8 @@ const dashboardPeminjam = asyncHandler(async (req, res) => {
     pesan: 'Ringkasan dashboard peminjam.',
     data: {
       statistik: { peminjamanAktif, menunggu, dikembalikan, totalRiwayat },
-      daftarAktif: daftarAktif.map(peminjamanService.serialisasi),
-      statusTerkini: statusTerkini ? peminjamanService.serialisasi(statusTerkini) : null,
+      daftarAktif: daftarAktif.map(peminjamanService.serialisasiRingkas),
+      statusTerkini: statusTerkini ? peminjamanService.serialisasiRingkas(statusTerkini) : null,
     },
   });
 });
@@ -159,21 +187,36 @@ const ambilDataKategori = asyncHandler(async (req, res) => {
 
     case 'peminjam': {
       // Semua peminjam (user dengan role PEMINJAM), dengan pencarian opsional.
-      // Eselon III tersimpan di unitKerja, Eselon IV di jabatan (lihat import).
+      // Data pegawai: jabatan, unitKerja, eselon2/eselon3/eselon4 (lihat import).
       const q = String(req.query.q || '').trim();
       const wherePeminjam = { role: 'PEMINJAM' };
       if (q) {
         wherePeminjam.OR = [
           { nama: { contains: q, mode: 'insensitive' } },
           { nip: { contains: q, mode: 'insensitive' } },
-          { unitKerja: { contains: q, mode: 'insensitive' } }, // Eselon III
-          { jabatan: { contains: q, mode: 'insensitive' } }, //   Eselon IV
+          { email: { contains: q, mode: 'insensitive' } },
+          { jabatan: { contains: q, mode: 'insensitive' } }, //   Jabatan
+          { unitKerja: { contains: q, mode: 'insensitive' } }, // Unit Kerja
+          { eselon2: { contains: q, mode: 'insensitive' } }, //   Eselon II
+          { eselon3: { contains: q, mode: 'insensitive' } }, //   Eselon III
+          { eselon4: { contains: q, mode: 'insensitive' } }, //   Eselon IV
         ];
       }
       [data, total] = await Promise.all([
         prisma.user.findMany({
           where: wherePeminjam,
-          select: { id: true, nama: true, nip: true, email: true, jabatan: true, unitKerja: true, createdAt: true },
+          select: {
+            id: true,
+            nama: true,
+            nip: true,
+            email: true,
+            jabatan: true,
+            unitKerja: true,
+            eselon2: true,
+            eselon3: true,
+            eselon4: true,
+            createdAt: true,
+          },
           orderBy: { createdAt: 'desc' },
           skip: (page - 1) * limit,
           take: limit,
@@ -208,7 +251,7 @@ const ambilDataKategori = asyncHandler(async (req, res) => {
   return responsSukses(res, {
     pesan: 'Data peminjaman.',
     data: {
-      items: data.map(peminjamanService.serialisasi),
+      items: data.map(peminjamanService.serialisasiRingkas),
       meta: { total, page, limit, totalHalaman: Math.ceil(total / limit) || 1 },
     },
   });

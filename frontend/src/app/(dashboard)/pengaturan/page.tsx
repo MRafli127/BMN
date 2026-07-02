@@ -16,15 +16,18 @@ import { Input, Label } from '@/components/ui/input';
 import { Icon } from '@/components/ui/icon';
 import { notify } from '@/components/ui/toast';
 import { useAuth } from '@/hooks/useAuth';
-import { ambilPesanError, inisial } from '@/lib/utils';
+import { ambilPesanError, inisial, tanggalLahirDariNip } from '@/lib/utils';
 
 // ---------- Skema validasi ----------
 const profilSchema = z.object({
   nama: z.string().min(3, 'Nama minimal 3 karakter.'),
   nip: z.string().min(5, 'NIP minimal 5 karakter.').max(30, 'NIP maksimal 30 karakter.'),
   email: z.string().min(1, 'Email wajib diisi.').email('Format email tidak valid.'),
-  jabatan: z.string().optional(),
-  unitKerja: z.string().optional(),
+  jabatan: z.string().optional(), //   Jabatan
+  unitKerja: z.string().optional(), // Unit Kerja
+  eselon2: z.string().optional(), //   Eselon II
+  eselon3: z.string().optional(), //   Eselon III
+  eselon4: z.string().optional(), //   Eselon IV
 });
 type ProfilValues = z.infer<typeof profilSchema>;
 
@@ -50,8 +53,12 @@ export default function PengaturanPage() {
     register: regProfil,
     handleSubmit: submitProfil,
     reset: resetProfil,
+    watch: watchProfil,
     formState: { errors: errProfil, isDirty },
   } = useForm<ProfilValues>({ resolver: zodResolver(profilSchema) });
+
+  // Tanggal lahir diturunkan otomatis dari 8 digit pertama NIP (format PNS: YYYYMMDD)
+  const tanggalLahir = tanggalLahirDariNip(watchProfil('nip'));
 
   // Isi form dengan data pengguna saat tersedia
   useEffect(() => {
@@ -62,6 +69,9 @@ export default function PengaturanPage() {
         email: user.email ?? '',
         jabatan: user.jabatan ?? '',
         unitKerja: user.unitKerja ?? '',
+        eselon2: user.eselon2 ?? '',
+        eselon3: user.eselon3 ?? '',
+        eselon4: user.eselon4 ?? '',
       });
     }
   }, [user, resetProfil]);
@@ -70,13 +80,16 @@ export default function PengaturanPage() {
     setSimpanProfil(true);
     try {
       const pembaruan = await perbaruiProfil(data);
-      notify.sukses('Profil berhasil diperbarui.');
+      notify.suksess('Profil berhasil diperbarui.');
       resetProfil({
         nama: pembaruan.nama,
         nip: pembaruan.nip,
         email: pembaruan.email,
         jabatan: pembaruan.jabatan ?? '',
         unitKerja: pembaruan.unitKerja ?? '',
+        eselon2: pembaruan.eselon2 ?? '',
+        eselon3: pembaruan.eselon3 ?? '',
+        eselon4: pembaruan.eselon4 ?? '',
       });
     } catch (error) {
       notify.gagal(ambilPesanError(error, 'Gagal memperbarui profil.'));
@@ -97,7 +110,7 @@ export default function PengaturanPage() {
     setSimpanPassword(true);
     try {
       await gantiPassword({ passwordLama: data.passwordLama, passwordBaru: data.passwordBaru });
-      notify.sukses('Kata sandi berhasil diperbarui.');
+      notify.suksess('Kata sandi berhasil diperbarui.');
       resetPassword({ passwordLama: '', passwordBaru: '', konfirmasi: '' });
     } catch (error) {
       notify.gagal(ambilPesanError(error, 'Gagal mengganti kata sandi.'));
@@ -133,7 +146,7 @@ export default function PengaturanPage() {
             </div>
             <div>
               <h2 className="font-jakarta text-lg font-bold text-primary">Data Diri</h2>
-              <p className="text-sm text-muted-foreground">Perbarui nama, NIP, email, Eselon IV, dan Eselon III Anda.</p>
+              <p className="text-sm text-muted-foreground">Perbarui nama, NIP, email, jabatan, unit kerja, dan data eselon Anda.</p>
             </div>
           </div>
 
@@ -152,19 +165,40 @@ export default function PengaturanPage() {
             </div>
 
             <div className="space-y-1.5">
+              <Label htmlFor="tanggalLahir">Tanggal Lahir</Label>
+              <Input id="tanggalLahir" value={tanggalLahir} disabled readOnly />
+              <p className="text-xs text-muted-foreground">Diturunkan otomatis dari 8 digit pertama NIP.</p>
+            </div>
+
+            <div className="space-y-1.5">
               <Label htmlFor="email">Alamat Email</Label>
               <Input id="email" type="email" {...regProfil('email')} />
               {errProfil.email && <p className="text-xs text-error">{errProfil.email.message}</p>}
             </div>
 
+            <div className="space-y-1.5">
+              <Label htmlFor="jabatan">Jabatan</Label>
+              <Input id="jabatan" {...regProfil('jabatan')} />
+            </div>
+
+            <div className="space-y-1.5">
+              <Label htmlFor="unitKerja">Unit Kerja</Label>
+              <Input id="unitKerja" {...regProfil('unitKerja')} />
+            </div>
+
+            <div className="space-y-1.5">
+              <Label htmlFor="eselon2">Eselon II</Label>
+              <Input id="eselon2" {...regProfil('eselon2')} />
+            </div>
+
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div className="space-y-1.5">
-                <Label htmlFor="jabatan">Eselon IV</Label>
-                <Input id="jabatan" placeholder="Opsional" {...regProfil('jabatan')} />
+                <Label htmlFor="eselon4">Eselon IV</Label>
+                <Input id="eselon4" {...regProfil('eselon4')} />
               </div>
               <div className="space-y-1.5">
-                <Label htmlFor="unitKerja">Eselon III</Label>
-                <Input id="unitKerja" placeholder="Opsional" {...regProfil('unitKerja')} />
+                <Label htmlFor="eselon3">Eselon III</Label>
+                <Input id="eselon3" {...regProfil('eselon3')} />
               </div>
             </div>
 

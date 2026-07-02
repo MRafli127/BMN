@@ -1,79 +1,78 @@
 // ============================================================
 //  Peminjam — Katalog Barang.
-//   - Cari berdasarkan nama / kode / merk.
-//   - Atur jumlah barang per halaman (50/100/200).
-//   - Tambah barang ke keranjang sebelum mengajukan peminjaman.
+//  Tampilan FOLDER PER MERK seperti admin (mudah mencari barang).
+//  Support MULTI BARANG - user bisa memilih banyak barang sekaligus.
 // ============================================================
 
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
-import { Search, ChevronLeft, ChevronRight, Eye, ShoppingCart, Check } from 'lucide-react';
+import { Search, ChevronLeft, ChevronRight, ShoppingCart } from 'lucide-react';
 import { Input, Select } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { KartuBarang } from '@/components/barang/KartuBarang';
+import { FolderBarangPeminjam, kelompokkanPerMerk } from '@/components/barang/FolderBarangPeminjam';
 import { LoadingSpinner } from '@/components/shared/LoadingSpinner';
 import { EmptyState } from '@/components/shared/EmptyState';
-import { notify } from '@/components/ui/toast';
-import { useBarang } from '@/hooks/useBarang';
-import { useKeranjangStore, useJumlahKeranjang } from '@/store/keranjangStore';
-import { OPSI_JENIS } from '@/constants/status';
+import { useBarangFolder } from '@/hooks/useBarangFolder';
+import { useJumlahKeranjang, useTotalUnitKeranjang } from '@/store/keranjangStore';
+import { OPSI_JENIS, OPSI_KONDISI } from '@/constants/status';
 import { RUTE } from '@/constants/routes';
-import type { Barang } from '@/types/barang.type';
 
-const OPSI_PER_HALAMAN = [12, 50, 100, 200];
+const OPSI_FOLDER = [8, 16, 32, 64];
 
 export default function KatalogPage() {
-  const { data, meta, filter, setFilter, ubahFilter, sedangMemuat } = useBarang({ page: 1, limit: 12 });
+  const { data, filter, ubahFilter, sedangMemuat } = useBarangFolder();
   const [cari, setCari] = useState('');
+  const [halaman, setHalaman] = useState(1);
+  const [perHalaman, setPerHalaman] = useState(8);
 
-  const items = useKeranjangStore((s) => s.items);
-  const tambah = useKeranjangStore((s) => s.tambah);
-  const hapus = useKeranjangStore((s) => s.hapus);
   const jumlahKeranjang = useJumlahKeranjang();
+  const totalUnit = useTotalUnitKeranjang();
 
-  // Hindari hydration mismatch: status keranjang baru dibaca setelah mount.
-  const [mounted, setMounted] = useState(false);
-  useEffect(() => setMounted(true), []);
-
+  // Debounce pencarian
   useEffect(() => {
     const timer = setTimeout(() => ubahFilter({ q: cari || undefined }), 400);
     return () => clearTimeout(timer);
   }, [cari, ubahFilter]);
 
-  const tanganiKeranjang = (barang: Barang) => {
-    if (mounted && items[barang.id]) {
-      hapus(barang.id);
-      notify.info(`"${barang.nama}" dihapus dari keranjang.`);
-    } else {
-      const adaItemLain = mounted && Object.keys(items).length > 0;
-      tambah(barang);
-      notify.sukses(
-        adaItemLain
-          ? `"${barang.nama}" menggantikan barang sebelumnya (maksimal 1 barang per pengajuan).`
-          : `"${barang.nama}" ditambahkan ke keranjang.`
-      );
-    }
-  };
+  // Kelompokkan barang menjadi folder per merk
+  const grup = useMemo(() => kelompokkanPerMerk(data), [data]);
+
+  // Kembali ke halaman 1 bila filter / jumlah per halaman berubah
+  useEffect(() => {
+    setHalaman(1);
+  }, [filter, perHalaman]);
+
+  const totalHalaman = Math.max(1, Math.ceil(grup.length / perHalaman));
+  const halamanAman = Math.min(halaman, totalHalaman);
+  const grupHalaman = grup.slice((halamanAman - 1) * perHalaman, halamanAman * perHalaman);
 
   return (
     <div className="space-y-5">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <h1 className="text-2xl font-bold text-foreground">Katalog Barang</h1>
-          <p className="text-muted-foreground">Telusuri barang yang tersedia untuk dipinjam.</p>
+          <p className="text-muted-foreground">
+            Telusuri & pilih barang yang ingin dipinjam. Pilih banyak barang sekaligus!
+          </p>
         </div>
         <Button asChild variant={jumlahKeranjang > 0 ? 'default' : 'outline'}>
           <Link href={RUTE.peminjamKeranjang}>
-            <ShoppingCart className="h-4 w-4" /> Keranjang{jumlahKeranjang > 0 ? ` (${jumlahKeranjang})` : ''}
+            <ShoppingCart className="h-4 w-4" />
+            Keranjang
+            {jumlahKeranjang > 0 && (
+              <span className="ml-1 rounded-full bg-white/20 px-2 py-0.5 text-xs font-semibold">
+                {jumlahKeranjang} jenis ({totalUnit} unit)
+              </span>
+            )}
           </Link>
         </Button>
       </div>
 
       {/* Filter */}
-      <div className="grid grid-cols-1 gap-3 rounded-xl border bg-card p-4 sm:grid-cols-3">
-        <div className="relative sm:col-span-1">
+      <div className="grid grid-cols-1 gap-3 rounded-xl border bg-card p-4 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="relative">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input
             value={cari}
@@ -90,80 +89,69 @@ export default function KatalogPage() {
             </option>
           ))}
         </Select>
-        <Select
-          value={String(filter.limit ?? 12)}
-          onChange={(e) => ubahFilter({ limit: Number(e.target.value) })}
-        >
-          {OPSI_PER_HALAMAN.map((n) => (
-            <option key={n} value={n}>
-              {n} per halaman
+        <Select value={filter.kondisi || ''} onChange={(e) => ubahFilter({ kondisi: (e.target.value || undefined) as never })}>
+          <option value="">Semua Kondisi</option>
+          {OPSI_KONDISI.map((o) => (
+            <option key={o.value} value={o.value}>
+              {o.label}
             </option>
           ))}
         </Select>
+        <Select
+          value={filter.ketersediaan || ''}
+          onChange={(e) => ubahFilter({ ketersediaan: (e.target.value || undefined) as never })}
+        >
+          <option value="">Semua Stok</option>
+          <option value="tersedia">Tersedia (mis. 1/1)</option>
+          <option value="habis">Stok Habis (mis. 0/1)</option>
+        </Select>
       </div>
 
+      {/* Folder per merk */}
       {sedangMemuat ? (
         <LoadingSpinner />
       ) : data.length === 0 ? (
-        <EmptyState judul="Barang tidak ditemukan" deskripsi="Coba ubah kata kunci atau filter pencarian." />
+        <EmptyState
+          judul="Barang tidak ditemukan"
+          deskripsi="Coba ubah kata kunci atau filter pencarian."
+        />
       ) : (
         <>
-          {meta && (
-            <p className="text-sm text-muted-foreground">
-              Menampilkan {data.length} dari {meta.total} barang.
-            </p>
-          )}
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-            {data.map((barang) => {
-              const diKeranjang = mounted && !!items[barang.id];
-              const habis = barang.jumlahTersedia < 1;
-              return (
-                <KartuBarang
-                  key={barang.id}
-                  barang={barang}
-                  aksi={
-                    <div className="flex gap-2">
-                      <Button asChild variant="outline" className="flex-1">
-                        <Link href={RUTE.peminjamKatalogDetail(barang.id)}>
-                          <Eye className="h-4 w-4" /> Detail
-                        </Link>
-                      </Button>
-                      {habis ? (
-                        <Button className="flex-1" disabled>
-                          Stok Habis
-                        </Button>
-                      ) : (
-                        <Button
-                          className="flex-1"
-                          variant={diKeranjang ? 'secondary' : 'default'}
-                          onClick={() => tanganiKeranjang(barang)}
-                        >
-                          {diKeranjang ? <Check className="h-4 w-4" /> : <ShoppingCart className="h-4 w-4" />}
-                          {diKeranjang ? 'Di Keranjang' : 'Keranjang'}
-                        </Button>
-                      )}
-                    </div>
-                  }
-                />
-              );
-            })}
-          </div>
+          <FolderBarangPeminjam grup={grupHalaman} />
 
-          {meta && meta.totalHalaman > 1 && (
-            <div className="flex items-center justify-between">
-              <p className="text-sm text-muted-foreground">
-                Halaman {meta.page} dari {meta.totalHalaman}
-              </p>
-              <div className="flex gap-2">
-                <Button variant="outline" size="sm" disabled={meta.page <= 1} onClick={() => setFilter((f) => ({ ...f, page: (f.page || 1) - 1 }))}>
+          {/* Footer: jumlah folder per halaman + navigasi */}
+          <div className="flex flex-col items-center justify-between gap-3 sm:flex-row">
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+              <span>Tampilkan</span>
+              <Select
+                value={String(perHalaman)}
+                onChange={(e) => setPerHalaman(Number(e.target.value))}
+                className="h-9 w-[4.5rem]"
+                aria-label="Jumlah folder per halaman"
+              >
+                {OPSI_FOLDER.map((n) => (
+                  <option key={n} value={n}>
+                    {n}
+                  </option>
+                ))}
+              </Select>
+              <span>folder per halaman • {grup.length} merk • {data.length} barang</span>
+            </div>
+
+            {totalHalaman > 1 && (
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-muted-foreground">
+                  Halaman {halamanAman} dari {totalHalaman}
+                </span>
+                <Button variant="outline" size="sm" disabled={halamanAman <= 1} onClick={() => setHalaman(halamanAman - 1)}>
                   <ChevronLeft className="h-4 w-4" /> Sebelumnya
                 </Button>
-                <Button variant="outline" size="sm" disabled={meta.page >= meta.totalHalaman} onClick={() => setFilter((f) => ({ ...f, page: (f.page || 1) + 1 }))}>
+                <Button variant="outline" size="sm" disabled={halamanAman >= totalHalaman} onClick={() => setHalaman(halamanAman + 1)}>
                   Berikutnya <ChevronRight className="h-4 w-4" />
                 </Button>
               </div>
-            </div>
-          )}
+            )}
+          </div>
         </>
       )}
     </div>

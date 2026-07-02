@@ -3,6 +3,78 @@
 @tailwind utilities;
 
 /* ============================================================
+   Nonaktifkan Drag & Drop yang tidak diinginkan
+   ============================================================ */
+
+/* Nonaktifkan drag di level HTML */
+html {
+  -webkit-user-drag: none !important;
+  user-drag: none !important;
+}
+
+/* Nonaktifkan drag di level body (seleksi teks tetap diizinkan) */
+body {
+  -webkit-user-drag: none !important;
+  user-drag: none !important;
+  -webkit-user-select: text !important;
+  user-select: text !important;
+}
+
+/* Cegah drag di SEMUA elemen */
+*,
+*::before,
+*::after {
+  -webkit-user-drag: none !important;
+  user-drag: none !important;
+  draggable: false !important;
+  -webkit-user-select: text !important;
+  user-select: text !important;
+  touch-action: pan-x pan-y !important;
+}
+
+/* Pengecualian untuk input dan textarea */
+input,
+textarea,
+select {
+  -webkit-user-select: auto !important;
+  user-select: auto !important;
+}
+
+/* Nonaktifkan drag pada gambar */
+img {
+  pointer-events: auto !important;
+  -webkit-user-drag: none !important;
+  user-drag: none !important;
+  draggable: false !important;
+  -webkit-touch-callout: none !important;
+}
+
+/* Nonaktifkan drag pada video */
+video {
+  pointer-events: auto !important;
+  -webkit-user-drag: none !important;
+  user-drag: none !important;
+  draggable: false !important;
+}
+
+/* Nonaktifkan drag pada SVG */
+svg {
+  -webkit-user-drag: none !important;
+  user-drag: none !important;
+  draggable: false !important;
+}
+
+/* Nonaktifkan drag pada link */
+a {
+  pointer-events: auto !important;
+}
+
+/* Nonaktifkan drag pada button */
+button {
+  pointer-events: auto !important;
+}
+
+/* ============================================================
    Variabel tema (shadcn/ui) — palet formal instansi (biru).
    ============================================================ */
 @layer base {

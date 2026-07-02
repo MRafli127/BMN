@@ -12,13 +12,21 @@ export const RUTE = {
   // Dalam aplikasi (perlu login)
   bantuan: '/bantuan',
   pengaturan: '/pengaturan',
+  notifikasi: '/notifikasi',
 
   // Admin
   adminDashboard: '/admin/dashboard',
   adminBarang: '/admin/barang',
+  // Manajemen Barang dengan filter ketersediaan stok awal (mis. dari kartu dashboard).
+  adminBarangStok: (ketersediaan?: string) =>
+    ketersediaan ? `/admin/barang?stok=${encodeURIComponent(ketersediaan)}` : '/admin/barang',
   adminBarangTambah: '/admin/barang/tambah',
   adminBarangDetail: (id: string) => `/admin/barang/${id}`,
   adminPeminjaman: '/admin/peminjaman',
+  // Manajemen Peminjaman dengan filter status awal (mis. dari kartu dashboard).
+  // status boleh gabungan dipisah koma, mis. "DISETUJUI,DIPINJAM,TERLAMBAT".
+  adminPeminjamanStatus: (status?: string) =>
+    status ? `/admin/peminjaman?status=${encodeURIComponent(status)}` : '/admin/peminjaman',
   adminPeminjamanDetail: (id: string) => `/admin/peminjaman/${id}`,
   adminScan: '/admin/scan',
   adminKategori: (kategori: string) => `/admin/dashboard/kategori/${kategori}`,
@@ -30,6 +38,9 @@ export const RUTE = {
   peminjamKeranjang: '/peminjam/keranjang',
   peminjamAjukan: '/peminjam/ajukan',
   peminjamRiwayat: '/peminjam/riwayat',
+  // Riwayat dengan filter status awal (mis. dari kartu ringkasan dashboard).
+  peminjamRiwayatStatus: (status?: string) =>
+    status ? `/peminjam/riwayat?status=${encodeURIComponent(status)}` : '/peminjam/riwayat',
   peminjamRiwayatDetail: (id: string) => `/peminjam/riwayat/${id}`,
   peminjamRiwayatReview: (id: string) => `/peminjam/riwayat/${id}/review`,
 } as const;

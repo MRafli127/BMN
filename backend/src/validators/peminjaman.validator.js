@@ -26,22 +26,59 @@ const parseItems = z.preprocess((val) => {
         .min(1, 'Jumlah pinjam minimal 1.'),
     })
   )
-  .min(1, 'Minimal pilih 1 barang untuk dipinjam.')
-  .max(1, 'Maksimal 1 barang per pengajuan peminjaman.'));
+  .min(1, 'Minimal pilih 1 barang untuk dipinjam.'));
 
-// Tanggal opsional: string kosong/null dianggap "tidak diisi" (undefined).
-// Bila tanggal pinjam dikosongkan, service memakai tanggal hari ini.
-const tanggalOpsional = (pesan) =>
+// Tanggal required dengan validasi tidak boleh backdate
+const tanggalRequired = (pesan) =>
   z.preprocess(
-    (v) => (v === '' || v === null ? undefined : v),
-    z.coerce.date({ errorMap: () => ({ message: pesan }) }).optional()
+    (v) => {
+      if (v === '' || v === null || v === undefined) {
+        return undefined;
+      }
+      const date = new Date(v);
+      // Set ke start of day untuk perbandingan
+      date.setHours(0, 0, 0, 0);
+      return date;
+    },
+    z.date({ errorMap: () => ({ message: pesan }) })
+      .min((() => { const d = new Date(); d.setHours(0,0,0,0); return d; })(), 'Tanggal tidak boleh mundur dari hari ini.')
   );
 
+// Tanggal opsional: string kosong/null dianggap "tidak diisi" (undefined).
+// Validasi: tidak boleh backdate DAN harus > tanggal pinjam (jika ada)
+const tanggalOpsional = (pesan, minDate) =>
+  z.preprocess(
+    (v) => {
+      if (v === '' || v === null || v === undefined) {
+        return undefined;
+      }
+      const date = new Date(v);
+      // Set ke start of day
+      date.setHours(0, 0, 0, 0);
+      return date;
+    },
+    z
+      .date({ errorMap: () => ({ message: pesan }) })
+      .min(minDate instanceof Date ? minDate : (() => { const d = new Date(); d.setHours(0,0,0,0); return d; })(), 'Tanggal tidak boleh mundur dari hari ini.')
+      .optional()
+  );
+
+// Refinement bersama: tanggal kembali harus setelah tanggal pinjam (bila keduanya ada).
+const tglKembaliSetelahPinjam = (data) =>
+  !data.tanggalKembaliRencana ||
+  !data.tanggalPinjamRencana ||
+  data.tanggalKembaliRencana > data.tanggalPinjamRencana;
+const pesanTglKembali = {
+  message: 'Tanggal rencana kembali harus setelah tanggal pinjam.',
+  path: ['tanggalKembaliRencana'],
+};
+
 // Validasi pengajuan peminjaman.
-// Tanggal pinjam & kembali keduanya opsional (pinjam default ke hari ini,
-// kembali kosong = tanpa batas waktu). Alasan juga opsional.
-// tandaTangan (data URL PNG) ikut divalidasi agar tidak dibuang saat sanitasi —
-// dipakai membuat Surat Pernyataan PDF di service.
+// - Tanggal pinjam: OPSIONAL, tapi jika diisi tidak boleh backdate
+// - Tanggal kembali: OPSIONAL, tapi jika ada harus > tanggal pinjam
+// - Alasan: OPSIONAL tapi minimal 5 karakter jika diisi
+// - Surat pernyataan yang sudah ditandatangani WAJIB diunggah (field file
+//   "dokumen", divalidasi di controller/service — bukan di skema body ini).
 const createPeminjamanSchema = z
   .object({
     alasanPeminjaman: z
@@ -51,19 +88,19 @@ const createPeminjamanSchema = z
       .or(z.literal('')),
     tanggalPinjamRencana: tanggalOpsional('Tanggal pinjam tidak valid.'),
     tanggalKembaliRencana: tanggalOpsional('Tanggal kembali tidak valid.'),
-    tandaTangan: z.string().optional(),
     items: parseItems,
   })
-  .refine(
-    (data) =>
-      !data.tanggalKembaliRencana ||
-      !data.tanggalPinjamRencana ||
-      data.tanggalKembaliRencana > data.tanggalPinjamRencana,
-    {
-      message: 'Tanggal rencana kembali harus setelah tanggal pinjam.',
-      path: ['tanggalKembaliRencana'],
-    }
-  );
+  .refine(tglKembaliSetelahPinjam, pesanTglKembali);
+
+// Validasi pratinjau surat pernyataan (sebelum pengajuan dibuat).
+// Sama seperti pengajuan namun tanpa alasan; dikirim sebagai JSON.
+const previewSuratSchema = z
+  .object({
+    tanggalPinjamRencana: tanggalOpsional('Tanggal pinjam tidak valid.'),
+    tanggalKembaliRencana: tanggalOpsional('Tanggal kembali tidak valid.'),
+    items: parseItems,
+  })
+  .refine(tglKembaliSetelahPinjam, pesanTglKembali);
 
 // Validasi penolakan (wajib isi catatan)
 const tolakSchema = z.object({
@@ -84,4 +121,4 @@ const scanSchema = z.object({
     .min(3, 'Kode peminjaman tidak valid.'),
 });
 
-module.exports = { createPeminjamanSchema, tolakSchema, setujuiSchema, scanSchema };
+module.exports = { createPeminjamanSchema, previewSuratSchema, tolakSchema, setujuiSchema, scanSchema };

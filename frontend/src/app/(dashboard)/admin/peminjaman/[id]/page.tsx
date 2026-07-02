@@ -15,9 +15,11 @@ import {
   Stamp,
   PackageCheck,
   Undo2,
+  Clock,
   FileText,
   Download,
   Loader2,
+  ExternalLink,
   User as UserIcon,
   CalendarDays,
 } from 'lucide-react';
@@ -28,11 +30,12 @@ import { Textarea, Label } from '@/components/ui/input';
 import { KonfirmasiDialog } from '@/components/shared/KonfirmasiDialog';
 import { LoadingSpinner } from '@/components/shared/LoadingSpinner';
 import { TimelineStatus } from '@/components/peminjaman/TimelineStatus';
+import { FolderBarangDipinjam } from '@/components/peminjaman/FolderBarangDipinjam';
 import { TampilQR } from '@/components/qrcode/TampilQR';
 import { notify } from '@/components/ui/toast';
 import { peminjamanService } from '@/services/peminjaman.service';
 import { ambilPesanError, formatTanggalLengkap } from '@/lib/utils';
-import { STATUS_PEMINJAMAN, JENIS_BARANG } from '@/constants/status';
+import { STATUS_PEMINJAMAN } from '@/constants/status';
 import { RUTE } from '@/constants/routes';
 import type { Peminjaman } from '@/types/peminjaman.type';
 
@@ -75,12 +78,12 @@ export default function DetailPeminjamanAdminPage() {
       if (aksi === 'setujui') hasil = await peminjamanService.setujui(data.id, catatan);
       else if (aksi === 'tolak') hasil = await peminjamanService.tolak(data.id, catatan);
       else if (aksi === 'serahkan') hasil = await peminjamanService.serahkan(data.id);
-      else hasil = await peminjamanService.kembalikan(data.id);
+      else hasil = await peminjamanService.kembalikan(data.id, catatan);
 
       setData(hasil);
       setAksi(null);
       setCatatan('');
-      notify.sukses('Tindakan berhasil dilakukan.');
+      notify.suksess('Tindakan berhasil dilakukan.');
     } catch (error) {
       notify.gagal(ambilPesanError(error, 'Gagal melakukan tindakan.'));
     } finally {
@@ -94,7 +97,7 @@ export default function DetailPeminjamanAdminPage() {
     try {
       const hasil = await peminjamanService.stempel(data.id);
       setData(hasil);
-      notify.sukses('Dokumen berhasil distempel & ditandatangani digital.');
+      notify.suksess('Dokumen berhasil distempel & ditandatangani digital.');
     } catch (error) {
       notify.gagal(ambilPesanError(error, 'Gagal menstempel dokumen.'));
     } finally {
@@ -140,8 +143,8 @@ export default function DetailPeminjamanAdminPage() {
             <CardContent className="grid grid-cols-2 gap-3 text-sm">
               <Info label="Nama" nilai={data.peminjam?.nama} />
               <Info label="NIP" nilai={data.peminjam?.nip} />
-              <Info label="Eselon IV" nilai={data.peminjam?.jabatan} />
-              <Info label="Eselon III" nilai={data.peminjam?.unitKerja} />
+              <Info label="Eselon IV" nilai={data.peminjam?.eselon4} />
+              <Info label="Eselon III" nilai={data.peminjam?.eselon3} />
             </CardContent>
           </Card>
 
@@ -170,31 +173,26 @@ export default function DetailPeminjamanAdminPage() {
                 </div>
               )}
 
-              {/* Daftar barang */}
+              {/* Daftar barang — folder per unit, buka untuk QR identitas */}
               <div>
                 <p className="mb-2 font-medium text-foreground">Barang Dipinjam</p>
-                <div className="space-y-2">
-                  {data.detail?.map((d) => (
-                    <div key={d.id} className="flex items-center justify-between rounded-lg border bg-muted/30 p-3">
-                      <div>
-                        <p className="font-medium text-foreground">{d.barang?.nama}</p>
-                        <p className="text-xs text-muted-foreground">
-                          Merk: <span className="font-medium text-foreground">{d.barang?.merk || '-'}</span>
-                        </p>
-                        <p className="text-xs text-muted-foreground">
-                          {d.barang?.kodeBarang} • {d.barang ? JENIS_BARANG[d.barang.jenis] : ''}
-                        </p>
-                      </div>
-                      <Badge className="border-primary/20 bg-primary/10 text-primary">{d.jumlahPinjam} unit</Badge>
-                    </div>
-                  ))}
-                </div>
+                <p className="mb-2 text-xs text-muted-foreground">
+                  Klik tiap barang untuk melihat Label &amp; QR Identitas Barang.
+                </p>
+                <FolderBarangDipinjam detail={data.detail} />
               </div>
 
               {data.catatanAdmin && (
                 <div className="rounded-lg bg-amber-50 p-3">
                   <p className="font-medium text-amber-900">Catatan Admin</p>
                   <p className="mt-1 text-amber-800">{data.catatanAdmin}</p>
+                </div>
+              )}
+
+              {data.catatanPengembalian && (
+                <div className="rounded-lg bg-muted p-3">
+                  <p className="font-medium text-foreground">Catatan Pengembalian (internal)</p>
+                  <p className="mt-1 text-muted-foreground">{data.catatanPengembalian}</p>
                 </div>
               )}
             </CardContent>
@@ -226,6 +224,40 @@ export default function DetailPeminjamanAdminPage() {
               )}
             </CardContent>
           </Card>
+
+          {/* Surat Pernyataan Pengembalian (diunggah peminjam) */}
+          {data.dokumenPengembalianUrl && (
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0">
+                <CardTitle className="flex items-center gap-2 text-base">
+                  <Undo2 className="h-4 w-4" /> Surat Pernyataan Pengembalian
+                </CardTitle>
+                <div className="flex gap-2">
+                  <Button asChild variant="outline" size="sm">
+                    <a href={data.dokumenPengembalianUrl} target="_blank" rel="noreferrer">
+                      <ExternalLink className="h-4 w-4" /> Tab Baru
+                    </a>
+                  </Button>
+                  <Button asChild variant="outline" size="sm">
+                    <a href={data.dokumenPengembalianUrl} download={`surat-pengembalian-${data.kodePeminjaman}.pdf`}>
+                      <Download className="h-4 w-4" /> Unduh
+                    </a>
+                  </Button>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <p className="mb-3 text-sm text-muted-foreground">
+                  Surat pernyataan pengembalian yang sudah ditandatangani fisik oleh peminjam. Periksa sebelum
+                  mengkonfirmasi pengembalian.
+                </p>
+                <iframe
+                  src={data.dokumenPengembalianUrl}
+                  title="Surat Pernyataan Pengembalian"
+                  className="h-[520px] w-full rounded-lg border"
+                />
+              </CardContent>
+            </Card>
+          )}
         </div>
 
         {/* Sidebar aksi */}
@@ -258,6 +290,15 @@ export default function DetailPeminjamanAdminPage() {
                   {sedangStempel ? <Loader2 className="h-4 w-4 animate-spin" /> : <Stamp className="h-4 w-4" />}
                   {data.dokumenStempelUrl ? 'Stempel Ulang Dokumen' : 'Stempel Dokumen'}
                 </Button>
+              )}
+
+              {bisaKembalikan && data.tanggalPermintaanKembali && (
+                <div className="flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
+                  <Clock className="mt-0.5 h-4 w-4 shrink-0" />
+                  <span>
+                    Peminjam mengajukan pengembalian pada {formatTanggalLengkap(data.tanggalPermintaanKembali)}. Mohon konfirmasi penerimaan barang.
+                  </span>
+                </div>
               )}
 
               {bisaKembalikan && (
@@ -328,7 +369,7 @@ export default function DetailPeminjamanAdminPage() {
         sedangProses={proses}
         onKonfirmasi={jalankanAksi}
       >
-        {(aksi === 'setujui' || aksi === 'tolak') && (
+        {(aksi === 'setujui' || aksi === 'tolak' || aksi === 'kembalikan') && (
           <div>
             <Label htmlFor="catatan">
               Catatan {aksi === 'tolak' ? '(wajib)' : '(opsional)'}
@@ -340,6 +381,11 @@ export default function DetailPeminjamanAdminPage() {
               placeholder={aksi === 'tolak' ? 'Alasan penolakan...' : 'Catatan tambahan...'}
               className="mt-1"
             />
+            {aksi === 'kembalikan' && (
+              <p className="mt-1 text-xs text-muted-foreground">
+                Catatan ini hanya untuk admin dan tidak terlihat oleh peminjam.
+              </p>
+            )}
           </div>
         )}
       </KonfirmasiDialog>

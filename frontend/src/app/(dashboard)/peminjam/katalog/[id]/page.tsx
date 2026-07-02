@@ -15,12 +15,14 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { EmptyState } from '@/components/shared/EmptyState';
 import { LoadingSpinner } from '@/components/shared/LoadingSpinner';
+import { QrBarang } from '@/components/barang/QrBarang';
 import { notify } from '@/components/ui/toast';
 import { barangService } from '@/services/barang.service';
 import { useKeranjangStore } from '@/store/keranjangStore';
 import { ambilPesanError, cn, urlFile } from '@/lib/utils';
 import { JENIS_BARANG, KONDISI_BARANG } from '@/constants/status';
 import { RUTE } from '@/constants/routes';
+import { PeringatanKondisiDialog } from '@/components/shared/PeringatanKondisiDialog';
 import type { Barang } from '@/types/barang.type';
 
 export default function DetailKatalogPage() {
@@ -34,6 +36,9 @@ export default function DetailKatalogPage() {
   const hapus = useKeranjangStore((s) => s.hapus);
   const [mounted, setMounted] = useState(false);
   useEffect(() => setMounted(true), []);
+
+  // Dialog peringatan kondisi rusak berat
+  const [dialogRusakBerat, setDialogRusakBerat] = useState(false);
 
   useEffect(() => {
     if (!id) return;
@@ -78,6 +83,32 @@ export default function DetailKatalogPage() {
     .split('|')
     .map((s) => s.trim())
     .filter(Boolean);
+
+  // Handler tambah ke keranjang dengan peringatan rusak berat
+  const handleTambahKeranjang = () => {
+    if (barang.kondisi === 'RUSAK_BERAT') {
+      setDialogRusakBerat(true);
+      return;
+    }
+    const adaItemLain = mounted && Object.keys(items).length > 0;
+    tambah(barang);
+    notify.suksess(
+      adaItemLain
+        ? `"${barang.nama}" menggantikan barang sebelumnya (maksimal 1 barang per pengajuan).`
+        : `"${barang.nama}" ditambahkan ke keranjang.`
+    );
+  };
+
+  const handleKonfirmasiRusakBerat = () => {
+    const adaItemLain = mounted && Object.keys(items).length > 0;
+    tambah(barang);
+    notify.suksess(
+      adaItemLain
+        ? `"${barang.nama}" menggantikan barang sebelumnya (maksimal 1 barang per pengajuan).`
+        : `"${barang.nama}" ditambahkan ke keranjang.`
+    );
+    setDialogRusakBerat(false);
+  };
 
   return (
     <div className="mx-auto max-w-3xl space-y-5">
@@ -140,6 +171,8 @@ export default function DetailKatalogPage() {
             </div>
           )}
 
+          <QrBarang barang={barang} />
+
           <div className="flex flex-col gap-2 pt-2 sm:flex-row">
             {tersedia ? (
               <>
@@ -163,15 +196,7 @@ export default function DetailKatalogPage() {
                   <Button
                     variant="outline"
                     className="w-full sm:w-auto"
-                    onClick={() => {
-                      const adaItemLain = mounted && Object.keys(items).length > 0;
-                      tambah(barang);
-                      notify.sukses(
-                        adaItemLain
-                          ? `"${barang.nama}" menggantikan barang sebelumnya (maksimal 1 barang per pengajuan).`
-                          : `"${barang.nama}" ditambahkan ke keranjang.`
-                      );
-                    }}
+                    onClick={handleTambahKeranjang}
                   >
                     <ShoppingCart className="h-4 w-4" /> Tambah ke Keranjang
                   </Button>
@@ -183,6 +208,14 @@ export default function DetailKatalogPage() {
               </Button>
             )}
           </div>
+
+          {/* Dialog peringatan kondisi rusak berat */}
+          <PeringatanKondisiDialog
+            terbuka={dialogRusakBerat}
+            onUbahTerbuka={setDialogRusakBerat}
+            namaBarang={barang.nama}
+            onKonfirmasi={handleKonfirmasiRusakBerat}
+          />
         </CardContent>
       </Card>
     </div>

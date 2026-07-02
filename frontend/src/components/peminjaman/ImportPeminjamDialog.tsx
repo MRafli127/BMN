@@ -16,8 +16,7 @@ import {
   UserPlus,
   PackageCheck,
   RefreshCw,
-  Trash2,
-  ShieldCheck,
+  MinusCircle,
 } from 'lucide-react';
 import {
   Dialog,
@@ -67,10 +66,10 @@ export function ImportPeminjamDialog({ onSelesai }: Props) {
       const res = await peminjamImportService.importExcel(file);
       setHasil(res);
       const adaPerubahan =
-        res.akunDitambahkan > 0 || res.akunDiperbarui > 0 || res.akunDihapus > 0 || res.peminjamanDibuat > 0;
+        res.akunDitambahkan > 0 || res.akunDiperbarui > 0 || res.peminjamanDibuat > 0;
       if (adaPerubahan) {
-        notify.sukses(
-          `Sinkron: +${res.akunDitambahkan} baru, ${res.akunDiperbarui} diperbarui, ${res.akunDihapus} dihapus.`
+        notify.suksess(
+          `Sinkron: +${res.akunDitambahkan} akun baru, ${res.akunDiperbarui} diperbarui, ${res.peminjamanDibuat} peminjaman dibuat.`
         );
         onSelesai?.();
       } else if (res.gagal === 0 && res.barangTidakDitemukan === 0) {
@@ -103,13 +102,14 @@ export function ImportPeminjamDialog({ onSelesai }: Props) {
         <DialogHeader>
           <DialogTitle>Import Data Peminjam dari Excel</DialogTitle>
           <DialogDescription>
-            File menjadi <strong>sumber data</strong> peminjam: re-import akan{' '}
-            <strong>menyinkronkan</strong> — baris baru <strong>ditambahkan</strong>, data yang berubah{' '}
-            <strong>diperbarui</strong>, dan akun hasil import yang <strong>hilang dari file dihapus</strong>{' '}
-            (kecuali yang punya riwayat peminjaman — dilindungi). Kolom <strong>Merk Laptop</strong> &amp;{' '}
-            <strong>NUP Laptop</strong> dicocokkan ke barang (dicari merk-nya dahulu, lalu NUP); bila cocok &amp;
-            stok tersedia, dibuatkan <strong>peminjaman aktif</strong>. Akun yang dibuat manual/registrasi tidak
-            terpengaruh.
+            Re-import akan <strong>menambah</strong> baris baru dan <strong>memperbarui</strong> data yang berubah.
+            Import <strong>tidak pernah menghapus akun</strong> — akun peminjam bersifat permanen dan hanya bisa
+            dihapus admin secara manual. Kolom <strong>Merk Laptop</strong> &amp; <strong>NUP Laptop</strong>{' '}
+            dicocokkan ke barang (dicari merk-nya dahulu, lalu NUP); bila cocok &amp; stok tersedia, dibuatkan{' '}
+            <strong>peminjaman aktif</strong>. Baris <strong>tanpa NUP</strong> tetap dibuatkan{' '}
+            <strong>akun</strong>, hanya <strong>tanpa peminjaman</strong>. Satu peminjam boleh muncul di{' '}
+            <strong>beberapa baris</strong> selama NUP-nya berbeda — tiap baris menjadi peminjaman tersendiri. Akun
+            yang dibuat manual/registrasi tidak terpengaruh.
           </DialogDescription>
         </DialogHeader>
 
@@ -163,15 +163,12 @@ export function ImportPeminjamDialog({ onSelesai }: Props) {
               <span className="inline-flex items-center gap-1.5 text-blue-700">
                 <RefreshCw className="h-4 w-4" /> {hasil.akunDiperbarui} diperbarui
               </span>
-              <span className="inline-flex items-center gap-1.5 text-red-700">
-                <Trash2 className="h-4 w-4" /> {hasil.akunDihapus} dihapus
-              </span>
               <span className="inline-flex items-center gap-1.5 text-purple-700">
                 <PackageCheck className="h-4 w-4" /> {hasil.peminjamanDibuat} peminjaman dibuat
               </span>
-              {hasil.akunDilindungi > 0 && (
-                <span className="inline-flex items-center gap-1.5 text-amber-700">
-                  <ShieldCheck className="h-4 w-4" /> {hasil.akunDilindungi} dilindungi
+              {hasil.dilewatiTanpaNup > 0 && (
+                <span className="inline-flex items-center gap-1.5 text-slate-600">
+                  <MinusCircle className="h-4 w-4" /> {hasil.dilewatiTanpaNup} tanpa NUP (akun saja, tanpa peminjaman)
                 </span>
               )}
               {hasil.barangTidakDitemukan > 0 && (
@@ -185,20 +182,52 @@ export function ImportPeminjamDialog({ onSelesai }: Props) {
                 </span>
               )}
             </div>
-            {hasil.detailDilindungi.length > 0 && (
-              <div className="max-h-32 overflow-y-auto rounded-md bg-amber-50 p-2">
-                <p className="mb-1 text-xs font-medium text-amber-800">
-                  Tidak dihapus karena punya riwayat peminjaman:
-                </p>
-                <ul className="space-y-1 text-xs text-amber-800">
-                  {hasil.detailDilindungi.map((u, i) => (
+
+            {/* Rincian data yang berubah (dapat dibuka) */}
+            {hasil.detailDitambahkan.length > 0 && (
+              <details className="rounded-md bg-green-50 p-2" open>
+                <summary className="cursor-pointer text-xs font-medium text-green-800">
+                  Akun ditambahkan ({hasil.detailDitambahkan.length})
+                </summary>
+                <ul className="mt-1 max-h-32 space-y-1 overflow-y-auto text-xs text-green-800">
+                  {hasil.detailDitambahkan.map((u, i) => (
                     <li key={i}>
-                      {u.nama} (NIP {u.nip})
+                      {u.nama} — NIP {u.nip} ({u.email})
                     </li>
                   ))}
                 </ul>
-              </div>
+              </details>
             )}
+            {hasil.detailDiperbarui.length > 0 && (
+              <details className="rounded-md bg-blue-50 p-2">
+                <summary className="cursor-pointer text-xs font-medium text-blue-800">
+                  Akun diperbarui ({hasil.detailDiperbarui.length})
+                </summary>
+                <ul className="mt-1 max-h-32 space-y-1 overflow-y-auto text-xs text-blue-800">
+                  {hasil.detailDiperbarui.map((u, i) => (
+                    <li key={i}>
+                      {u.nama} — NIP {u.nip}
+                      {u.perubahan.length > 0 ? ` (ubah: ${u.perubahan.join(', ')})` : ''}
+                    </li>
+                  ))}
+                </ul>
+              </details>
+            )}
+            {hasil.detailPeminjamanDibuat.length > 0 && (
+              <details className="rounded-md bg-purple-50 p-2">
+                <summary className="cursor-pointer text-xs font-medium text-purple-800">
+                  Peminjaman dibuat ({hasil.detailPeminjamanDibuat.length})
+                </summary>
+                <ul className="mt-1 max-h-32 space-y-1 overflow-y-auto text-xs text-purple-800">
+                  {hasil.detailPeminjamanDibuat.map((p, i) => (
+                    <li key={i}>
+                      {p.nama} — {p.merk || 'tanpa merk'} / NUP {p.nup || '-'} ({p.kodeBarang})
+                    </li>
+                  ))}
+                </ul>
+              </details>
+            )}
+
             {hasil.detailBarangTidakDitemukan.length > 0 && (
               <div className="max-h-32 overflow-y-auto rounded-md bg-amber-50 p-2">
                 <p className="mb-1 text-xs font-medium text-amber-800">Merk / NUP tidak cocok / stok habis:</p>

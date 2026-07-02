@@ -67,7 +67,7 @@ export default function PanduanPage() {
   const [buka, setBuka] = useState<number | null>(0);
 
   return (
-    <div className="min-h-screen bg-brand-50">
+    <div className="min-h-screen bg-brand-50 animate-page-in">
       {/* Header */}
       <header className="border-b bg-white">
         <div className="container flex h-16 items-center justify-between">

@@ -12,6 +12,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { FormBarang } from '@/components/barang/FormBarang';
+import { QrBarang } from '@/components/barang/QrBarang';
 import { KonfirmasiDialog } from '@/components/shared/KonfirmasiDialog';
 import { LoadingSpinner } from '@/components/shared/LoadingSpinner';
 import { notify } from '@/components/ui/toast';
@@ -49,7 +50,7 @@ export default function DetailBarangPage() {
       const updated = await barangService.update(id, data);
       setBarang(updated);
       setMode('lihat');
-      notify.sukses('Barang berhasil diperbarui.');
+      notify.suksess('Barang berhasil diperbarui.');
     } catch (error) {
       notify.gagal(ambilPesanError(error, 'Gagal memperbarui barang.'));
     }
@@ -59,7 +60,7 @@ export default function DetailBarangPage() {
     setSedangHapus(true);
     try {
       await barangService.remove(id);
-      notify.sukses('Barang berhasil dihapus.');
+      notify.suksess('Barang berhasil dihapus.');
       router.push(RUTE.adminBarang);
     } catch (error) {
       notify.gagal(ambilPesanError(error, 'Gagal menghapus barang.'));
@@ -155,6 +156,8 @@ export default function DetailBarangPage() {
                 </ul>
               </div>
             )}
+
+            <QrBarang barang={barang} />
           </CardContent>
         </Card>
       )}

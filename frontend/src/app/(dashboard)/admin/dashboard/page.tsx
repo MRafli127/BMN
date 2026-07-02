@@ -4,18 +4,38 @@
 
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Icon } from '@/components/ui/icon';
 import { LoadingSpinner } from '@/components/shared/LoadingSpinner';
 import { EmptyState } from '@/components/shared/EmptyState';
 import { TabelPeminjaman } from '@/components/peminjaman/TabelPeminjaman';
-import { notify } from '@/components/ui/toast';
-import { dashboardService, type DashboardAdmin } from '@/services/dashboard.service';
-import { ambilPesanError, cn } from '@/lib/utils';
-import { STATUS_PEMINJAMAN } from '@/constants/status';
+import { ExportModal } from '@/components/export/ExportModal';
+import { dashboardService, type DashboardFilter } from '@/services/dashboard.service';
+import { useQuery } from '@/lib/cache';
+import { cn } from '@/lib/utils';
+import { STATUS_PEMINJAMAN, FILTER_STATUS_AKTIF } from '@/constants/status';
 import { RUTE } from '@/constants/routes';
 import type { KategoriDashboard } from '@/services/dashboard.service';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { X, CalendarDays } from 'lucide-react';
+
+// Kartu yang mewakili status peminjaman diarahkan ke Manajemen Peminjaman
+// dengan filter status terkait (alih-alih halaman kategori dashboard).
+const STATUS_KARTU: Partial<Record<KategoriDashboard, string>> = {
+  pengajuan_menunggu: 'MENUNGGU',
+  peminjaman_aktif: FILTER_STATUS_AKTIF,
+  barang_terlambat: 'TERLAMBAT',
+};
+
+// Tentukan tujuan navigasi untuk sebuah kartu/baris dashboard.
+function tujuanKategori(kategori: KategoriDashboard): string {
+  if (kategori === 'barang') return RUTE.adminBarang;
+  const status = STATUS_KARTU[kategori];
+  if (status) return RUTE.adminPeminjamanStatus(status);
+  return RUTE.adminKategori(kategori);
+}
 
 interface GayaWarna {
   orb: string;
@@ -40,20 +60,97 @@ interface KartuStat {
   kategori: KategoriDashboard;
 }
 
+function DialogRentangWaktu({
+  terbuka,
+  onUbahTerbuka,
+  filterAktif,
+  onFilter,
+}: {
+  terbuka: boolean;
+  onUbahTerbuka: (o: boolean) => void;
+  filterAktif: DashboardFilter;
+  onFilter: (f: DashboardFilter) => void;
+}) {
+  const [dari, setDari] = useState(filterAktif.dari || '');
+  const [sampai, setSampai] = useState(filterAktif.sampai || '');
+
+  const handleTerapkan = () => {
+    onFilter({ dari: dari || undefined, sampai: sampai || undefined });
+    onUbahTerbuka(false);
+  };
+
+  const handleReset = () => {
+    setDari('');
+    setSampai('');
+    onFilter({});
+    onUbahTerbuka(false);
+  };
+
+  if (!terbuka) return null;
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+      <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl">
+        <div className="mb-4 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <CalendarDays className="h-5 w-5 text-primary" />
+            <h2 className="font-jakarta text-lg font-semibold text-primary">Rentang Waktu</h2>
+          </div>
+          <button onClick={() => onUbahTerbuka(false)} className="rounded-lg p-1 hover:bg-muted">
+            <X className="h-5 w-5" />
+          </button>
+        </div>
+
+        <p className="mb-4 text-sm text-muted-foreground">
+          Filter data dashboard berdasarkan rentang waktu pengajuan peminjaman.
+        </p>
+
+        <div className="space-y-4">
+          <div className="space-y-2">
+            <label htmlFor="dari" className="text-sm font-medium">
+              Dari Tanggal
+            </label>
+            <Input
+              id="dari"
+              type="date"
+              value={dari}
+              onChange={(e) => setDari(e.target.value)}
+            />
+          </div>
+          <div className="space-y-2">
+            <label htmlFor="sampai" className="text-sm font-medium">
+              Sampai Tanggal
+            </label>
+            <Input
+              id="sampai"
+              type="date"
+              value={sampai}
+              onChange={(e) => setSampai(e.target.value)}
+            />
+          </div>
+        </div>
+
+        <div className="mt-6 flex justify-end gap-2">
+          <Button variant="outline" onClick={handleReset}>
+            Reset
+          </Button>
+          <Button onClick={handleTerapkan}>Terapkan</Button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function AdminDashboardPage() {
-  const [data, setData] = useState<DashboardAdmin | null>(null);
-  const [memuat, setMemuat] = useState(true);
   const router = useRouter();
+  const [filterTanggal, setFilterTanggal] = useState<DashboardFilter>({});
+  const [dialogTerbuka, setDialogTerbuka] = useState(false);
 
-  useEffect(() => {
-    dashboardService
-      .admin()
-      .then(setData)
-      .catch((e) => notify.gagal(ambilPesanError(e, 'Gagal memuat dashboard.')))
-      .finally(() => setMemuat(false));
-  }, []);
+  // Cache key berdasarkan filter agar data berubah saat filter berubah
+  const cacheKey = `dashboard-admin:${JSON.stringify(filterTanggal)}`;
+  const { data, sedangMemuat } = useQuery(cacheKey, () => dashboardService.admin(filterTanggal));
 
-  if (memuat) return <LoadingSpinner layarPenuh />;
+  if (sedangMemuat && !data) return <LoadingSpinner layarPenuh />;
   if (!data) return null;
 
   const s = data.statistik;
@@ -65,10 +162,26 @@ export default function AdminDashboardPage() {
     { label: 'Total Peminjam', nilai: s.totalPeminjam, ikon: 'group', warna: 'primary', keterangan: 'Pengguna terdaftar', kategori: 'peminjam' },
   ];
 
+  // Ringkasan stok inventaris (data dari Manajemen Barang).
+  const inventaris = [
+    { label: 'Total Barang', nilai: s.totalBarang, ikon: 'inventory', warna: 'primary', keterangan: 'Aset terdaftar aktif', tujuan: RUTE.adminBarang },
+    { label: 'Stok Tersedia', nilai: s.stokTersedia, ikon: 'check_circle', warna: 'secondary', keterangan: '', tujuan: RUTE.adminBarangStok('tersedia') },
+    { label: 'Stok Habis', nilai: s.stokHabis, ikon: 'error', warna: 'error', keterangan: '', tujuan: RUTE.adminBarangStok('habis') },
+  ] as const;
+
   const maxGrafik = Math.max(1, ...data.grafikStatus.map((g) => g.jumlah));
+
+  const adaFilter = filterTanggal.dari || filterTanggal.sampai;
 
   return (
     <div className="space-y-gutter">
+      <DialogRentangWaktu
+        terbuka={dialogTerbuka}
+        onUbahTerbuka={setDialogTerbuka}
+        filterAktif={filterTanggal}
+        onFilter={setFilterTanggal}
+      />
+
       {/* Header eksekutif */}
       <section className="flex flex-col items-start justify-between gap-4 md:flex-row md:items-center">
         <div>
@@ -78,16 +191,38 @@ export default function AdminDashboardPage() {
           </p>
         </div>
         <div className="flex gap-3">
-          <button className="flex items-center gap-2 rounded-lg border border-outline-variant bg-white px-4 py-2 font-label-md transition-all hover:bg-surface-container-low">
-            <Icon name="calendar_today" className="text-[18px] text-primary" />
+          <Button
+            variant={adaFilter ? 'default' : 'outline'}
+            onClick={() => setDialogTerbuka(true)}
+            className={cn(adaFilter && 'gap-2')}
+          >
+            <Icon name="calendar_today" className="text-[18px]" />
             <span>Rentang Waktu</span>
-          </button>
-          <button className="flex items-center gap-2 rounded-lg bg-primary px-4 py-2 font-label-md text-white transition-all hover:brightness-110">
-            <Icon name="download" className="text-[18px]" />
-            <span>Ekspor Laporan</span>
-          </button>
+            {adaFilter && (
+              <span className="ml-1 flex h-5 w-5 items-center justify-center rounded-full bg-white/20 text-xs">
+                <X className="h-3 w-3" onClick={(e) => {
+                  e.stopPropagation();
+                  setFilterTanggal({});
+                }} />
+              </span>
+            )}
+          </Button>
+          <ExportModal />
         </div>
       </section>
+
+      {/* Label filter aktif */}
+      {adaFilter && (
+        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+          <Icon name="filter_list" className="text-[16px]" />
+          <span>
+            Menampilkan data dari{' '}
+            <strong>{filterTanggal.dari || 'tanggal awal'}</strong>
+            {' '}sampai{' '}
+            <strong>{filterTanggal.sampai || 'sekarang'}</strong>
+          </span>
+        </div>
+      )}
 
       {/* Kartu statistik */}
       <section className="grid grid-cols-1 gap-gutter sm:grid-cols-2 lg:grid-cols-5">
@@ -96,7 +231,7 @@ export default function AdminDashboardPage() {
           return (
             <div
               key={k.label}
-              onClick={() => router.push(RUTE.adminKategori(k.kategori))}
+              onClick={() => router.push(tujuanKategori(k.kategori))}
               className="glass-card group relative cursor-pointer overflow-hidden rounded-2xl p-stack-lg transition-all duration-300 hover:-translate-y-1 hover:shadow-elevated"
             >
               <div className={cn('absolute -right-4 -top-4 h-24 w-24 rounded-full blur-2xl transition-colors', g.orb)} />
@@ -143,46 +278,33 @@ export default function AdminDashboardPage() {
           </div>
         </section>
 
-        {/* Ringkasan cepat */}
+        {/* Inventaris Barang — ringkasan stok dari Manajemen Barang */}
         <section className="glass-card rounded-2xl p-stack-lg">
-          <h3 className="mb-6 font-jakarta text-headline-md text-primary">Status Sistem</h3>
+          <h3 className="mb-6 flex items-center gap-2 font-jakarta text-headline-md text-primary">
+            <Icon name="inventory_2" className="text-[22px]" />
+            Inventaris Barang
+          </h3>
           <div className="space-y-4">
-            <div
-              onClick={() => router.push(RUTE.adminKategori('pengajuan_menunggu'))}
-              className="flex cursor-pointer gap-4 rounded-xl p-3 transition-all hover:bg-primary/5"
-            >
-              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-tertiary/10 text-tertiary">
-                <Icon name="pending_actions" className="text-[20px]" />
-              </div>
-              <div>
-                <p className="font-label-md font-bold text-on-surface">{s.pengajuanMenunggu} Pengajuan Baru</p>
-                <p className="font-label-sm text-on-surface-variant">Menunggu verifikasi admin.</p>
-              </div>
-            </div>
-            <div
-              onClick={() => router.push(RUTE.adminKategori('barang_terlambat'))}
-              className="flex cursor-pointer gap-4 rounded-xl p-3 transition-all hover:bg-primary/5"
-            >
-              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-error/10 text-error">
-                <Icon name="priority_high" className="text-[20px]" />
-              </div>
-              <div>
-                <p className="font-label-md font-bold text-on-surface">{s.barangTerlambat} Barang Terlambat</p>
-                <p className="font-label-sm text-on-surface-variant">Melebihi batas waktu pengembalian.</p>
-              </div>
-            </div>
-            <div
-              onClick={() => router.push(RUTE.adminKategori('peminjaman_aktif'))}
-              className="flex cursor-pointer gap-4 rounded-xl p-3 transition-all hover:bg-primary/5"
-            >
-              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-secondary/10 text-secondary">
-                <Icon name="task_alt" className="text-[20px]" />
-              </div>
-              <div>
-                <p className="font-label-md font-bold text-on-surface">{s.peminjamanAktif} Peminjaman Aktif</p>
-                <p className="font-label-sm text-on-surface-variant">Aset sedang digunakan.</p>
-              </div>
-            </div>
+            {inventaris.map((it) => {
+              const g = GAYA[it.warna];
+              return (
+                <div
+                  key={it.label}
+                  onClick={() => router.push(it.tujuan)}
+                  className="group flex cursor-pointer items-center gap-4 rounded-xl bg-surface-container/40 p-4 transition-all hover:bg-primary/5"
+                >
+                  <div className={cn('flex h-12 w-12 shrink-0 items-center justify-center rounded-xl', g.ikonBox)}>
+                    <Icon name={it.ikon} className="text-[22px]" fill />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="font-label-md uppercase tracking-wider text-on-surface-variant">{it.label}</p>
+                    <p className={cn('font-jakarta text-headline-md', g.nilai)}>{it.nilai}</p>
+                    {it.keterangan && <p className="font-label-sm text-on-surface-variant">{it.keterangan}</p>}
+                  </div>
+                  <Icon name="chevron_right" className="h-5 w-5 shrink-0 text-on-surface-variant" />
+                </div>
+              );
+            })}
           </div>
         </section>
       </div>

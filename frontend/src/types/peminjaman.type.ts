@@ -29,15 +29,18 @@ export interface Peminjaman {
   kodePeminjaman: string;
   userId: string;
   tanggalPengajuan: string;
-  tanggalPinjamRencana: string;
+  tanggalPinjamRencana?: string | null;
   tanggalKembaliRencana?: string | null;
   tanggalKembaliAktual?: string | null;
+  tanggalPermintaanKembali?: string | null;
   status: StatusPeminjaman;
   alasanPeminjaman?: string | null;
   dokumenUrl?: string | null;
   dokumenStempelUrl?: string | null;
+  dokumenPengembalianUrl?: string | null;
   qrCodeUrl?: string | null;
   catatanAdmin?: string | null;
+  catatanPengembalian?: string | null; // Catatan admin saat konfirmasi pengembalian — hanya untuk admin
   disetujuiOleh?: string | null;
   createdAt?: string;
   updatedAt?: string;
@@ -55,5 +58,21 @@ export interface DataPengajuan {
   tanggalPinjamRencana?: string;
   tanggalKembaliRencana?: string;
   items: ItemPengajuan[];
-  tandaTangan: string; // PNG data URL tanda tangan elektronik
+  dokumen?: File; // Surat pernyataan yang sudah ditandatangani peminjam (PDF) - WAJIB
+}
+
+// Payload pratinjau surat pernyataan (sebelum pengajuan dibuat).
+export interface DataPreviewSurat {
+  tanggalPinjamRencana?: string;
+  tanggalKembaliRencana?: string;
+  items: ItemPengajuan[];
+}
+
+// Payload pengajuan peminjaman (multipart: items JSON + dokumen surat
+// pernyataan yang sudah ditandatangani).
+export interface DataPengajuan {
+  tanggalPinjamRencana?: string;
+  tanggalKembaliRencana?: string;
+  items: ItemPengajuan[];
+  dokumen?: File; // Surat pernyataan yang sudah ditandatangani peminjam (PDF) - WAJIB
 }

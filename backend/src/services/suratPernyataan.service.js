@@ -1,15 +1,20 @@
 // ============================================================
 //  Generator Surat Pernyataan Peminjaman BMN (PDF, pdf-lib).
-//  Dibuat otomatis saat peminjam mengajukan pinjaman dan
-//  langsung ditandatangani (tanda tangan disisipkan).
-//  Hasil dikembalikan sebagai data URL (application/pdf).
+//  Tata letak, font (Arial/Helvetica), ukuran, dan susunan mengikuti
+//  templat resmi backend/assets/Surat-Pernyataan-Peminjaman-BMN.docx.
+//
+//  Surat DITAMPILKAN sebagai pratinjau, lalu DIUNDUH & DICETAK/ditandatangani
+//  peminjam. Blok tanda tangan memakai keterangan "Ditandatangani secara
+//  elektronik" sesuai templat. Nomor surat berurut otomatis per tahun
+//  (lihat nomorSurat.service). Hasil dikembalikan sebagai data URL (PDF).
 // ============================================================
 
 const { PDFDocument, rgb, StandardFonts } = require('pdf-lib');
 const path = require('path');
 const fs = require('fs');
-const { bufferKeDataUrl, dataUrlKeBuffer } = require('../utils/fileData');
+const { bufferKeDataUrl } = require('../utils/fileData');
 const { formatTanggalSaja } = require('../utils/formatTanggal');
+const nomorSuratService = require('./nomorSurat.service');
 
 const PAGE_W = 595.28;
 const PAGE_H = 841.89;
@@ -60,22 +65,29 @@ function wrapText(text, font, size, maxWidth) {
   return hasil.length ? hasil : [''];
 }
 
+// Nomor surat: pakai nomor tersimpan (nomorSurat/tahunSurat) bila ada;
+// saat pratinjau nilai tersebut diisi hasil "intip" di peminjaman.service.
 function nomorSurat(peminjaman) {
-  // Kode mengikuti kode barang terkini (kunci natural); seq = segmen terakhir (NUP).
-  const kode =
-    peminjaman.detail?.find((d) => d.barang)?.barang?.kodeBarang || peminjaman.kodePeminjaman || '';
-  const seq = String(kode).split('-').pop() || '0000';
-  const tahun = new Date(peminjaman.tanggalPengajuan || Date.now()).getFullYear();
-  return `PRN-${seq}/BMN/PP.1/${tahun}`;
+  const tahun =
+    peminjaman.tahunSurat ||
+    new Date(peminjaman.tanggalPengajuan || Date.now()).getFullYear();
+  return nomorSuratService.formatPeminjaman(peminjaman.nomorSurat, tahun);
 }
 
-async function generate(peminjaman, tandaTanganDataUrl) {
+// Susun "Unit Kerja" lengkap mulai dari Eselon IV, III, dst. (sesuai catatan templat).
+function unitKerjaLengkap(u) {
+  const bagian = [u.eselon4, u.eselon3, u.eselon2].map((x) => (x || '').trim()).filter(Boolean);
+  if (bagian.length) return bagian.join(', ');
+  return u.unitKerja || u.eselon3 || '-';
+}
+
+async function generate(peminjaman) {
   const pdf = await PDFDocument.create();
   const font = await pdf.embedFont(StandardFonts.Helvetica);
   const fontBold = await pdf.embedFont(StandardFonts.HelveticaBold);
-  const fontItalic = await pdf.embedFont(StandardFonts.HelveticaOblique);
   const hitam = rgb(0.1, 0.1, 0.1);
   const abu = rgb(0.45, 0.45, 0.45);
+  const abuTtd = rgb(0.749, 0.749, 0.749); // BFBFBF — sesuai warna teks "Ditandatangani secara elektronik" pada templat
 
   let page = pdf.addPage([PAGE_W, PAGE_H]);
   let y = PAGE_H - MARGIN;
@@ -101,13 +113,15 @@ async function generate(peminjaman, tandaTanganDataUrl) {
   };
 
   // ---------- Kop surat ----------
-  const absLogo = path.resolve(__dirname, '../../assets/logo-kemenkeu.png');
+  const absLogo = path.resolve(__dirname, '../../assets/logo_surat.png');
   if (fs.existsSync(absLogo)) {
     try {
       const logo = await pdf.embedPng(fs.readFileSync(absLogo));
-      const lw = 46;
+      const lw = 80;
       const lh = (logo.height / logo.width) * lw;
-      page.drawImage(logo, { x: MARGIN, y: y - lh, width: lw, height: lh });
+      // pusatkan logo secara vertikal terhadap blok kop surat (tinggi ±58pt)
+      const kopH = 58;
+      page.drawImage(logo, { x: MARGIN, y: y - lh + (lh - kopH) / 2, width: lw, height: lh });
     } catch {
       // abaikan bila logo gagal dimuat
     }
@@ -138,7 +152,7 @@ async function generate(peminjaman, tandaTanganDataUrl) {
   teksTengah(`NOMOR ${nomorSurat(peminjaman)}`, { font: fontBold, size: 11 });
   y -= 26;
 
-  // ---------- Identitas ----------
+  // ---------- Identitas peminjam ----------
   const u = peminjaman.peminjam || {};
   teks('Yang bertanda tangan di bawah ini:', MARGIN, { size: 10 });
   y -= 18;
@@ -146,8 +160,8 @@ async function generate(peminjaman, tandaTanganDataUrl) {
   const identitas = [
     ['Nama', u.nama || '-'],
     ['NIP', u.nip || '-'],
-    ['Eselon IV', u.jabatan || '-'],
-    ['Eselon III', u.unitKerja || '-'],
+    ['Pangkat/Gol.', u.pangkatGolongan || '-'],
+    ['Unit Kerja', unitKerjaLengkap(u)],
   ];
   const xLabel = MARGIN;
   const xTitik = MARGIN + 90;
@@ -278,38 +292,18 @@ async function generate(peminjaman, tandaTanganDataUrl) {
   y -= 16;
 
   // ---------- Blok tanda tangan (kanan) ----------
-  const SIG_AREA_H = 60;
-  pastikanRuang(SIG_AREA_H + 70);
+  // Sesuai templat: "Jakarta, <tanggal>" / "Peminjam BMN" / (ruang) /
+  // "Ditandatangani secara elektronik" (abu) / Nama.
+  pastikanRuang(90);
   const blokKiri = PAGE_W - MARGIN - 200;
   const tanggal = formatTanggalSaja(peminjaman.tanggalPengajuan || new Date());
   teks(`Jakarta, ${tanggal}`, blokKiri, { size: 10 });
   y -= 14;
   teks('Peminjam BMN', blokKiri, { size: 10 });
-  y -= 8;
-
-  // Tanda tangan (gambar) — ditempatkan dalam area tetap, rata bawah ke garis.
-  const garisY = y - SIG_AREA_H;
-  if (tandaTanganDataUrl) {
-    try {
-      const f = dataUrlKeBuffer(tandaTanganDataUrl);
-      if (f) {
-        const img = f.mime === 'image/png' ? await pdf.embedPng(f.buffer) : await pdf.embedJpg(f.buffer);
-        const skala = Math.min(180 / img.width, SIG_AREA_H / img.height);
-        const w = img.width * skala;
-        const h = img.height * skala;
-        page.drawImage(img, { x: blokKiri, y: garisY + 2, width: w, height: h });
-      }
-    } catch {
-      // abaikan bila tanda tangan gagal disisipkan
-    }
-  }
-  y = garisY;
-
-  page.drawLine({ start: { x: blokKiri, y }, end: { x: blokKiri + 190, y }, thickness: 0.8, color: hitam });
-  y -= 14;
-  teks(u.nama || 'Peminjam BMN', blokKiri, { font: fontBold, size: 10 });
-  y -= 14;
-  teks('Ditandatangani secara elektronik', blokKiri, { font: fontItalic, size: 8, color: abu });
+  y -= 46; // ruang tanda tangan elektronik
+  teks('Ditandatangani secara elektronik', blokKiri, { size: 9, color: abuTtd });
+  y -= 13;
+  teks(u.nama || 'Nama Lengkap', blokKiri, { font: fontBold, size: 10 });
   y -= 22;
 
   // ---------- Catatan kaki ----------
@@ -317,7 +311,7 @@ async function generate(peminjaman, tandaTanganDataUrl) {
     x: MARGIN,
     y: MARGIN - 6,
     size: 8,
-    font: fontItalic,
+    font,
     color: abu,
   });
 

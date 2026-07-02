@@ -4,7 +4,6 @@
 
 'use client';
 
-import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { PlusCircle } from 'lucide-react';
 import { Icon } from '@/components/ui/icon';
@@ -14,10 +13,10 @@ import { Badge } from '@/components/ui/badge';
 import { LoadingSpinner } from '@/components/shared/LoadingSpinner';
 import { EmptyState } from '@/components/shared/EmptyState';
 import { KartuStatus } from '@/components/peminjaman/KartuStatus';
-import { notify } from '@/components/ui/toast';
-import { dashboardService, type DashboardPeminjam } from '@/services/dashboard.service';
-import { ambilPesanError, cn } from '@/lib/utils';
-import { STATUS_PEMINJAMAN } from '@/constants/status';
+import { dashboardService } from '@/services/dashboard.service';
+import { useQuery } from '@/lib/cache';
+import { cn } from '@/lib/utils';
+import { STATUS_PEMINJAMAN, FILTER_STATUS_AKTIF } from '@/constants/status';
 import { RUTE } from '@/constants/routes';
 import { useAuth } from '@/hooks/useAuth';
 
@@ -36,26 +35,17 @@ const GAYA: Record<string, GayaWarna> = {
 
 export default function PeminjamDashboardPage() {
   const { user } = useAuth();
-  const [data, setData] = useState<DashboardPeminjam | null>(null);
-  const [memuat, setMemuat] = useState(true);
+  const { data, sedangMemuat } = useQuery('dashboard-peminjam', () => dashboardService.peminjam());
 
-  useEffect(() => {
-    dashboardService
-      .peminjam()
-      .then(setData)
-      .catch((e) => notify.gagal(ambilPesanError(e, 'Gagal memuat dashboard.')))
-      .finally(() => setMemuat(false));
-  }, []);
-
-  if (memuat) return <LoadingSpinner layarPenuh />;
+  if (sedangMemuat && !data) return <LoadingSpinner layarPenuh />;
   if (!data) return null;
 
   const s = data.statistik;
   const kartu = [
-    { label: 'Peminjaman Aktif', nilai: s.peminjamanAktif, ikon: 'sync_alt', warna: 'secondary', keterangan: 'Sedang berjalan' },
-    { label: 'Menunggu Persetujuan', nilai: s.menunggu, ikon: 'pending_actions', warna: 'tertiary', keterangan: 'Dalam verifikasi' },
-    { label: 'Sudah Dikembalikan', nilai: s.dikembalikan, ikon: 'task_alt', warna: 'secondary', keterangan: 'Selesai dengan baik' },
-    { label: 'Total Riwayat', nilai: s.totalRiwayat, ikon: 'history', warna: 'primary', keterangan: 'Seluruh aktivitas' },
+    { label: 'Peminjaman Aktif', nilai: s.peminjamanAktif, ikon: 'sync_alt', warna: 'secondary', keterangan: 'Sedang berjalan', filter: FILTER_STATUS_AKTIF },
+    { label: 'Menunggu Persetujuan', nilai: s.menunggu, ikon: 'pending_actions', warna: 'tertiary', keterangan: 'Dalam verifikasi', filter: 'MENUNGGU' },
+    { label: 'Sudah Dikembalikan', nilai: s.dikembalikan, ikon: 'task_alt', warna: 'secondary', keterangan: 'Selesai dengan baik', filter: 'DIKEMBALIKAN' },
+    { label: 'Total Riwayat', nilai: s.totalRiwayat, ikon: 'history', warna: 'primary', keterangan: 'Seluruh aktivitas', filter: undefined },
   ] as const;
 
   return (
@@ -72,11 +62,6 @@ export default function PeminjamDashboardPage() {
               <Icon name="inventory_2" className="text-[18px]" /> Katalog
             </Link>
           </Button>
-          <Button asChild>
-            <Link href={RUTE.peminjamAjukan}>
-              <Icon name="add" className="text-[18px]" /> Ajukan Peminjaman
-            </Link>
-          </Button>
         </div>
       </div>
 
@@ -85,9 +70,11 @@ export default function PeminjamDashboardPage() {
         {kartu.map((k) => {
           const g = GAYA[k.warna];
           return (
-            <div
+            <Link
               key={k.label}
-              className="glass-card group relative overflow-hidden rounded-2xl p-stack-lg transition-all duration-300 hover:-translate-y-1"
+              href={RUTE.peminjamRiwayatStatus(k.filter)}
+              aria-label={`Lihat Riwayat Peminjaman: ${k.label}`}
+              className="glass-card group relative block overflow-hidden rounded-2xl p-stack-lg transition-all duration-300 hover:-translate-y-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
             >
               <div className={cn('absolute -right-4 -top-4 h-24 w-24 rounded-full blur-2xl transition-colors', g.orb)} />
               <div className={cn('mb-4 flex h-12 w-12 items-center justify-center rounded-xl', g.ikonBox)}>
@@ -96,7 +83,11 @@ export default function PeminjamDashboardPage() {
               <p className="font-label-md uppercase tracking-wider text-on-surface-variant">{k.label}</p>
               <h3 className={cn('mt-1 font-jakarta text-headline-lg', g.nilai)}>{k.nilai}</h3>
               <p className="mt-2 font-label-sm text-on-surface-variant">{k.keterangan}</p>
-            </div>
+              <Icon
+                name="arrow_forward"
+                className="absolute bottom-4 right-4 text-[18px] text-on-surface-variant opacity-0 transition-opacity group-hover:opacity-100"
+              />
+            </Link>
           );
         })}
       </div>
@@ -128,7 +119,7 @@ export default function PeminjamDashboardPage() {
             deskripsi="Ajukan peminjaman barang untuk memulai."
             aksi={
               <Button asChild>
-                <Link href={RUTE.peminjamAjukan}>
+                <Link href={RUTE.peminjamKatalog}>
                   <PlusCircle className="h-4 w-4" /> Ajukan Sekarang
                 </Link>
               </Button>

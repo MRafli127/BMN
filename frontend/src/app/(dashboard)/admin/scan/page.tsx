@@ -40,7 +40,7 @@ export default function ScanPage() {
     try {
       const updated = await peminjamanService.kembalikan(hasil.id);
       setHasil(updated);
-      notify.sukses('Pengembalian dikonfirmasi. Stok telah diperbarui.');
+      notify.suksess('Pengembalian dikonfirmasi. Stok telah diperbarui.');
     } catch (error) {
       notify.gagal(ambilPesanError(error, 'Gagal mengonfirmasi pengembalian.'));
     } finally {
@@ -90,7 +90,7 @@ export default function ScanPage() {
               <UserIcon className="h-5 w-5 text-primary" />
               <div>
                 <p className="font-medium text-foreground">{hasil.peminjam?.nama}</p>
-                <p className="text-xs text-muted-foreground">{hasil.peminjam?.unitKerja || hasil.peminjam?.nip}</p>
+                <p className="text-xs text-muted-foreground">{hasil.peminjam?.eselon3 || hasil.peminjam?.nip}</p>
               </div>
             </div>
 

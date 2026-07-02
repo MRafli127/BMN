@@ -55,6 +55,39 @@ export function inisial(nama?: string): string {
     .join('');
 }
 
+// Bentuk kunci unik aset BMN untuk isi QR: "Kode Satker-Kode Barang-NUP"
+// (mis. "015110199411868006KP-3100102002-87"). Bila komponen identitas
+// register tidak lengkap (mis. barang input manual), pakai kodeBarang
+// yang sudah tersimpan sebagai kode unik barang.
+export function kodeUnikBarang(barang: {
+  kodeBarang?: string | null;
+  kodeSatker?: string | null;
+  kodeBarangBmn?: string | null;
+  nup?: string | null;
+}): string {
+  const natural = [barang.kodeSatker, barang.kodeBarangBmn, barang.nup]
+    .map((v) => (v == null ? '' : String(v).trim()))
+    .filter(Boolean)
+    .join('-');
+  return natural || (barang.kodeBarang ? String(barang.kodeBarang).trim() : '');
+}
+
+// Tanggal lahir dari NIP PNS (8 digit pertama = YYYYMMDD) -> "DD - MM - YYYY"
+export function tanggalLahirDariNip(nip?: string | null): string {
+  if (!nip) return '-';
+  const digit = nip.replace(/\D/g, '');
+  if (digit.length < 8) return '-';
+  const tahun = digit.slice(0, 4);
+  const bulan = digit.slice(4, 6);
+  const tanggal = digit.slice(6, 8);
+  const t = Number(tahun);
+  const b = Number(bulan);
+  const d = Number(tanggal);
+  const tahunSekarang = new Date().getFullYear();
+  if (t < 1900 || t > tahunSekarang || b < 1 || b > 12 || d < 1 || d > 31) return '-';
+  return `${tanggal} - ${bulan} - ${tahun}`;
+}
+
 // Ambil pesan error dari respons axios
 export function ambilPesanError(error: unknown, fallback = 'Terjadi kesalahan.'): string {
   const e = error as { response?: { data?: { pesan?: string } }; message?: string };
