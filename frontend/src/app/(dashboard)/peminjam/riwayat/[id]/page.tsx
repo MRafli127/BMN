@@ -26,11 +26,12 @@ import { Badge } from '@/components/ui/badge';
 import { KonfirmasiDialog } from '@/components/shared/KonfirmasiDialog';
 import { LoadingSpinner } from '@/components/shared/LoadingSpinner';
 import { TimelineStatus } from '@/components/peminjaman/TimelineStatus';
+import { FolderBarangDipinjam } from '@/components/peminjaman/FolderBarangDipinjam';
 import { TampilQR } from '@/components/qrcode/TampilQR';
 import { notify } from '@/components/ui/toast';
 import { peminjamanService } from '@/services/peminjaman.service';
 import { ambilPesanError, formatTanggalLengkap } from '@/lib/utils';
-import { STATUS_PEMINJAMAN, JENIS_BARANG } from '@/constants/status';
+import { STATUS_PEMINJAMAN } from '@/constants/status';
 import { RUTE } from '@/constants/routes';
 import type { Peminjaman } from '@/types/peminjaman.type';
 
@@ -150,22 +151,10 @@ export default function DetailRiwayatPage() {
                 <p className="mb-2 flex items-center gap-2 font-medium text-foreground">
                   <Boxes className="h-4 w-4" /> Barang Dipinjam
                 </p>
-                <div className="space-y-2">
-                  {data.detail?.map((d) => (
-                    <div key={d.id} className="flex items-center justify-between rounded-lg border bg-muted/30 p-3">
-                      <div>
-                        <p className="font-medium text-foreground">{d.barang?.nama}</p>
-                        <p className="text-xs text-muted-foreground">
-                          Merk: <span className="font-medium text-foreground">{d.barang?.merk || '-'}</span>
-                        </p>
-                        <p className="text-xs text-muted-foreground">
-                          {d.barang?.kodeBarang} • {d.barang ? JENIS_BARANG[d.barang.jenis] : ''}
-                        </p>
-                      </div>
-                      <Badge className="border-primary/20 bg-primary/10 text-primary">{d.jumlahPinjam} unit</Badge>
-                    </div>
-                  ))}
-                </div>
+                <p className="mb-2 text-xs text-muted-foreground">
+                  Klik tiap barang untuk melihat Label &amp; QR Identitas Barang.
+                </p>
+                <FolderBarangDipinjam detail={data.detail} />
               </div>
 
               {data.catatanAdmin && (
