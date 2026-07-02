@@ -101,7 +101,6 @@ export function FormPeminjaman({ daftarBarang, onSelesai, praPilihId, barangAkti
         items={idTerpilih.map((barangId) => ({ barangId, jumlahPinjam: terpilih[barangId] }))}
         tanggalPinjamRencana={tglPinjam || undefined}
         tanggalKembaliRencana={tglKembali || undefined}
-        onKembali={() => setLangkah('pilih')}
         onSelesai={onSelesai}
       />
     );

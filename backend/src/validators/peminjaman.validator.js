@@ -86,6 +86,14 @@ const createPeminjamanSchema = z
       .min(5, 'Alasan peminjaman minimal 5 karakter.')
       .optional()
       .or(z.literal('')),
+    pangkatGolongan: z
+      .string()
+      .trim()
+      .max(100, 'Pangkat/Gol. maksimal 100 karakter.')
+      .optional()
+      .or(z.literal('')),
+    // Dikirim via multipart sebagai string; true = simpan sebagai DRAFT (tanpa surat).
+    draft: z.preprocess((v) => v === true || v === 'true' || v === 1 || v === '1', z.boolean()),
     tanggalPinjamRencana: tanggalOpsional('Tanggal pinjam tidak valid.'),
     tanggalKembaliRencana: tanggalOpsional('Tanggal kembali tidak valid.'),
     items: parseItems,
@@ -96,6 +104,12 @@ const createPeminjamanSchema = z
 // Sama seperti pengajuan namun tanpa alasan; dikirim sebagai JSON.
 const previewSuratSchema = z
   .object({
+    pangkatGolongan: z
+      .string()
+      .trim()
+      .max(100, 'Pangkat/Gol. maksimal 100 karakter.')
+      .optional()
+      .or(z.literal('')),
     tanggalPinjamRencana: tanggalOpsional('Tanggal pinjam tidak valid.'),
     tanggalKembaliRencana: tanggalOpsional('Tanggal kembali tidak valid.'),
     items: parseItems,

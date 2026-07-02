@@ -27,9 +27,20 @@ router.post('/', validateCsrfTokenMiddleware, uploadDokumenPeminjaman, validate(
 // tertangkap sebagai parameter id.
 router.post('/hapus-massal', validateCsrfTokenMiddleware, roleMiddleware('ADMIN'), peminjamanController.hapusMassal);
 router.post('/setujui-massal', validateCsrfTokenMiddleware, roleMiddleware('ADMIN'), peminjamanController.setujuiMassal);
+router.post('/serahkan-massal', validateCsrfTokenMiddleware, roleMiddleware('ADMIN'), peminjamanController.serahkanMassal);
+router.post('/kembalikan-massal', validateCsrfTokenMiddleware, roleMiddleware('ADMIN'), peminjamanController.kembalikanMassal);
 
 // Detail
 router.get('/:id', peminjamanController.getById);
+
+// Surat Pernyataan Peminjaman (PDF) untuk pengajuan tersimpan — dipakai peminjam
+// mengunduh surat pengajuan DRAFT miliknya. Kepemilikan dicek di service.
+router.get('/:id/surat-pernyataan', peminjamanController.suratPernyataan);
+// Peminjam mengunggah Surat Pernyataan yang sudah ditandatangani untuk pengajuan
+// DRAFT (field "dokumen"). Status DRAFT -> MENUNGGU. Kepemilikan dicek di service.
+router.patch('/:id/unggah-surat', validateCsrfTokenMiddleware, uploadDokumenPeminjaman, peminjamanController.unggahSurat);
+// Peminjam membatalkan pengajuan DRAFT miliknya. Kepemilikan dicek di service.
+router.delete('/:id/batal-draft', validateCsrfTokenMiddleware, peminjamanController.batalDraft);
 
 // Aksi admin
 router.patch('/:id/setujui', validateCsrfTokenMiddleware, roleMiddleware('ADMIN'), validate(setujuiSchema), peminjamanController.setujui);

@@ -43,8 +43,10 @@ export const peminjamanService = {
     const fd = new FormData();
     if (data.tanggalPinjamRencana) fd.append('tanggalPinjamRencana', data.tanggalPinjamRencana);
     if (data.tanggalKembaliRencana) fd.append('tanggalKembaliRencana', data.tanggalKembaliRencana);
+    if (data.pangkatGolongan) fd.append('pangkatGolongan', data.pangkatGolongan);
+    if (data.draft) fd.append('draft', 'true');
     fd.append('items', JSON.stringify(data.items));
-    // Surat pernyataan yang sudah ditandatangani (PDF) WAJIB diunggah.
+    // Surat pernyataan yang sudah ditandatangani (PDF) WAJIB diunggah — kecuali draft.
     if (data.dokumen) {
       fd.append('dokumen', data.dokumen);
     }
@@ -53,6 +55,29 @@ export const peminjamanService = {
       headers: { 'Content-Type': 'multipart/form-data' },
     });
     return res.data.data;
+  },
+
+  // Buat Surat Pernyataan Peminjaman (PDF, data URL) untuk pengajuan tersimpan
+  // (mis. draft) agar peminjam bisa mengunduh, menandatangani, lalu mengunggah.
+  async getSuratPernyataan(id: string): Promise<string> {
+    const res = await api.get(`/peminjaman/${id}/surat-pernyataan`);
+    return res.data.data.suratUrl;
+  },
+
+  // Unggah Surat Pernyataan yang sudah ditandatangani untuk pengajuan DRAFT.
+  // Status berpindah DRAFT -> MENUNGGU.
+  async unggahSurat(id: string, dokumen: File): Promise<Peminjaman> {
+    const fd = new FormData();
+    fd.append('dokumen', dokumen);
+    const res = await api.patch(`/peminjaman/${id}/unggah-surat`, fd, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+    return res.data.data;
+  },
+
+  // Batalkan pengajuan DRAFT milik peminjam (membebaskan barang yang terkunci).
+  async batalDraft(id: string): Promise<void> {
+    await api.delete(`/peminjaman/${id}/batal-draft`);
   },
 
   async setujui(id: string, catatanAdmin?: string): Promise<Peminjaman> {
@@ -87,8 +112,8 @@ export const peminjamanService = {
     return res.data.data;
   },
 
-  async kembalikan(id: string): Promise<Peminjaman> {
-    const res = await api.patch(`/peminjaman/${id}/kembalikan`);
+  async kembalikan(id: string, catatan?: string): Promise<Peminjaman> {
+    const res = await api.patch(`/peminjaman/${id}/kembalikan`, { catatan });
     return res.data.data;
   },
 
@@ -123,5 +148,17 @@ export const peminjamanService = {
   async setujuiMassal(ids: string[]): Promise<{ disetujui: number; dilewati: number }> {
     const res = await api.post('/peminjaman/setujui-massal', { ids });
     return { disetujui: res.data.data?.disetujui ?? 0, dilewati: res.data.data?.dilewati ?? 0 };
+  },
+
+  // Tandai banyak barang telah diserahkan sekaligus (admin). Mengembalikan ringkasan hasil.
+  async serahkanMassal(ids: string[]): Promise<{ berhasil: number; dilewati: number }> {
+    const res = await api.post('/peminjaman/serahkan-massal', { ids });
+    return { berhasil: res.data.data?.berhasil ?? 0, dilewati: res.data.data?.dilewati ?? 0 };
+  },
+
+  // Konfirmasi pengembalian banyak peminjaman sekaligus (admin). Mengembalikan ringkasan hasil.
+  async kembalikanMassal(ids: string[]): Promise<{ berhasil: number; dilewati: number }> {
+    const res = await api.post('/peminjaman/kembalikan-massal', { ids });
+    return { berhasil: res.data.data?.berhasil ?? 0, dilewati: res.data.data?.dilewati ?? 0 };
   },
 };

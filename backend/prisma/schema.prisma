@@ -47,6 +47,7 @@ enum StatusPeminjaman {
   DIPINJAM // Barang sedang dipinjam
   DIKEMBALIKAN // Barang sudah dikembalikan
   TERLAMBAT // Melewati tanggal rencana kembali
+  DRAFT // Pengajuan tersimpan ke Riwayat, surat pernyataan belum diunggah (belum terlihat admin). Barang tetap dikunci.
 }
 
 // Status tiap item barang pada satu peminjaman
@@ -161,18 +162,21 @@ model Peminjaman {
   kodeTransaksi         String?          @unique // Kode unik per transaksi (untuk QR scan & referensi). Format: BMN-YYYYMMDD-XXXXX. Nullable untuk kompatibilitas data lama.
   kodePeminjaman        String // Snapshot kode aset barang saat dipinjam. Saat dibaca, kode di-resync dari kodeBarang barang terkait (kunci natural kodeSatker-kodeBarangBmn-NUP).
   userId                String
-  tanggalPengajuan      DateTime         @default(now())
+  tanggalPengajuan      DateTime         @default(now()) // Saat record dibuat (draft atau pengajuan langsung) = "Draft Pengajuan"
+  tanggalKirim          DateTime? // Saat pengajuan resmi dikirim ke admin (status mencapai MENUNGGU) = "Menunggu Persetujuan". Null selama masih DRAFT.
   tanggalPinjamRencana  DateTime?
   tanggalKembaliRencana DateTime?
   tanggalKembaliAktual  DateTime?
   tanggalPermintaanKembali DateTime? // Saat peminjam mengajukan pengembalian; menunggu konfirmasi admin
   status                StatusPeminjaman @default(MENUNGGU)
   alasanPeminjaman      String?
+  pangkatGolongan       String? // Pangkat/Gol. peminjam saat pengajuan (tercantum pada Surat Pernyataan). Disimpan agar surat draft bisa diunduh menyusul.
   dokumenUrl            String? // Dokumen yang diunggah peminjam
   dokumenStempelUrl     String? // Dokumen yang sudah distempel admin
   dokumenPengembalianUrl String? // Surat Pernyataan Pengembalian (PDF) yang sudah ditandatangani fisik & diunggah peminjam
   qrCodeUrl             String? // Gambar QR Code peminjaman
-  catatanAdmin          String? // Catatan admin (wajib saat menolak)
+  catatanAdmin          String? // Catatan admin (wajib saat menolak). Terlihat oleh peminjam.
+  catatanPengembalian   String? // Catatan admin saat konfirmasi pengembalian. HANYA untuk admin, tidak terlihat oleh peminjam.
   disetujuiOleh         String? // userId admin yang menyetujui
   nomorSurat            Int? // Nomor urut surat pernyataan (PRN-<nomorSurat>/BMN/PP.1/<tahunSurat>). Diberikan otomatis & berurut per tahun saat pengajuan dibuat, reset ke 1 tiap ganti tahun.
   tahunSurat            Int? // Tahun penomoran surat (dipakai bersama nomorSurat). Surat pengembalian memakai nomor & tahun yang sama.

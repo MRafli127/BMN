@@ -22,6 +22,12 @@ const emailService = require('./email.service');
 const notificationService = require('./notification.service');
 const env = require('../config/env');
 
+// Status yang "mengunci" barang: selama peminjaman berada di salah satu status
+// ini, barang yang sama tidak boleh diajukan ulang & ikut dihitung sebagai
+// peminjaman aktif. DRAFT termasuk agar barang tetap dikunci walau suratnya
+// belum diunggah (pengajuan masih tersimpan di Riwayat peminjam).
+const STATUS_MENGUNCI = ['DRAFT', 'MENUNGGU', 'DISETUJUI', 'DIPINJAM', 'TERLAMBAT'];
+
 // Bentuk include lengkap untuk relasi
 const includeLengkap = {
   peminjam: {
@@ -130,7 +136,9 @@ async function previewSurat(userId, data) {
   const nomorSurat = await nomorSuratService.intip(nomorSuratService.JENIS.PEMINJAMAN, tahunSurat);
 
   const peminjamanSemu = {
-    peminjam: user,
+    // Pangkat/Gol. diisi peminjam pada langkah keranjang; belum ada kolomnya di
+    // tabel user sehingga di-inject di sini agar tercantum pada surat pratinjau.
+    peminjam: { ...user, pangkatGolongan: data.pangkatGolongan || user.pangkatGolongan || null },
     detail: detailItems,
     kodePeminjaman: detailItems.length === 1 ? detailItems[0].barang.kodeBarang : null,
     tanggalPengajuan: new Date(),
@@ -148,12 +156,33 @@ async function previewSurat(userId, data) {
 // (manual/elektronik), lalu mengunggahnya kembali. Berkas yang diunggah inilah
 // yang disimpan sebagai dokumenUrl. Dibatasi multiple items per pengajuan
 // dengan kodePeminjaman null.
+// Kirim email & notifikasi ke admin bahwa ada pengajuan yang MASUK (status
+// MENUNGGU). Dipakai bersama oleh create() (pengajuan langsung dengan surat)
+// dan unggahSurat() (draft yang suratnya baru diunggah). Semua async & non-blocking.
+function beritahuPengajuanMasuk(peminjaman, user) {
+  const barangNames =
+    peminjaman.detail?.map((d) => d.barang?.nama).filter(Boolean).join(', ') || 'Barang';
+  emailService.kirimKonfirmasiPengajuan(peminjaman, user).catch(() => {});
+  emailService.kirimNotifikasiAdmin(peminjaman, user, env.email?.notifyAdmin).catch(() => {});
+  notificationService.kirimKeSemuaAdmin({
+    tipe: notificationService.TIPE_NOTIFIKASI.PEMINJAMAN_BARU,
+    judul: 'Pengajuan Peminjaman Baru',
+    pesan: `${user?.nama || 'Peminjam'} mengajukan peminjaman ${barangNames}`,
+    referenceId: peminjaman.id,
+    referenceType: 'PEMINJAMAN',
+  }).catch(() => {});
+}
+
 async function create(userId, data, dokumenDataUrl, requestInfo = {}) {
+  // Mode DRAFT: pengajuan disimpan ke Riwayat tanpa surat pernyataan (peminjam
+  // mengunggahnya menyusul dari halaman Riwayat). Barang tetap dikunci.
+  const isDraft = data.draft === true || data.draft === 'true';
+
   // CEK: Batas maksimal peminjaman aktif per user
   const peminjamanAktif = await prisma.peminjaman.count({
     where: {
       userId,
-      status: { in: ['MENUNGGU', 'DISETUJUI', 'DIPINJAM', 'TERLAMBAT'] },
+      status: { in: STATUS_MENGUNCI },
     },
   });
   const maxAktif = env.peminjaman?.maxAktif || 3;
@@ -174,7 +203,7 @@ async function create(userId, data, dokumenDataUrl, requestInfo = {}) {
     const sudahAktif = await prisma.peminjaman.findFirst({
       where: {
         userId,
-        status: { in: ['MENUNGGU', 'DISETUJUI', 'DIPINJAM', 'TERLAMBAT'] },
+        status: { in: STATUS_MENGUNCI },
         detail: { some: { barangId: { in: barangIds } } },
       },
       include: { detail: { include: { barang: { select: { id: true, nama: true } } } } },
@@ -190,8 +219,9 @@ async function create(userId, data, dokumenDataUrl, requestInfo = {}) {
     }
   }
 
-  // CEK: Surat pernyataan yang sudah ditandatangani WAJIB diunggah
-  if (!dokumenDataUrl) {
+  // CEK: Surat pernyataan yang sudah ditandatangani WAJIB diunggah — kecuali
+  // pada mode DRAFT (peminjam memilih mengunggah surat menyusul dari Riwayat).
+  if (!isDraft && !dokumenDataUrl) {
     throw new AppError(
       'Unggah Surat Pernyataan Peminjaman yang sudah Anda tandatangani sebelum mengirim pengajuan.',
       400
@@ -237,9 +267,13 @@ async function create(userId, data, dokumenDataUrl, requestInfo = {}) {
         tahunSurat,
         tanggalPinjamRencana: data.tanggalPinjamRencana || null,
         tanggalKembaliRencana: data.tanggalKembaliRencana || null,
+        // Pengajuan langsung: waktu kirim = sekarang. Draft: belum dikirim (null),
+        // diisi nanti saat surat diunggah (unggahSurat()).
+        tanggalKirim: isDraft ? null : new Date(),
         alasanPeminjaman: data.alasanPeminjaman || null,
-        dokumenUrl: dokumenDataUrl, // Surat pernyataan yang sudah ditandatangani peminjam
-        status: 'MENUNGGU',
+        pangkatGolongan: data.pangkatGolongan || null, // Tercantum pada surat; disimpan agar surat draft bisa diunduh menyusul
+        dokumenUrl: dokumenDataUrl, // Surat pernyataan yang sudah ditandatangani peminjam (null bila DRAFT)
+        status: isDraft ? 'DRAFT' : 'MENUNGGU',
         detail: {
           create: detailItems,
         },
@@ -249,7 +283,6 @@ async function create(userId, data, dokumenDataUrl, requestInfo = {}) {
   }, { timeout: 20000, maxWait: 10000 });
 
   // Audit log: catat pembuatan peminjaman baru
-  const barangNames = created.detail?.map(d => d.barang?.nama).filter(Boolean).join(', ') || 'Barang';
   auditLogService.log({
     userId,
     userEmail: user?.email,
@@ -266,22 +299,103 @@ async function create(userId, data, dokumenDataUrl, requestInfo = {}) {
     requestInfo,
   }).catch(() => {});
 
-  // Kirim email konfirmasi ke peminjam (async, tidak blocking)
-  emailService.kirimKonfirmasiPengajuan(created, user).catch(() => {});
-
-  // Kirim notifikasi ke admin (async, tidak blocking)
-  emailService.kirimNotifikasiAdmin(created, user, env.email?.notifyAdmin).catch(() => {});
-
-  // Kirim notifikasi ke semua admin tentang pengajuan baru
-  notificationService.kirimKeSemuaAdmin({
-    tipe: notificationService.TIPE_NOTIFIKASI.PEMINJAMAN_BARU,
-    judul: 'Pengajuan Peminjaman Baru',
-    pesan: `${user?.nama || 'Peminjam'} mengajukan peminjaman ${barangNames}`,
-    referenceId: created.id,
-    referenceType: 'PEMINJAMAN',
-  }).catch(() => {});
+  // Draft belum "masuk" ke admin — jangan kirim email/notifikasi pengajuan.
+  // Notifikasi dikirim nanti saat peminjam mengunggah surat (unggahSurat()).
+  if (!isDraft) {
+    beritahuPengajuanMasuk(created, user);
+  }
 
   return serialisasi(created);
+}
+
+// --- Peminjam mengunggah Surat Pernyataan untuk pengajuan DRAFT ---
+// Melengkapi pengajuan yang sebelumnya disimpan tanpa surat: menyimpan surat
+// yang sudah ditandatangani lalu memindahkan status DRAFT -> MENUNGGU sehingga
+// pengajuan mulai terlihat & dapat diproses admin.
+async function unggahSurat(id, { userId, role } = {}, dokumenDataUrl, requestInfo = {}) {
+  const p = await prisma.peminjaman.findUnique({ where: { id }, include: { peminjam: true } });
+  if (!p) throw new AppError('Data peminjaman tidak ditemukan.', 404);
+
+  // Peminjam hanya boleh melengkapi pengajuan miliknya sendiri.
+  if (role === 'PEMINJAM' && p.userId !== userId) {
+    throw new AppError('Anda tidak memiliki akses ke pengajuan ini.', 403);
+  }
+  if (p.status !== 'DRAFT') {
+    throw new AppError('Surat hanya dapat diunggah untuk pengajuan berstatus draft.', 400);
+  }
+  if (!dokumenDataUrl) {
+    throw new AppError(
+      'Unggah Surat Pernyataan Peminjaman yang sudah Anda tandatangani terlebih dahulu.',
+      400
+    );
+  }
+
+  const updated = await prisma.peminjaman.update({
+    where: { id },
+    data: { dokumenUrl: dokumenDataUrl, status: 'MENUNGGU', tanggalKirim: new Date() },
+    include: includeLengkap,
+  });
+
+  // Audit log: draft dilengkapi & diajukan
+  auditLogService.log({
+    userId,
+    userEmail: p.peminjam?.email,
+    userNama: p.peminjam?.nama,
+    aksi: auditLogService.AKSI.PEMINJAMAN_STATUS_CHANGE,
+    entitas: auditLogService.ENTITAS.PEMINJAMAN,
+    entitasId: id,
+    dataLama: { status: 'DRAFT' },
+    dataBaru: { status: 'MENUNGGU' },
+    requestInfo,
+  }).catch(() => {});
+
+  // Sekarang pengajuan resmi masuk — beritahu admin & peminjam.
+  beritahuPengajuanMasuk(updated, p.peminjam);
+
+  return serialisasi(updated);
+}
+
+// --- Peminjam membatalkan pengajuan DRAFT miliknya ---
+// Draft tidak pernah memotong stok sehingga cukup dihapus (detail cascade).
+// Berguna agar barang yang terkunci bisa dibebaskan bila peminjam batal.
+async function batalDraft(id, { userId, role } = {}, requestInfo = {}) {
+  const p = await prisma.peminjaman.findUnique({ where: { id } });
+  if (!p) throw new AppError('Data peminjaman tidak ditemukan.', 404);
+  if (role === 'PEMINJAM' && p.userId !== userId) {
+    throw new AppError('Anda tidak memiliki akses ke pengajuan ini.', 403);
+  }
+  if (p.status !== 'DRAFT') {
+    throw new AppError('Hanya pengajuan berstatus draft yang dapat dibatalkan.', 400);
+  }
+
+  await prisma.peminjaman.delete({ where: { id } });
+
+  auditLogService.log({
+    userId,
+    userEmail: null,
+    userNama: null,
+    aksi: auditLogService.AKSI.PEMINJAMAN_DELETE,
+    entitas: auditLogService.ENTITAS.PEMINJAMAN,
+    entitasId: id,
+    dataLama: { status: 'DRAFT', kodeTransaksi: p.kodeTransaksi },
+    requestInfo,
+  }).catch(() => {});
+
+  return { id };
+}
+
+// --- Hasilkan Surat Pernyataan Peminjaman (PDF) untuk pengajuan tersimpan ---
+// Dipakai peminjam untuk mengunduh surat pengajuan DRAFT miliknya, menandatangani,
+// lalu mengunggahnya kembali. Nomor surat & pangkat/gol memakai data tersimpan.
+async function generateSuratPernyataan(id, { userId, role } = {}) {
+  const p = await getRawById(id);
+  if (role === 'PEMINJAM' && p.userId !== userId) {
+    throw new AppError('Anda tidak memiliki akses ke pengajuan ini.', 403);
+  }
+  const s = serialisasi(p);
+  // pangkatGolongan tidak ada di tabel user — inject dari kolom peminjaman.
+  const peminjamUntukSurat = { ...s.peminjam, pangkatGolongan: p.pangkatGolongan || null };
+  return suratPernyataanService.generate({ ...s, peminjam: peminjamUntukSurat });
 }
 
 // --- Ambil daftar peminjaman (role-aware) ---
@@ -297,6 +411,8 @@ async function getSemua({ status, q, userId, role, page = 1, limit = 10 } = {}) 
   }
   // Peminjam hanya melihat miliknya sendiri
   if (role === 'PEMINJAM') where.userId = userId;
+  // Admin tidak melihat DRAFT (pengajuan yang suratnya belum diunggah peminjam).
+  else where.NOT = { status: 'DRAFT' };
   if (q) {
     const cocok = { contains: q, mode: 'insensitive' };
     where.OR = [
@@ -336,7 +452,12 @@ async function getSemua({ status, q, userId, role, page = 1, limit = 10 } = {}) 
   if (updates.length) await Promise.all(updates);
 
   return {
-    data: data.map(serialisasiRingkas),
+    data: data.map((p) => {
+      const s = serialisasiRingkas(p);
+      // Catatan pengembalian hanya untuk admin — jangan bocorkan ke peminjam.
+      if (role === 'PEMINJAM') delete s.catatanPengembalian;
+      return s;
+    }),
     meta: { total, page: halaman, limit: perHalaman, totalHalaman: Math.ceil(total / perHalaman) || 1 },
   };
 }
@@ -363,7 +484,10 @@ async function getById(id, { userId, role } = {}) {
     await prisma.peminjaman.update({ where: { id }, data: { status: baru } });
   }
 
-  return serialisasi(p);
+  const hasil = serialisasi(p);
+  // Catatan pengembalian hanya untuk admin — jangan bocorkan ke peminjam.
+  if (role === 'PEMINJAM') delete hasil.catatanPengembalian;
+  return hasil;
 }
 
 // --- Ambil peminjaman berdasarkan kode (untuk scan QR) ---
@@ -578,6 +702,27 @@ async function serahkan(id) {
   return serialisasi(updated);
 }
 
+// --- Tandai banyak peminjaman telah diserahkan sekaligus (khusus admin) ---
+// Memakai ulang serahkan() per item. Peminjaman yang bukan DISETUJUI dilewati
+// tanpa menggagalkan yang lain.
+async function serahkanBanyak(ids) {
+  const daftarId = Array.isArray(ids) ? [...new Set(ids.filter((v) => typeof v === 'string' && v))] : [];
+  if (daftarId.length === 0) throw new AppError('Tidak ada peminjaman yang dipilih.', 400);
+
+  let berhasil = 0;
+  const dilewati = [];
+  for (const id of daftarId) {
+    try {
+      await serahkan(id);
+      berhasil += 1;
+    } catch (e) {
+      dilewati.push({ id, pesan: e.message || 'Gagal diserahkan.' });
+    }
+  }
+
+  return { berhasil, dilewati: dilewati.length, detailDilewati: dilewati.slice(0, 50) };
+}
+
 // --- Buat Surat Pernyataan Pengembalian BMN (PDF) untuk diunduh peminjam ---
 // Dihasilkan otomatis (on-demand). Peminjam mengunduh, mencetak, dan meminta
 // tanda tangan fisik "Yang menerima BMN" sebelum mengunggahnya kembali.
@@ -653,7 +798,9 @@ async function mintaPengembalian(id, { userId, role } = {}, dokumenPengembalianD
 }
 
 // --- Konfirmasi pengembalian: stok dikembalikan otomatis ---
-async function kembalikan(id, requestInfo = {}) {
+// catatan (opsional) disimpan sebagai catatanPengembalian: HANYA untuk admin,
+// tidak pernah dikirim ke peminjam (dibuang di getById/getSemua untuk PEMINJAM).
+async function kembalikan(id, catatan, requestInfo = {}) {
   // Ambil data untuk audit log
   const pLama = await prisma.peminjaman.findUnique({ where: { id }, include: { peminjam: true, detail: true } });
   if (!pLama) throw new AppError('Data peminjaman tidak ditemukan.', 404);
@@ -683,7 +830,11 @@ async function kembalikan(id, requestInfo = {}) {
 
     await tx.peminjaman.update({
       where: { id },
-      data: { status: 'DIKEMBALIKAN', tanggalKembaliAktual: new Date() },
+      data: {
+        status: 'DIKEMBALIKAN',
+        tanggalKembaliAktual: new Date(),
+        catatanPengembalian: (typeof catatan === 'string' && catatan.trim()) ? catatan.trim() : null,
+      },
     });
   }, { timeout: 20000, maxWait: 10000 });
 
@@ -716,6 +867,27 @@ async function kembalikan(id, requestInfo = {}) {
   }).catch(() => {});
 
   return serialisasi(updated);
+}
+
+// --- Konfirmasi pengembalian banyak peminjaman sekaligus (khusus admin) ---
+// Memakai ulang kembalikan() per item (stok dikembalikan otomatis). Peminjaman
+// yang tidak sedang dipinjam dilewati tanpa menggagalkan yang lain.
+async function kembalikanBanyak(ids, requestInfo = {}) {
+  const daftarId = Array.isArray(ids) ? [...new Set(ids.filter((v) => typeof v === 'string' && v))] : [];
+  if (daftarId.length === 0) throw new AppError('Tidak ada peminjaman yang dipilih.', 400);
+
+  let berhasil = 0;
+  const dilewati = [];
+  for (const id of daftarId) {
+    try {
+      await kembalikan(id, undefined, requestInfo);
+      berhasil += 1;
+    } catch (e) {
+      dilewati.push({ id, pesan: e.message || 'Gagal dikembalikan.' });
+    }
+  }
+
+  return { berhasil, dilewati: dilewati.length, detailDilewati: dilewati.slice(0, 50) };
 }
 
 // --- Hapus peminjaman (khusus admin) ---
@@ -827,6 +999,9 @@ async function setDokumenStempel(id, pathRelatif) {
 
 module.exports = {
   create,
+  unggahSurat,
+  batalDraft,
+  generateSuratPernyataan,
   previewSurat,
   getSemua,
   getById,
@@ -835,9 +1010,11 @@ module.exports = {
   setujui,
   tolak,
   serahkan,
+  serahkanBanyak,
   mintaPengembalian,
   generateSuratPengembalian,
   kembalikan,
+  kembalikanBanyak,
   hapus,
   hapusBanyak,
   setujuiBanyak,

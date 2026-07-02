@@ -13,6 +13,11 @@ interface InfoStatus {
 }
 
 export const STATUS_PEMINJAMAN: Record<StatusPeminjaman, InfoStatus> = {
+  DRAFT: {
+    label: 'Draft — Surat Belum Diunggah',
+    kelas: 'bg-slate-100 text-slate-700 border-slate-200',
+    deskripsi: 'Pengajuan tersimpan. Unggah Surat Pernyataan untuk melanjutkan ke persetujuan admin.',
+  },
   MENUNGGU: {
     label: 'Menunggu Persetujuan',
     kelas: 'bg-amber-100 text-amber-800 border-amber-200',
@@ -78,7 +83,11 @@ export const OPSI_KONDISI = Object.entries(KONDISI_BARANG).map(([value, info]) =
   value,
   label: info.label,
 }));
-export const OPSI_STATUS = Object.entries(STATUS_PEMINJAMAN).map(([value, info]) => ({
-  value,
-  label: info.label,
-}));
+// DRAFT dikecualikan dari opsi filter: hanya dipakai internal peminjam dan tidak
+// pernah tampil di daftar admin.
+export const OPSI_STATUS = Object.entries(STATUS_PEMINJAMAN)
+  .filter(([value]) => value !== 'DRAFT')
+  .map(([value, info]) => ({
+    value,
+    label: info.label,
+  }));

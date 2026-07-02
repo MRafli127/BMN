@@ -6,7 +6,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
-import { useParams } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import {
   ArrowLeft,
   FileText,
@@ -19,6 +19,8 @@ import {
   Upload,
   Loader2,
   CheckCircle2,
+  Send,
+  Trash2,
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -26,16 +28,18 @@ import { Badge } from '@/components/ui/badge';
 import { KonfirmasiDialog } from '@/components/shared/KonfirmasiDialog';
 import { LoadingSpinner } from '@/components/shared/LoadingSpinner';
 import { TimelineStatus } from '@/components/peminjaman/TimelineStatus';
+import { FolderBarangDipinjam } from '@/components/peminjaman/FolderBarangDipinjam';
 import { TampilQR } from '@/components/qrcode/TampilQR';
 import { notify } from '@/components/ui/toast';
 import { peminjamanService } from '@/services/peminjaman.service';
 import { ambilPesanError, formatTanggalLengkap } from '@/lib/utils';
-import { STATUS_PEMINJAMAN, JENIS_BARANG } from '@/constants/status';
+import { STATUS_PEMINJAMAN } from '@/constants/status';
 import { RUTE } from '@/constants/routes';
 import type { Peminjaman } from '@/types/peminjaman.type';
 
 export default function DetailRiwayatPage() {
   const { id } = useParams<{ id: string }>();
+  const router = useRouter();
   const [data, setData] = useState<Peminjaman | null>(null);
   const [memuat, setMemuat] = useState(true);
   const [dialogKembali, setDialogKembali] = useState(false);
@@ -44,6 +48,15 @@ export default function DetailRiwayatPage() {
   const [memuatSurat, setMemuatSurat] = useState(false);
   const [fileKembali, setFileKembali] = useState<File | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
+
+  // --- Penyelesaian pengajuan DRAFT (unggah Surat Pernyataan menyusul) ---
+  const [suratPengajuanUrl, setSuratPengajuanUrl] = useState<string | null>(null);
+  const [memuatSuratPengajuan, setMemuatSuratPengajuan] = useState(false);
+  const [fileSurat, setFileSurat] = useState<File | null>(null);
+  const [prosesUnggah, setProsesUnggah] = useState(false);
+  const [dialogBatal, setDialogBatal] = useState(false);
+  const [prosesBatal, setProsesBatal] = useState(false);
+  const fileSuratRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (!id) return;
@@ -66,6 +79,55 @@ export default function DetailRiwayatPage() {
       .catch((e) => notify.gagal(ambilPesanError(e, 'Gagal membuat surat pengembalian.')))
       .finally(() => setMemuatSurat(false));
   }, [data, suratUrl]);
+
+  // Siapkan Surat Pernyataan (PDF) untuk pengajuan DRAFT agar bisa diunduh & ditandatangani.
+  useEffect(() => {
+    if (!data || data.status !== 'DRAFT' || suratPengajuanUrl) return;
+    setMemuatSuratPengajuan(true);
+    peminjamanService
+      .getSuratPernyataan(data.id)
+      .then(setSuratPengajuanUrl)
+      .catch((e) => notify.gagal(ambilPesanError(e, 'Gagal menyiapkan surat pernyataan.')))
+      .finally(() => setMemuatSuratPengajuan(false));
+  }, [data, suratPengajuanUrl]);
+
+  const pilihFileSurat = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const f = e.target.files?.[0] ?? null;
+    if (f && f.type !== 'application/pdf') {
+      notify.gagal('Berkas harus berformat PDF.');
+      e.target.value = '';
+      return;
+    }
+    setFileSurat(f);
+  };
+
+  const kirimDraft = async () => {
+    if (!data || !fileSurat) return;
+    setProsesUnggah(true);
+    try {
+      const hasil = await peminjamanService.unggahSurat(data.id, fileSurat);
+      setData(hasil);
+      setFileSurat(null);
+      notify.suksess('Surat pernyataan terunggah. Pengajuan kini menunggu persetujuan admin.');
+    } catch (error) {
+      notify.gagal(ambilPesanError(error, 'Gagal mengunggah surat pernyataan.'));
+    } finally {
+      setProsesUnggah(false);
+    }
+  };
+
+  const batalkanDraft = async () => {
+    if (!data) return;
+    setProsesBatal(true);
+    try {
+      await peminjamanService.batalDraft(data.id);
+      notify.suksess('Pengajuan draft dibatalkan.');
+      router.push(RUTE.peminjamRiwayat);
+    } catch (error) {
+      notify.gagal(ambilPesanError(error, 'Gagal membatalkan draft.'));
+      setProsesBatal(false);
+    }
+  };
 
   const pilihFile = (e: React.ChangeEvent<HTMLInputElement>) => {
     const f = e.target.files?.[0] ?? null;
@@ -97,6 +159,7 @@ export default function DetailRiwayatPage() {
   if (!data) return null;
 
   const status = STATUS_PEMINJAMAN[data.status];
+  const isDraft = data.status === 'DRAFT';
   const sedangDipinjam = ['DIPINJAM', 'TERLAMBAT'].includes(data.status);
   const bisaAjukanKembali = sedangDipinjam && !data.tanggalPermintaanKembali;
   const menungguKonfirmasi = sedangDipinjam && !!data.tanggalPermintaanKembali;
@@ -150,22 +213,10 @@ export default function DetailRiwayatPage() {
                 <p className="mb-2 flex items-center gap-2 font-medium text-foreground">
                   <Boxes className="h-4 w-4" /> Barang Dipinjam
                 </p>
-                <div className="space-y-2">
-                  {data.detail?.map((d) => (
-                    <div key={d.id} className="flex items-center justify-between rounded-lg border bg-muted/30 p-3">
-                      <div>
-                        <p className="font-medium text-foreground">{d.barang?.nama}</p>
-                        <p className="text-xs text-muted-foreground">
-                          Merk: <span className="font-medium text-foreground">{d.barang?.merk || '-'}</span>
-                        </p>
-                        <p className="text-xs text-muted-foreground">
-                          {d.barang?.kodeBarang} • {d.barang ? JENIS_BARANG[d.barang.jenis] : ''}
-                        </p>
-                      </div>
-                      <Badge className="border-primary/20 bg-primary/10 text-primary">{d.jumlahPinjam} unit</Badge>
-                    </div>
-                  ))}
-                </div>
+                <p className="mb-2 text-xs text-muted-foreground">
+                  Klik tiap barang untuk melihat Label &amp; QR Identitas Barang.
+                </p>
+                <FolderBarangDipinjam detail={data.detail} />
               </div>
 
               {data.catatanAdmin && (
@@ -214,6 +265,99 @@ export default function DetailRiwayatPage() {
 
         {/* Sidebar: timeline + QR */}
         <div className="space-y-5">
+          {/* Penyelesaian pengajuan DRAFT: unduh surat, tanda tangan, unggah */}
+          {isDraft && (
+            <Card className="border-l-4 border-l-red-500">
+              <CardHeader className="pb-3">
+                <div className="flex items-center justify-between">
+                  <CardTitle className="text-base">Selesaikan Pengajuan</CardTitle>
+                  <span className="rounded bg-red-500 px-3 py-1 text-xs font-semibold text-white">WAJIB</span>
+                </div>
+                <p className="text-sm text-muted-foreground">
+                  Pengajuan ini belum dikirim ke admin. Unggah Surat Pernyataan yang sudah
+                  ditandatangani untuk melanjutkan.
+                </p>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                {/* Langkah 1 — unduh surat */}
+                <div className="space-y-2">
+                  <p className="text-sm font-medium text-foreground">1. Unduh Surat Pernyataan</p>
+                  <div className="flex flex-wrap gap-2">
+                    {memuatSuratPengajuan ? (
+                      <Button variant="outline" size="sm" disabled>
+                        <Loader2 className="h-4 w-4 animate-spin" /> Menyiapkan surat…
+                      </Button>
+                    ) : suratPengajuanUrl ? (
+                      <>
+                        <Button asChild variant="outline" size="sm">
+                          <a href={suratPengajuanUrl} download={`surat-pernyataan-${data.kodePeminjaman}.pdf`}>
+                            <Download className="h-4 w-4" /> Unduh Surat
+                          </a>
+                        </Button>
+                        <Button asChild variant="outline" size="sm">
+                          <a href={suratPengajuanUrl} target="_blank" rel="noreferrer">
+                            <ExternalLink className="h-4 w-4" /> Lihat
+                          </a>
+                        </Button>
+                      </>
+                    ) : (
+                      <p className="text-xs text-muted-foreground">Surat belum tersedia.</p>
+                    )}
+                  </div>
+                </div>
+
+                {/* Langkah 2 — tanda tangani */}
+                <div className="space-y-1 border-t pt-3">
+                  <p className="text-sm font-medium text-foreground">
+                    2. Tanda tangani surat secara manual/elektronik
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    Bubuhkan tanda tangan Anda sebagai persetujuan peminjaman.
+                  </p>
+                </div>
+
+                {/* Langkah 3 — unggah surat */}
+                <div className="space-y-2 border-t pt-3">
+                  <p className="text-sm font-medium text-foreground">
+                    3. Unggah surat yang sudah ditandatangani (PDF)
+                  </p>
+                  <input
+                    ref={fileSuratRef}
+                    type="file"
+                    accept="application/pdf"
+                    onChange={pilihFileSurat}
+                    className="hidden"
+                  />
+                  <Button variant="outline" size="sm" className="w-full" onClick={() => fileSuratRef.current?.click()}>
+                    <Upload className="h-4 w-4" /> {fileSurat ? 'Ganti Berkas' : 'Pilih Berkas PDF'}
+                  </Button>
+                  {fileSurat && (
+                    <div className="flex items-center gap-2 rounded-lg bg-green-50 p-2 text-xs text-green-800">
+                      <CheckCircle2 className="h-4 w-4 shrink-0" />
+                      <span className="truncate">{fileSurat.name}</span>
+                    </div>
+                  )}
+                </div>
+
+                {/* Aksi */}
+                <div className="space-y-2 border-t pt-3">
+                  <Button className="w-full" disabled={!fileSurat || prosesUnggah} onClick={kirimDraft}>
+                    {prosesUnggah ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+                    Kirim Pengajuan
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    className="w-full text-red-600 hover:text-red-700"
+                    disabled={prosesUnggah || prosesBatal}
+                    onClick={() => setDialogBatal(true)}
+                  >
+                    <Trash2 className="h-4 w-4" /> Batalkan Pengajuan
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
           {(bisaAjukanKembali || menungguKonfirmasi) && (
             <Card>
               <CardHeader>
@@ -334,6 +478,18 @@ export default function DetailRiwayatPage() {
         variantKonfirmasi="sukses"
         sedangProses={proses}
         onKonfirmasi={ajukanPengembalian}
+      />
+
+      {/* Dialog konfirmasi pembatalan draft */}
+      <KonfirmasiDialog
+        terbuka={dialogBatal}
+        onUbahTerbuka={(o) => !o && setDialogBatal(false)}
+        judul="Batalkan Pengajuan"
+        deskripsi="Pengajuan draft ini akan dihapus dan barang yang dikunci akan dibebaskan. Tindakan ini tidak dapat dibatalkan."
+        teksKonfirmasi="Ya, Batalkan"
+        variantKonfirmasi="destructive"
+        sedangProses={prosesBatal}
+        onKonfirmasi={batalkanDraft}
       />
     </div>
   );

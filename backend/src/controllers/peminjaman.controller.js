@@ -18,17 +18,54 @@ function getRequestInfo(req) {
 
 const create = asyncHandler(async (req, res) => {
   // Surat pernyataan yang sudah ditandatangani diunggah sebagai file (field "dokumen").
+  // Bila field "draft" bernilai true, pengajuan disimpan tanpa surat (status DRAFT).
   const peminjaman = await peminjamanService.create(
     req.user.id,
     req.body,
     pathDokumen(req.file),
     getRequestInfo(req)
   );
+  const draft = peminjaman.status === 'DRAFT';
   return responsSukses(res, {
-    pesan: 'Pengajuan peminjaman berhasil dikirim. Menunggu persetujuan admin.',
+    pesan: draft
+      ? 'Pengajuan disimpan ke Riwayat. Unggah Surat Pernyataan untuk melanjutkan ke persetujuan admin.'
+      : 'Pengajuan peminjaman berhasil dikirim. Menunggu persetujuan admin.',
     data: peminjaman,
     status: 201,
   });
+});
+
+// Peminjam mengunggah Surat Pernyataan untuk pengajuan DRAFT (field "dokumen").
+const unggahSurat = asyncHandler(async (req, res) => {
+  const peminjaman = await peminjamanService.unggahSurat(
+    req.params.id,
+    { userId: req.user.id, role: req.user.role },
+    pathDokumen(req.file),
+    getRequestInfo(req)
+  );
+  return responsSukses(res, {
+    pesan: 'Surat pernyataan berhasil diunggah. Pengajuan kini menunggu persetujuan admin.',
+    data: peminjaman,
+  });
+});
+
+// Peminjam membatalkan pengajuan DRAFT miliknya.
+const batalDraft = asyncHandler(async (req, res) => {
+  await peminjamanService.batalDraft(
+    req.params.id,
+    { userId: req.user.id, role: req.user.role },
+    getRequestInfo(req)
+  );
+  return responsSukses(res, { pesan: 'Pengajuan draft berhasil dibatalkan.' });
+});
+
+// Surat Pernyataan Peminjaman (PDF) untuk pengajuan tersimpan (mis. draft).
+const suratPernyataan = asyncHandler(async (req, res) => {
+  const suratUrl = await peminjamanService.generateSuratPernyataan(req.params.id, {
+    userId: req.user.id,
+    role: req.user.role,
+  });
+  return responsSukses(res, { pesan: 'Surat pernyataan peminjaman dibuat.', data: { suratUrl } });
 });
 
 const previewSurat = asyncHandler(async (req, res) => {
@@ -104,7 +141,7 @@ const mintaPengembalian = asyncHandler(async (req, res) => {
 });
 
 const kembalikan = asyncHandler(async (req, res) => {
-  const peminjaman = await peminjamanService.kembalikan(req.params.id, getRequestInfo(req));
+  const peminjaman = await peminjamanService.kembalikan(req.params.id, req.body.catatan, getRequestInfo(req));
   return responsSukses(res, {
     pesan: 'Pengembalian dikonfirmasi. Stok telah dikembalikan.',
     data: peminjaman,
@@ -135,8 +172,29 @@ const setujuiMassal = asyncHandler(async (req, res) => {
   return responsSukses(res, { pesan, data: hasil });
 });
 
+const serahkanMassal = asyncHandler(async (req, res) => {
+  const hasil = await peminjamanService.serahkanBanyak(req.body.ids);
+  const pesan =
+    hasil.dilewati > 0
+      ? `${hasil.berhasil} barang ditandai diserahkan, ${hasil.dilewati} dilewati.`
+      : `${hasil.berhasil} barang berhasil ditandai diserahkan.`;
+  return responsSukses(res, { pesan, data: hasil });
+});
+
+const kembalikanMassal = asyncHandler(async (req, res) => {
+  const hasil = await peminjamanService.kembalikanBanyak(req.body.ids, getRequestInfo(req));
+  const pesan =
+    hasil.dilewati > 0
+      ? `${hasil.berhasil} pengembalian dikonfirmasi, ${hasil.dilewati} dilewati.`
+      : `${hasil.berhasil} pengembalian berhasil dikonfirmasi.`;
+  return responsSukses(res, { pesan, data: hasil });
+});
+
 module.exports = {
   create,
+  unggahSurat,
+  batalDraft,
+  suratPernyataan,
   previewSurat,
   getSemua,
   getById,
@@ -150,4 +208,6 @@ module.exports = {
   hapus,
   hapusMassal,
   setujuiMassal,
+  serahkanMassal,
+  kembalikanMassal,
 };

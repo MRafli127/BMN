@@ -5,7 +5,7 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
-import { ChevronLeft, ChevronRight, ClipboardList, Trash2, X, CheckCheck, List, FolderTree } from 'lucide-react';
+import { ChevronLeft, ChevronRight, ClipboardList, Trash2, X, CheckCheck, List, FolderTree, PackageCheck, Undo2 } from 'lucide-react';
 import { Icon } from '@/components/ui/icon';
 import { Input, Select } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -37,6 +37,10 @@ export default function AdminPeminjamanPage() {
   const [sedangMassal, setSedangMassal] = useState(false);
   const [dialogSetujui, setDialogSetujui] = useState(false);
   const [sedangSetujui, setSedangSetujui] = useState(false);
+  const [dialogSerahkan, setDialogSerahkan] = useState(false);
+  const [sedangSerahkan, setSedangSerahkan] = useState(false);
+  const [dialogKembalikan, setDialogKembalikan] = useState(false);
+  const [sedangKembalikan, setSedangKembalikan] = useState(false);
 
   // Terapkan filter status dari query (?status=...) saat halaman dibuka — mis. ketika
   // datang dari kartu dashboard. Mendukung gabungan dipisah koma (Sedang Aktif).
@@ -65,6 +69,14 @@ export default function AdminPeminjamanPage() {
   // Jumlah pengajuan berstatus MENUNGGU di antara yang dipilih (yang bisa di-ACC).
   const jumlahBisaSetujui = data.filter(
     (p) => terpilih.includes(p.id) && p.status === 'MENUNGGU'
+  ).length;
+
+  // Jumlah yang bisa ditandai diserahkan (DISETUJUI) & dikonfirmasi kembali (DIPINJAM/TERLAMBAT).
+  const jumlahBisaSerahkan = data.filter(
+    (p) => terpilih.includes(p.id) && p.status === 'DISETUJUI'
+  ).length;
+  const jumlahBisaKembalikan = data.filter(
+    (p) => terpilih.includes(p.id) && (p.status === 'DIPINJAM' || p.status === 'TERLAMBAT')
   ).length;
 
   const hapus = async (id: string) => {
@@ -97,6 +109,50 @@ export default function AdminPeminjamanPage() {
       notify.gagal(ambilPesanError(error, 'Gagal menyetujui data terpilih.'));
     } finally {
       setSedangSetujui(false);
+    }
+  };
+
+  const serahkanMassal = async () => {
+    setSedangSerahkan(true);
+    try {
+      const { berhasil, dilewati } = await peminjamanService.serahkanMassal(terpilih);
+      if (berhasil > 0) {
+        notify.suksess(
+          dilewati > 0
+            ? `${berhasil} barang ditandai diserahkan, ${dilewati} dilewati (bukan status disetujui).`
+            : `${berhasil} barang berhasil ditandai diserahkan.`
+        );
+      } else {
+        notify.gagal('Tidak ada peminjaman yang dapat diserahkan (bukan status disetujui).');
+      }
+      setDialogSerahkan(false);
+      await muat();
+    } catch (error) {
+      notify.gagal(ambilPesanError(error, 'Gagal menyerahkan barang terpilih.'));
+    } finally {
+      setSedangSerahkan(false);
+    }
+  };
+
+  const kembalikanMassal = async () => {
+    setSedangKembalikan(true);
+    try {
+      const { berhasil, dilewati } = await peminjamanService.kembalikanMassal(terpilih);
+      if (berhasil > 0) {
+        notify.suksess(
+          dilewati > 0
+            ? `${berhasil} pengembalian dikonfirmasi, ${dilewati} dilewati (tidak sedang dipinjam).`
+            : `${berhasil} pengembalian berhasil dikonfirmasi.`
+        );
+      } else {
+        notify.gagal('Tidak ada peminjaman yang dapat dikembalikan (tidak sedang dipinjam).');
+      }
+      setDialogKembalikan(false);
+      await muat();
+    } catch (error) {
+      notify.gagal(ambilPesanError(error, 'Gagal mengonfirmasi pengembalian terpilih.'));
+    } finally {
+      setSedangKembalikan(false);
     }
   };
 
@@ -210,6 +266,16 @@ export default function AdminPeminjamanPage() {
                   <CheckCheck className="h-4 w-4" /> Setujui ({jumlahBisaSetujui})
                 </Button>
               )}
+              {jumlahBisaSerahkan > 0 && (
+                <Button size="sm" onClick={() => setDialogSerahkan(true)}>
+                  <PackageCheck className="h-4 w-4" /> Serahkan ({jumlahBisaSerahkan})
+                </Button>
+              )}
+              {jumlahBisaKembalikan > 0 && (
+                <Button variant="secondary" size="sm" onClick={() => setDialogKembalikan(true)}>
+                  <Undo2 className="h-4 w-4" /> Konfirmasi Pengembalian ({jumlahBisaKembalikan})
+                </Button>
+              )}
               <Button variant="destructive" size="sm" onClick={() => setDialogMassal(true)}>
                 <Trash2 className="h-4 w-4" /> Hapus Terpilih
               </Button>
@@ -285,6 +351,28 @@ export default function AdminPeminjamanPage() {
         variantKonfirmasi="sukses"
         sedangProses={sedangSetujui}
         onKonfirmasi={setujuiMassal}
+      />
+
+      <KonfirmasiDialog
+        terbuka={dialogSerahkan}
+        onUbahTerbuka={(o) => !o && setDialogSerahkan(false)}
+        judul="Serahkan Barang Terpilih"
+        deskripsi={`Tandai ${jumlahBisaSerahkan} peminjaman berstatus "Disetujui" sebagai telah diserahkan kepada peminjam? Peminjaman dengan status lain akan dilewati.`}
+        teksKonfirmasi={`Ya, Serahkan ${jumlahBisaSerahkan}`}
+        variantKonfirmasi="sukses"
+        sedangProses={sedangSerahkan}
+        onKonfirmasi={serahkanMassal}
+      />
+
+      <KonfirmasiDialog
+        terbuka={dialogKembalikan}
+        onUbahTerbuka={(o) => !o && setDialogKembalikan(false)}
+        judul="Konfirmasi Pengembalian Terpilih"
+        deskripsi={`Konfirmasi pengembalian ${jumlahBisaKembalikan} peminjaman yang sedang dipinjam? Stok barang akan dikembalikan otomatis ke sistem. Peminjaman dengan status lain akan dilewati.`}
+        teksKonfirmasi={`Ya, Kembalikan ${jumlahBisaKembalikan}`}
+        variantKonfirmasi="sukses"
+        sedangProses={sedangKembalikan}
+        onKonfirmasi={kembalikanMassal}
       />
 
       <KonfirmasiDialog
