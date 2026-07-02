@@ -132,7 +132,6 @@ flowchart TD
 
     %% --- Scan QR ---
     Menu -- Scan QR --> Scan[Scan QR pada barang]
-    Scan --> DetailScan[Lihat detail peminjaman\n& identitas barang]
     DetailScan --> Dash
 
     %% --- Administrasi Lain ---
