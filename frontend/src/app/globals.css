@@ -278,22 +278,29 @@ button {
   display: none;
 }
 
-/* Scrollbar lebih halus */
+/* Scrollbar berwarna (biru brand instansi) */
+/* Firefox */
+html {
+  scrollbar-width: thin;
+  scrollbar-color: hsl(222 100% 28%) hsl(214 60% 94%);
+}
+/* Chrome, Edge, Safari */
 ::-webkit-scrollbar {
   width: 10px;
   height: 10px;
 }
 ::-webkit-scrollbar-track {
-  background: transparent;
+  background: hsl(214 60% 94%);
+  border-radius: 9999px;
 }
 ::-webkit-scrollbar-thumb {
-  background: hsl(214 20% 82%);
+  background: hsl(222 100% 28%);
   border: 2px solid transparent;
   background-clip: padding-box;
   border-radius: 9999px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: hsl(214 25% 68%);
+  background: hsl(222 100% 22%);
   border: 2px solid transparent;
   background-clip: padding-box;
 }
