@@ -6,6 +6,7 @@ import type { Barang } from './barang.type';
 import type { User } from './user.type';
 
 export type StatusPeminjaman =
+  | 'DRAFT'
   | 'MENUNGGU'
   | 'DISETUJUI'
   | 'DITOLAK'
@@ -35,6 +36,7 @@ export interface Peminjaman {
   tanggalPermintaanKembali?: string | null;
   status: StatusPeminjaman;
   alasanPeminjaman?: string | null;
+  pangkatGolongan?: string | null;
   dokumenUrl?: string | null;
   dokumenStempelUrl?: string | null;
   dokumenPengembalianUrl?: string | null;
@@ -54,11 +56,16 @@ export interface ItemPengajuan {
   jumlahPinjam: number;
 }
 
+// Payload pengajuan peminjaman (multipart: items JSON + dokumen surat
+// pernyataan yang sudah ditandatangani). Bila draft=true, dokumen boleh kosong
+// dan pengajuan disimpan ke Riwayat untuk diunggah menyusul.
 export interface DataPengajuan {
   tanggalPinjamRencana?: string;
   tanggalKembaliRencana?: string;
+  pangkatGolongan?: string; // Tercantum pada surat; disimpan agar surat draft bisa diunduh menyusul
   items: ItemPengajuan[];
-  dokumen?: File; // Surat pernyataan yang sudah ditandatangani peminjam (PDF) - WAJIB
+  dokumen?: File; // Surat pernyataan yang sudah ditandatangani peminjam (PDF) — WAJIB kecuali draft
+  draft?: boolean; // true = simpan ke Riwayat tanpa surat (status DRAFT)
 }
 
 // Payload pratinjau surat pernyataan (sebelum pengajuan dibuat).
@@ -67,13 +74,4 @@ export interface DataPreviewSurat {
   tanggalPinjamRencana?: string;
   tanggalKembaliRencana?: string;
   items: ItemPengajuan[];
-}
-
-// Payload pengajuan peminjaman (multipart: items JSON + dokumen surat
-// pernyataan yang sudah ditandatangani).
-export interface DataPengajuan {
-  tanggalPinjamRencana?: string;
-  tanggalKembaliRencana?: string;
-  items: ItemPengajuan[];
-  dokumen?: File; // Surat pernyataan yang sudah ditandatangani peminjam (PDF) - WAJIB
 }

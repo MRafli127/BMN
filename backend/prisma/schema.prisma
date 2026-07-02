@@ -47,6 +47,7 @@ enum StatusPeminjaman {
   DIPINJAM // Barang sedang dipinjam
   DIKEMBALIKAN // Barang sudah dikembalikan
   TERLAMBAT // Melewati tanggal rencana kembali
+  DRAFT // Pengajuan tersimpan ke Riwayat, surat pernyataan belum diunggah (belum terlihat admin). Barang tetap dikunci.
 }
 
 // Status tiap item barang pada satu peminjaman
@@ -168,6 +169,7 @@ model Peminjaman {
   tanggalPermintaanKembali DateTime? // Saat peminjam mengajukan pengembalian; menunggu konfirmasi admin
   status                StatusPeminjaman @default(MENUNGGU)
   alasanPeminjaman      String?
+  pangkatGolongan       String? // Pangkat/Gol. peminjam saat pengajuan (tercantum pada Surat Pernyataan). Disimpan agar surat draft bisa diunduh menyusul.
   dokumenUrl            String? // Dokumen yang diunggah peminjam
   dokumenStempelUrl     String? // Dokumen yang sudah distempel admin
   dokumenPengembalianUrl String? // Surat Pernyataan Pengembalian (PDF) yang sudah ditandatangani fisik & diunggah peminjam

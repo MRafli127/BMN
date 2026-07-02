@@ -165,11 +165,15 @@ export default function KeranjangPage() {
         pangkatGolongan={pangkatGol.trim()}
         tanggalPinjamRencana={tglPinjam || undefined}
         tanggalKembaliRencana={tglKembali || undefined}
-        onKembali={() => setLangkah('tinjau')}
         onSelesai={(p) => {
-          notify.suksess('Pengajuan peminjaman berhasil dikirim!');
           kosongkan();
-          router.push(RUTE.peminjamRiwayatReview(p.id));
+          if (p.status === 'DRAFT') {
+            notify.info('Pengajuan disimpan ke Riwayat. Unggah Surat Pernyataan kapan saja untuk melanjutkan.');
+            router.push(RUTE.peminjamRiwayatDetail(p.id));
+          } else {
+            notify.suksess('Pengajuan peminjaman berhasil dikirim!');
+            router.push(RUTE.peminjamRiwayatReview(p.id));
+          }
         }}
       />
     </div>
