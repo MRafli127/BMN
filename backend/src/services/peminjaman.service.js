@@ -586,6 +586,27 @@ async function serahkan(id) {
   return serialisasi(updated);
 }
 
+// --- Tandai banyak peminjaman telah diserahkan sekaligus (khusus admin) ---
+// Memakai ulang serahkan() per item. Peminjaman yang bukan DISETUJUI dilewati
+// tanpa menggagalkan yang lain.
+async function serahkanBanyak(ids) {
+  const daftarId = Array.isArray(ids) ? [...new Set(ids.filter((v) => typeof v === 'string' && v))] : [];
+  if (daftarId.length === 0) throw new AppError('Tidak ada peminjaman yang dipilih.', 400);
+
+  let berhasil = 0;
+  const dilewati = [];
+  for (const id of daftarId) {
+    try {
+      await serahkan(id);
+      berhasil += 1;
+    } catch (e) {
+      dilewati.push({ id, pesan: e.message || 'Gagal diserahkan.' });
+    }
+  }
+
+  return { berhasil, dilewati: dilewati.length, detailDilewati: dilewati.slice(0, 50) };
+}
+
 // --- Buat Surat Pernyataan Pengembalian BMN (PDF) untuk diunduh peminjam ---
 // Dihasilkan otomatis (on-demand). Peminjam mengunduh, mencetak, dan meminta
 // tanda tangan fisik "Yang menerima BMN" sebelum mengunggahnya kembali.
@@ -732,6 +753,27 @@ async function kembalikan(id, catatan, requestInfo = {}) {
   return serialisasi(updated);
 }
 
+// --- Konfirmasi pengembalian banyak peminjaman sekaligus (khusus admin) ---
+// Memakai ulang kembalikan() per item (stok dikembalikan otomatis). Peminjaman
+// yang tidak sedang dipinjam dilewati tanpa menggagalkan yang lain.
+async function kembalikanBanyak(ids, requestInfo = {}) {
+  const daftarId = Array.isArray(ids) ? [...new Set(ids.filter((v) => typeof v === 'string' && v))] : [];
+  if (daftarId.length === 0) throw new AppError('Tidak ada peminjaman yang dipilih.', 400);
+
+  let berhasil = 0;
+  const dilewati = [];
+  for (const id of daftarId) {
+    try {
+      await kembalikan(id, undefined, requestInfo);
+      berhasil += 1;
+    } catch (e) {
+      dilewati.push({ id, pesan: e.message || 'Gagal dikembalikan.' });
+    }
+  }
+
+  return { berhasil, dilewati: dilewati.length, detailDilewati: dilewati.slice(0, 50) };
+}
+
 // --- Hapus peminjaman (khusus admin) ---
 // Bila peminjaman masih memegang stok (DISETUJUI/DIPINJAM/TERLAMBAT dengan
 // item berstatus DIPINJAM), stok dikembalikan dulu agar tidak hilang.
@@ -849,9 +891,11 @@ module.exports = {
   setujui,
   tolak,
   serahkan,
+  serahkanBanyak,
   mintaPengembalian,
   generateSuratPengembalian,
   kembalikan,
+  kembalikanBanyak,
   hapus,
   hapusBanyak,
   setujuiBanyak,

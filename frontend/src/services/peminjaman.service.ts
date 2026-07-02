@@ -124,4 +124,16 @@ export const peminjamanService = {
     const res = await api.post('/peminjaman/setujui-massal', { ids });
     return { disetujui: res.data.data?.disetujui ?? 0, dilewati: res.data.data?.dilewati ?? 0 };
   },
+
+  // Tandai banyak barang telah diserahkan sekaligus (admin). Mengembalikan ringkasan hasil.
+  async serahkanMassal(ids: string[]): Promise<{ berhasil: number; dilewati: number }> {
+    const res = await api.post('/peminjaman/serahkan-massal', { ids });
+    return { berhasil: res.data.data?.berhasil ?? 0, dilewati: res.data.data?.dilewati ?? 0 };
+  },
+
+  // Konfirmasi pengembalian banyak peminjaman sekaligus (admin). Mengembalikan ringkasan hasil.
+  async kembalikanMassal(ids: string[]): Promise<{ berhasil: number; dilewati: number }> {
+    const res = await api.post('/peminjaman/kembalikan-massal', { ids });
+    return { berhasil: res.data.data?.berhasil ?? 0, dilewati: res.data.data?.dilewati ?? 0 };
+  },
 };

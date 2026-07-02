@@ -135,6 +135,24 @@ const setujuiMassal = asyncHandler(async (req, res) => {
   return responsSukses(res, { pesan, data: hasil });
 });
 
+const serahkanMassal = asyncHandler(async (req, res) => {
+  const hasil = await peminjamanService.serahkanBanyak(req.body.ids);
+  const pesan =
+    hasil.dilewati > 0
+      ? `${hasil.berhasil} barang ditandai diserahkan, ${hasil.dilewati} dilewati.`
+      : `${hasil.berhasil} barang berhasil ditandai diserahkan.`;
+  return responsSukses(res, { pesan, data: hasil });
+});
+
+const kembalikanMassal = asyncHandler(async (req, res) => {
+  const hasil = await peminjamanService.kembalikanBanyak(req.body.ids, getRequestInfo(req));
+  const pesan =
+    hasil.dilewati > 0
+      ? `${hasil.berhasil} pengembalian dikonfirmasi, ${hasil.dilewati} dilewati.`
+      : `${hasil.berhasil} pengembalian berhasil dikonfirmasi.`;
+  return responsSukses(res, { pesan, data: hasil });
+});
+
 module.exports = {
   create,
   previewSurat,
@@ -150,4 +168,6 @@ module.exports = {
   hapus,
   hapusMassal,
   setujuiMassal,
+  serahkanMassal,
+  kembalikanMassal,
 };
