@@ -27,6 +27,8 @@ router.post('/', validateCsrfTokenMiddleware, uploadDokumenPeminjaman, validate(
 // tertangkap sebagai parameter id.
 router.post('/hapus-massal', validateCsrfTokenMiddleware, roleMiddleware('ADMIN'), peminjamanController.hapusMassal);
 router.post('/setujui-massal', validateCsrfTokenMiddleware, roleMiddleware('ADMIN'), peminjamanController.setujuiMassal);
+router.post('/serahkan-massal', validateCsrfTokenMiddleware, roleMiddleware('ADMIN'), peminjamanController.serahkanMassal);
+router.post('/kembalikan-massal', validateCsrfTokenMiddleware, roleMiddleware('ADMIN'), peminjamanController.kembalikanMassal);
 
 // Detail
 router.get('/:id', peminjamanController.getById);
