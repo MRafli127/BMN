@@ -31,6 +31,7 @@ export default function KeranjangPage() {
   const items = useKeranjangStore((s) => s.items);
   const kosongkan = useKeranjangStore((s) => s.kosongkan);
 
+  const [pangkatGol, setPangkatGol] = useState('');
   const [tglPinjam, setTglPinjam] = useState('');
   const [tglKembali, setTglKembali] = useState('');
   const [langkah, setLangkah] = useState<Langkah>('tinjau');
@@ -45,6 +46,8 @@ export default function KeranjangPage() {
 
   const keSurat = () => {
     if (daftar.length === 0) return notify.gagal('Keranjang masih kosong.');
+    if (!pangkatGol.trim())
+      return notify.gagal('Pangkat/Gol. wajib diisi sebelum melanjutkan ke formulir.');
     if (tglPinjam && tglKembali && new Date(tglKembali) <= new Date(tglPinjam))
       return notify.gagal('Tanggal kembali harus setelah tanggal pinjam.');
     setLangkah('surat');
@@ -108,6 +111,24 @@ export default function KeranjangPage() {
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div>
+                    <Label htmlFor="pangkatGol">
+                      Pangkat/Gol. <span className="text-red-600">*</span>
+                    </Label>
+                    <Input
+                      id="pangkatGol"
+                      type="text"
+                      value={pangkatGol}
+                      onChange={(e) => setPangkatGol(e.target.value)}
+                      placeholder="Contoh: Penata Muda / III-a"
+                      required
+                      aria-required="true"
+                      className="mt-1"
+                    />
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      Wajib diisi — akan tercantum pada Surat Pernyataan Peminjaman.
+                    </p>
+                  </div>
+                  <div>
                     <Label htmlFor="tglPinjam">Tanggal Pinjam (opsional)</Label>
                     <Input id="tglPinjam" type="date" value={tglPinjam} onChange={(e) => setTglPinjam(e.target.value)} className="mt-1" />
                     <p className="mt-1 text-xs text-muted-foreground">Kosongkan untuk memakai tanggal hari ini.</p>
@@ -141,6 +162,7 @@ export default function KeranjangPage() {
     <div className="mx-auto max-w-6xl space-y-5">
       <LangkahSuratPernyataan
         items={daftar.map((it) => ({ barangId: it.barangId, jumlahPinjam: it.jumlah, namaBarang: it.nama }))}
+        pangkatGolongan={pangkatGol.trim()}
         tanggalPinjamRencana={tglPinjam || undefined}
         tanggalKembaliRencana={tglKembali || undefined}
         onKembali={() => setLangkah('tinjau')}

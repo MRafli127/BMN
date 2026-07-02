@@ -96,6 +96,12 @@ const createPeminjamanSchema = z
 // Sama seperti pengajuan namun tanpa alasan; dikirim sebagai JSON.
 const previewSuratSchema = z
   .object({
+    pangkatGolongan: z
+      .string()
+      .trim()
+      .max(100, 'Pangkat/Gol. maksimal 100 karakter.')
+      .optional()
+      .or(z.literal('')),
     tanggalPinjamRencana: tanggalOpsional('Tanggal pinjam tidak valid.'),
     tanggalKembaliRencana: tanggalOpsional('Tanggal kembali tidak valid.'),
     items: parseItems,

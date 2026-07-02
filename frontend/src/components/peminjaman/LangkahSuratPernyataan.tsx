@@ -33,6 +33,7 @@ interface ItemDenganNama extends ItemPengajuan {
 
 interface Props {
   items: ItemPengajuan[] | ItemDenganNama[];
+  pangkatGolongan?: string;
   tanggalPinjamRencana?: string;
   tanggalKembaliRencana?: string;
   onSelesai: (peminjaman: Peminjaman) => void;
@@ -41,6 +42,7 @@ interface Props {
 
 export function LangkahSuratPernyataan({
   items,
+  pangkatGolongan,
   tanggalPinjamRencana,
   tanggalKembaliRencana,
   onSelesai,
@@ -86,14 +88,14 @@ export function LangkahSuratPernyataan({
     setGagalSurat(false);
 
     peminjamanService
-      .previewSurat({ items, tanggalPinjamRencana, tanggalKembaliRencana })
+      .previewSurat({ items, pangkatGolongan, tanggalPinjamRencana, tanggalKembaliRencana })
       .then(setSuratUrl)
       .catch(() => {
         setGagalSurat(true);
         notify.gagal('Gagal menyiapkan surat pernyataan.');
       })
       .finally(() => setMemuatSurat(false));
-  }, [items, tanggalPinjamRencana, tanggalKembaliRencana]);
+  }, [items, pangkatGolongan, tanggalPinjamRencana, tanggalKembaliRencana]);
 
   useEffect(() => {
     const timer = setTimeout(buatSurat, 300);
@@ -147,6 +149,10 @@ export function LangkahSuratPernyataan({
               <div>
                 <span className="text-sm text-muted-foreground">NIP</span>
                 <p className="font-semibold">{user?.nip ?? '-'}</p>
+              </div>
+              <div>
+                <span className="text-sm text-muted-foreground">Pangkat/Gol.</span>
+                <p className="font-semibold">{pangkatGolongan || '-'}</p>
               </div>
               <div>
                 <span className="text-sm text-muted-foreground">Unit Kerja</span>

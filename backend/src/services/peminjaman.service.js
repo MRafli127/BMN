@@ -130,7 +130,9 @@ async function previewSurat(userId, data) {
   const nomorSurat = await nomorSuratService.intip(nomorSuratService.JENIS.PEMINJAMAN, tahunSurat);
 
   const peminjamanSemu = {
-    peminjam: user,
+    // Pangkat/Gol. diisi peminjam pada langkah keranjang; belum ada kolomnya di
+    // tabel user sehingga di-inject di sini agar tercantum pada surat pratinjau.
+    peminjam: { ...user, pangkatGolongan: data.pangkatGolongan || user.pangkatGolongan || null },
     detail: detailItems,
     kodePeminjaman: detailItems.length === 1 ? detailItems[0].barang.kodeBarang : null,
     tanggalPengajuan: new Date(),

@@ -63,6 +63,7 @@ export interface DataPengajuan {
 
 // Payload pratinjau surat pernyataan (sebelum pengajuan dibuat).
 export interface DataPreviewSurat {
+  pangkatGolongan?: string; // Pangkat/Gol. peminjam — tercantum pada surat
   tanggalPinjamRencana?: string;
   tanggalKembaliRencana?: string;
   items: ItemPengajuan[];
