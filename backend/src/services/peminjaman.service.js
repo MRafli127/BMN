@@ -336,7 +336,12 @@ async function getSemua({ status, q, userId, role, page = 1, limit = 10 } = {}) 
   if (updates.length) await Promise.all(updates);
 
   return {
-    data: data.map(serialisasiRingkas),
+    data: data.map((p) => {
+      const s = serialisasiRingkas(p);
+      // Catatan pengembalian hanya untuk admin — jangan bocorkan ke peminjam.
+      if (role === 'PEMINJAM') delete s.catatanPengembalian;
+      return s;
+    }),
     meta: { total, page: halaman, limit: perHalaman, totalHalaman: Math.ceil(total / perHalaman) || 1 },
   };
 }
@@ -363,7 +368,10 @@ async function getById(id, { userId, role } = {}) {
     await prisma.peminjaman.update({ where: { id }, data: { status: baru } });
   }
 
-  return serialisasi(p);
+  const hasil = serialisasi(p);
+  // Catatan pengembalian hanya untuk admin — jangan bocorkan ke peminjam.
+  if (role === 'PEMINJAM') delete hasil.catatanPengembalian;
+  return hasil;
 }
 
 // --- Ambil peminjaman berdasarkan kode (untuk scan QR) ---
@@ -653,7 +661,9 @@ async function mintaPengembalian(id, { userId, role } = {}, dokumenPengembalianD
 }
 
 // --- Konfirmasi pengembalian: stok dikembalikan otomatis ---
-async function kembalikan(id, requestInfo = {}) {
+// catatan (opsional) disimpan sebagai catatanPengembalian: HANYA untuk admin,
+// tidak pernah dikirim ke peminjam (dibuang di getById/getSemua untuk PEMINJAM).
+async function kembalikan(id, catatan, requestInfo = {}) {
   // Ambil data untuk audit log
   const pLama = await prisma.peminjaman.findUnique({ where: { id }, include: { peminjam: true, detail: true } });
   if (!pLama) throw new AppError('Data peminjaman tidak ditemukan.', 404);
@@ -683,7 +693,11 @@ async function kembalikan(id, requestInfo = {}) {
 
     await tx.peminjaman.update({
       where: { id },
-      data: { status: 'DIKEMBALIKAN', tanggalKembaliAktual: new Date() },
+      data: {
+        status: 'DIKEMBALIKAN',
+        tanggalKembaliAktual: new Date(),
+        catatanPengembalian: (typeof catatan === 'string' && catatan.trim()) ? catatan.trim() : null,
+      },
     });
   }, { timeout: 20000, maxWait: 10000 });
 

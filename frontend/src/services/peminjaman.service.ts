@@ -87,8 +87,8 @@ export const peminjamanService = {
     return res.data.data;
   },
 
-  async kembalikan(id: string): Promise<Peminjaman> {
-    const res = await api.patch(`/peminjaman/${id}/kembalikan`);
+  async kembalikan(id: string, catatan?: string): Promise<Peminjaman> {
+    const res = await api.patch(`/peminjaman/${id}/kembalikan`, { catatan });
     return res.data.data;
   },
 

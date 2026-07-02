@@ -77,7 +77,7 @@ export default function DetailPeminjamanAdminPage() {
       if (aksi === 'setujui') hasil = await peminjamanService.setujui(data.id, catatan);
       else if (aksi === 'tolak') hasil = await peminjamanService.tolak(data.id, catatan);
       else if (aksi === 'serahkan') hasil = await peminjamanService.serahkan(data.id);
-      else hasil = await peminjamanService.kembalikan(data.id);
+      else hasil = await peminjamanService.kembalikan(data.id, catatan);
 
       setData(hasil);
       setAksi(null);
@@ -197,6 +197,13 @@ export default function DetailPeminjamanAdminPage() {
                 <div className="rounded-lg bg-amber-50 p-3">
                   <p className="font-medium text-amber-900">Catatan Admin</p>
                   <p className="mt-1 text-amber-800">{data.catatanAdmin}</p>
+                </div>
+              )}
+
+              {data.catatanPengembalian && (
+                <div className="rounded-lg bg-muted p-3">
+                  <p className="font-medium text-foreground">Catatan Pengembalian (internal)</p>
+                  <p className="mt-1 text-muted-foreground">{data.catatanPengembalian}</p>
                 </div>
               )}
             </CardContent>
@@ -373,7 +380,7 @@ export default function DetailPeminjamanAdminPage() {
         sedangProses={proses}
         onKonfirmasi={jalankanAksi}
       >
-        {(aksi === 'setujui' || aksi === 'tolak') && (
+        {(aksi === 'setujui' || aksi === 'tolak' || aksi === 'kembalikan') && (
           <div>
             <Label htmlFor="catatan">
               Catatan {aksi === 'tolak' ? '(wajib)' : '(opsional)'}
@@ -385,6 +392,11 @@ export default function DetailPeminjamanAdminPage() {
               placeholder={aksi === 'tolak' ? 'Alasan penolakan...' : 'Catatan tambahan...'}
               className="mt-1"
             />
+            {aksi === 'kembalikan' && (
+              <p className="mt-1 text-xs text-muted-foreground">
+                Catatan ini hanya untuk admin dan tidak terlihat oleh peminjam.
+              </p>
+            )}
           </div>
         )}
       </KonfirmasiDialog>

@@ -40,6 +40,7 @@ export interface Peminjaman {
   dokumenPengembalianUrl?: string | null;
   qrCodeUrl?: string | null;
   catatanAdmin?: string | null;
+  catatanPengembalian?: string | null; // Catatan admin saat konfirmasi pengembalian — hanya untuk admin
   disetujuiOleh?: string | null;
   createdAt?: string;
   updatedAt?: string;

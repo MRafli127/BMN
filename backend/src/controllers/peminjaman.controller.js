@@ -104,7 +104,7 @@ const mintaPengembalian = asyncHandler(async (req, res) => {
 });
 
 const kembalikan = asyncHandler(async (req, res) => {
-  const peminjaman = await peminjamanService.kembalikan(req.params.id, getRequestInfo(req));
+  const peminjaman = await peminjamanService.kembalikan(req.params.id, req.body.catatan, getRequestInfo(req));
   return responsSukses(res, {
     pesan: 'Pengembalian dikonfirmasi. Stok telah dikembalikan.',
     data: peminjaman,

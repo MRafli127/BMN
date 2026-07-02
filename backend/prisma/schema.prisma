@@ -172,7 +172,8 @@ model Peminjaman {
   dokumenStempelUrl     String? // Dokumen yang sudah distempel admin
   dokumenPengembalianUrl String? // Surat Pernyataan Pengembalian (PDF) yang sudah ditandatangani fisik & diunggah peminjam
   qrCodeUrl             String? // Gambar QR Code peminjaman
-  catatanAdmin          String? // Catatan admin (wajib saat menolak)
+  catatanAdmin          String? // Catatan admin (wajib saat menolak). Terlihat oleh peminjam.
+  catatanPengembalian   String? // Catatan admin saat konfirmasi pengembalian. HANYA untuk admin, tidak terlihat oleh peminjam.
   disetujuiOleh         String? // userId admin yang menyetujui
   nomorSurat            Int? // Nomor urut surat pernyataan (PRN-<nomorSurat>/BMN/PP.1/<tahunSurat>). Diberikan otomatis & berurut per tahun saat pengajuan dibuat, reset ke 1 tiap ganti tahun.
   tahunSurat            Int? // Tahun penomoran surat (dipakai bersama nomorSurat). Surat pengembalian memakai nomor & tahun yang sama.
