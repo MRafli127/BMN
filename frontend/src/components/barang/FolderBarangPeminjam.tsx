@@ -242,15 +242,24 @@ export function FolderBarangPeminjam({ grup }: Props) {
           const dalamProses = sedangProses.has(g.merk);
 
           return (
-            <div key={g.merk} className="overflow-hidden rounded-xl border bg-card">
+            <div
+              key={g.merk}
+              className={cn(
+                'overflow-hidden rounded-xl border bg-card transition-colors',
+                aktif && 'border-blue-400 ring-1 ring-blue-400'
+              )}
+            >
               {/* Header folder */}
               <button
                 type="button"
                 onClick={() => toggle(g.merk)}
                 aria-expanded={aktif}
-                className="flex w-full items-center gap-3 px-4 py-3 text-left transition-colors hover:bg-muted/40"
+                className={cn(
+                  'flex w-full items-center gap-3 px-4 py-3 text-left transition-colors',
+                  aktif ? 'bg-blue-50 hover:bg-blue-100' : 'hover:bg-muted/40'
+                )}
               >
-                <span className="text-primary">
+                <span className={aktif ? 'text-blue-600' : 'text-primary'}>
                   {aktif ? <FolderOpen className="h-5 w-5" /> : <Folder className="h-5 w-5" />}
                 </span>
                 <div className="min-w-0 flex-1">
