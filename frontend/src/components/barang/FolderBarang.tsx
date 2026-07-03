@@ -151,9 +151,10 @@ export function FolderBarang({ grup, onHapus }: Props) {
                 />
               </button>
 
-              {/* Isi folder: daftar unit dengan kode & NUP */}
+              {/* Isi folder: daftar unit dengan kode & NUP.
+                  Area gulir sendiri agar isi folder bisa di-scroll terpisah dari halaman. */}
               {aktif && (
-                <div className="border-t">
+                <div className="max-h-[420px] overflow-y-auto border-t">
                   <Table>
                     <TableHeader>
                       <TableRow>

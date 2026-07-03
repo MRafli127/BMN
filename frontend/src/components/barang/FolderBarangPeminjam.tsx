@@ -316,9 +316,10 @@ export function FolderBarangPeminjam({ grup }: Props) {
                 />
               </button>
 
-              {/* Isi folder: daftar unit dengan aksi tambah ke keranjang */}
+              {/* Isi folder: daftar unit dengan aksi tambah ke keranjang.
+                  Area gulir sendiri agar isi folder bisa di-scroll terpisah dari halaman. */}
               {aktif && (
-                <div className="border-t">
+                <div className="max-h-[420px] overflow-y-auto border-t">
                   <Table>
                     <TableHeader>
                       <TableRow>
