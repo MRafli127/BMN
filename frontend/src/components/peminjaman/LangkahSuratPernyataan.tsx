@@ -18,7 +18,6 @@ import {
   RefreshCw,
   Upload,
   CheckCircle2,
-  Lock,
   Clock,
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -168,13 +167,6 @@ export function LangkahSuratPernyataan({
         <p className="mt-1 text-base text-muted-foreground">
           Unduh surat pernyataan, tanda tangani, lalu unggah kembali untuk mengajukan peminjaman.
         </p>
-        <div className="mt-3 flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
-          <Lock className="mt-0.5 h-4 w-4 shrink-0" />
-          <span>
-            Anda berada di tahap akhir. Tombol kembali dinonaktifkan — fokus untuk meminta tanda
-            tangan lalu mengunggah surat pada panel di samping.
-          </span>
-        </div>
       </div>
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
