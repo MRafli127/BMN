@@ -190,9 +190,9 @@ export default function DetailPeminjamanAdminPage() {
               )}
 
               {data.catatanPengembalian && (
-                <div className="rounded-lg bg-muted p-3">
-                  <p className="font-medium text-foreground">Catatan Pengembalian (internal)</p>
-                  <p className="mt-1 text-muted-foreground">{data.catatanPengembalian}</p>
+                <div className="rounded-lg border border-amber-200 bg-amber-50 p-3">
+                  <p className="font-medium text-amber-900">Catatan Pengembalian (internal)</p>
+                  <p className="mt-1 text-amber-800">{data.catatanPengembalian}</p>
                 </div>
               )}
             </CardContent>

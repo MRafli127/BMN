@@ -266,15 +266,38 @@ export default function DetailRiwayatPage() {
               ) : (
                 <p className="text-sm text-muted-foreground">Surat pernyataan belum tersedia.</p>
               )}
-              {data.dokumenPengembalianUrl && (
-                <Button asChild variant="outline" size="sm">
-                  <a href={data.dokumenPengembalianUrl} target="_blank" rel="noreferrer">
-                    <FileText className="h-4 w-4" /> Surat Pengembalian (Ditandatangani)
-                  </a>
-                </Button>
-              )}
             </CardContent>
           </Card>
+
+          {/* Surat Pernyataan Pengembalian (sudah ditandatangani) */}
+          {data.dokumenPengembalianUrl && (
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0">
+                <CardTitle className="flex items-center gap-2 text-base">
+                  <Undo2 className="h-4 w-4" /> Surat Pengembalian (Ditandatangani)
+                </CardTitle>
+                <div className="flex flex-wrap justify-end gap-2">
+                  <Button asChild variant="outline" size="sm">
+                    <a href={data.dokumenPengembalianUrl} target="_blank" rel="noreferrer">
+                      <ExternalLink className="h-4 w-4" /> Tab Baru
+                    </a>
+                  </Button>
+                  <Button asChild variant="outline" size="sm">
+                    <a href={data.dokumenPengembalianUrl} download={`surat-pengembalian-${data.kodePeminjaman}.pdf`}>
+                      <Download className="h-4 w-4" /> Unduh
+                    </a>
+                  </Button>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <iframe
+                  src={data.dokumenPengembalianUrl}
+                  title="Surat Pernyataan Pengembalian"
+                  className="h-[520px] w-full rounded-lg border"
+                />
+              </CardContent>
+            </Card>
+          )}
         </div>
 
         {/* Sidebar: timeline + QR */}
