@@ -319,9 +319,9 @@ export function FolderBarangPeminjam({ grup }: Props) {
               {/* Isi folder: daftar unit dengan aksi tambah ke keranjang.
                   Area gulir sendiri agar isi folder bisa di-scroll terpisah dari halaman. */}
               {aktif && (
-                <div className="max-h-[420px] overflow-y-auto border-t">
-                  <Table>
-                    <TableHeader>
+                <div className="border-t">
+                  <Table containerClassName="max-h-[420px]">
+                    <TableHeader className="sticky top-0 z-10 bg-card shadow-sm">
                       <TableRow>
                         <TableHead className="w-14">Foto</TableHead>
                         <TableHead>Kode / Nama</TableHead>

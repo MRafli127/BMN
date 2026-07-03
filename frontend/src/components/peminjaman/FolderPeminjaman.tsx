@@ -61,19 +61,31 @@ export function FolderPeminjaman({ data, hrefDetail, onHapus }: Props) {
       {grup.map((g) => {
         const buka = terbuka.has(g.kunci);
         return (
-          <div key={g.kunci} className="overflow-hidden rounded-xl border border-outline-variant bg-card">
+          <div
+            key={g.kunci}
+            className={cn(
+              'overflow-hidden rounded-xl border bg-card transition-colors',
+              buka ? 'border-blue-400 ring-1 ring-blue-400' : 'border-outline-variant'
+            )}
+          >
             {/* Header folder */}
             <button
               type="button"
               onClick={() => toggle(g.kunci)}
               aria-expanded={buka}
-              className="flex w-full items-center gap-3 p-stack-md text-left transition-colors hover:bg-primary/5"
+              className={cn(
+                'flex w-full items-center gap-3 p-stack-md text-left transition-colors',
+                buka ? 'bg-blue-50 hover:bg-blue-100' : 'hover:bg-primary/5'
+              )}
             >
               <ChevronRight
-                className={cn('h-5 w-5 shrink-0 text-on-surface-variant transition-transform', buka && 'rotate-90')}
+                className={cn(
+                  'h-5 w-5 shrink-0 text-on-surface-variant transition-transform',
+                  buka && 'rotate-90 text-blue-600'
+                )}
               />
               {buka ? (
-                <FolderOpen className="h-6 w-6 shrink-0 text-primary" />
+                <FolderOpen className="h-6 w-6 shrink-0 text-blue-600" />
               ) : (
                 <Folder className="h-6 w-6 shrink-0 text-primary" />
               )}
