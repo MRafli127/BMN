@@ -230,30 +230,44 @@ export default function DetailRiwayatPage() {
 
           {/* Dokumen */}
           <Card>
-            <CardHeader>
+            <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0">
               <CardTitle className="flex items-center gap-2 text-base">
                 <FileText className="h-4 w-4" /> Surat Pernyataan
               </CardTitle>
+              {data.dokumenUrl && (
+                <div className="flex flex-wrap justify-end gap-2">
+                  <Button asChild variant="outline" size="sm">
+                    <a href={data.dokumenUrl} target="_blank" rel="noreferrer">
+                      <ExternalLink className="h-4 w-4" /> Tab Baru
+                    </a>
+                  </Button>
+                  <Button asChild variant="outline" size="sm">
+                    <a href={data.dokumenUrl} download={`surat-pernyataan-${data.kodePeminjaman}.pdf`}>
+                      <Download className="h-4 w-4" /> Unduh
+                    </a>
+                  </Button>
+                  {data.dokumenStempelUrl && (
+                    <Button asChild variant="sukses" size="sm">
+                      <a href={data.dokumenStempelUrl} download={`surat-berstempel-${data.kodePeminjaman}.pdf`}>
+                        <Download className="h-4 w-4" /> Surat Berstempel
+                      </a>
+                    </Button>
+                  )}
+                </div>
+              )}
             </CardHeader>
-            <CardContent className="flex flex-wrap gap-3">
+            <CardContent className="space-y-3">
               {data.dokumenUrl ? (
-                <Button asChild variant="outline">
-                  <a href={data.dokumenUrl} target="_blank" rel="noreferrer">
-                    <FileText className="h-4 w-4" /> Lihat Surat Pernyataan
-                  </a>
-                </Button>
+                <iframe
+                  src={data.dokumenUrl}
+                  title="Surat Pernyataan Peminjaman"
+                  className="h-[520px] w-full rounded-lg border"
+                />
               ) : (
                 <p className="text-sm text-muted-foreground">Surat pernyataan belum tersedia.</p>
               )}
-              {data.dokumenStempelUrl && (
-                <Button asChild variant="sukses">
-                  <a href={data.dokumenStempelUrl} target="_blank" rel="noreferrer">
-                    <Download className="h-4 w-4" /> Unduh Surat Berstempel
-                  </a>
-                </Button>
-              )}
               {data.dokumenPengembalianUrl && (
-                <Button asChild variant="outline">
+                <Button asChild variant="outline" size="sm">
                   <a href={data.dokumenPengembalianUrl} target="_blank" rel="noreferrer">
                     <FileText className="h-4 w-4" /> Surat Pengembalian (Ditandatangani)
                   </a>
