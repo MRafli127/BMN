@@ -41,14 +41,16 @@ interface GayaWarna {
   orb: string;
   ikonBox: string;
   nilai: string;
+  gradasi: string;
+  garis: string;
 }
 
 // Kelas literal per warna (agar terdeteksi JIT Tailwind, bukan dirakit runtime)
 const GAYA: Record<string, GayaWarna> = {
-  primary: { orb: 'bg-primary/10 group-hover:bg-primary/20', ikonBox: 'bg-primary/10 text-primary', nilai: 'text-primary' },
-  tertiary: { orb: 'bg-tertiary/10 group-hover:bg-tertiary/20', ikonBox: 'bg-tertiary/10 text-tertiary', nilai: 'text-tertiary' },
-  secondary: { orb: 'bg-secondary/10 group-hover:bg-secondary/20', ikonBox: 'bg-secondary/10 text-secondary', nilai: 'text-secondary' },
-  error: { orb: 'bg-error/10 group-hover:bg-error/20', ikonBox: 'bg-error/10 text-error', nilai: 'text-error' },
+  primary: { orb: 'bg-primary/10 group-hover:bg-primary/20', ikonBox: 'bg-primary/10 text-primary', nilai: 'text-primary', gradasi: 'bg-gradient-to-br from-white via-white to-primary/10 hover:to-primary/20', garis: 'border-primary/20 hover:border-primary/30' },
+  tertiary: { orb: 'bg-tertiary/10 group-hover:bg-tertiary/20', ikonBox: 'bg-tertiary/10 text-tertiary', nilai: 'text-tertiary', gradasi: 'bg-gradient-to-br from-white via-white to-tertiary/10 hover:to-tertiary/20', garis: 'border-tertiary/20 hover:border-tertiary/30' },
+  secondary: { orb: 'bg-secondary/10 group-hover:bg-secondary/20', ikonBox: 'bg-secondary/10 text-secondary', nilai: 'text-secondary', gradasi: 'bg-gradient-to-br from-white via-white to-secondary/10 hover:to-secondary/20', garis: 'border-secondary/20 hover:border-secondary/30' },
+  error: { orb: 'bg-error/10 group-hover:bg-error/20', ikonBox: 'bg-error/10 text-error', nilai: 'text-error', gradasi: 'bg-gradient-to-br from-white via-white to-error/10 hover:to-error/20', garis: 'border-error/20 hover:border-error/30' },
 };
 
 interface KartuStat {
@@ -232,7 +234,11 @@ export default function AdminDashboardPage() {
             <div
               key={k.label}
               onClick={() => router.push(tujuanKategori(k.kategori))}
-              className="glass-card group relative cursor-pointer overflow-hidden rounded-2xl p-stack-lg transition-all duration-300 hover:-translate-y-1 hover:shadow-elevated"
+              className={cn(
+                'group relative cursor-pointer overflow-hidden rounded-2xl border p-stack-lg transition-all duration-300 hover:-translate-y-1 hover:shadow-elevated',
+                g.gradasi,
+                g.garis,
+              )}
             >
               <div className={cn('absolute -right-4 -top-4 h-24 w-24 rounded-full blur-2xl transition-colors', g.orb)} />
               <div className="mb-4 flex items-start justify-between">
@@ -291,17 +297,23 @@ export default function AdminDashboardPage() {
                 <div
                   key={it.label}
                   onClick={() => router.push(it.tujuan)}
-                  className="group flex cursor-pointer items-center gap-4 rounded-xl bg-surface-container/40 p-4 transition-all hover:bg-primary/5"
+                  className={cn(
+                    'group relative flex cursor-pointer items-center gap-4 overflow-hidden rounded-xl border p-4 transition-all duration-300 hover:-translate-y-1 hover:shadow-elevated',
+                    g.gradasi,
+                    g.garis,
+                  )}
                 >
-                  <div className={cn('flex h-12 w-12 shrink-0 items-center justify-center rounded-xl', g.ikonBox)}>
+                  {/* Orb cahaya yang mengambang muncul saat kursor menyorot */}
+                  <div className={cn('pointer-events-none absolute -right-6 -top-6 h-24 w-24 rounded-full opacity-0 blur-2xl transition-opacity duration-300 group-hover:opacity-100', g.orb)} />
+                  <div className={cn('relative flex h-12 w-12 shrink-0 items-center justify-center rounded-xl transition-transform duration-300 group-hover:scale-110', g.ikonBox)}>
                     <Icon name={it.ikon} className="text-[22px]" fill />
                   </div>
-                  <div className="min-w-0 flex-1">
+                  <div className="relative min-w-0 flex-1">
                     <p className="font-label-md uppercase tracking-wider text-on-surface-variant">{it.label}</p>
                     <p className={cn('font-jakarta text-headline-md', g.nilai)}>{it.nilai}</p>
                     {it.keterangan && <p className="font-label-sm text-on-surface-variant">{it.keterangan}</p>}
                   </div>
-                  <Icon name="chevron_right" className="h-5 w-5 shrink-0 text-on-surface-variant" />
+                  <Icon name="chevron_right" className="relative h-5 w-5 shrink-0 text-on-surface-variant transition-all duration-300 group-hover:translate-x-1 group-hover:text-primary" />
                 </div>
               );
             })}
