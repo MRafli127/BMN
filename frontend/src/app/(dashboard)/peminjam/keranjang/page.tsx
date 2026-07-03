@@ -20,6 +20,7 @@ import { EmptyState } from '@/components/shared/EmptyState';
 import { LoadingSpinner } from '@/components/shared/LoadingSpinner';
 import { notify } from '@/components/ui/toast';
 import { FolderKeranjang } from '@/components/keranjang/FolderKeranjang';
+import { KonfirmasiDialog } from '@/components/shared/KonfirmasiDialog';
 import { LangkahSuratPernyataan } from '@/components/peminjaman/LangkahSuratPernyataan';
 import { useKeranjangStore, useJumlahKeranjang, useTotalUnitKeranjang } from '@/store/keranjangStore';
 import { RUTE } from '@/constants/routes';
@@ -35,6 +36,7 @@ export default function KeranjangPage() {
   const [tglPinjam, setTglPinjam] = useState('');
   const [tglKembali, setTglKembali] = useState('');
   const [langkah, setLangkah] = useState<Langkah>('tinjau');
+  const [konfirmasiTerbuka, setKonfirmasiTerbuka] = useState(false);
 
   // Hindari hydration mismatch: isi keranjang (persisted) baru dibaca setelah mount.
   const [mounted, setMounted] = useState(false);
@@ -44,12 +46,19 @@ export default function KeranjangPage() {
   const jumlahKeranjang = useJumlahKeranjang();
   const totalUnit = useTotalUnitKeranjang();
 
-  const keSurat = () => {
+  // Validasi isian keranjang, lalu minta konfirmasi terakhir sebelum masuk ke
+  // formulir — di tahap berikutnya isi pinjaman tidak bisa diubah/dibatalkan.
+  const mintaKonfirmasi = () => {
     if (daftar.length === 0) return notify.gagal('Keranjang masih kosong.');
     if (!pangkatGol.trim())
       return notify.gagal('Pangkat/Gol. wajib diisi sebelum melanjutkan ke formulir.');
     if (tglPinjam && tglKembali && new Date(tglKembali) <= new Date(tglPinjam))
       return notify.gagal('Tanggal kembali harus setelah tanggal pinjam.');
+    setKonfirmasiTerbuka(true);
+  };
+
+  const keSurat = () => {
+    setKonfirmasiTerbuka(false);
     setLangkah('surat');
   };
 
@@ -144,7 +153,7 @@ export default function KeranjangPage() {
                     <span className="font-semibold text-foreground">{totalUnit}</span>
                   </div>
 
-                  <Button className="w-full" onClick={keSurat}>
+                  <Button className="w-full" onClick={mintaKonfirmasi}>
                     <FileText className="h-4 w-4" /> Lanjut ke Formulir
                     <ArrowRight className="h-4 w-4" />
                   </Button>
@@ -153,6 +162,16 @@ export default function KeranjangPage() {
             </div>
           </div>
         )}
+
+        <KonfirmasiDialog
+          terbuka={konfirmasiTerbuka}
+          onUbahTerbuka={setKonfirmasiTerbuka}
+          judul="Lanjut ke Formulir Pengajuan?"
+          deskripsi="Pastikan barang dan tanggal peminjaman sudah benar. Setelah lanjut, Anda tidak dapat kembali atau mengubah isi pinjaman — hanya melanjutkan proses tanda tangan & unggah surat pernyataan."
+          teksKonfirmasi="Ya, Lanjutkan"
+          teksBatal="Periksa Lagi"
+          onKonfirmasi={keSurat}
+        />
       </div>
     );
   }
