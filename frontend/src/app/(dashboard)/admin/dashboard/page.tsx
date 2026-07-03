@@ -4,7 +4,7 @@
 
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Icon } from '@/components/ui/icon';
 import { LoadingSpinner } from '@/components/shared/LoadingSpinner';
@@ -61,6 +61,23 @@ interface KartuStat {
   keterangan: string;
   kategori: KategoriDashboard;
 }
+
+// Palet gradasi batang grafik "Ringkasan Aktivitas" — warna semantik per status
+// (bar = isian batang, teks = angka di kanan, titik = penanda bulat di label).
+interface GayaBar {
+  bar: string;
+  teks: string;
+  titik: string;
+}
+const WARNA_BAR: Record<string, GayaBar> = {
+  DRAFT: { bar: 'from-slate-400 to-slate-500', teks: 'text-slate-600', titik: 'bg-slate-400' },
+  MENUNGGU: { bar: 'from-amber-400 to-amber-500', teks: 'text-amber-600', titik: 'bg-amber-400' },
+  DISETUJUI: { bar: 'from-sky-400 to-blue-600', teks: 'text-blue-600', titik: 'bg-blue-500' },
+  DITOLAK: { bar: 'from-red-400 to-red-600', teks: 'text-red-600', titik: 'bg-red-500' },
+  DIPINJAM: { bar: 'from-indigo-500 to-indigo-700', teks: 'text-indigo-700', titik: 'bg-indigo-600' },
+  DIKEMBALIKAN: { bar: 'from-emerald-400 to-emerald-600', teks: 'text-emerald-600', titik: 'bg-emerald-500' },
+  TERLAMBAT: { bar: 'from-rose-400 to-rose-600', teks: 'text-rose-600', titik: 'bg-rose-500' },
+};
 
 function DialogRentangWaktu({
   terbuka,
@@ -151,6 +168,14 @@ export default function AdminDashboardPage() {
   // Cache key berdasarkan filter agar data berubah saat filter berubah
   const cacheKey = `dashboard-admin:${JSON.stringify(filterTanggal)}`;
   const { data, sedangMemuat } = useQuery(cacheKey, () => dashboardService.admin(filterTanggal));
+
+  // Animasi "tumbuh" batang grafik: mulai dari 0, lalu melebar ke nilai sebenarnya.
+  const [barTampil, setBarTampil] = useState(false);
+  useEffect(() => {
+    if (sedangMemuat) return;
+    const id = setTimeout(() => setBarTampil(true), 80);
+    return () => clearTimeout(id);
+  }, [sedangMemuat]);
 
   if (sedangMemuat && !data) return <LoadingSpinner layarPenuh />;
   if (!data) return null;
@@ -263,21 +288,43 @@ export default function AdminDashboardPage() {
             <h3 className="font-jakarta text-headline-md text-primary">Ringkasan Aktivitas</h3>
             <p className="text-on-surface-variant">Distribusi peminjaman berdasarkan status</p>
           </div>
-          <div className="flex flex-1 flex-col justify-end gap-4 pt-4">
+          <div className="flex flex-1 flex-col justify-end gap-3 pt-4">
             {data.grafikStatus.map((g) => {
               const info = STATUS_PEMINJAMAN[g.status];
+              const w = WARNA_BAR[g.status] ?? WARNA_BAR.DIPINJAM;
+              const persen = Math.max((g.jumlah / maxGrafik) * 100, g.jumlah > 0 ? 8 : 0);
               return (
-                <div key={g.status} className="flex items-center gap-3">
-                  <span className="w-40 shrink-0 font-label-md text-on-surface-variant">{info.label}</span>
-                  <div className="h-6 flex-1 overflow-hidden rounded-full bg-surface-container">
+                <div
+                  key={g.status}
+                  onClick={() => router.push(RUTE.adminPeminjamanStatus(g.status))}
+                  role="button"
+                  tabIndex={0}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault();
+                      router.push(RUTE.adminPeminjamanStatus(g.status));
+                    }
+                  }}
+                  title={`Lihat peminjaman berstatus ${info.label}`}
+                  className="group flex cursor-pointer items-center gap-3 rounded-lg px-2 py-1.5 transition-colors hover:bg-surface-container/50 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+                >
+                  <span className="flex w-40 shrink-0 items-center gap-2 font-label-md text-on-surface-variant">
+                    <span className={cn('h-2.5 w-2.5 shrink-0 rounded-full ring-2 ring-white transition-transform group-hover:scale-125', w.titik)} />
+                    <span>{info.label}</span>
+                  </span>
+                  <div className="h-6 flex-1 overflow-hidden rounded-full bg-surface-container/70">
                     <div
-                      className="flex h-full items-center justify-end rounded-full bg-primary px-2 text-xs font-bold text-white transition-all"
-                      style={{ width: `${Math.max((g.jumlah / maxGrafik) * 100, g.jumlah > 0 ? 8 : 0)}%` }}
+                      className={cn(
+                        'flex h-full items-center justify-end rounded-full bg-gradient-to-r px-2 text-xs font-bold text-white shadow-sm transition-[width,filter] duration-700 ease-out group-hover:brightness-110',
+                        w.bar,
+                      )}
+                      style={{ width: barTampil ? `${persen}%` : '0%' }}
                     >
                       {g.jumlah > 0 && g.jumlah}
                     </div>
                   </div>
-                  <span className="w-8 text-right text-sm font-bold text-primary">{g.jumlah}</span>
+                  <span className={cn('w-10 text-right text-sm font-bold tabular-nums', w.teks)}>{g.jumlah}</span>
+                  <Icon name="chevron_right" className="h-4 w-4 shrink-0 text-on-surface-variant opacity-0 transition-opacity group-hover:opacity-100" />
                 </div>
               );
             })}
