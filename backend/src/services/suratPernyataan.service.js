@@ -1,25 +1,43 @@
 // ============================================================
 //  Generator Surat Pernyataan Peminjaman BMN (PDF, pdf-lib).
-//  Tata letak, font (Arial/Helvetica), ukuran, dan susunan mengikuti
-//  templat resmi backend/assets/Surat-Pernyataan-Peminjaman-BMN.docx.
+//  Tata letak, font, ukuran, margin, dan susunan dibuat SAMA PERSIS dengan
+//  templat resmi backend/assets/Surat-Pernyataan-Peminjaman-BMN.docx:
+//    - Font: Arial (di-embed dari assets/fonts/Arial*.ttf; jika berkas font
+//      tidak ada — mis. lingkungan tanpa font — otomatis fallback ke Helvetica
+//      yang metriknya setara Arial).
+//    - Ukuran isi surat: 11pt (mengikuti default templat: w:sz 22 half-point).
+//    - Kop: KEMENTERIAN 13pt bold, BADAN/SEKRETARIAT 11pt bold, alamat 7pt.
+//    - Ukuran halaman A4 & margin (kiri 1418, kanan 1134, atas 1134,
+//      bawah 709 twips) mengikuti sectPr templat.
+//    - Lebar kolom tabel mengikuti tblGrid templat.
 //
 //  Surat DITAMPILKAN sebagai pratinjau, lalu DIUNDUH & DICETAK/ditandatangani
 //  peminjam. Blok tanda tangan memakai keterangan "Ditandatangani secara
-//  elektronik" sesuai templat. Nomor surat berurut otomatis per tahun
-//  (lihat nomorSurat.service). Hasil dikembalikan sebagai data URL (PDF).
+//  elektronik" (abu #BFBFBF) sesuai templat. Nomor surat berurut otomatis per
+//  tahun (lihat nomorSurat.service). Hasil dikembalikan sebagai data URL (PDF).
 // ============================================================
 
 const { PDFDocument, rgb, StandardFonts } = require('pdf-lib');
+const fontkit = require('@pdf-lib/fontkit');
 const path = require('path');
 const fs = require('fs');
 const { bufferKeDataUrl } = require('../utils/fileData');
 const { formatTanggalSaja } = require('../utils/formatTanggal');
 const nomorSuratService = require('./nomorSurat.service');
 
-const PAGE_W = 595.28;
-const PAGE_H = 841.89;
-const MARGIN = 50;
-const CONTENT_W = PAGE_W - MARGIN * 2;
+// Ukuran halaman A4 & margin sesuai sectPr templat (twips -> pt, 1pt = 20 twips).
+const PAGE_W = 595.28; // 11906 twips
+const PAGE_H = 841.89; // 16838 twips
+const MARGIN_L = 70.9; // 1418 twips
+const MARGIN_R = 56.7; // 1134 twips
+const MARGIN_T = 56.7; // 1134 twips
+const MARGIN_B = 35.45; // 709 twips
+const RIGHT_EDGE = PAGE_W - MARGIN_R;
+const CONTENT_W = RIGHT_EDGE - MARGIN_L;
+
+// Ukuran isi surat (default templat w:sz 22 = 11pt).
+const SIZE = 11;
+const LINE = 15; // tinggi baris untuk teks 11pt (spasi tunggal + sedikit lega)
 
 const LABEL_KONDISI = {
   BAIK: 'Baik',
@@ -81,81 +99,107 @@ function unitKerjaLengkap(u) {
   return u.unitKerja || u.eselon3 || '-';
 }
 
-async function generate(peminjaman) {
-  const pdf = await PDFDocument.create();
+// Muat font Arial dari assets; fallback Helvetica bila berkas tak tersedia.
+async function muatFont(pdf) {
+  const dirFont = path.resolve(__dirname, '../../assets/fonts');
+  const reg = path.join(dirFont, 'Arial.ttf');
+  const bold = path.join(dirFont, 'Arial-Bold.ttf');
+  try {
+    if (fs.existsSync(reg) && fs.existsSync(bold)) {
+      pdf.registerFontkit(fontkit);
+      const font = await pdf.embedFont(fs.readFileSync(reg), { subset: true });
+      const fontBold = await pdf.embedFont(fs.readFileSync(bold), { subset: true });
+      return { font, fontBold };
+    }
+  } catch {
+    // gagal memuat Arial -> pakai fallback di bawah
+  }
   const font = await pdf.embedFont(StandardFonts.Helvetica);
   const fontBold = await pdf.embedFont(StandardFonts.HelveticaBold);
-  const hitam = rgb(0.1, 0.1, 0.1);
-  const abu = rgb(0.45, 0.45, 0.45);
-  const abuTtd = rgb(0.749, 0.749, 0.749); // BFBFBF — sesuai warna teks "Ditandatangani secara elektronik" pada templat
+  return { font, fontBold };
+}
+
+async function generate(peminjaman) {
+  const pdf = await PDFDocument.create();
+  const { font, fontBold } = await muatFont(pdf);
+  const hitam = rgb(0, 0, 0);
+  const abu = rgb(0.35, 0.35, 0.35); // alamat kop
+  const abuTtd = rgb(0.749, 0.749, 0.749); // BFBFBF — "Ditandatangani secara elektronik" sesuai templat
 
   let page = pdf.addPage([PAGE_W, PAGE_H]);
-  let y = PAGE_H - MARGIN;
+  let y = PAGE_H - MARGIN_T;
 
   const tambahHalaman = () => {
     page = pdf.addPage([PAGE_W, PAGE_H]);
-    y = PAGE_H - MARGIN;
+    y = PAGE_H - MARGIN_T;
   };
   const pastikanRuang = (butuh) => {
-    if (y - butuh < MARGIN) tambahHalaman();
+    if (y - butuh < MARGIN_B) tambahHalaman();
   };
 
   const teks = (str, x, opt = {}) => {
     const f = opt.font || font;
-    const size = opt.size || 10;
+    const size = opt.size || SIZE;
     page.drawText(String(str ?? ''), { x, y: y - size, size, font: f, color: opt.color || hitam });
   };
+  // Rata tengah pada rentang [opt.kiri, opt.kanan] (default: seluruh lebar halaman).
   const teksTengah = (str, opt = {}) => {
     const f = opt.font || font;
-    const size = opt.size || 10;
+    const size = opt.size || SIZE;
     const w = f.widthOfTextAtSize(String(str ?? ''), size);
-    teks(str, (PAGE_W - w) / 2, opt);
+    const kiri = opt.kiri ?? 0;
+    const kanan = opt.kanan ?? PAGE_W;
+    teks(str, kiri + (kanan - kiri - w) / 2, opt);
   };
 
   // ---------- Kop surat ----------
+  // Teks kop dipusatkan pada area DI KANAN logo agar tidak menabrak logo.
+  const LOGO_W = 80;
+  const kopKiri = MARGIN_L + LOGO_W + 8; // batas kiri area teks kop (setelah logo + jarak)
   const absLogo = path.resolve(__dirname, '../../assets/logo_surat.png');
   if (fs.existsSync(absLogo)) {
     try {
       const logo = await pdf.embedPng(fs.readFileSync(absLogo));
-      const lw = 80;
-      const lh = (logo.height / logo.width) * lw;
-      // pusatkan logo secara vertikal terhadap blok kop surat (tinggi ±58pt)
-      const kopH = 58;
-      page.drawImage(logo, { x: MARGIN, y: y - lh + (lh - kopH) / 2, width: lw, height: lh });
+      const lh = (logo.height / logo.width) * LOGO_W;
+      // pusatkan logo secara vertikal terhadap blok kop surat (tinggi ±60pt)
+      const kopH = 60;
+      page.drawImage(logo, { x: MARGIN_L, y: y - lh + (lh - kopH) / 2, width: LOGO_W, height: lh });
     } catch {
       // abaikan bila logo gagal dimuat
     }
   }
 
-  teksTengah('KEMENTERIAN KEUANGAN REPUBLIK INDONESIA', { font: fontBold, size: 11 });
+  teksTengah('KEMENTERIAN KEUANGAN REPUBLIK INDONESIA', { font: fontBold, size: 13, kiri: kopKiri, kanan: RIGHT_EDGE });
+  y -= 16;
+  teksTengah('BADAN PENDIDIKAN DAN PELATIHAN KEUANGAN', { font: fontBold, size: 11, kiri: kopKiri, kanan: RIGHT_EDGE });
   y -= 14;
-  teksTengah('BADAN PENDIDIKAN DAN PELATIHAN KEUANGAN', { font: fontBold, size: 11 });
-  y -= 13;
-  teksTengah('SEKRETARIAT BADAN PENDIDIKAN DAN PELATIHAN KEUANGAN', { font: fontBold, size: 10 });
+  teksTengah('SEKRETARIAT BADAN PENDIDIKAN DAN PELATIHAN KEUANGAN', { font: fontBold, size: 11, kiri: kopKiri, kanan: RIGHT_EDGE });
   y -= 12;
   teksTengah(
     'GEDUNG ARIMURTI LANTAI 3, JALAN PURNAWARMAN NOMOR 99 KEBAYORAN BARU, JAKARTA SELATAN 12110',
-    { size: 6.5, color: abu }
+    { size: 7, color: abu, kiri: kopKiri, kanan: RIGHT_EDGE }
   );
   y -= 9;
   teksTengah('TELEPON (021) 7394666, 7204131; FAKSIMILE (021) 7261775; SITUS: www.bppk.kemenkeu.go.id', {
-    size: 6.5,
+    size: 7,
     color: abu,
+    kiri: kopKiri,
+    kanan: RIGHT_EDGE,
   });
-  y -= 10;
-  page.drawLine({ start: { x: MARGIN, y }, end: { x: PAGE_W - MARGIN, y }, thickness: 1.2, color: hitam });
-  y -= 22;
-
-  // ---------- Judul ----------
-  teksTengah('SURAT PERNYATAAN PEMINJAMAN BARANG MILIK NEGARA', { font: fontBold, size: 11 });
-  y -= 14;
-  teksTengah(`NOMOR ${nomorSurat(peminjaman)}`, { font: fontBold, size: 11 });
+  y -= 11;
+  page.drawLine({ start: { x: MARGIN_L, y }, end: { x: RIGHT_EDGE, y }, thickness: 1.2, color: hitam });
   y -= 26;
+
+  // ---------- Judul ---------- (templat: 11pt, tidak bold, rata tengah)
+  teksTengah('SURAT PERNYATAAN PEMINJAMAN BARANG MILIK NEGARA', { size: SIZE });
+  y -= LINE;
+  teksTengah(`NOMOR ${nomorSurat(peminjaman)}`, { size: SIZE });
+  y -= 28;
 
   // ---------- Identitas peminjam ----------
   const u = peminjaman.peminjam || {};
-  teks('Yang bertanda tangan di bawah ini:', MARGIN, { size: 10 });
-  y -= 18;
+  teks('Yang bertanda tangan di bawah ini:', MARGIN_L);
+  y -= 20;
 
   const identitas = [
     ['Nama', u.nama || '-'],
@@ -163,37 +207,40 @@ async function generate(peminjaman) {
     ['Pangkat/Gol.', u.pangkatGolongan || '-'],
     ['Unit Kerja', unitKerjaLengkap(u)],
   ];
-  const xLabel = MARGIN;
-  const xTitik = MARGIN + 90;
-  const xNilai = xTitik + 10;
+  const xLabel = MARGIN_L;
+  const xTitik = MARGIN_L + 95;
+  const xNilai = xTitik + 12;
   for (const [label, nilai] of identitas) {
-    teks(label, xLabel, { size: 10 });
-    teks(':', xTitik, { size: 10 });
-    const baris = wrapText(nilai, font, 10, PAGE_W - MARGIN - xNilai);
+    teks(label, xLabel);
+    teks(':', xTitik);
+    const baris = wrapText(nilai, font, SIZE, RIGHT_EDGE - xNilai);
     baris.forEach((b, i) => {
-      if (i > 0) y -= 13;
-      teks(b, xNilai, { size: 10 });
+      if (i > 0) y -= 14;
+      teks(b, xNilai);
     });
-    y -= 16;
+    y -= 18;
   }
   y -= 4;
-  teks('melakukan peminjaman BMN dengan perincian data:', MARGIN, { size: 10 });
-  y -= 18;
+  teks('melakukan peminjaman BMN dengan perincian data:', MARGIN_L);
+  y -= 20;
 
-  // ---------- Tabel barang ----------
+  // ---------- Tabel barang ---------- (lebar kolom mengikuti tblGrid templat, twips/20)
   const kolom = [
-    { judul: 'No.', w: 26, key: 'no', align: 'center' },
-    { judul: 'Nama Barang', w: 100, key: 'nama' },
-    { judul: 'Merek dan Tipe', w: 120, key: 'merk' },
-    { judul: 'NUP', w: 40, key: 'nup', align: 'center' },
-    { judul: 'Jumlah (unit)', w: 47, key: 'jumlah', align: 'center' },
-    { judul: 'Kondisi', w: 55, key: 'kondisi', align: 'center' },
-    { judul: 'Status Join Domain**', w: CONTENT_W - (26 + 100 + 120 + 40 + 47 + 55), key: 'join' },
+    // Lebar dasar mengikuti tblGrid templat; kolom "Jumlah" & "Kondisi"
+    // sedikit dilebarkan (mengambil ruang dari Nama/Merek yang longgar) agar
+    // judulnya tidak terpotong di tengah kata (mis. "Jumla"+"h", "Kondis"+"i").
+    { judul: 'No.', w: 28.1, key: 'no', align: 'center' },
+    { judul: 'Nama Barang', w: 124.6, key: 'nama', align: 'center' },
+    { judul: 'Merek dan Tipe', w: 117.5, key: 'merk', align: 'center' },
+    { judul: 'NUP', w: 35.4, key: 'nup', align: 'center' },
+    { judul: 'Jumlah (unit)', w: 46, key: 'jumlah', align: 'center' },
+    { judul: 'Kondisi', w: 48.55, key: 'kondisi', align: 'center' },
+    { judul: 'Status Join Domain**', w: CONTENT_W - (28.1 + 124.6 + 117.5 + 35.4 + 46 + 48.55), key: 'join', align: 'center' },
   ];
-  const sizeTabel = 8;
+  const sizeTabel = SIZE;
   const padX = 3;
-  const padY = 4;
-  const lineH = 10;
+  const padY = 5;
+  const lineH = 13;
 
   const barisData = (peminjaman.detail || []).map((d, i) => {
     const b = d.barang || {};
@@ -217,9 +264,9 @@ async function generate(peminjaman) {
     pastikanRuang(tinggi);
 
     const yAtas = y;
-    let x = MARGIN;
+    let x = MARGIN_L;
     kolom.forEach((c, idx) => {
-      // border sel
+      // border sel (isian putih untuk header, sesuai shd FFFFFF templat)
       page.drawRectangle({
         x,
         y: yAtas - tinggi,
@@ -227,6 +274,7 @@ async function generate(peminjaman) {
         height: tinggi,
         borderColor: hitam,
         borderWidth: 0.7,
+        color: rgb(1, 1, 1),
       });
       const lines = selBaris[idx];
       lines.forEach((ln, li) => {
@@ -246,36 +294,39 @@ async function generate(peminjaman) {
     true
   );
   if (barisData.length === 0) {
-    gambarBarisTabel({ no: '', nama: '', merk: '', nup: '', jumlah: '', kondisi: '', join: '' });
+    // tiga baris kosong seperti templat
+    for (let i = 0; i < 3; i += 1) {
+      gambarBarisTabel({ no: '', nama: '', merk: '', nup: '', jumlah: '', kondisi: '', join: '' });
+    }
   } else {
     barisData.forEach((r) => gambarBarisTabel(r));
   }
-  y -= 22;
+  y -= 24;
 
   // ---------- Pernyataan ----------
   pastikanRuang(40);
   for (const ln of wrapText(
     'dengan ini menyatakan bahwa dalam rangka peminjaman Barang Milik Negara, akan:',
     font,
-    10,
+    SIZE,
     CONTENT_W
   )) {
-    teks(ln, MARGIN, { size: 10 });
-    y -= 14;
+    teks(ln, MARGIN_L);
+    y -= LINE;
   }
   y -= 4;
 
-  const xNomor = MARGIN + 6;
-  const xPoin = MARGIN + 24;
+  const xNomor = MARGIN_L + 8;
+  const xPoin = MARGIN_L + 28;
   POIN_PERNYATAAN.forEach((poin, i) => {
-    const baris = wrapText(poin, font, 10, PAGE_W - MARGIN - xPoin);
-    pastikanRuang(baris.length * 14 + 4);
-    teks(`${i + 1}.`, xNomor, { size: 10 });
+    const baris = wrapText(poin, font, SIZE, RIGHT_EDGE - xPoin);
+    pastikanRuang(baris.length * LINE + 4);
+    teks(`${i + 1}.`, xNomor);
     baris.forEach((b, li) => {
-      if (li > 0) y -= 13;
-      teks(b, xPoin, { size: 10 });
+      if (li > 0) y -= 14;
+      teks(b, xPoin);
     });
-    y -= 16;
+    y -= 18;
   });
   y -= 6;
 
@@ -283,36 +334,36 @@ async function generate(peminjaman) {
   for (const ln of wrapText(
     'Demikian pernyataan ini kami buat dengan sebenar-benarnya untuk dipergunakan sebagaimana mestinya.',
     font,
-    10,
+    SIZE,
     CONTENT_W
   )) {
-    teks(ln, MARGIN, { size: 10 });
-    y -= 14;
+    teks(ln, MARGIN_L);
+    y -= LINE;
   }
-  y -= 16;
+  y -= 18;
 
   // ---------- Blok tanda tangan (kanan) ----------
   // Sesuai templat: "Jakarta, <tanggal>" / "Peminjam BMN" / (ruang) /
-  // "Ditandatangani secara elektronik" (abu) / Nama.
-  pastikanRuang(90);
-  const blokKiri = PAGE_W - MARGIN - 200;
+  // "Ditandatangani secara elektronik" (abu #BFBFBF) / Nama Lengkap.
+  pastikanRuang(96);
+  const blokKiri = RIGHT_EDGE - 210;
   const tanggal = formatTanggalSaja(peminjaman.tanggalPengajuan || new Date());
-  teks(`Jakarta, ${tanggal}`, blokKiri, { size: 10 });
-  y -= 14;
-  teks('Peminjam BMN', blokKiri, { size: 10 });
-  y -= 46; // ruang tanda tangan elektronik
-  teks('Ditandatangani secara elektronik', blokKiri, { size: 9, color: abuTtd });
-  y -= 13;
-  teks(u.nama || 'Nama Lengkap', blokKiri, { font: fontBold, size: 10 });
-  y -= 22;
+  teks(`Jakarta, ${tanggal}`, blokKiri);
+  y -= LINE;
+  teks('Peminjam BMN', blokKiri);
+  y -= LINE * 5; // 5 baris kosong (ruang tanda tangan) sebelum keterangan elektronik
+  teks('Ditandatangani secara elektronik', blokKiri, { size: SIZE, color: abuTtd });
+  y -= LINE;
+  teks(u.nama || 'Nama Lengkap', blokKiri);
+  y -= 24;
 
   // ---------- Catatan kaki ----------
   page.drawText('**diisi khusus BMN berupa Laptop/Tablet/PC', {
-    x: MARGIN,
-    y: MARGIN - 6,
-    size: 8,
+    x: MARGIN_L,
+    y: MARGIN_B - 6,
+    size: SIZE,
     font,
-    color: abu,
+    color: hitam,
   });
 
   const bytes = await pdf.save();
