@@ -6,6 +6,7 @@
 
 const nodemailer = require('nodemailer');
 const env = require('../config/env');
+const logger = require('../utils/logger');
 const {
   templateKonfirmasiPengajuan,
   templateStatusUpdate,
@@ -39,13 +40,13 @@ function getTransporter() {
 // Kirim email (async, tidak memblokir)
 async function kirim({ ke, subjek, html }) {
   if (!env.email?.enabled) {
-    console.log(`[EMAIL] Disabled. Would send to: ${ke}, Subject: ${subjek}`);
+    logger.info(`[EMAIL] Disabled. Would send to: ${ke}`);
     return { success: false, reason: 'EMAIL_DISABLED' };
   }
 
   const t = getTransporter();
   if (!t) {
-    console.warn('[EMAIL] Transporter not available');
+    logger.warn('[EMAIL] Transporter not available');
     return { success: false, reason: 'NO_TRANSPORTER' };
   }
 
@@ -57,10 +58,10 @@ async function kirim({ ke, subjek, html }) {
       html,
     });
 
-    console.log(`[EMAIL] Sent to ${ke}: ${info.messageId}`);
+    logger.success(`[EMAIL] Sent to ${ke}`);
     return { success: true, messageId: info.messageId };
   } catch (error) {
-    console.error(`[EMAIL] Failed to send to ${ke}:`, error.message);
+    logger.error(`[EMAIL] Failed to send to ${ke}:`, error.message);
     return { success: false, reason: error.message };
   }
 }
