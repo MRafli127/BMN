@@ -5,6 +5,7 @@
 
 const XLSX = require('xlsx');
 const { formatTanggalIndonesia, formatTanggalSingkat } = require('../utils/formatTanggal');
+const { LABEL_KONDISI } = require('../constants');
 
 // Mapping status ke label Indonesia
 const LABEL_STATUS = {
@@ -23,13 +24,6 @@ const LABEL_JENIS = {
   KENDARAAN: 'Kendaraan',
   ATK: 'Alat Tulis Kantor',
   LAINNYA: 'Lainnya',
-};
-
-// Mapping kondisi
-const LABEL_KONDISI = {
-  BAIK: 'Baik',
-  RUSAK_RINGAN: 'Rusak Ringan',
-  RUSAK_BERAT: 'Rusak Berat',
 };
 
 // Format tanggal standar Indonesia

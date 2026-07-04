@@ -5,6 +5,7 @@
 // ============================================================
 
 const { prisma } = require('../config/database');
+const { parsePagination } = require('../utils/pagination');
 
 // --- Aksi yang didukung ---
 const AKSI = {
@@ -199,8 +200,7 @@ async function getSemua({
   page = 1,
   limit = 50,
 } = {}) {
-  const halaman = Math.max(1, parseInt(page, 10) || 1);
-  const perHalaman = Math.min(200, Math.max(1, parseInt(limit, 10) || 50));
+  const { halaman, perHalaman, skip } = parsePagination({ page, limit, defaultLimit: 50 });
 
   const where = {};
 

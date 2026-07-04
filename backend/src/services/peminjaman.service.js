@@ -11,6 +11,7 @@
 
 const { prisma } = require('../config/database');
 const { urlPublik } = require('../utils/apiResponse');
+const { parsePagination } = require('../utils/pagination');
 const { AppError } = require('../middleware/error.middleware');
 const qrcodeService = require('./qrcode.service');
 const suratPernyataanService = require('./suratPernyataan.service');
@@ -121,13 +122,17 @@ async function previewSurat(userId, data) {
   const user = await prisma.user.findUnique({ where: { id: userId } });
   if (!user) throw new AppError('Data peminjam tidak ditemukan.', 404);
 
-  // Proses semua items
-  const detailItems = [];
-  for (const item of data.items) {
-    const barang = await prisma.barang.findUnique({ where: { id: item.barangId } });
+  // Ambil semua barang sekaligus (hindari N+1)
+  const barangIds = data.items.map((i) => i.barangId);
+  const barangMap = new Map(
+    (await prisma.barang.findMany({ where: { id: { in: barangIds } } })).map((b) => [b.id, b])
+  );
+
+  const detailItems = data.items.map((item) => {
+    const barang = barangMap.get(item.barangId);
     if (!barang) throw new AppError('Barang yang dipilih tidak ditemukan.', 404);
-    detailItems.push({ barang, jumlahPinjam: item.jumlahPinjam });
-  }
+    return { barang, jumlahPinjam: item.jumlahPinjam };
+  });
 
   // Intip nomor surat berikutnya untuk tahun ini agar pratinjau menampilkan
   // nomor yang (kemungkinan besar) akan diperoleh saat pengajuan disimpan.
@@ -228,17 +233,19 @@ async function create(userId, data, dokumenDataUrl, requestInfo = {}) {
     );
   }
 
-  // Ambil data user untuk audit log dan email
-  const user = await prisma.user.findUnique({ where: { id: userId } });
-
   // Generate kode transaksi unik untuk QR code dan referensi
   const kodeTransaksi = await kodeTransaksiUnik();
 
-  // Proses semua items
+  // Ambil semua barang sekaligus (hindari N+1 di dalam transaction)
+  const barangIds = data.items.map((i) => i.barangId);
+  const barangList = await prisma.barang.findMany({ where: { id: { in: barangIds } } });
+  const barangMap = new Map(barangList.map((b) => [b.id, b]));
+
+  // Validasi dan bangun detail
   const detailItems = [];
   let kodeSnapshot = null;
   for (const item of data.items) {
-    const barang = await prisma.barang.findUnique({ where: { id: item.barangId } });
+    const barang = barangMap.get(item.barangId);
     if (!barang) throw new AppError(`Barang dengan id ${item.barangId} tidak ditemukan.`, 404);
     if (item.jumlahPinjam > barang.jumlahTersedia) {
       throw new AppError(
@@ -246,8 +253,6 @@ async function create(userId, data, dokumenDataUrl, requestInfo = {}) {
         400
       );
     }
-    // Snapshot kode aset dari barang pertama (kolom kodePeminjaman NOT NULL).
-    // Saat dibaca, kode di-resync via kodeDariBarang() dari barang terkait.
     if (!kodeSnapshot) kodeSnapshot = barang.kodeBarang;
     detailItems.push({ barangId: item.barangId, jumlahPinjam: item.jumlahPinjam });
   }
@@ -400,8 +405,7 @@ async function generateSuratPernyataan(id, { userId, role } = {}) {
 
 // --- Ambil daftar peminjaman (role-aware) ---
 async function getSemua({ status, q, userId, role, page = 1, limit = 10 } = {}) {
-  const halaman = Math.max(1, parseInt(page, 10) || 1);
-  const perHalaman = Math.min(200, Math.max(1, parseInt(limit, 10) || 10));
+  const { halaman, perHalaman, skip } = parsePagination({ page, limit });
 
   const where = {};
   if (status) {

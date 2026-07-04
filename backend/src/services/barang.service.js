@@ -7,6 +7,7 @@
 const { prisma } = require('../config/database');
 const { kodeNaturalBarang } = require('../utils/generateKode');
 const { urlPublik } = require('../utils/apiResponse');
+const { parsePagination } = require('../utils/pagination');
 const { AppError } = require('../middleware/error.middleware');
 
 // Ubah fotoUrl relatif menjadi absolut untuk client
@@ -17,8 +18,7 @@ function serialisasi(barang) {
 
 // --- Ambil daftar barang dengan pencarian/filter/pagination ---
 async function getSemua({ q, jenis, kondisi, ketersediaan, page = 1, limit = 10 } = {}) {
-  const halaman = Math.max(1, parseInt(page, 10) || 1);
-  const perHalaman = Math.min(200, Math.max(1, parseInt(limit, 10) || 10));
+  const { halaman, perHalaman, skip } = parsePagination({ page, limit });
 
   const where = {};
   if (q) {

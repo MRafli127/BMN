@@ -7,6 +7,7 @@ const jwt = require('jsonwebtoken');
 const { prisma } = require('../config/database');
 const env = require('../config/env');
 const { hashPassword, bandingkanPassword } = require('../utils/hashPassword');
+const { tanpaPassword } = require('../utils/userHelper');
 const { AppError } = require('../middleware/error.middleware');
 
 // Helper: cek apakah token ada di blacklist
@@ -104,13 +105,6 @@ function buatRefreshToken(user) {
 // Generate unique ID untuk JWT (untuk blacklist tracking)
 function generateJti() {
   return `${Date.now()}-${Math.random().toString(36).substring(2, 15)}`;
-}
-
-// Hilangkan field password sebelum dikirim ke client
-function tanpaPassword(user) {
-  if (!user) return user;
-  const { password, ...sisanya } = user;
-  return sisanya;
 }
 
 // --- Registrasi peminjam baru ---
