@@ -209,32 +209,52 @@ export default function AdminDashboardPage() {
         onFilter={setFilterTanggal}
       />
 
-      {/* Header eksekutif */}
-      <section className="flex flex-col items-start justify-between gap-4 md:flex-row md:items-center">
-        <div>
-          <h1 className="font-jakarta text-headline-lg text-primary">Ringkasan Eksekutif</h1>
-          <p className="text-on-surface-variant">
-            Monitoring real-time aset dan inventaris Kementerian Keuangan.
-          </p>
-        </div>
-        <div className="flex gap-3">
-          <Button
-            variant={adaFilter ? 'default' : 'outline'}
-            onClick={() => setDialogTerbuka(true)}
-            className={cn(adaFilter && 'gap-2')}
-          >
-            <Icon name="calendar_today" className="text-[18px]" />
-            <span>Rentang Waktu</span>
-            {adaFilter && (
-              <span className="ml-1 flex h-5 w-5 items-center justify-center rounded-full bg-white/20 text-xs">
-                <X className="h-3 w-3" onClick={(e) => {
-                  e.stopPropagation();
-                  setFilterTanggal({});
-                }} />
-              </span>
-            )}
-          </Button>
-          <ExportModal />
+      {/* Hero eksekutif */}
+      <section className="relative overflow-hidden rounded-2xl bg-brand-gradient p-stack-lg text-white shadow-brand">
+        {/* Orb dekoratif lembut sebagai latar */}
+        <div className="pointer-events-none absolute -right-12 -top-12 h-44 w-44 rounded-full bg-white/10 blur-3xl" />
+        <div className="pointer-events-none absolute -bottom-20 right-1/4 h-48 w-48 rounded-full bg-sky-400/20 blur-3xl" />
+        <div className="relative flex flex-col items-start justify-between gap-4 md:flex-row md:items-center">
+          <div>
+            <p className="mb-1 flex items-center gap-2 font-label-sm uppercase tracking-widest text-white/70">
+              <Icon name="space_dashboard" className="text-[16px]" fill />
+              Dashboard Admin
+            </p>
+            <h1 className="font-jakarta text-headline-lg text-white">Ringkasan Eksekutif</h1>
+            <p className="text-white/80">
+              Monitoring real-time aset dan inventaris Kementerian Keuangan.
+            </p>
+          </div>
+          <div className="flex gap-3">
+            <Button
+              onClick={() => setDialogTerbuka(true)}
+              className={cn(
+                'backdrop-blur-sm',
+                adaFilter
+                  ? 'gap-2 bg-white text-primary hover:bg-white/90'
+                  : 'border border-white/30 bg-white/10 text-white hover:bg-white/20',
+              )}
+            >
+              <Icon name="calendar_today" className="text-[18px]" />
+              <span>Rentang Waktu</span>
+              {adaFilter && (
+                <span className="ml-1 flex h-5 w-5 items-center justify-center rounded-full bg-primary/15 text-xs">
+                  <X className="h-3 w-3" onClick={(e) => {
+                    e.stopPropagation();
+                    setFilterTanggal({});
+                  }} />
+                </span>
+              )}
+            </Button>
+            <ExportModal
+              trigger={
+                <Button className="border border-white/30 bg-white/10 text-white backdrop-blur-sm hover:bg-white/20">
+                  <Icon name="download" className="text-[18px]" />
+                  <span>Ekspor</span>
+                </Button>
+              }
+            />
+          </div>
         </div>
       </section>
 
@@ -285,7 +305,10 @@ export default function AdminDashboardPage() {
         {/* Grafik ringkasan per status */}
         <section className="glass-card flex flex-col gap-6 rounded-2xl p-stack-lg lg:col-span-2">
           <div>
-            <h3 className="font-jakarta text-headline-md text-primary">Ringkasan Aktivitas</h3>
+            <h3 className="flex items-center gap-2 font-jakarta text-headline-md text-primary">
+              <Icon name="bar_chart" className="text-[22px]" />
+              Ringkasan Aktivitas
+            </h3>
             <p className="text-on-surface-variant">Distribusi peminjaman berdasarkan status</p>
           </div>
           <div className="flex flex-1 flex-col justify-end gap-3 pt-4">
@@ -371,7 +394,19 @@ export default function AdminDashboardPage() {
       {/* Peminjaman terbaru */}
       <section className="glass-card overflow-hidden rounded-2xl">
         <div className="flex items-center justify-between border-b border-outline-variant bg-white/40 p-stack-lg">
-          <h3 className="font-jakarta text-headline-md text-primary">Peminjaman Terbaru</h3>
+          <h3 className="flex items-center gap-2 font-jakarta text-headline-md text-primary">
+            <Icon name="receipt_long" className="text-[22px]" />
+            Peminjaman Terbaru
+          </h3>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="group gap-1 text-primary hover:bg-primary/10"
+            onClick={() => router.push(RUTE.adminPeminjaman)}
+          >
+            Lihat Semua
+            <Icon name="arrow_forward" className="text-[16px] transition-transform group-hover:translate-x-1" />
+          </Button>
         </div>
         <div className="p-stack-md">
           {data.peminjamanTerbaru.length === 0 ? (
