@@ -12,6 +12,8 @@ const path = require('path');
 const fs = require('fs');
 const { bufferKeDataUrl } = require('../utils/fileData');
 const { formatTanggalSaja } = require('../utils/formatTanggal');
+const { wrapText } = require('../utils/pdfHelper');
+const { LABEL_KONDISI } = require('../constants');
 const nomorSuratService = require('./nomorSurat.service');
 const env = require('../config/env');
 
@@ -19,40 +21,6 @@ const PAGE_W = 595.28;
 const PAGE_H = 841.89;
 const MARGIN = 50;
 const CONTENT_W = PAGE_W - MARGIN * 2;
-
-const LABEL_KONDISI = {
-  BAIK: 'Baik',
-  RUSAK_RINGAN: 'Rusak Ringan',
-  RUSAK_BERAT: 'Rusak Berat',
-};
-
-// Pecah teks menjadi baris-baris agar muat dalam maxWidth.
-function wrapText(text, font, size, maxWidth) {
-  const hasil = [];
-  const kata = String(text ?? '').split(/\s+/).filter(Boolean);
-  let baris = '';
-  for (let w of kata) {
-    while (font.widthOfTextAtSize(w, size) > maxWidth) {
-      let i = 1;
-      while (i <= w.length && font.widthOfTextAtSize(w.slice(0, i), size) <= maxWidth) i++;
-      if (baris) {
-        hasil.push(baris);
-        baris = '';
-      }
-      hasil.push(w.slice(0, i - 1));
-      w = w.slice(i - 1);
-    }
-    const coba = baris ? `${baris} ${w}` : w;
-    if (font.widthOfTextAtSize(coba, size) > maxWidth && baris) {
-      hasil.push(baris);
-      baris = w;
-    } else {
-      baris = coba;
-    }
-  }
-  if (baris) hasil.push(baris);
-  return hasil.length ? hasil : [''];
-}
 
 function nomorSurat(peminjaman) {
   // Surat pengembalian memakai nomor & tahun yang sama dengan surat

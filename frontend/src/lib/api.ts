@@ -44,7 +44,9 @@ api.interceptors.request.use((config) => {
 });
 
 // --- Interceptor response: auto-refresh saat 401 ---
-let sedangRefresh = false;
+// Promise-based lock: semua request 401 tunggu promise yang sama,
+// hindari race condition saat multiple 401 responses datang bersamaan.
+let refreshPromise: Promise<string | null> | null = null;
 let antrian: Array<(token: string | null) => void> = [];
 
 function prosesAntrian(token: string | null) {
@@ -83,7 +85,7 @@ api.interceptors.response.use(
     const endpointAuth = url.includes('/auth/login') || url.includes('/auth/refresh') || url.includes('/auth/register');
 
     if (error.response?.status === 401 && !original._retry && !endpointAuth) {
-      if (sedangRefresh) {
+      if (refreshPromise) {
         // Tunggu proses refresh yang sedang berjalan
         return new Promise((resolve, reject) => {
           antrian.push((token) => {
@@ -98,30 +100,41 @@ api.interceptors.response.use(
       }
 
       original._retry = true;
-      sedangRefresh = true;
+
+      const doRefresh = async (): Promise<string | null> => {
+        try {
+          const res = await axios.post(
+            `${BASE_URL}/auth/refresh`,
+            {},
+            { withCredentials: true }
+          );
+          const { accessToken, user } = res.data.data;
+          simpanToken(accessToken);
+          if (user) simpanUser(user);
+          return accessToken;
+        } catch {
+          bersihkanSesi();
+          if (typeof window !== 'undefined' && !window.location.pathname.startsWith('/login')) {
+            window.location.href = '/login';
+          }
+          return null;
+        }
+      };
+
+      refreshPromise = doRefresh();
 
       try {
-        const res = await axios.post(
-          `${BASE_URL}/auth/refresh`,
-          {},
-          { withCredentials: true }
-        );
-        const { accessToken, user } = res.data.data;
-        simpanToken(accessToken);
-        if (user) simpanUser(user);
-        prosesAntrian(accessToken);
-        original.headers.Authorization = `Bearer ${accessToken}`;
-        return api(original);
-      } catch (refreshError) {
-        prosesAntrian(null);
-        bersihkanSesi();
-        if (typeof window !== 'undefined' && !window.location.pathname.startsWith('/login')) {
-          window.location.href = '/login';
+        const token = await refreshPromise;
+        prosesAntrian(token);
+        refreshPromise = null;
+        if (token) {
+          original.headers.Authorization = `Bearer ${token}`;
+          return api(original);
         }
-        return Promise.reject(refreshError);
-      } finally {
-        sedangRefresh = false;
+      } catch {
+        // refreshPromise already resolved to null, cleanup done
       }
+      return Promise.reject(error);
     }
 
     return Promise.reject(error);

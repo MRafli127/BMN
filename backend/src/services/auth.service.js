@@ -7,7 +7,9 @@ const jwt = require('jsonwebtoken');
 const { prisma } = require('../config/database');
 const env = require('../config/env');
 const { hashPassword, bandingkanPassword } = require('../utils/hashPassword');
+const { tanpaPassword } = require('../utils/userHelper');
 const { AppError } = require('../middleware/error.middleware');
+const logger = require('../utils/logger');
 
 // Helper: cek apakah token ada di blacklist
 async function isTokenBlacklisted(token) {
@@ -59,7 +61,7 @@ async function invalidateAllUserTokens(userId, oldTokenVersion) {
 
   // Tandai di DB bahwa versi token berubah (untuk validasi)
   // Ini ditangani dengan increment tokenVersion di user record
-  console.log(`[AUTH] Invalidated all tokens for user ${userId} (version ${oldVersion} -> ${oldVersion + 1})`);
+  logger.info(`[AUTH] Invalidated all tokens for user ${userId}`);
 }
 
 // Helper: cleanup expired tokens secara periodik (async, tidak blocking)
@@ -69,7 +71,7 @@ async function cleanupExpiredTokens() {
       where: { expiresAt: { lt: new Date() } },
     });
     if (result.count > 0) {
-      console.log(`[AUTH] Cleaned up ${result.count} expired blacklisted tokens`);
+      logger.info(`[AUTH] Cleaned up ${result.count} expired blacklisted tokens`);
     }
   } catch {
     // Silent fail
@@ -104,13 +106,6 @@ function buatRefreshToken(user) {
 // Generate unique ID untuk JWT (untuk blacklist tracking)
 function generateJti() {
   return `${Date.now()}-${Math.random().toString(36).substring(2, 15)}`;
-}
-
-// Hilangkan field password sebelum dikirim ke client
-function tanpaPassword(user) {
-  if (!user) return user;
-  const { password, ...sisanya } = user;
-  return sisanya;
 }
 
 // --- Registrasi peminjam baru ---
@@ -239,7 +234,7 @@ async function gantiPassword(userId, { passwordLama, passwordBaru }) {
     });
   });
 
-  console.log(`[AUTH] Password changed for user ${userId}. All old tokens invalidated.`);
+  logger.info(`[AUTH] Password changed for user ${userId}`);
 }
 
 // --- Perbarui access token menggunakan refresh token ---

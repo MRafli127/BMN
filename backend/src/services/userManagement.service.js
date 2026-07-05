@@ -5,26 +5,17 @@
 
 const { prisma } = require('../config/database');
 const { hashPassword } = require('../utils/hashPassword');
+const { STATUS_AKTIF } = require('../constants');
+const { tanpaPassword } = require('../utils/userHelper');
+const { parsePagination } = require('../utils/pagination');
 const { AppError } = require('../middleware/error.middleware');
 
 // Password default untuk user baru hasil reset
 const PASSWORD_DEFAULT_RESET = 'BMN@Reset123';
 
-// Status peminjaman yang dianggap "aktif" — user dengan salah satu status ini
-// tidak boleh dihapus karena barang masih tercatat sedang digunakan.
-const STATUS_AKTIF = ['MENUNGGU', 'DISETUJUI', 'DIPINJAM', 'TERLAMBAT'];
-
-// Hilangkan field password sebelum kirim ke client
-function tanpaPassword(user) {
-  if (!user) return user;
-  const { password, ...sisanya } = user;
-  return sisanya;
-}
-
 // --- List semua user dengan pagination & filter ---
 async function getSemua({ q, role, page = 1, limit = 10 } = {}) {
-  const halaman = Math.max(1, parseInt(page, 10) || 1);
-  const perHalaman = Math.min(200, Math.max(1, parseInt(limit, 10) || 10));
+  const { halaman, perHalaman, skip } = parsePagination({ page, limit });
 
   const where = {};
   if (role) where.role = role;

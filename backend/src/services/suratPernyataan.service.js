@@ -23,6 +23,8 @@ const path = require('path');
 const fs = require('fs');
 const { bufferKeDataUrl } = require('../utils/fileData');
 const { formatTanggalSaja } = require('../utils/formatTanggal');
+const { wrapText } = require('../utils/pdfHelper');
+const { LABEL_KONDISI } = require('../constants');
 const nomorSuratService = require('./nomorSurat.service');
 
 // Ukuran halaman A4 & margin sesuai sectPr templat (twips -> pt, 1pt = 20 twips).
@@ -39,12 +41,6 @@ const CONTENT_W = RIGHT_EDGE - MARGIN_L;
 const SIZE = 11;
 const LINE = 15; // tinggi baris untuk teks 11pt (spasi tunggal + sedikit lega)
 
-const LABEL_KONDISI = {
-  BAIK: 'Baik',
-  RUSAK_RINGAN: 'Rusak Ringan',
-  RUSAK_BERAT: 'Rusak Berat',
-};
-
 const POIN_PERNYATAAN = [
   'menggunakan BMN dalam rangka melaksanakan tugas dan fungsi;',
   'menjaga dan memelihara BMN;',
@@ -55,33 +51,6 @@ const POIN_PERNYATAAN = [
 ];
 
 // Pecah teks menjadi baris-baris agar muat dalam maxWidth.
-function wrapText(text, font, size, maxWidth) {
-  const hasil = [];
-  const kata = String(text ?? '').split(/\s+/).filter(Boolean);
-  let baris = '';
-  for (let w of kata) {
-    // Pecah paksa kata yang lebih panjang dari kolom.
-    while (font.widthOfTextAtSize(w, size) > maxWidth) {
-      let i = 1;
-      while (i <= w.length && font.widthOfTextAtSize(w.slice(0, i), size) <= maxWidth) i++;
-      if (baris) {
-        hasil.push(baris);
-        baris = '';
-      }
-      hasil.push(w.slice(0, i - 1));
-      w = w.slice(i - 1);
-    }
-    const coba = baris ? `${baris} ${w}` : w;
-    if (font.widthOfTextAtSize(coba, size) > maxWidth && baris) {
-      hasil.push(baris);
-      baris = w;
-    } else {
-      baris = coba;
-    }
-  }
-  if (baris) hasil.push(baris);
-  return hasil.length ? hasil : [''];
-}
 
 // Nomor surat: pakai nomor tersimpan (nomorSurat/tahunSurat) bila ada;
 // saat pratinjau nilai tersebut diisi hasil "intip" di peminjaman.service.
@@ -104,16 +73,19 @@ async function muatFont(pdf) {
   const dirFont = path.resolve(__dirname, '../../assets/fonts');
   const reg = path.join(dirFont, 'Arial.ttf');
   const bold = path.join(dirFont, 'Arial-Bold.ttf');
-  try {
-    if (fs.existsSync(reg) && fs.existsSync(bold)) {
+
+  // Cek keberadaan kedua file sekaligus
+  if (fs.existsSync(reg) && fs.existsSync(bold)) {
+    try {
       pdf.registerFontkit(fontkit);
       const font = await pdf.embedFont(fs.readFileSync(reg), { subset: true });
       const fontBold = await pdf.embedFont(fs.readFileSync(bold), { subset: true });
       return { font, fontBold };
+    } catch {
+      // gagal memuat Arial -> pakai fallback
     }
-  } catch {
-    // gagal memuat Arial -> pakai fallback di bawah
   }
+
   const font = await pdf.embedFont(StandardFonts.Helvetica);
   const fontBold = await pdf.embedFont(StandardFonts.HelveticaBold);
   return { font, fontBold };
