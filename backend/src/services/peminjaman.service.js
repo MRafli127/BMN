@@ -236,8 +236,8 @@ async function create(userId, data, dokumenDataUrl, requestInfo = {}) {
   // Generate kode transaksi unik untuk QR code dan referensi
   const kodeTransaksi = await kodeTransaksiUnik();
 
-  // Ambil semua barang sekaligus (hindari N+1 di dalam transaction)
-  const barangIds = data.items.map((i) => i.barangId);
+  // Ambil semua barang sekaligus (hindari N+1 di dalam transaction).
+  // Reuse barangIds yang sudah dedup + non-null dari cek di atas.
   const barangList = await prisma.barang.findMany({ where: { id: { in: barangIds } } });
   const barangMap = new Map(barangList.map((b) => [b.id, b]));
 
