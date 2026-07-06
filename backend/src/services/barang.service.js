@@ -163,4 +163,31 @@ async function remove(id) {
   return { id };
 }
 
-module.exports = { getSemua, getById, create, update, remove, serialisasi };
+// --- Cek stok barang untuk polling cart ---
+// Input: array of barang IDs
+// Output: barang yang tidak tersedia lagi (stok = 0 atau tidak ada)
+async function checkStokTersedia(barangIds) {
+  if (!barangIds || barangIds.length === 0) return [];
+
+  const barang = await prisma.barang.findMany({
+    where: { id: { in: barangIds } },
+    select: {
+      id: true,
+      nama: true,
+      merk: true,
+      kodeBarang: true,
+      jumlahTersedia: true,
+      fotoUrl: true,
+    },
+  });
+
+  // Barang yang sudah tidak tersedia (stok habis atau dihapus)
+  const tidakTersedia = barang.filter((b) => b.jumlahTersedia < 1);
+
+  return tidakTersedia.map((b) => ({
+    ...b,
+    fotoUrl: urlPublik(b.fotoUrl),
+  }));
+}
+
+module.exports = { getSemua, getById, create, update, remove, serialisasi, checkStokTersedia };

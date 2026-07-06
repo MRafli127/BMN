@@ -8,9 +8,24 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
-import { Loader2 } from 'lucide-react';
+import {
+  ArrowLeft,
+  Check,
+  X,
+  Stamp,
+  PackageCheck,
+  Undo2,
+  Clock,
+  FileText,
+  Download,
+  Loader2,
+  ExternalLink,
+  User as UserIcon,
+  CalendarDays,
+  AlertTriangle,
+} from 'lucide-react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Icon } from '@/components/ui/icon';
-import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Textarea, Label } from '@/components/ui/input';
@@ -22,7 +37,8 @@ import { FolderBarangDipinjam } from '@/components/peminjaman/FolderBarangDipinj
 import { TampilQR } from '@/components/qrcode/TampilQR';
 import { notify } from '@/components/ui/toast';
 import { peminjamanService } from '@/services/peminjaman.service';
-import { ambilPesanError, cn, formatTanggalLengkap } from '@/lib/utils';
+import { ambilPesanError, formatTanggalLengkap, cn } from '@/lib/utils';
+import { hitungInfoPensiun } from '@/components/peminjaman/TabelPeminjaman';
 import { STATUS_PEMINJAMAN } from '@/constants/status';
 import { RUTE } from '@/constants/routes';
 import type { Peminjaman } from '@/types/peminjaman.type';
@@ -120,6 +136,9 @@ export default function DetailPeminjamanAdminPage() {
   const bisaKembalikan = ['DISETUJUI', 'DIPINJAM', 'TERLAMBAT'].includes(data.status);
   const tanpaTindakan = data.status === 'DIKEMBALIKAN' || data.status === 'DITOLAK';
 
+  // Info pensiun peminjam
+  const infoPensiun = hitungInfoPensiun(data.peminjam?.retirementDate);
+
   return (
     <div className="mx-auto max-w-5xl space-y-gutter">
       {/* Hero: identitas peminjaman + status terkini */}
@@ -171,14 +190,54 @@ export default function DetailPeminjamanAdminPage() {
         {/* Kolom utama */}
         <div className="space-y-gutter lg:col-span-2">
           {/* Info peminjam */}
-          <Card className="overflow-hidden border-primary/15">
-            <KepalaKartu ikon="person" judul="Data Peminjam" deskripsi="Identitas pengaju peminjaman." />
-            <div className="grid grid-cols-1 gap-4 p-5 sm:grid-cols-2">
-              <InfoIkon ikon="person" label="Nama" nilai={data.peminjam?.nama} />
-              <InfoIkon ikon="fingerprint" label="NIP" nilai={data.peminjam?.nip} />
-              <InfoIkon ikon="account_tree" label="Eselon IV" nilai={data.peminjam?.eselon4} />
-              <InfoIkon ikon="corporate_fare" label="Eselon III" nilai={data.peminjam?.eselon3} />
-            </div>
+          <Card className={cn(
+            infoPensiun.isDanger && 'border-l-4 border-l-error',
+            infoPensiun.isWarning && !infoPensiun.isDanger && 'border-l-4 border-l-warning'
+          )}>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-base">
+                <UserIcon className="h-4 w-4" /> Data Peminjam
+                {infoPensiun.isDanger && (
+                  <span className="ml-auto flex items-center gap-1 rounded-full bg-error/10 px-2 py-0.5 text-xs font-medium text-error">
+                    <AlertTriangle className="h-3 w-3" /> Pensiun: {infoPensiun.label}
+                  </span>
+                )}
+                {infoPensiun.isWarning && !infoPensiun.isDanger && (
+                  <span className="ml-auto flex items-center gap-1 rounded-full bg-warning/10 px-2 py-0.5 text-xs font-medium text-warning">
+                    <AlertTriangle className="h-3 w-3" /> Pensiun: {infoPensiun.label}
+                  </span>
+                )}
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="grid grid-cols-2 gap-3 text-sm">
+              <Info label="Nama" nilai={data.peminjam?.nama} />
+              <Info label="NIP" nilai={data.peminjam?.nip} />
+              <Info label="Eselon IV" nilai={data.peminjam?.eselon4} />
+              <Info label="Eselon III" nilai={data.peminjam?.eselon3} />
+              {/* Info pensiun */}
+              {infoPensiun.isWarning && (
+                <div className={cn(
+                  'col-span-2 rounded-lg p-3',
+                  infoPensiun.isDanger ? 'bg-error/5' : 'bg-warning/5'
+                )}>
+                  <div className="flex items-start gap-2">
+                    <AlertTriangle className={cn('h-4 w-4 mt-0.5 shrink-0', infoPensiun.isDanger ? 'text-error' : 'text-warning')} />
+                    <div>
+                      <p className={cn('font-medium', infoPensiun.isDanger ? 'text-error' : 'text-warning')}>
+                        {infoPensiun.isDanger ? 'Pensiun Mendesak!' : 'Pensiun Mendekati'}
+                      </p>
+                      <p className="mt-0.5 text-sm text-on-surface-variant">
+                        {infoPensiun.sisaHari === 0
+                          ? 'Pegawai sudah memasuki tanggal pensiun.'
+                          : `Pegawai akan pensiun dalam ${infoPensiun.label} pada tanggal ${data.peminjam?.retirementDate ? formatTanggalLengkap(data.peminjam.retirementDate) : '-'}. `
+                        }
+                        {!infoPensiun.isDanger && 'Pastikan '}Pastikan barang dikembalikan sebelum tanggal pensiun.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </CardContent>
           </Card>
 
           {/* Detail peminjaman */}
@@ -482,6 +541,16 @@ export default function DetailPeminjamanAdminPage() {
           </div>
         )}
       </KonfirmasiDialog>
+    </div>
+  );
+}
+
+// Komponen Info sederhana
+function Info({ label, nilai }: { label: string; nilai?: string | null }) {
+  return (
+    <div>
+      <p className="text-xs font-medium text-muted-foreground">{label}</p>
+      <p className="font-medium">{nilai || '-'}</p>
     </div>
   );
 }

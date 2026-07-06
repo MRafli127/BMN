@@ -14,6 +14,7 @@ import { cn, urlFile } from '@/lib/utils';
 import { useKeranjangStore } from '@/store/keranjangStore';
 import { notify } from '@/components/ui/toast';
 import type { ItemKeranjang } from '@/store/keranjangStore';
+import { AlertTriangle } from 'lucide-react';
 
 export interface GrupBarang {
   id: string; // identifier unik untuk grup (kombinasi nama + merk)
@@ -149,11 +150,15 @@ export function FolderKeranjang({ header }: Props) {
                 <ul className="animate-fade-in border-t border-primary/10">
                   {g.items.map((item) => {
                     const stokHabis = item.jumlahTersedia < 1;
+                    const tidakTersedia = item.tidakTersedia ?? false;
 
                     return (
                       <li
                         key={item.barangId}
-                        className="flex items-center gap-3 border-b border-primary/5 px-4 py-3 transition-colors last:border-b-0 hover:bg-primary/[0.03]"
+                        className={cn(
+                          'flex items-center gap-3 border-b border-primary/5 px-4 py-3 transition-colors last:border-b-0 hover:bg-primary/[0.03]',
+                          tidakTersedia && 'bg-red-50/50'
+                        )}
                       >
                         <div className="h-12 w-12 shrink-0 overflow-hidden rounded-lg border border-primary/10 bg-muted">
                           {item.fotoUrl ? (
@@ -172,16 +177,24 @@ export function FolderKeranjang({ header }: Props) {
                         <div className="min-w-0 flex-1">
                           <p className="break-all font-mono text-xs font-medium text-foreground">{item.kodeBarang}</p>
                           {item.merk && <p className="truncate text-xs text-muted-foreground">Merk: {item.merk}</p>}
+                          {tidakTersedia && (
+                            <p className="mt-0.5 flex items-center gap-1 text-xs font-medium text-red-600">
+                              <AlertTriangle className="h-3 w-3" />
+                              Tidak tersedia lagi
+                            </p>
+                          )}
                         </div>
                         <span
                           className={cn(
                             'shrink-0 rounded-full border px-2.5 py-0.5 text-xs font-semibold',
-                            stokHabis
+                            tidakTersedia
+                              ? 'border-red-200 bg-red-100 text-red-600'
+                              : stokHabis
                               ? 'border-red-200 bg-red-50 text-red-600 dark:bg-red-950/20'
                               : 'border-emerald-200 bg-emerald-50 text-emerald-700 dark:bg-emerald-950/20'
                           )}
                         >
-                          {stokHabis ? 'Stok habis' : `Stok ${item.jumlahTersedia}`}
+                          {tidakTersedia ? 'Stok Habis' : stokHabis ? 'Stok habis' : `Stok ${item.jumlahTersedia}`}
                         </span>
                         <Button
                           type="button"

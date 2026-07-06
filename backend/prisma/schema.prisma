@@ -108,6 +108,7 @@ model User {
   roles     Role[]     @default([PEMINJAM]) // Peran yang DIMILIKI akun (bisa >1). Active role hidup di JWT, bukan di DB.
   sumber    SumberAkun @default(MANUAL) // MANUAL (admin/registrasi) atau IMPORT (sinkron Excel)
   tokenVersion Int      @default(1) // Increment saat password diubah untuk invalidate semua token
+  retirementDate DateTime? // Tanggal pensiun (dihitung otomatis dari NIP: tanggal lahir + 58 tahun)
   createdAt DateTime   @default(now())
   updatedAt DateTime   @updatedAt
 

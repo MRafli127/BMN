@@ -5,6 +5,7 @@
 //              tanda tangan fisik, unggah kembali (PDF), lalu ajukan.
 //  Tampilan folder per nama barang (mirip katalog).
 //  Setiap unit barang hanya berjumlah 1.
+//  Support polling real-time untuk cek stok barang.
 // ============================================================
 
 'use client';
@@ -22,8 +23,9 @@ import { LoadingSpinner } from '@/components/shared/LoadingSpinner';
 import { notify } from '@/components/ui/toast';
 import { FolderKeranjang } from '@/components/keranjang/FolderKeranjang';
 import { KonfirmasiDialog } from '@/components/shared/KonfirmasiDialog';
+import { DialogBarangTidakTersedia } from '@/components/keranjang/DialogBarangTidakTersedia';
 import { LangkahSuratPernyataan } from '@/components/peminjaman/LangkahSuratPernyataan';
-import { useKeranjangStore, useJumlahKeranjang, useTotalUnitKeranjang } from '@/store/keranjangStore';
+import { useKeranjangStore, useJumlahKeranjang, useTotalUnitKeranjang, usePollingStokKeranjang } from '@/store/keranjangStore';
 import { RUTE } from '@/constants/routes';
 
 type Langkah = 'tinjau' | 'surat';
@@ -32,6 +34,7 @@ export default function KeranjangPage() {
   const router = useRouter();
   const items = useKeranjangStore((s) => s.items);
   const kosongkan = useKeranjangStore((s) => s.kosongkan);
+  const hapus = useKeranjangStore((s) => s.hapus);
 
   const [pangkatGol, setPangkatGol] = useState('');
   const [tglPinjam, setTglPinjam] = useState('');
@@ -46,6 +49,24 @@ export default function KeranjangPage() {
   const daftar = Object.values(items);
   const jumlahKeranjang = useJumlahKeranjang();
   const totalUnit = useTotalUnitKeranjang();
+
+  // Polling cek stok real-time (cek setiap 30 detik)
+  const {
+    barangYangDihapus,
+    dialogTerbuka: dialogStokTerbuka,
+    setDialogTerbuka: setDialogStokTerbuka,
+    refresh: refreshStok,
+  } = usePollingStokKeranjang({
+    enabled: mounted && daftar.length > 0,
+  });
+
+  // Hapus barang yang tidak tersedia dari keranjang
+  const handleHapusBarangTidakTersedia = () => {
+    for (const item of barangYangDihapus) {
+      hapus(item.barangId);
+    }
+    notify.warning(`${barangYangDihapus.length} barang yang tidak tersedia dihapus dari keranjang.`);
+  };
 
   // Validasi isian keranjang, lalu minta konfirmasi terakhir sebelum masuk ke
   // formulir — di tahap berikutnya isi pinjaman tidak bisa diubah/dibatalkan.
@@ -277,6 +298,14 @@ export default function KeranjangPage() {
           teksKonfirmasi="Ya, Lanjutkan"
           teksBatal="Periksa Lagi"
           onKonfirmasi={keSurat}
+        />
+
+        {/* Dialog popup barang tidak tersedia */}
+        <DialogBarangTidakTersedia
+          terbuka={dialogStokTerbuka}
+          onUbahTerbuka={setDialogStokTerbuka}
+          barangTidakTersedia={barangYangDihapus}
+          onHapusSemua={handleHapusBarangTidakTersedia}
         />
       </div>
     );
