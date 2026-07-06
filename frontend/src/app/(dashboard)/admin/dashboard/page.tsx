@@ -71,12 +71,12 @@ interface GayaBar {
 }
 const WARNA_BAR: Record<string, GayaBar> = {
   DRAFT: { bar: 'from-slate-400 to-slate-500', teks: 'text-slate-600', titik: 'bg-slate-400' },
-  MENUNGGU: { bar: 'from-amber-400 to-amber-500', teks: 'text-amber-600', titik: 'bg-amber-400' },
-  DISETUJUI: { bar: 'from-sky-400 to-blue-600', teks: 'text-blue-600', titik: 'bg-blue-500' },
-  DITOLAK: { bar: 'from-red-400 to-red-600', teks: 'text-red-600', titik: 'bg-red-500' },
-  DIPINJAM: { bar: 'from-indigo-500 to-indigo-700', teks: 'text-indigo-700', titik: 'bg-indigo-600' },
-  DIKEMBALIKAN: { bar: 'from-emerald-400 to-emerald-600', teks: 'text-emerald-600', titik: 'bg-emerald-500' },
-  TERLAMBAT: { bar: 'from-rose-400 to-rose-600', teks: 'text-rose-600', titik: 'bg-rose-500' },
+  MENUNGGU: { bar: 'from-amber-400 to-amber-500', teks: 'text-amber-700', titik: 'bg-amber-400' },
+  DISETUJUI: { bar: 'from-green-400 to-green-600', teks: 'text-green-700', titik: 'bg-green-500' },
+  DITOLAK: { bar: 'from-red-400 to-red-600', teks: 'text-red-700', titik: 'bg-red-500' },
+  DIPINJAM: { bar: 'from-pink-400 to-pink-600', teks: 'text-pink-700', titik: 'bg-pink-500' },
+  DIKEMBALIKAN: { bar: 'from-teal-400 to-teal-600', teks: 'text-teal-700', titik: 'bg-teal-500' },
+  TERLAMBAT: { bar: 'from-orange-400 to-orange-600', teks: 'text-orange-700', titik: 'bg-orange-500' },
 };
 
 function DialogRentangWaktu({
