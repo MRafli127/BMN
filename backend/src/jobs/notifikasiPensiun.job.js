@@ -8,8 +8,10 @@
 //  2. Hitung sisa hari menuju pensiun
 //  3. Filter user dengan sisa hari <= 90
 //  4. Cek apakah masih memiliki peminjaman aktif (DIPINJAM/TERLAMBAT)
-//  5. Buat notifikasi jika belum pernah dibuat (previne duplikat)
-//  6. Log proses
+//  5. Kirim notifikasi ke:
+//     - User/Peminjam: agar aware harus mengembalikan barang
+//     - Semua Admin: agar bisa proaktif mengejar pengembalian
+//  6. Cegah duplikat notifikasi
 // ============================================================
 
 const cron = require('node-cron');
@@ -21,7 +23,7 @@ const { hitungSisaHari } = require('../utils/nipHelper');
 //  Konstanta
 // ============================================================
 
-// Batas hari sebelum pensiun untuk触发 notifikasi
+// Batas hari sebelum pensiun untuk trigger notifikasi
 const BATAS_HARI_PENSIUN = 90;
 
 // Jadwal cron: setiap hari pukul 00:00 WIB
@@ -29,6 +31,16 @@ const JADWAL_CRON = '0 0 * * *';
 
 // Zona waktu Indonesia
 const ZONA_WAKTU = 'Asia/Jakarta';
+
+// ============================================================
+//  Helper: Format tanggal Indonesia
+// ============================================================
+
+function formatTanggalIndonesia(date) {
+  if (!date) return '-';
+  const d = new Date(date);
+  return `${d.getDate().toString().padStart(2, '0')}/${(d.getMonth() + 1).toString().padStart(2, '0')}/${d.getFullYear()}`;
+}
 
 // ============================================================
 //  Main Job Function
@@ -42,7 +54,8 @@ async function jalankanNotifikasiPensiun() {
   const waktuMulai = Date.now();
   let jumlahUserDicek = 0;
   let jumlahMendekatiPensiun = 0;
-  let jumlahNotifikasiDibuat = 0;
+  let jumlahNotifikasiUser = 0;
+  let jumlahNotifikasiAdmin = 0;
   let jumlahError = 0;
 
   console.log('[CRON:PENSIUN] ===========================================');
@@ -63,6 +76,7 @@ async function jalankanNotifikasiPensiun() {
         id: true,
         nama: true,
         nip: true,
+        email: true,
         retirementDate: true,
       },
     });
@@ -101,12 +115,10 @@ async function jalankanNotifikasiPensiun() {
     }
 
     // ============================================================
-    //  Langkah 4 & 5: Cek peminjaman aktif & buat notifikasi
+    //  Langkah 4: Ambil peminjaman aktif untuk semua user sekaligus
     // ============================================================
-    // Ambil semua user ID yang mendekati pensiun
     const userIds = userMendekatiPensiun.map((u) => u.id);
 
-    // Query efisien: ambil peminjaman aktif untuk semua user sekaligus
     const peminjamanAktif = await prisma.peminjaman.findMany({
       where: {
         userId: { in: userIds },
@@ -139,41 +151,13 @@ async function jalankanNotifikasiPensiun() {
     console.log(`[CRON:PENSIUN] User dengan peminjaman aktif: ${peminjamanPerUser.size}`);
 
     // ============================================================
-    //  Buat notifikasi untuk setiap user yang memenuhi kriteria
+    //  Langkah 5: Buat notifikasi untuk user & admin
     // ============================================================
     for (const user of userMendekatiPensiun) {
       const daftarPeminjaman = peminjamanPerUser.get(user.id) || [];
 
       // Jika tidak ada peminjaman aktif, skip
       if (daftarPeminjaman.length === 0) {
-        continue;
-      }
-
-      // ============================================================
-      //  Cek apakah notifikasi sudah pernah dibuat hari ini
-      //  previne duplikat dengan mengecek:
-      //  - tipe = PENSIUN_MENDEKATI
-      //  - userId = user.id
-      //  - createdAt = hari ini
-      // ============================================================
-      const hariIni = new Date();
-      hariIni.setHours(0, 0, 0, 0);
-      const besok = new Date(hariIni);
-      besok.setDate(besok.getDate() + 1);
-
-      const notifikasiExists = await prisma.notifikasi.findFirst({
-        where: {
-          userId: user.id,
-          tipe: notificationService.TIPE_NOTIFIKASI.PENSIUN_MENDEKATI,
-          createdAt: {
-            gte: hariIni,
-            lt: besok,
-          },
-        },
-      });
-
-      if (notifikasiExists) {
-        console.log(`[CRON:PENSIUN] User ${user.nama} sudah mendapat notifikasi hari ini. Skip.`);
         continue;
       }
 
@@ -187,9 +171,6 @@ async function jalankanNotifikasiPensiun() {
             daftarBarang.push({
               nama: d.barang.nama,
               kodeBarang: d.barang.kodeBarang,
-              tanggalPinjam: p.tanggalPinjamRencana
-                ? formatTanggal(d.peminjam?.createdAt || new Date())
-                : '-',
             });
           }
         }
@@ -199,37 +180,75 @@ async function jalankanNotifikasiPensiun() {
         continue;
       }
 
-      // ============================================================
-      //  Buat notifikasi
-      // ============================================================
-      const formatTanggal = (date) => {
-        if (!date) return '-';
-        const d = new Date(date);
-        return `${d.getDate().toString().padStart(2, '0')}/${(d.getMonth() + 1).toString().padStart(2, '0')}/${d.getFullYear()}`;
-      };
-
       const daftarBarangText = daftarBarang
-        .map((b, i) => `${i + 1}. ${b.nama} (${b.kodeBarang})`)
+        .map((b, i) => `  ${i + 1}. ${b.nama} (${b.kodeBarang})`)
         .join('\n');
 
-      const judul = `Pensiun dalam ${user.sisaHari} hari`;
-      const pesan = `${user.nama} (NIP: ${user.nip}) akan pensiun dalam ${user.sisaHari} hari.\n\nMasih memiliki ${daftarBarang.length} barang belum dikembalikan:\n${daftarBarangText}\n\nMohon segera lakukan proses pengembalian BMN.`;
+      // ============================================================
+      //  Cek apakah notifikasi sudah pernah dibuat hari ini
+      // ============================================================
+      const hariIni = new Date();
+      hariIni.setHours(0, 0, 0, 0);
+      const besok = new Date(hariIni);
+      besok.setDate(besok.getDate() + 1);
+
+      // ============================================================
+      //  Kirim notifikasi ke USER/PEMINJAM
+      // ============================================================
+      const notifikasiUserExists = await prisma.notifikasi.findFirst({
+        where: {
+          userId: user.id,
+          tipe: notificationService.TIPE_NOTIFIKASI.PENSIUN_MENDEKATI,
+          createdAt: { gte: hariIni, lt: besok },
+        },
+      });
+
+      if (!notifikasiUserExists) {
+        const judulUser = `Pensiun dalam ${user.sisaHari} hari`;
+        const pesanUser = `${user.nama}, Anda akan pensiun dalam ${user.sisaHari} hari.\n\nMasih memiliki ${daftarBarang.length} barang belum dikembalikan:\n${daftarBarangText}\n\nMohon segera lakukan proses pengembalian BMN sebelum tanggal pensiun.`;
+
+        try {
+          await notificationService.kirimKeUser(user.id, {
+            tipe: notificationService.TIPE_NOTIFIKASI.PENSIUN_MENDEKATI,
+            judul: judulUser,
+            pesan: pesanUser,
+            prioritas: 'TINGGI',
+            referenceId: user.id,
+            referenceType: 'PENSIUN',
+          });
+
+          jumlahNotifikasiUser++;
+          console.log(`[CRON:PENSIUN] Notifikasi dikirim ke ${user.nama} (user)`);
+        } catch (error) {
+          jumlahError++;
+          console.error(`[CRON:PENSIUN] Gagal kirim notifikasi ke ${user.nama}:`, error.message);
+        }
+      } else {
+        console.log(`[CRON:PENSIUN] User ${user.nama} sudah mendapat notifikasi hari ini. Skip.`);
+      }
+
+      // ============================================================
+      //  Kirim notifikasi ke SEMUA ADMIN
+      //  (Admin perlu tahuagar bisa proaktif mengejar pengembalian)
+      // ============================================================
+      const judulAdmin = `Pensiun dalam ${user.sisaHari} hari - Ada barang belum dikembalikan`;
+      const pesanAdmin = `${user.nama} (NIP: ${user.nip}) akan pensiun dalam ${user.sisaHari} hari.\n\nBarang belum dikembalikan (${daftarBarang.length} item):\n${daftarBarangText}\n\nMohon segera koordinasi untuk proses pengembalian BMN.`;
 
       try {
-        await notificationService.kirimKeUser(user.id, {
+        await notificationService.kirimKeSemuaAdmin({
           tipe: notificationService.TIPE_NOTIFIKASI.PENSIUN_MENDEKATI,
-          judul,
-          pesan,
+          judul: judulAdmin,
+          pesan: pesanAdmin,
           prioritas: 'TINGGI',
           referenceId: user.id,
           referenceType: 'PENSIUN',
         });
 
-        jumlahNotifikasiDibuat++;
-        console.log(`[CRON:PENSIUN] Notifikasi dibuat untuk ${user.nama} (${user.sisaHari} hari)`);
+        jumlahNotifikasiAdmin++;
+        console.log(`[CRON:PENSIUN] Notifikasi dikirim ke admin untuk ${user.nama}`);
       } catch (error) {
         jumlahError++;
-        console.error(`[CRON:PENSIUN] Gagal buat notifikasi untuk ${user.nama}:`, error.message);
+        console.error(`[CRON:PENSIUN] Gagal kirim notifikasi ke admin untuk ${user.nama}:`, error.message);
       }
     }
 
@@ -242,7 +261,8 @@ async function jalankanNotifikasiPensiun() {
     console.log(`[CRON:PENSIUN] Job selesai dalam ${durasi}ms`);
     console.log(`[CRON:PENSIUN] User dicek: ${jumlahUserDicek}`);
     console.log(`[CRON:PENSIUN] Mendekati pensiun: ${jumlahMendekatiPensiun}`);
-    console.log(`[CRON:PENSIUN] Notifikasi dibuat: ${jumlahNotifikasiDibuat}`);
+    console.log(`[CRON:PENSIUN] Notifikasi ke user: ${jumlahNotifikasiUser}`);
+    console.log(`[CRON:PENSIUN] Notifikasi ke admin: ${jumlahNotifikasiAdmin}`);
     console.log(`[CRON:PENSIUN] Error: ${jumlahError}`);
     console.log('[CRON:PENSIUN] ===========================================');
   } catch (error) {

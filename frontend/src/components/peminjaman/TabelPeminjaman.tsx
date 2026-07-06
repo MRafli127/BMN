@@ -8,12 +8,12 @@
 
 import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
-import { Eye, Trash2 } from 'lucide-react';
+import { Eye, Trash2, AlertTriangle } from 'lucide-react';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { KonfirmasiDialog } from '@/components/shared/KonfirmasiDialog';
-import { formatTanggal } from '@/lib/utils';
+import { formatTanggal, cn } from '@/lib/utils';
 import { STATUS_PEMINJAMAN } from '@/constants/status';
 import type { Peminjaman } from '@/types/peminjaman.type';
 
@@ -28,6 +28,56 @@ interface Props {
   // Bila diberikan, kolom checkbox pilihan ditampilkan (untuk hapus massal).
   terpilih?: string[];
   onUbahTerpilih?: (ids: string[]) => void;
+}
+
+// ============================================================
+//  Helper: Indikator Pensiun
+// ============================================================
+
+const BATAS_HARI_PENSIUN = 90; // Trigger warning jika <= 90 hari
+
+interface InfoPensiun {
+  sisaHari: number | null;
+  isDanger: boolean;     // <= 30 hari -> merah
+  isWarning: boolean;    // <= 90 hari -> kuning
+  label: string;
+}
+
+/**
+ * Hitung sisa hari menuju pensiun dari retirementDate.
+ * retirementDate bisa string ISO atau null.
+ */
+function hitungInfoPensiun(retirementDate: string | null | undefined): InfoPensiun {
+  if (!retirementDate) return { sisaHari: null, isDanger: false, isWarning: false, label: '' };
+
+  const target = new Date(retirementDate);
+  const sekarang = new Date();
+  // Reset waktu ke tengah malam untuk perhitungan yang akurat
+  target.setHours(0, 0, 0, 0);
+  sekarang.setHours(0, 0, 0, 0);
+
+  const diffMs = target.getTime() - sekarang.getTime();
+  const diffHari = Math.ceil(diffMs / (1000 * 60 * 60 * 24));
+
+  // Sudah pensiun atau tepat hari ini
+  if (diffHari <= 0) {
+    return {
+      sisaHari: 0,
+      isDanger: true,
+      isWarning: false,
+      label: 'Sudah pensiun',
+    };
+  }
+
+  const isDanger = diffHari <= 30;
+  const isWarning = diffHari <= BATAS_HARI_PENSIUN;
+
+  return {
+    sisaHari: diffHari,
+    isDanger,
+    isWarning,
+    label: `${diffHari} hari`,
+  };
 }
 
 // Checkbox native bergaya, mendukung kondisi indeterminate (sebagian terpilih).
@@ -148,7 +198,12 @@ export function TabelPeminjaman({
                   : '-';
               const merkBarang = p.detail?.[0]?.barang?.merk || '-';
               return (
-                <TableRow key={p.id} className={dipilih ? 'bg-primary/5' : undefined}>
+                <TableRow className={cn(
+                  dipilih ? 'bg-primary/5' : undefined,
+                  // Row berwarna merah/kuning jika peminjam mendekati pensiun
+                  hitungInfoPensiun(p.peminjam?.retirementDate).isDanger && 'border-l-4 border-l-error bg-error/5',
+                  !hitungInfoPensiun(p.peminjam?.retirementDate).isDanger && hitungInfoPensiun(p.peminjam?.retirementDate).isWarning && 'border-l-4 border-l-warning bg-warning/5'
+                )}>
                   {pilihAktif && (
                     <TableCell>
                       <Kotak checked={dipilih} onChange={() => toggleSatu(p.id)} label={`Pilih ${p.kodePeminjaman}`} />
@@ -158,7 +213,28 @@ export function TabelPeminjaman({
                   {tampilkanPeminjam && (
                     <TableCell>
                       <p className="font-medium text-foreground">{p.peminjam?.nama ?? '-'}</p>
-                      <p className="text-xs text-muted-foreground">{p.peminjam?.eselon3 ?? ''}</p>
+                      <div className="flex items-center gap-1.5">
+                        <p className="text-xs text-muted-foreground">{p.peminjam?.eselon3 ?? ''}</p>
+                        {/* Indikator Pensiun */}
+                        {(() => {
+                          const info = hitungInfoPensiun(p.peminjam?.retirementDate);
+                          if (!info.isWarning) return null;
+                          return (
+                            <span
+                              className={cn(
+                                'inline-flex items-center gap-0.5 rounded-full px-1.5 py-0.5 text-xs font-medium',
+                                info.isDanger
+                                  ? 'bg-error/10 text-error'
+                                  : 'bg-warning/10 text-warning'
+                              )}
+                              title={`Pensiun dalam ${info.label}`}
+                            >
+                              <AlertTriangle className="h-3 w-3" />
+                              {info.label}
+                            </span>
+                          );
+                        })()}
+                      </div>
                     </TableCell>
                   )}
                   <TableCell className="max-w-[200px] truncate text-sm">{ringkasBarang}</TableCell>
@@ -218,3 +294,7 @@ export function TabelPeminjaman({
 function kodePeminjamanRingkas(p: Peminjaman): string {
   return p.peminjam?.nama ? `${p.kodePeminjaman} — ${p.peminjam.nama}` : p.kodePeminjaman;
 }
+
+// Export helper untuk dipakai komponen lain (FolderPeminjaman)
+export { hitungInfoPensiun };
+export type { InfoPensiun };

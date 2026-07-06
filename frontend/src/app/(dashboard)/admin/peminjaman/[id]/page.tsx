@@ -22,6 +22,7 @@ import {
   ExternalLink,
   User as UserIcon,
   CalendarDays,
+  AlertTriangle,
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -34,7 +35,8 @@ import { FolderBarangDipinjam } from '@/components/peminjaman/FolderBarangDipinj
 import { TampilQR } from '@/components/qrcode/TampilQR';
 import { notify } from '@/components/ui/toast';
 import { peminjamanService } from '@/services/peminjaman.service';
-import { ambilPesanError, formatTanggalLengkap } from '@/lib/utils';
+import { ambilPesanError, formatTanggalLengkap, cn } from '@/lib/utils';
+import { hitungInfoPensiun } from '@/components/peminjaman/TabelPeminjaman';
 import { STATUS_PEMINJAMAN } from '@/constants/status';
 import { RUTE } from '@/constants/routes';
 import type { Peminjaman } from '@/types/peminjaman.type';
@@ -112,6 +114,9 @@ export default function DetailPeminjamanAdminPage() {
   const bisaStempel = !['MENUNGGU', 'DITOLAK'].includes(data.status) && !!data.dokumenUrl;
   const bisaKembalikan = ['DISETUJUI', 'DIPINJAM', 'TERLAMBAT'].includes(data.status);
 
+  // Info pensiun peminjam
+  const infoPensiun = hitungInfoPensiun(data.peminjam?.retirementDate);
+
   return (
     <div className="mx-auto max-w-5xl space-y-5">
       <Button asChild variant="ghost" size="sm">
@@ -134,10 +139,23 @@ export default function DetailPeminjamanAdminPage() {
         {/* Kolom utama */}
         <div className="space-y-5 lg:col-span-2">
           {/* Info peminjam */}
-          <Card>
+          <Card className={cn(
+            infoPensiun.isDanger && 'border-l-4 border-l-error',
+            infoPensiun.isWarning && !infoPensiun.isDanger && 'border-l-4 border-l-warning'
+          )}>
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-base">
                 <UserIcon className="h-4 w-4" /> Data Peminjam
+                {infoPensiun.isDanger && (
+                  <span className="ml-auto flex items-center gap-1 rounded-full bg-error/10 px-2 py-0.5 text-xs font-medium text-error">
+                    <AlertTriangle className="h-3 w-3" /> Pensiun: {infoPensiun.label}
+                  </span>
+                )}
+                {infoPensiun.isWarning && !infoPensiun.isDanger && (
+                  <span className="ml-auto flex items-center gap-1 rounded-full bg-warning/10 px-2 py-0.5 text-xs font-medium text-warning">
+                    <AlertTriangle className="h-3 w-3" /> Pensiun: {infoPensiun.label}
+                  </span>
+                )}
               </CardTitle>
             </CardHeader>
             <CardContent className="grid grid-cols-2 gap-3 text-sm">
@@ -145,6 +163,29 @@ export default function DetailPeminjamanAdminPage() {
               <Info label="NIP" nilai={data.peminjam?.nip} />
               <Info label="Eselon IV" nilai={data.peminjam?.eselon4} />
               <Info label="Eselon III" nilai={data.peminjam?.eselon3} />
+              {/* Info pensiun */}
+              {infoPensiun.isWarning && (
+                <div className={cn(
+                  'col-span-2 rounded-lg p-3',
+                  infoPensiun.isDanger ? 'bg-error/5' : 'bg-warning/5'
+                )}>
+                  <div className="flex items-start gap-2">
+                    <AlertTriangle className={cn('h-4 w-4 mt-0.5 shrink-0', infoPensiun.isDanger ? 'text-error' : 'text-warning')} />
+                    <div>
+                      <p className={cn('font-medium', infoPensiun.isDanger ? 'text-error' : 'text-warning')}>
+                        {infoPensiun.isDanger ? 'Pensiun Mendesak!' : 'Pensiun Mendekati'}
+                      </p>
+                      <p className="mt-0.5 text-sm text-on-surface-variant">
+                        {infoPensiun.sisaHari === 0
+                          ? 'Pegawai sudah memasuki tanggal pensiun.'
+                          : `Pegawai akan pensiun dalam ${infoPensiun.label} pada tanggal ${data.peminjam?.retirementDate ? formatTanggalLengkap(data.peminjam.retirementDate) : '-'}. `
+                        }
+                        {!infoPensiun.isDanger && 'Pastikan '}Pastikan barang dikembalikan sebelum tanggal pensiun.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
             </CardContent>
           </Card>
 

@@ -42,6 +42,7 @@ const includeLengkap = {
       eselon2: true, //   "Eselon II"
       eselon3: true, //   "Eselon III"
       eselon4: true, //   "Eselon IV"
+      retirementDate: true, // Tanggal pensiun (untuk indikator pensiun mendekat)
     },
   },
   admin: { select: { id: true, nama: true } },

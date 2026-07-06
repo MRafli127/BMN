@@ -5,12 +5,15 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { Icon } from '@/components/ui/icon';
 import { useNotificationStore } from '@/store/notificationStore';
 import { IKON_NOTIFIKASI, TIPE_NOTIFIKASI } from '@/types/notification.type';
 import { jarakWaktu } from '@/lib/utils';
+import { ambilUser } from '@/lib/auth';
 
 export default function NotifikasiPage() {
+  const router = useRouter();
   const store = useNotificationStore();
   const notifikasi = store.notifikasi ?? [];
   const jumlahBelumBaca = store.jumlahBelumBaca ?? 0;
@@ -42,6 +45,33 @@ export default function NotifikasiPage() {
     setHalaman((prev) => prev + 1);
     // Load more would be implemented here with pagination
     setMemuatLagi(false);
+  };
+
+  // Navigasi ke halaman terkait saat notifikasi diklik
+  const handleKlikNotifikasi = async (notif: typeof notifikasi[0]) => {
+    console.log('[Notifikasi] Diklik:', notif.tipe, notif.referenceId, notif.referenceType);
+
+    // Tandai sudah dibaca
+    if (!notif.isBaca) {
+      tandaiSudahBaca(notif.id);
+    }
+
+    // Cek role user
+    const user = ambilUser();
+    const isAdmin = user?.role === 'ADMIN';
+
+    // Navigasi berdasarkan tipe dan reference
+    if (notif.referenceId && notif.referenceType === 'PEMINJAMAN') {
+      const path = isAdmin ? `/admin/peminjaman/${notif.referenceId}` : `/peminjam/riwayat/${notif.referenceId}`;
+      console.log('[Notifikasi] Navigasi ke:', path);
+      router.push(path);
+    } else if (notif.referenceType === 'PENSIUN') {
+      const path = isAdmin ? '/admin/peminjaman' : '/peminjam/riwayat';
+      console.log('[Notifikasi] Navigasi ke:', path);
+      router.push(path);
+    } else {
+      console.log('[Notifikasi] Tidak ada navigasi untuk tipe ini');
+    }
   };
 
   const getJudulTipe = (tipe: string) => {
@@ -114,7 +144,8 @@ export default function NotifikasiPage() {
           {notifikasi.map((notif) => (
             <div
               key={notif.id}
-              className={`group relative rounded-2xl border p-4 transition-all hover:shadow-md ${
+              onClick={() => handleKlikNotifikasi(notif)}
+              className={`group relative cursor-pointer rounded-2xl border p-4 transition-all hover:shadow-md ${
                 !notif.isBaca
                   ? 'border-primary/30 bg-primary/5'
                   : 'border-outline-variant/60 bg-white'
@@ -157,18 +188,18 @@ export default function NotifikasiPage() {
                     {notif.pesan}
                   </p>
 
-                  {/* Aksi */}
+                  {/* Aksi - stop propagation agar tidak trigger navigasi */}
                   <div className="mt-3 flex items-center gap-2">
                     {!notif.isBaca && (
                       <button
-                        onClick={() => tandaiSudahBaca(notif.id)}
+                        onClick={(e) => { e.stopPropagation(); tandaiSudahBaca(notif.id); }}
                         className="rounded-lg px-3 py-1.5 text-xs font-medium text-primary transition-colors hover:bg-primary/10"
                       >
                         Tandai Dibaca
                       </button>
                     )}
                     <button
-                      onClick={() => hapusNotifikasi(notif.id)}
+                      onClick={(e) => { e.stopPropagation(); hapusNotifikasi(notif.id); }}
                       className="rounded-lg px-3 py-1.5 text-xs font-medium text-error transition-colors hover:bg-error/10"
                     >
                       Hapus
