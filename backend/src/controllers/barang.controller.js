@@ -18,6 +18,18 @@ const getSemua = asyncHandler(async (req, res) => {
   });
 });
 
+const checkStokTersedia = asyncHandler(async (req, res) => {
+  const { barangIds } = req.body;
+  if (!Array.isArray(barangIds)) {
+    throw new AppError('barangIds harus berupa array.', 400);
+  }
+  const tidakTersedia = await barangService.checkStokTersedia(barangIds);
+  return responsSukses(res, {
+    pesan: 'Cek stok selesai.',
+    data: tidakTersedia,
+  });
+});
+
 const getById = asyncHandler(async (req, res) => {
   const barang = await barangService.getById(req.params.id);
   return responsSukses(res, { pesan: 'Detail barang.', data: barang });
@@ -56,4 +68,4 @@ const unduhTemplate = asyncHandler(async (req, res) => {
   return res.send(buffer);
 });
 
-module.exports = { getSemua, getById, create, update, remove, importExcel, unduhTemplate };
+module.exports = { getSemua, getById, create, update, remove, importExcel, unduhTemplate, checkStokTersedia };

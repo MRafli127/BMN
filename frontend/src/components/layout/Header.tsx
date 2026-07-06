@@ -90,7 +90,11 @@ export function Header() {
         <div className="hidden items-center gap-1 sm:flex">
           <div className="relative" ref={notifikasiRef}>
             <button
-              onClick={() => setNotifikasiBuka((v) => !v)}
+              onMouseDown={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                setNotifikasiBuka((v) => !v);
+              }}
               className="relative rounded-full p-2 text-on-surface-variant transition-all hover:bg-primary/5"
               aria-label="Notifikasi"
               aria-haspopup="menu"

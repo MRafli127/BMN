@@ -26,6 +26,9 @@ router.post('/import', roleMiddleware('ADMIN'), uploadExcelSingle, barangControl
 router.get('/', barangController.getSemua);
 router.get('/:id', barangController.getById);
 
+// Cek stok barang untuk polling cart (peminjam)
+router.post('/check-stok', barangController.checkStokTersedia);
+
 // Khusus admin
 router.post('/', roleMiddleware('ADMIN'), uploadFotoBarangSingle, validate(createBarangSchema), barangController.create);
 router.put('/:id', roleMiddleware('ADMIN'), uploadFotoBarangSingle, validate(updateBarangSchema), barangController.update);
