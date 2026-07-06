@@ -7,7 +7,7 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { useParams } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import {
   ArrowLeft,
   Check,
@@ -25,11 +25,13 @@ import {
   AlertTriangle,
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Icon } from '@/components/ui/icon';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Textarea, Label } from '@/components/ui/input';
 import { KonfirmasiDialog } from '@/components/shared/KonfirmasiDialog';
 import { LoadingSpinner } from '@/components/shared/LoadingSpinner';
+import { KepalaKartu, InfoIkon } from '@/components/shared/KartuDetail';
 import { TimelineStatus } from '@/components/peminjaman/TimelineStatus';
 import { FolderBarangDipinjam } from '@/components/peminjaman/FolderBarangDipinjam';
 import { TampilQR } from '@/components/qrcode/TampilQR';
@@ -45,6 +47,7 @@ type Aksi = 'setujui' | 'tolak' | 'serahkan' | 'kembalikan' | null;
 
 export default function DetailPeminjamanAdminPage() {
   const { id } = useParams<{ id: string }>();
+  const router = useRouter();
   const [data, setData] = useState<Peminjaman | null>(null);
   const [memuat, setMemuat] = useState(true);
   const [aksi, setAksi] = useState<Aksi>(null);
@@ -57,7 +60,12 @@ export default function DetailPeminjamanAdminPage() {
     peminjamanService
       .getById(id)
       .then(setData)
-      .catch((e) => notify.gagal(ambilPesanError(e, 'Gagal memuat detail.')))
+      .catch((e) => {
+        // Data sudah tidak ada (mis. database di-reset) — kembali ke daftar
+        // agar admin tidak terjebak di halaman kosong/basi.
+        notify.gagal(ambilPesanError(e, 'Gagal memuat detail.'));
+        router.push(RUTE.adminPeminjaman);
+      })
       .finally(() => setMemuat(false));
   };
 
@@ -88,6 +96,16 @@ export default function DetailPeminjamanAdminPage() {
       notify.suksess('Tindakan berhasil dilakukan.');
     } catch (error) {
       notify.gagal(ambilPesanError(error, 'Gagal melakukan tindakan.'));
+      // 400/404/409 = status di server sudah berubah / data tidak ada lagi
+      // (halaman basi). Tutup dialog & muat ulang agar tombol tindakan
+      // kembali sesuai kondisi terkini — bukan terus menawarkan aksi yang
+      // pasti ditolak backend.
+      const kode = (error as { response?: { status?: number } })?.response?.status;
+      if (kode === 400 || kode === 404 || kode === 409) {
+        setAksi(null);
+        setCatatan('');
+        muat();
+      }
     } finally {
       setProses(false);
     }
@@ -102,6 +120,9 @@ export default function DetailPeminjamanAdminPage() {
       notify.suksess('Dokumen berhasil distempel & ditandatangani digital.');
     } catch (error) {
       notify.gagal(ambilPesanError(error, 'Gagal menstempel dokumen.'));
+      // Sinkronkan ulang bila kondisi di server sudah berubah (halaman basi).
+      const kode = (error as { response?: { status?: number } })?.response?.status;
+      if (kode === 400 || kode === 404 || kode === 409) muat();
     } finally {
       setSedangStempel(false);
     }
@@ -113,31 +134,61 @@ export default function DetailPeminjamanAdminPage() {
   const status = STATUS_PEMINJAMAN[data.status];
   const bisaStempel = !['MENUNGGU', 'DITOLAK'].includes(data.status) && !!data.dokumenUrl;
   const bisaKembalikan = ['DISETUJUI', 'DIPINJAM', 'TERLAMBAT'].includes(data.status);
+  const tanpaTindakan = data.status === 'DIKEMBALIKAN' || data.status === 'DITOLAK';
 
   // Info pensiun peminjam
   const infoPensiun = hitungInfoPensiun(data.peminjam?.retirementDate);
 
   return (
-    <div className="mx-auto max-w-5xl space-y-5">
-      <Button asChild variant="ghost" size="sm">
-        <Link href={RUTE.adminPeminjaman}>
-          <ArrowLeft className="h-4 w-4" /> Kembali ke Daftar
-        </Link>
-      </Button>
+    <div className="mx-auto max-w-5xl space-y-gutter">
+      {/* Hero: identitas peminjaman + status terkini */}
+      <section className="relative overflow-hidden rounded-2xl bg-brand-gradient text-white shadow-brand">
+        {/* Orb dekoratif lembut sebagai latar */}
+        <div className="pointer-events-none absolute -right-12 -top-12 h-44 w-44 rounded-full bg-white/10 blur-3xl" />
+        <div className="pointer-events-none absolute -bottom-16 left-1/3 h-44 w-44 rounded-full bg-sky-400/20 blur-3xl" />
 
-      {/* Header */}
-      <div className="glass-card flex flex-wrap items-center justify-between gap-3 rounded-2xl p-5">
-        <div>
-          <p className="font-mono text-sm text-primary">{data.kodePeminjaman}</p>
-          <h1 className="font-jakarta text-headline-md text-primary">Detail Peminjaman</h1>
-          <p className="text-sm text-on-surface-variant">Diajukan {formatTanggalLengkap(data.tanggalPengajuan)}</p>
+        <div className="relative space-y-5 p-5 sm:p-7">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <Link
+              href={RUTE.adminPeminjaman}
+              className="inline-flex items-center gap-1.5 rounded-full border border-white/20 bg-white/10 px-3.5 py-1.5 text-sm font-medium text-white/90 backdrop-blur transition-colors hover:bg-white/20 hover:text-white"
+            >
+              <Icon name="arrow_back" className="text-[16px]" />
+              Kembali ke Daftar
+            </Link>
+            {data.peminjam?.nama && (
+              <span className="inline-flex items-center gap-1.5 rounded-full border border-white/20 bg-white/10 px-3.5 py-1.5 text-sm font-medium text-white/90 backdrop-blur">
+                <Icon name="person" fill className="text-[15px]" />
+                {data.peminjam.nama}
+              </span>
+            )}
+          </div>
+
+          <div className="flex flex-wrap items-center justify-between gap-4">
+            <div className="flex items-center gap-4">
+              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-white/20 bg-white/10 backdrop-blur sm:h-14 sm:w-14">
+                <Icon name="receipt_long" fill className="text-[24px] sm:text-[28px]" />
+              </div>
+              <div>
+                <p className="font-mono text-sm font-semibold text-white/80">{data.kodePeminjaman}</p>
+                <h1 className="font-jakarta text-headline-lg-mobile text-white sm:text-headline-lg">
+                  Detail Peminjaman
+                </h1>
+                <p className="text-sm text-white/80 sm:text-base">
+                  Diajukan {formatTanggalLengkap(data.tanggalPengajuan)}
+                </p>
+              </div>
+            </div>
+            {/* Hero berlatar biru — paksa pill putih solid agar teks aksen status
+                (mis. "Disetujui"/biru, "Dipinjam"/indigo) tak menyatu dengan latar. */}
+            <Badge className={cn(status.kelas, 'border-transparent bg-white px-3.5 py-1.5 text-sm shadow-soft')}>{status.label}</Badge>
+          </div>
         </div>
-        <Badge className={`${status.kelas} px-3 py-1 text-sm`}>{status.label}</Badge>
-      </div>
+      </section>
 
-      <div className="grid grid-cols-1 gap-5 lg:grid-cols-3">
+      <div className="grid grid-cols-1 gap-gutter lg:grid-cols-3">
         {/* Kolom utama */}
-        <div className="space-y-5 lg:col-span-2">
+        <div className="space-y-gutter lg:col-span-2">
           {/* Info peminjam */}
           <Card className={cn(
             infoPensiun.isDanger && 'border-l-4 border-l-error',
@@ -190,203 +241,249 @@ export default function DetailPeminjamanAdminPage() {
           </Card>
 
           {/* Detail peminjaman */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-base">
-                <CalendarDays className="h-4 w-4" /> Rincian Peminjaman
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4 text-sm">
-              <div className="grid grid-cols-2 gap-3">
-                <Info label="Rencana Pinjam" nilai={formatTanggalLengkap(data.tanggalPinjamRencana)} />
-                <Info
+          <Card className="overflow-hidden border-primary/15">
+            <KepalaKartu ikon="event_note" judul="Rincian Peminjaman" deskripsi="Tanggal & barang yang diajukan." />
+            <div className="space-y-5 p-5">
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <InfoIkon ikon="today" label="Rencana Pinjam" nilai={formatTanggalLengkap(data.tanggalPinjamRencana)} />
+                <InfoIkon
+                  ikon="event_repeat"
                   label="Rencana Kembali"
                   nilai={data.tanggalKembaliRencana ? formatTanggalLengkap(data.tanggalKembaliRencana) : 'Tanpa batas waktu'}
                 />
                 {data.tanggalKembaliAktual && (
-                  <Info label="Dikembalikan Pada" nilai={formatTanggalLengkap(data.tanggalKembaliAktual)} />
+                  <InfoIkon
+                    ikon="event_available"
+                    label="Dikembalikan Pada"
+                    nilai={formatTanggalLengkap(data.tanggalKembaliAktual)}
+                  />
                 )}
               </div>
+
               {data.alasanPeminjaman && (
-                <div>
-                  <p className="font-medium text-foreground">Alasan Peminjaman</p>
-                  <p className="mt-1 text-muted-foreground">{data.alasanPeminjaman}</p>
-                </div>
+                <InfoIkon ikon="notes" label="Alasan Peminjaman" nilai={data.alasanPeminjaman} />
               )}
 
               {/* Daftar barang — folder per unit, buka untuk QR identitas */}
               <div>
-                <p className="mb-2 font-medium text-foreground">Barang Dipinjam</p>
-                <p className="mb-2 text-xs text-muted-foreground">
+                <p className="flex items-center gap-2 text-sm font-semibold text-foreground">
+                  <Icon name="package_2" className="text-[18px] text-primary" /> Barang Dipinjam
+                </p>
+                <p className="mb-2 mt-0.5 text-xs text-muted-foreground">
                   Klik tiap barang untuk melihat Label &amp; QR Identitas Barang.
                 </p>
                 <FolderBarangDipinjam detail={data.detail} />
               </div>
 
               {data.catatanAdmin && (
-                <div className="rounded-lg bg-amber-50 p-3">
-                  <p className="font-medium text-amber-900">Catatan Admin</p>
-                  <p className="mt-1 text-amber-800">{data.catatanAdmin}</p>
+                <div className="flex items-start gap-3 rounded-xl border border-amber-200 bg-amber-50 p-3.5 dark:bg-amber-950/20">
+                  <Icon name="sticky_note_2" fill className="mt-0.5 shrink-0 text-[18px] text-amber-600" />
+                  <div className="min-w-0">
+                    <p className="text-sm font-semibold text-amber-900">Catatan Admin</p>
+                    <p className="mt-0.5 text-sm text-amber-800">{data.catatanAdmin}</p>
+                  </div>
                 </div>
               )}
 
               {data.catatanPengembalian && (
-                <div className="rounded-lg border border-amber-200 bg-amber-50 p-3">
-                  <p className="font-medium text-amber-900">Catatan Pengembalian (internal)</p>
-                  <p className="mt-1 text-amber-800">{data.catatanPengembalian}</p>
+                <div className="flex items-start gap-3 rounded-xl border border-amber-200 bg-amber-50 p-3.5 dark:bg-amber-950/20">
+                  <Icon name="visibility_off" fill className="mt-0.5 shrink-0 text-[18px] text-amber-600" />
+                  <div className="min-w-0">
+                    <p className="text-sm font-semibold text-amber-900">Catatan Pengembalian (internal)</p>
+                    <p className="mt-0.5 text-sm text-amber-800">{data.catatanPengembalian}</p>
+                  </div>
                 </div>
               )}
-            </CardContent>
+            </div>
           </Card>
 
           {/* Surat Pernyataan */}
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0">
-              <CardTitle className="flex items-center gap-2 text-base">
-                <FileText className="h-4 w-4" /> Surat Pernyataan
-              </CardTitle>
-              {data.dokumenUrl && (
-                <div className="flex flex-wrap justify-end gap-2">
-                  <Button asChild variant="outline" size="sm">
-                    <a href={data.dokumenUrl} target="_blank" rel="noreferrer">
-                      <ExternalLink className="h-4 w-4" /> Tab Baru
-                    </a>
-                  </Button>
-                  <Button asChild variant="outline" size="sm">
-                    <a href={data.dokumenUrl} download={`surat-pernyataan-${data.kodePeminjaman}.pdf`}>
-                      <Download className="h-4 w-4" /> Unduh
-                    </a>
-                  </Button>
-                  {data.dokumenStempelUrl && (
-                    <Button asChild variant="sukses" size="sm">
-                      <a href={data.dokumenStempelUrl} download={`surat-berstempel-${data.kodePeminjaman}.pdf`}>
-                        <Download className="h-4 w-4" /> Surat Berstempel
+          <Card className="overflow-hidden border-primary/15">
+            <KepalaKartu
+              ikon="description"
+              judul="Surat Pernyataan"
+              deskripsi="Surat pengajuan yang telah ditandatangani peminjam."
+              aksi={
+                data.dokumenUrl && (
+                  <div className="flex flex-wrap justify-end gap-2">
+                    <Button asChild variant="ghost" size="sm" className="text-muted-foreground hover:text-primary">
+                      <a href={data.dokumenUrl} target="_blank" rel="noreferrer" aria-label="Buka surat di tab baru">
+                        <Icon name="open_in_new" className="text-[18px]" />
                       </a>
                     </Button>
-                  )}
-                </div>
-              )}
-            </CardHeader>
-            <CardContent>
+                    <Button asChild variant="outline" size="sm">
+                      <a href={data.dokumenUrl} download={`surat-pernyataan-${data.kodePeminjaman}.pdf`}>
+                        <Icon name="download" className="text-[18px]" /> Unduh
+                      </a>
+                    </Button>
+                    {data.dokumenStempelUrl && (
+                      <Button asChild variant="sukses" size="sm">
+                        <a href={data.dokumenStempelUrl} download={`surat-berstempel-${data.kodePeminjaman}.pdf`}>
+                          <Icon name="verified" fill className="text-[18px]" /> Surat Berstempel
+                        </a>
+                      </Button>
+                    )}
+                  </div>
+                )
+              }
+            />
+            <div className="p-5">
               {data.dokumenUrl ? (
                 <iframe
                   src={data.dokumenUrl}
                   title="Surat Pernyataan Peminjaman"
-                  className="h-[520px] w-full rounded-lg border"
+                  className="h-[520px] w-full rounded-xl border border-primary/10"
                 />
               ) : (
-                <p className="text-sm text-muted-foreground">Surat pernyataan belum tersedia.</p>
+                <div className="flex flex-col items-center gap-2 py-8 text-center">
+                  <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-muted text-muted-foreground">
+                    <Icon name="draft" className="text-[24px]" />
+                  </div>
+                  <p className="text-sm text-muted-foreground">Surat pernyataan belum tersedia.</p>
+                </div>
               )}
-            </CardContent>
+            </div>
           </Card>
 
           {/* Surat Pernyataan Pengembalian (diunggah peminjam) */}
           {data.dokumenPengembalianUrl && (
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0">
-                <CardTitle className="flex items-center gap-2 text-base">
-                  <Undo2 className="h-4 w-4" /> Surat Pernyataan Pengembalian
-                </CardTitle>
-                <div className="flex gap-2">
-                  <Button asChild variant="outline" size="sm">
-                    <a href={data.dokumenPengembalianUrl} target="_blank" rel="noreferrer">
-                      <ExternalLink className="h-4 w-4" /> Tab Baru
-                    </a>
-                  </Button>
-                  <Button asChild variant="outline" size="sm">
-                    <a href={data.dokumenPengembalianUrl} download={`surat-pengembalian-${data.kodePeminjaman}.pdf`}>
-                      <Download className="h-4 w-4" /> Unduh
-                    </a>
-                  </Button>
-                </div>
-              </CardHeader>
-              <CardContent>
-                <p className="mb-3 text-sm text-muted-foreground">
-                  Surat pernyataan pengembalian yang sudah ditandatangani fisik oleh peminjam. Periksa sebelum
-                  mengkonfirmasi pengembalian.
-                </p>
+            <Card className="overflow-hidden border-primary/15">
+              <KepalaKartu
+                ikon="assignment_return"
+                judul="Surat Pengembalian"
+                deskripsi="Ditandatangani fisik oleh peminjam — periksa sebelum konfirmasi."
+                aksi={
+                  <div className="flex flex-wrap justify-end gap-2">
+                    <Button asChild variant="ghost" size="sm" className="text-muted-foreground hover:text-primary">
+                      <a
+                        href={data.dokumenPengembalianUrl}
+                        target="_blank"
+                        rel="noreferrer"
+                        aria-label="Buka surat pengembalian di tab baru"
+                      >
+                        <Icon name="open_in_new" className="text-[18px]" />
+                      </a>
+                    </Button>
+                    <Button asChild variant="outline" size="sm">
+                      <a href={data.dokumenPengembalianUrl} download={`surat-pengembalian-${data.kodePeminjaman}.pdf`}>
+                        <Icon name="download" className="text-[18px]" /> Unduh
+                      </a>
+                    </Button>
+                  </div>
+                }
+              />
+              <div className="p-5">
                 <iframe
                   src={data.dokumenPengembalianUrl}
                   title="Surat Pernyataan Pengembalian"
-                  className="h-[520px] w-full rounded-lg border"
+                  className="h-[520px] w-full rounded-xl border border-primary/10"
                 />
-              </CardContent>
+              </div>
             </Card>
           )}
         </div>
 
         {/* Sidebar aksi */}
-        <div className="space-y-5">
+        <div className="space-y-gutter">
           {/* Tindakan */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-base">Tindakan</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-2">
+          <Card className="overflow-hidden border-primary/15">
+            <KepalaKartu ikon="gavel" judul="Tindakan" deskripsi="Aksi sesuai status pengajuan." />
+            <div className="space-y-2.5 p-5">
               {data.status === 'MENUNGGU' && (
                 <>
-                  <Button variant="sukses" className="w-full" onClick={() => setAksi('setujui')}>
-                    <Check className="h-4 w-4" /> Setujui (ACC)
+                  <Button
+                    variant="sukses"
+                    className="group relative w-full overflow-hidden shadow-brand transition-all hover:-translate-y-0.5 hover:shadow-elevated"
+                    onClick={() => setAksi('setujui')}
+                  >
+                    {/* Sapuan cahaya yang meluncur saat kursor menyorot */}
+                    <span className="pointer-events-none absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/25 to-transparent transition-transform duration-700 ease-out group-hover:translate-x-full" />
+                    <span className="relative z-10 flex items-center gap-2">
+                      <Icon name="check_circle" fill className="text-[18px]" /> Setujui (ACC)
+                    </span>
                   </Button>
                   <Button variant="destructive" className="w-full" onClick={() => setAksi('tolak')}>
-                    <X className="h-4 w-4" /> Tolak
+                    <Icon name="cancel" fill className="text-[18px]" /> Tolak
                   </Button>
                 </>
               )}
 
               {data.status === 'DISETUJUI' && (
-                <Button className="w-full" onClick={() => setAksi('serahkan')}>
-                  <PackageCheck className="h-4 w-4" /> Tandai Barang Diserahkan
+                <Button
+                  className="group relative w-full overflow-hidden shadow-brand transition-all hover:-translate-y-0.5 hover:shadow-elevated"
+                  onClick={() => setAksi('serahkan')}
+                >
+                  <span className="pointer-events-none absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/25 to-transparent transition-transform duration-700 ease-out group-hover:translate-x-full" />
+                  <span className="relative z-10 flex items-center gap-2">
+                    <Icon name="handshake" fill className="text-[18px]" /> Tandai Barang Diserahkan
+                  </span>
                 </Button>
               )}
 
               {bisaStempel && (
                 <Button variant="outline" className="w-full" onClick={stempel} disabled={sedangStempel}>
-                  {sedangStempel ? <Loader2 className="h-4 w-4 animate-spin" /> : <Stamp className="h-4 w-4" />}
+                  {sedangStempel ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Icon name="approval" fill className="text-[18px]" />
+                  )}
                   {data.dokumenStempelUrl ? 'Stempel Ulang Dokumen' : 'Stempel Dokumen'}
                 </Button>
               )}
 
               {bisaKembalikan && data.tanggalPermintaanKembali && (
-                <div className="flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
-                  <Clock className="mt-0.5 h-4 w-4 shrink-0" />
+                <div className="flex items-start gap-3 rounded-xl border border-amber-200 bg-amber-50 p-3.5 text-sm text-amber-800 dark:bg-amber-950/20">
+                  <Icon name="hourglass_top" fill className="mt-0.5 shrink-0 text-[18px] text-amber-600" />
                   <span>
-                    Peminjam mengajukan pengembalian pada {formatTanggalLengkap(data.tanggalPermintaanKembali)}. Mohon konfirmasi penerimaan barang.
+                    Peminjam mengajukan pengembalian pada {formatTanggalLengkap(data.tanggalPermintaanKembali)}.
+                    Mohon konfirmasi penerimaan barang.
                   </span>
                 </div>
               )}
 
               {bisaKembalikan && (
-                <Button variant="secondary" className="w-full" onClick={() => setAksi('kembalikan')}>
-                  <Undo2 className="h-4 w-4" /> Konfirmasi Pengembalian
+                <Button
+                  variant="secondary"
+                  className="group relative w-full overflow-hidden transition-all hover:-translate-y-0.5 hover:shadow-card"
+                  onClick={() => setAksi('kembalikan')}
+                >
+                  <span className="pointer-events-none absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/25 to-transparent transition-transform duration-700 ease-out group-hover:translate-x-full" />
+                  <span className="relative z-10 flex items-center gap-2">
+                    <Icon name="assignment_return" fill className="text-[18px]" /> Konfirmasi Pengembalian
+                  </span>
                 </Button>
               )}
 
-              {(data.status === 'DIKEMBALIKAN' || data.status === 'DITOLAK') && (
-                <p className="text-center text-sm text-muted-foreground">Tidak ada tindakan yang tersedia.</p>
+              {tanpaTindakan && (
+                <div className="flex flex-col items-center gap-2 py-4 text-center">
+                  <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-muted text-muted-foreground">
+                    <Icon name="task_alt" className="text-[22px]" />
+                  </div>
+                  <p className="text-sm text-muted-foreground">Tidak ada tindakan yang tersedia.</p>
+                </div>
               )}
-            </CardContent>
+            </div>
           </Card>
 
           {/* Timeline */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-base">Status Peminjaman</CardTitle>
-            </CardHeader>
-            <CardContent>
+          <Card className="overflow-hidden border-primary/15">
+            <KepalaKartu ikon="timeline" judul="Status Peminjaman" deskripsi="Perjalanan pengajuan." />
+            <div className="p-5">
               <TimelineStatus peminjaman={data} />
-            </CardContent>
+            </div>
           </Card>
 
           {/* QR Code */}
           {data.qrCodeUrl && (
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-base">QR Code</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <TampilQR qrCodeUrl={data.qrCodeUrl} kodePeminjaman={data.kodePeminjaman} namaPeminjam={data.peminjam?.nama} />
-              </CardContent>
+            <Card className="overflow-hidden border-primary/15">
+              <KepalaKartu ikon="qr_code_2" judul="QR Code" deskripsi="Identitas peminjaman ini." />
+              <div className="p-5">
+                <TampilQR
+                  qrCodeUrl={data.qrCodeUrl}
+                  kodePeminjaman={data.kodePeminjaman}
+                  namaPeminjam={data.peminjam?.nama}
+                />
+              </div>
             </Card>
           )}
         </div>
@@ -448,11 +545,12 @@ export default function DetailPeminjamanAdminPage() {
   );
 }
 
+// Komponen Info sederhana
 function Info({ label, nilai }: { label: string; nilai?: string | null }) {
   return (
     <div>
-      <p className="text-xs text-muted-foreground">{label}</p>
-      <p className="font-medium text-foreground">{nilai || '-'}</p>
+      <p className="text-xs font-medium text-muted-foreground">{label}</p>
+      <p className="font-medium">{nilai || '-'}</p>
     </div>
   );
 }

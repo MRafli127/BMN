@@ -20,32 +20,32 @@ export const STATUS_PEMINJAMAN: Record<StatusPeminjaman, InfoStatus> = {
   },
   MENUNGGU: {
     label: 'Menunggu Persetujuan',
-    kelas: 'bg-amber-100 text-amber-800 border-amber-200',
+    kelas: 'bg-amber-100 text-amber-700 border-amber-200',
     deskripsi: 'Pengajuan sedang menunggu verifikasi admin.',
   },
   DISETUJUI: {
     label: 'Disetujui',
-    kelas: 'bg-blue-100 text-blue-800 border-blue-200',
+    kelas: 'bg-green-100 text-green-700 border-green-200',
     deskripsi: 'Pengajuan disetujui. Barang siap diambil.',
   },
   DITOLAK: {
     label: 'Ditolak',
-    kelas: 'bg-red-100 text-red-800 border-red-200',
+    kelas: 'bg-red-100 text-red-700 border-red-200',
     deskripsi: 'Pengajuan ditolak oleh admin.',
   },
   DIPINJAM: {
     label: 'Sedang Dipinjam',
-    kelas: 'bg-indigo-100 text-indigo-800 border-indigo-200',
+    kelas: 'bg-pink-100 text-pink-700 border-pink-200',
     deskripsi: 'Barang sedang dalam masa peminjaman.',
   },
   DIKEMBALIKAN: {
     label: 'Dikembalikan',
-    kelas: 'bg-green-100 text-green-800 border-green-200',
+    kelas: 'bg-teal-100 text-teal-700 border-teal-200',
     deskripsi: 'Barang telah dikembalikan dengan baik.',
   },
   TERLAMBAT: {
     label: 'Terlambat',
-    kelas: 'bg-rose-100 text-rose-800 border-rose-200',
+    kelas: 'bg-orange-100 text-orange-700 border-orange-200',
     deskripsi: 'Melewati batas tanggal pengembalian.',
   },
 };
