@@ -287,11 +287,15 @@ async function create(userId, data, dokumenDataUrl, requestInfo = {}) {
     });
   }, { timeout: 20000, maxWait: 10000 });
 
+  // Peminjam (user) diambil dari relasi hasil create — fungsi ini hanya menerima
+  // userId, jadi jangan mereferensikan variabel `user` yang tidak ada di scope ini.
+  const peminjam = created.peminjam;
+
   // Audit log: catat pembuatan peminjaman baru
   auditLogService.log({
     userId,
-    userEmail: user?.email,
-    userNama: user?.nama,
+    userEmail: peminjam?.email,
+    userNama: peminjam?.nama,
     aksi: auditLogService.AKSI.PEMINJAMAN_CREATE,
     entitas: auditLogService.ENTITAS.PEMINJAMAN,
     entitasId: created.id,
@@ -307,7 +311,7 @@ async function create(userId, data, dokumenDataUrl, requestInfo = {}) {
   // Draft belum "masuk" ke admin — jangan kirim email/notifikasi pengajuan.
   // Notifikasi dikirim nanti saat peminjam mengunggah surat (unggahSurat()).
   if (!isDraft) {
-    beritahuPengajuanMasuk(created, user);
+    beritahuPengajuanMasuk(created, peminjam);
   }
 
   return serialisasi(created);
