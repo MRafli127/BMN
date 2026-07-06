@@ -16,6 +16,7 @@ export interface User {
   eselon4?: string | null; //   Eselon IV
   roles: Role[]; //      Peran yang dimiliki akun (bisa >1)
   activeRole: Role; //   Peran yang sedang dipakai dalam sesi ini
+  retirementDate?: string | null; // Tanggal pensiun (dihitung otomatis dari NIP)
   createdAt?: string;
   updatedAt?: string;
 }

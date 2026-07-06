@@ -58,7 +58,7 @@ export default function NotifikasiPage() {
 
     // Cek role user
     const user = ambilUser();
-    const isAdmin = user?.role === 'ADMIN';
+    const isAdmin = user?.activeRole === 'ADMIN';
 
     // Navigasi berdasarkan tipe dan reference
     if (notif.referenceId && notif.referenceType === 'PEMINJAMAN') {
