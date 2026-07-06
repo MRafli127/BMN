@@ -160,7 +160,9 @@ export default function DetailPeminjamanAdminPage() {
                 </p>
               </div>
             </div>
-            <Badge className={cn(status.kelas, 'px-3.5 py-1.5 text-sm shadow-soft')}>{status.label}</Badge>
+            {/* Hero berlatar biru — paksa pill putih solid agar teks aksen status
+                (mis. "Disetujui"/biru, "Dipinjam"/indigo) tak menyatu dengan latar. */}
+            <Badge className={cn(status.kelas, 'border-transparent bg-white px-3.5 py-1.5 text-sm shadow-soft')}>{status.label}</Badge>
           </div>
         </div>
       </section>
