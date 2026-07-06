@@ -6,10 +6,14 @@ const app = require('./app');
 const env = require('./config/env');
 const logger = require('./utils/logger');
 const { prisma, cekKoneksiDatabase } = require('./config/database');
+const { registerAllJobs } = require('./jobs');
 
 async function mulai() {
   try {
     await cekKoneksiDatabase();
+
+    // Daftarkan cron jobs
+    registerAllJobs();
 
     const server = app.listen(env.port, () => {
       logger.success(`Server SIPP-BMN berjalan di http://localhost:${env.port}`);

@@ -56,6 +56,7 @@ export default function NotifikasiPage() {
       [TIPE_NOTIFIKASI.EXPORT_SELESAI]: 'Export Selesai',
       [TIPE_NOTIFIKASI.IMPORT_SELESAI]: 'Import Selesai',
       [TIPE_NOTIFIKASI.SISTEM]: 'Sistem',
+      [TIPE_NOTIFIKASI.PENSIUN_MENDEKATI]: 'Pensiun Mendekati',
     };
     return judul[tipe] || 'Notifikasi';
   };

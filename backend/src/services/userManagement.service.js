@@ -9,6 +9,7 @@ const { STATUS_AKTIF } = require('../constants');
 const { tanpaPassword } = require('../utils/userHelper');
 const { parsePagination } = require('../utils/pagination');
 const { AppError } = require('../middleware/error.middleware');
+const { hitungRetirementDateDariNip, validasiNip } = require('../utils/nipHelper');
 
 // Password default untuk user baru hasil reset
 const PASSWORD_DEFAULT_RESET = 'BMN@Reset123';
@@ -114,6 +115,17 @@ async function create(data) {
     throw new AppError('Role tidak valid.', 400);
   }
 
+  // Validasi NIP dan hitung retirement date
+  const validasi = validasiNip(data.nip);
+  if (!validasi.valid) {
+    throw new AppError(validasi.error, 400);
+  }
+
+  const retirementDate = hitungRetirementDateDariNip(data.nip);
+  if (!retirementDate) {
+    throw new AppError('Format NIP tidak valid. Pastikan tanggal lahir dalam NIP benar.', 400);
+  }
+
   const passwordHash = await hashPassword(data.password || PASSWORD_DEFAULT_RESET);
 
   const user = await prisma.user.create({
@@ -126,6 +138,7 @@ async function create(data) {
       unitKerja: data.unitKerja || null,
       role: data.role || 'PEMINJAM',
       sumber: 'MANUAL',
+      retirementDate,
     },
   });
 
@@ -166,6 +179,20 @@ async function update(id, data) {
     throw new AppError('Role tidak valid.', 400);
   }
 
+  // Validasi NIP jika diubah
+  let retirementDate = userLama.retirementDate;
+  if (data.nip && data.nip !== userLama.nip) {
+    const validasi = validasiNip(data.nip);
+    if (!validasi.valid) {
+      throw new AppError(validasi.error, 400);
+    }
+    const tanggalPensiun = hitungRetirementDateDariNip(data.nip);
+    if (!tanggalPensiun) {
+      throw new AppError('Format NIP tidak valid. Pastikan tanggal lahir dalam NIP benar.', 400);
+    }
+    retirementDate = tanggalPensiun;
+  }
+
   // Cek: jangan ubah role admin terakhir
   if (data.role && data.role !== userLama.role) {
     const jumlahAdmin = await prisma.user.count({ where: { role: 'ADMIN' } });
@@ -183,6 +210,7 @@ async function update(id, data) {
       jabatan: data.jabatan !== undefined ? (data.jabatan || null) : userLama.jabatan,
       unitKerja: data.unitKerja !== undefined ? (data.unitKerja || null) : userLama.unitKerja,
       role: data.role ?? userLama.role,
+      retirementDate,
     },
   });
 
