@@ -12,9 +12,14 @@ const createUserSchema = z.object({
     .min(5, 'NIP minimal 5 karakter.')
     .max(30, 'NIP maksimal 30 karakter.'),
   email: z.string({ required_error: 'Email wajib diisi.' }).email('Format email tidak valid.'),
-  password: z.string().optional(), // opsional, kalau kosong pakai default
+  password: z
+    .string({ required_error: 'Kata sandi wajib diisi.' })
+    .min(6, 'Kata sandi minimal 6 karakter.'),
   jabatan: z.string().optional().or(z.literal('')),
   unitKerja: z.string().optional().or(z.literal('')),
+  eselon2: z.string().optional().or(z.literal('')), // Eselon II
+  eselon3: z.string().optional().or(z.literal('')), // Eselon III
+  eselon4: z.string().optional().or(z.literal('')), // Eselon IV
   role: z.enum(['ADMIN', 'PEMINJAM']).optional(),
 });
 
@@ -25,6 +30,9 @@ const updateUserSchema = z.object({
   email: z.string().email('Format email tidak valid.').optional(),
   jabatan: z.string().optional().or(z.literal('')),
   unitKerja: z.string().optional().or(z.literal('')),
+  eselon2: z.string().optional().or(z.literal('')), // Eselon II
+  eselon3: z.string().optional().or(z.literal('')), // Eselon III
+  eselon4: z.string().optional().or(z.literal('')), // Eselon IV
   role: z.enum(['ADMIN', 'PEMINJAM']).optional(),
 });
 

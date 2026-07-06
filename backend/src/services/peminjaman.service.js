@@ -393,6 +393,26 @@ async function batalDraft(id, { userId, role } = {}, requestInfo = {}) {
   return { id };
 }
 
+// --- Pastikan peminjaman memiliki nomor surat (terbitkan bila belum ada) ---
+// Peminjaman hasil IMPORT (data migrasi) & data lama bisa belum punya
+// nomorSurat/tahunSurat — pengajuan normal mendapatkannya saat dibuat, tetapi
+// jalur import tidak. Nomor diterbitkan SEKALI secara atomik saat surat pertama
+// kali dibuat, lalu DISIMPAN agar sama pada setiap unduhan berikutnya dan pada
+// surat peminjaman maupun pengembalian transaksi yang sama. Mengubah objek `p`
+// (in-place) agar surat langsung memakai nomor baru.
+async function pastikanNomorSurat(p) {
+  if (p.nomorSurat) return p;
+  const { nomorSurat, tahunSurat } = await prisma.$transaction(async (tx) => {
+    const tahun = p.tahunSurat || new Date().getFullYear();
+    const nomor = await nomorSuratService.ambil(tx, nomorSuratService.JENIS.PEMINJAMAN, tahun);
+    await tx.peminjaman.update({ where: { id: p.id }, data: { nomorSurat: nomor, tahunSurat: tahun } });
+    return { nomorSurat: nomor, tahunSurat: tahun };
+  });
+  p.nomorSurat = nomorSurat;
+  p.tahunSurat = tahunSurat;
+  return p;
+}
+
 // --- Hasilkan Surat Pernyataan Peminjaman (PDF) untuk pengajuan tersimpan ---
 // Dipakai peminjam untuk mengunduh surat pengajuan DRAFT miliknya, menandatangani,
 // lalu mengunggahnya kembali. Nomor surat & pangkat/gol memakai data tersimpan.
@@ -401,6 +421,7 @@ async function generateSuratPernyataan(id, { userId, role } = {}) {
   if (role === 'PEMINJAM' && p.userId !== userId) {
     throw new AppError('Anda tidak memiliki akses ke pengajuan ini.', 403);
   }
+  await pastikanNomorSurat(p);
   const s = serialisasi(p);
   // pangkatGolongan tidak ada di tabel user — inject dari kolom peminjaman.
   const peminjamUntukSurat = { ...s.peminjam, pangkatGolongan: p.pangkatGolongan || null };
@@ -742,6 +763,7 @@ async function generateSuratPengembalian(id, { userId, role } = {}) {
   if (!['DIPINJAM', 'TERLAMBAT'].includes(statusBerdasarTanggal(p))) {
     throw new AppError('Surat pengembalian hanya tersedia untuk barang yang sedang dipinjam.', 400);
   }
+  await pastikanNomorSurat(p);
   return suratPengembalianService.generate(serialisasi(p));
 }
 
