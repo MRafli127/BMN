@@ -44,7 +44,8 @@ const passwordSchema = z
 type PasswordValues = z.infer<typeof passwordSchema>;
 
 export default function PengaturanPage() {
-  const { user, isAdmin, perbaruiProfil, gantiPassword } = useAuth();
+  const { user, isAdmin, roles, bisaGantiRole, perbaruiProfil, gantiPassword } = useAuth();
+  const LABEL_PERAN: Record<string, string> = { ADMIN: 'Administrator', PEMINJAM: 'Peminjam' };
   const [simpanProfil, setSimpanProfil] = useState(false);
   const [simpanPassword, setSimpanPassword] = useState(false);
 
@@ -131,8 +132,13 @@ export default function PengaturanPage() {
           <div>
             <h1 className="font-jakarta text-2xl font-bold md:text-3xl">Pengaturan Akun</h1>
             <p className="mt-1 text-white/85">
-              {user?.nama} &middot; {isAdmin ? 'Administrator' : 'Peminjam'}
+              {user?.nama} &middot; Peran aktif: {isAdmin ? 'Administrator' : 'Peminjam'}
             </p>
+            {bisaGantiRole && (
+              <p className="mt-1 text-sm text-white/70">
+                Peran dimiliki: {roles.map((r) => LABEL_PERAN[r] ?? r).join(' & ')} — ganti peran lewat menu profil.
+              </p>
+            )}
           </div>
         </div>
       </div>

@@ -78,7 +78,7 @@ const dashboardAdmin = asyncHandler(async (req, res) => {
       prisma.peminjaman.count({ where: { ...whereTanggal, status: 'MENUNGGU' } }),
       prisma.peminjaman.count({ where: { ...whereTanggal, status: { in: STATUS_AKTIF } } }),
       prisma.peminjaman.count({ where: { ...whereTanggal, status: 'TERLAMBAT' } }),
-      prisma.user.count({ where: { role: 'PEMINJAM' } }),
+      prisma.user.count({ where: { roles: { has: 'PEMINJAM' } } }),
       prisma.peminjaman.groupBy({ by: ['status'], _count: { status: true }, where: whereTanggal }),
       prisma.peminjaman.findMany({
         where: whereTanggal,
@@ -189,7 +189,7 @@ const ambilDataKategori = asyncHandler(async (req, res) => {
       // Semua peminjam (user dengan role PEMINJAM), dengan pencarian opsional.
       // Data pegawai: jabatan, unitKerja, eselon2/eselon3/eselon4 (lihat import).
       const q = String(req.query.q || '').trim();
-      const wherePeminjam = { role: 'PEMINJAM' };
+      const wherePeminjam = { roles: { has: 'PEMINJAM' } };
       if (q) {
         wherePeminjam.OR = [
           { nama: { contains: q, mode: 'insensitive' } },
@@ -215,6 +215,7 @@ const ambilDataKategori = asyncHandler(async (req, res) => {
             eselon2: true,
             eselon3: true,
             eselon4: true,
+            roles: true,
             createdAt: true,
           },
           orderBy: { createdAt: 'desc' },

@@ -9,6 +9,7 @@ import type {
   DataLogin,
   DataRegister,
   DataUpdateProfil,
+  Role,
   User,
 } from '@/types/user.type';
 import { authService } from '@/services/auth.service';
@@ -24,6 +25,7 @@ interface AuthState {
   segarkanProfil: () => Promise<void>;
   perbaruiProfil: (data: DataUpdateProfil) => Promise<User>;
   gantiPassword: (data: DataGantiPassword) => Promise<void>;
+  gantiRole: (role: Role) => Promise<User>;
   setUser: (user: User) => void;
 }
 
@@ -86,6 +88,14 @@ export const useAuthStore = create<AuthState>((set) => ({
   // Ganti kata sandi
   gantiPassword: async (data) => {
     await authService.gantiPassword(data);
+  },
+
+  // Ganti active role (akun multi-role) & sinkronkan token + sesi
+  gantiRole: async (role) => {
+    const hasil = await authService.switchRole(role);
+    simpanSesi(hasil.accessToken, hasil.user);
+    set({ user: hasil.user });
+    return hasil.user;
   },
 
   setUser: (user) => set({ user }),

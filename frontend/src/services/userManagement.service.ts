@@ -44,4 +44,14 @@ export const userManagementService = {
       dilewati: res.data.data?.dilewati ?? 0,
     };
   },
+
+  // Jadikan admin (promote): tambahkan peran ADMIN ke akun.
+  async jadikanAdmin(id: string): Promise<void> {
+    await api.post(`/users/${id}/roles`, { role: 'ADMIN' });
+  },
+
+  // Cabut admin (demote): hapus peran ADMIN dari akun.
+  async cabutAdmin(id: string): Promise<void> {
+    await api.delete(`/users/${id}/roles/ADMIN`);
+  },
 };

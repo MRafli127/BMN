@@ -15,12 +15,17 @@ import { NotificationDropdown } from './NotificationDropdown';
 import { useUIStore } from '@/store/uiStore';
 import { useAuth } from '@/hooks/useAuth';
 import { useNotificationStore } from '@/store/notificationStore';
-import { inisial } from '@/lib/utils';
-import { RUTE } from '@/constants/routes';
+import { inisial, ambilPesanError } from '@/lib/utils';
+import { notify } from '@/components/ui/toast';
+import { RUTE, RUTE_DEFAULT } from '@/constants/routes';
+import type { Role } from '@/types/user.type';
+
+// Label peran untuk tampilan.
+const LABEL_PERAN: Record<Role, string> = { ADMIN: 'Administrator', PEMINJAM: 'Peminjam' };
 
 export function Header() {
   const bukaSidebar = useUIStore((s) => s.bukaSidebar);
-  const { user, isAdmin, logout } = useAuth();
+  const { user, isAdmin, logout, roles, bisaGantiRole, gantiRole } = useAuth();
   const notifikasiStore = useNotificationStore();
   const jumlahBelumBaca = notifikasiStore.jumlahBelumBaca ?? 0;
   const init = notifikasiStore.init;
@@ -57,6 +62,18 @@ export function Header() {
     setMenuBuka(false);
     await logout();
     router.push(RUTE.login);
+  };
+
+  // Ganti peran aktif (akun multi-role) lalu arahkan ke dashboard peran tsb.
+  const gantiPeran = async (role: Role) => {
+    setMenuBuka(false);
+    try {
+      await gantiRole(role);
+      notify.suksess(`Beralih ke ${LABEL_PERAN[role]}.`);
+      router.push(RUTE_DEFAULT[role]);
+    } catch (error) {
+      notify.gagal(ambilPesanError(error, 'Gagal mengganti peran.'));
+    }
   };
 
   return (
@@ -154,6 +171,28 @@ export function Header() {
                   <p className="truncate text-xs text-on-surface-variant">{user?.email}</p>
                 </div>
               </div>
+
+              {/* Ganti peran (akun multi-role) */}
+              {bisaGantiRole && (
+                <div className="border-b border-outline-variant/60 px-3 py-2.5">
+                  <p className="mb-1.5 px-1 text-[11px] font-medium uppercase tracking-wide text-on-surface-variant">
+                    Peran aktif: {isAdmin ? 'Administrator' : 'Peminjam'}
+                  </p>
+                  {roles
+                    .filter((r) => r !== user?.activeRole)
+                    .map((r) => (
+                      <button
+                        key={r}
+                        role="menuitem"
+                        onClick={() => gantiPeran(r)}
+                        className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm text-on-surface transition-colors hover:bg-primary/5"
+                      >
+                        <Icon name="swap_horiz" className="text-on-surface-variant" />
+                        Beralih ke {LABEL_PERAN[r]}
+                      </button>
+                    ))}
+                </div>
+              )}
 
               {/* Aksi */}
               <div className="p-1.5">

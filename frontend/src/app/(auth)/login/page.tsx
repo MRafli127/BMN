@@ -16,6 +16,7 @@ import { notify } from '@/components/ui/toast';
 import { useAuth } from '@/hooks/useAuth';
 import { ambilPesanError } from '@/lib/utils';
 import { RUTE, RUTE_DEFAULT } from '@/constants/routes';
+import type { Role } from '@/types/user.type';
 
 const schema = z.object({
   email: z.string().min(1, 'Email wajib diisi.').email('Format email tidak valid.'),
@@ -23,11 +24,19 @@ const schema = z.object({
 });
 type FormValues = z.infer<typeof schema>;
 
+// Info tampilan tiap peran untuk layar pemilihan role.
+const INFO_PERAN: Record<Role, { label: string; deskripsi: string; ikon: string }> = {
+  ADMIN: { label: 'Administrator', deskripsi: 'Kelola barang, peminjaman & pengguna', ikon: 'admin_panel_settings' },
+  PEMINJAM: { label: 'Peminjam', deskripsi: 'Ajukan & pantau peminjaman barang', ikon: 'person' },
+};
+
 export default function LoginPage() {
   const router = useRouter();
-  const { login } = useAuth();
+  const { login, gantiRole } = useAuth();
   const [sedangProses, setSedangProses] = useState(false);
   const [lihatPassword, setLihatPassword] = useState(false);
+  // Akun multi-role: setelah login, tampilkan pilihan peran sebelum masuk dashboard.
+  const [pilihanPeran, setPilihanPeran] = useState<{ nama: string; roles: Role[] } | null>(null);
 
   const {
     register,
@@ -39,14 +48,32 @@ export default function LoginPage() {
     setSedangProses(true);
     try {
       const user = await login(data);
+      // Punya >1 peran → minta user memilih peran aktif dulu.
+      if (user.roles.length > 1) {
+        setPilihanPeran({ nama: user.nama, roles: user.roles });
+        return;
+      }
       notify.suksess(`Selamat datang, ${user.nama}!`);
-      router.push(RUTE_DEFAULT[user.role]);
+      router.push(RUTE_DEFAULT[user.activeRole]);
     } catch (error) {
       notify.gagal(ambilPesanError(error, 'Login gagal. Periksa email & kata sandi.'));
     } finally {
       setSedangProses(false);
     }
   });
+
+  // Pilih peran aktif (akun multi-role) → switch role lalu arahkan ke dashboard.
+  const pilihPeran = async (role: Role) => {
+    setSedangProses(true);
+    try {
+      await gantiRole(role);
+      notify.suksess(`Masuk sebagai ${INFO_PERAN[role].label}.`);
+      router.push(RUTE_DEFAULT[role]);
+    } catch (error) {
+      notify.gagal(ambilPesanError(error, 'Gagal memilih peran. Coba lagi.'));
+      setSedangProses(false);
+    }
+  };
 
   return (
     <main className="flex min-h-screen flex-col bg-background text-on-surface md:flex-row">
@@ -77,6 +104,48 @@ export default function LoginPage() {
             <Image src="/images/logo-kemenkeu.png" alt="Logo Kementerian Keuangan" width={200} height={56} className="object-contain" />
           </div>
 
+          {pilihanPeran ? (
+            /* Layar pilih peran untuk akun dengan lebih dari satu role */
+            <div className="space-y-6">
+              <div>
+                <h3 className="mb-2 font-jakarta text-headline-md text-on-surface">Halo, {pilihanPeran.nama}</h3>
+                <p className="font-body-md text-on-surface-variant">
+                  Akun Anda memiliki lebih dari satu peran. Pilih peran yang ingin digunakan.
+                </p>
+              </div>
+
+              <div className="space-y-3">
+                {pilihanPeran.roles.map((role) => (
+                  <button
+                    key={role}
+                    type="button"
+                    disabled={sedangProses}
+                    onClick={() => pilihPeran(role)}
+                    className="flex w-full items-center gap-4 rounded-xl border border-outline-variant bg-surface-container-low p-4 text-left transition-all hover:border-primary hover:bg-primary/5 active:scale-[0.98] disabled:opacity-60"
+                  >
+                    <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
+                      <Icon name={INFO_PERAN[role].ikon} className="text-[26px]" />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="font-jakarta text-headline-md text-on-surface">{INFO_PERAN[role].label}</p>
+                      <p className="truncate font-body-sm text-on-surface-variant">{INFO_PERAN[role].deskripsi}</p>
+                    </div>
+                    <Icon name="chevron_right" className="text-on-surface-variant" />
+                  </button>
+                ))}
+              </div>
+
+              <button
+                type="button"
+                disabled={sedangProses}
+                onClick={() => setPilihanPeran(null)}
+                className="font-label-sm text-on-surface-variant hover:text-primary hover:underline disabled:opacity-60"
+              >
+                ← Kembali ke login
+              </button>
+            </div>
+          ) : (
+          <>
           <form onSubmit={kirim} className="space-y-6">
             <div>
               <h3 className="mb-2 font-jakarta text-headline-md text-on-surface">Selamat Datang Kembali</h3>
@@ -165,6 +234,8 @@ export default function LoginPage() {
             <p className="mt-1">Admin: admin@bmn.go.id / Admin123!</p>
             <p>Peminjam: budi@bmn.go.id / Peminjam123!</p>
           </div>
+          </>
+          )}
         </div>
       </section>
     </main>

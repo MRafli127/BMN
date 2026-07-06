@@ -209,7 +209,7 @@ async function exportUsers(data) {
     email: u.email || '-',
     jabatan: u.jabatan || '-',
     unitKerja: u.unitKerja || '-',
-    role: u.role === 'ADMIN' ? 'Administrator' : 'Peminjam',
+    role: (u.roles || []).includes('ADMIN') ? 'Administrator' : 'Peminjam',
     sumber: u.sumber === 'IMPORT' ? 'Import' : 'Manual',
     totalPeminjaman: u.totalPeminjaman ?? '-',
     createdAt: formatTanggal(u.createdAt),

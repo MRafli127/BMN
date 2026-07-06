@@ -20,10 +20,10 @@ const createUserSchema = z.object({
   eselon2: z.string().optional().or(z.literal('')), // Eselon II
   eselon3: z.string().optional().or(z.literal('')), // Eselon III
   eselon4: z.string().optional().or(z.literal('')), // Eselon IV
-  role: z.enum(['ADMIN', 'PEMINJAM']).optional(),
+  roles: z.array(z.enum(['ADMIN', 'PEMINJAM'])).nonempty().optional(),
 });
 
-// Validasi update user
+// Validasi update user (role dikelola terpisah via endpoint promote/demote)
 const updateUserSchema = z.object({
   nama: z.string().min(3, 'Nama minimal 3 karakter.').optional(),
   nip: z.string().min(5, 'NIP minimal 5 karakter.').max(30, 'NIP maksimal 30 karakter.').optional(),
@@ -33,7 +33,11 @@ const updateUserSchema = z.object({
   eselon2: z.string().optional().or(z.literal('')), // Eselon II
   eselon3: z.string().optional().or(z.literal('')), // Eselon III
   eselon4: z.string().optional().or(z.literal('')), // Eselon IV
-  role: z.enum(['ADMIN', 'PEMINJAM']).optional(),
 });
 
-module.exports = { createUserSchema, updateUserSchema };
+// Validasi tambah role (promote)
+const tambahRoleSchema = z.object({
+  role: z.enum(['ADMIN', 'PEMINJAM'], { required_error: 'Peran wajib dipilih.' }),
+});
+
+module.exports = { createUserSchema, updateUserSchema, tambahRoleSchema };

@@ -17,10 +17,14 @@ export function useAuth() {
     segarkanProfil: store.segarkanProfil,
     perbaruiProfil: store.perbaruiProfil,
     gantiPassword: store.gantiPassword,
+    gantiRole: store.gantiRole,
     setUser: store.setUser,
     muatDariSesi: store.muatDariSesi,
     sudahLogin: !!store.user,
-    isAdmin: store.user?.role === 'ADMIN',
-    isPeminjam: store.user?.role === 'PEMINJAM',
+    // Gating berbasis ACTIVE role (bukan seluruh role yang dimiliki).
+    isAdmin: store.user?.activeRole === 'ADMIN',
+    isPeminjam: store.user?.activeRole === 'PEMINJAM',
+    roles: store.user?.roles ?? [],
+    bisaGantiRole: (store.user?.roles?.length ?? 0) > 1,
   };
 }

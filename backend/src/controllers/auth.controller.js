@@ -41,13 +41,20 @@ const login = asyncHandler(async (req, res) => {
 });
 
 const me = asyncHandler(async (req, res) => {
-  const user = await authService.getMe(req.user.id);
+  const user = await authService.getMe(req.user.id, req.user.role);
   return responsSukses(res, { pesan: 'Profil pengguna.', data: user });
 });
 
 const updateMe = asyncHandler(async (req, res) => {
-  const hasil = await authService.perbaruiProfil(req.user.id, req.body);
+  const hasil = await authService.perbaruiProfil(req.user.id, req.body, req.user.role);
   return responsSukses(res, { pesan: 'Profil berhasil diperbarui.', data: hasil });
+});
+
+// Ganti active role untuk akun multi-role. Menerbitkan token baru.
+const switchRole = asyncHandler(async (req, res) => {
+  const hasil = await authService.switchRole(req.user.id, req.body.role);
+  res.cookie('refreshToken', hasil.refreshToken, opsiCookie);
+  return responsSukses(res, { pesan: 'Peran aktif diperbarui.', data: hasil });
 });
 
 const gantiPassword = asyncHandler(async (req, res) => {
@@ -115,4 +122,4 @@ const getCsrf = asyncHandler(async (req, res) => {
   });
 });
 
-module.exports = { register, login, me, updateMe, gantiPassword, refresh, logout, getCsrf };
+module.exports = { register, login, switchRole, me, updateMe, gantiPassword, refresh, logout, getCsrf };

@@ -5,6 +5,7 @@
 import api from '@/lib/api';
 import type { Peminjaman, StatusPeminjaman } from '@/types/peminjaman.type';
 import type { Barang } from '@/types/barang.type';
+import type { Role } from '@/types/user.type';
 
 export interface DashboardAdmin {
   statistik: {
@@ -54,6 +55,7 @@ interface UserList {
   eselon2: string | null; //   Eselon II
   eselon3: string | null; //   Eselon III
   eselon4: string | null; //   Eselon IV
+  roles: Role[]; //            Peran yang dimiliki akun
   createdAt: string;
 }
 

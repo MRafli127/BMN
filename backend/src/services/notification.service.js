@@ -57,7 +57,7 @@ async function buat(data) {
  */
 async function kirimKeSemuaAdmin(data) {
   const admins = await prisma.user.findMany({
-    where: { role: Role.ADMIN },
+    where: { roles: { has: Role.ADMIN } },
     select: { id: true },
   });
 

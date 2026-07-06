@@ -239,7 +239,7 @@ async function importDariExcel(buffer) {
       eselon2: true,
       eselon3: true,
       eselon4: true,
-      role: true,
+      roles: true,
     },
   });
   const userByNip = new Map(allUsers.map((u) => [u.nip, u]));
@@ -258,9 +258,9 @@ async function importDariExcel(buffer) {
   for (const r of petaFile.values()) {
     const user = userByNip.get(r.nip) || userByEmail.get(r.email);
 
-    // Akun non-PEMINJAM (mis. admin) tidak disentuh oleh import.
-    if (user && user.role !== 'PEMINJAM') {
-      gagal.push({ baris: r.baris, nama: r.nama, pesan: `NIP/email milik akun ${user.role}, dilewati.` });
+    // Akun yang punya peran ADMIN tidak disentuh oleh import (lindungi akun admin).
+    if (user && user.roles.includes('ADMIN')) {
+      gagal.push({ baris: r.baris, nama: r.nama, pesan: `NIP/email milik akun admin, dilewati.` });
       continue;
     }
 
@@ -276,7 +276,7 @@ async function importDariExcel(buffer) {
         nip: r.nip,
         email: r.email,
         password: passwordHash,
-        role: 'PEMINJAM',
+        roles: ['PEMINJAM'],
         sumber: 'IMPORT',
         jabatan: r.jabatan,
         unitKerja: r.unitKerja,

@@ -32,7 +32,8 @@ async function main() {
   const passwordAdmin = await bcrypt.hash(adminConfig.password, 10);
   const admin = await prisma.user.upsert({
     where: { email: adminConfig.email },
-    update: {},
+    // Akun demo multi-role: ADMIN + PEMINJAM, agar fitur switch role bisa langsung dicoba.
+    update: { roles: ['ADMIN', 'PEMINJAM'] },
     create: {
       nama: adminConfig.nama,
       nip: adminConfig.nip,
@@ -40,7 +41,7 @@ async function main() {
       password: passwordAdmin,
       jabatan: 'Kepala Sub Bagian Pengelolaan BMN',
       unitKerja: 'Bagian Umum',
-      role: 'ADMIN',
+      roles: ['ADMIN', 'PEMINJAM'],
     },
   });
   console.log(`✅ Admin siap: ${admin.email}`);
@@ -75,7 +76,7 @@ async function main() {
     await prisma.user.upsert({
       where: { email: p.email },
       update: {},
-      create: { ...p, password, role: 'PEMINJAM' },
+      create: { ...p, password, roles: ['PEMINJAM'] },
     });
   }
   console.log(`✅ ${peminjamContoh.length} peminjam contoh siap (password: Peminjam123!)`);

@@ -13,12 +13,15 @@ const { AppError } = require('../middleware/error.middleware');
 // Password default untuk user baru hasil reset
 const PASSWORD_DEFAULT_RESET = 'BMN@Reset123';
 
+// Daftar role valid dalam sistem
+const ROLE_VALID = ['ADMIN', 'PEMINJAM'];
+
 // --- List semua user dengan pagination & filter ---
 async function getSemua({ q, role, page = 1, limit = 10 } = {}) {
   const { halaman, perHalaman, skip } = parsePagination({ page, limit });
 
   const where = {};
-  if (role) where.role = role;
+  if (role) where.roles = { has: role };
   if (q) {
     const cocok = { contains: q, mode: 'insensitive' };
     where.OR = [
@@ -40,7 +43,7 @@ async function getSemua({ q, role, page = 1, limit = 10 } = {}) {
         email: true,
         jabatan: true,
         unitKerja: true,
-        role: true,
+        roles: true,
         sumber: true,
         createdAt: true,
         updatedAt: true,
@@ -77,7 +80,7 @@ async function getById(id) {
       email: true,
       jabatan: true,
       unitKerja: true,
-      role: true,
+      roles: true,
       sumber: true,
       createdAt: true,
       updatedAt: true,
@@ -109,8 +112,9 @@ async function create(data) {
     throw new AppError('NIP sudah terdaftar.', 409);
   }
 
-  // Validasi role
-  if (data.role && !['ADMIN', 'PEMINJAM'].includes(data.role)) {
+  // Tentukan & validasi roles (default: peminjam)
+  const roles = Array.isArray(data.roles) && data.roles.length ? [...new Set(data.roles)] : ['PEMINJAM'];
+  if (roles.some((r) => !ROLE_VALID.includes(r))) {
     throw new AppError('Role tidak valid.', 400);
   }
 
@@ -127,7 +131,7 @@ async function create(data) {
       eselon2: data.eselon2 || null,
       eselon3: data.eselon3 || null,
       eselon4: data.eselon4 || null,
-      role: data.role || 'PEMINJAM',
+      roles,
       sumber: 'MANUAL',
     },
   });
@@ -164,19 +168,8 @@ async function update(id, data) {
     }
   }
 
-  // Validasi role jika diubah
-  if (data.role && !['ADMIN', 'PEMINJAM'].includes(data.role)) {
-    throw new AppError('Role tidak valid.', 400);
-  }
-
-  // Cek: jangan ubah role admin terakhir
-  if (data.role && data.role !== userLama.role) {
-    const jumlahAdmin = await prisma.user.count({ where: { role: 'ADMIN' } });
-    if (userLama.role === 'ADMIN' && jumlahAdmin <= 1) {
-      throw new AppError('Tidak dapat mengubah role admin terakhir.', 400);
-    }
-  }
-
+  // Catatan: role/peran TIDAK diubah di sini — gunakan endpoint promote/demote
+  // (tambahRole/hapusRole) yang menegakkan guard "admin terakhir".
   const user = await prisma.user.update({
     where: { id },
     data: {
@@ -185,11 +178,68 @@ async function update(id, data) {
       email: data.email ?? userLama.email,
       jabatan: data.jabatan !== undefined ? (data.jabatan || null) : userLama.jabatan,
       unitKerja: data.unitKerja !== undefined ? (data.unitKerja || null) : userLama.unitKerja,
-      role: data.role ?? userLama.role,
     },
   });
 
   return tanpaPassword(user);
+}
+
+// --- Tambah role ke user (promote) ---
+// Idempotent: bila user sudah punya role tsb, tidak melakukan apa-apa.
+async function tambahRole(id, role) {
+  if (!ROLE_VALID.includes(role)) throw new AppError('Role tidak valid.', 400);
+
+  const user = await prisma.user.findUnique({ where: { id } });
+  if (!user) throw new AppError('User tidak ditemukan.', 404);
+
+  if (user.roles.includes(role)) {
+    return tanpaPassword(user); // sudah punya → no-op
+  }
+
+  const updated = await prisma.user.update({
+    where: { id },
+    data: { roles: { push: role } },
+  });
+  return tanpaPassword(updated);
+}
+
+// --- Hapus role dari user (demote) ---
+// Menegakkan: (1) admin terakhir tidak boleh dicabut, (2) user harus tetap
+// punya minimal 1 role. Saat mencabut ADMIN, tokenVersion di-increment agar
+// sesi admin yang berjalan langsung berakhir.
+async function hapusRole(id, role) {
+  if (!ROLE_VALID.includes(role)) throw new AppError('Role tidak valid.', 400);
+
+  const user = await prisma.user.findUnique({ where: { id } });
+  if (!user) throw new AppError('User tidak ditemukan.', 404);
+
+  if (!user.roles.includes(role)) {
+    return tanpaPassword(user); // tidak punya → no-op
+  }
+
+  // Jaga: user harus tetap punya minimal 1 role.
+  if (user.roles.length <= 1) {
+    throw new AppError('User harus memiliki minimal satu peran.', 400);
+  }
+
+  // Guard: jangan cabut admin terakhir.
+  if (role === 'ADMIN') {
+    const jumlahAdmin = await prisma.user.count({ where: { roles: { has: 'ADMIN' } } });
+    if (jumlahAdmin <= 1) {
+      throw new AppError('Tidak dapat mencabut admin terakhir.', 400);
+    }
+  }
+
+  const rolesBaru = user.roles.filter((r) => r !== role);
+  const updated = await prisma.user.update({
+    where: { id },
+    data: {
+      roles: { set: rolesBaru },
+      // Cabut ADMIN = sensitif → akhiri semua sesi berjalan.
+      ...(role === 'ADMIN' ? { tokenVersion: { increment: 1 } } : {}),
+    },
+  });
+  return tanpaPassword(updated);
 }
 
 // --- Reset password user ---
@@ -224,8 +274,8 @@ async function remove(id) {
   if (!user) throw new AppError('User tidak ditemukan.', 404);
 
   // Cek: jangan hapus admin terakhir
-  if (user.role === 'ADMIN') {
-    const jumlahAdmin = await prisma.user.count({ where: { role: 'ADMIN' } });
+  if (user.roles.includes('ADMIN')) {
+    const jumlahAdmin = await prisma.user.count({ where: { roles: { has: 'ADMIN' } } });
     if (jumlahAdmin <= 1) {
       throw new AppError('Tidak dapat menghapus admin terakhir.', 400);
     }
@@ -258,9 +308,10 @@ async function hapusBanyakPeminjam(ids) {
   const daftarId = Array.isArray(ids) ? [...new Set(ids.filter((v) => typeof v === 'string' && v))] : [];
   if (daftarId.length === 0) throw new AppError('Tidak ada peminjam yang dipilih.', 400);
 
-  // Batasi hanya ke user ber-role PEMINJAM yang benar-benar ada.
+  // Batasi hanya ke akun peminjam murni (punya PEMINJAM, BUKAN admin).
+  // Akun yang juga ADMIN dilindungi dari hapus massal.
   const peminjam = await prisma.user.findMany({
-    where: { id: { in: daftarId }, role: 'PEMINJAM' },
+    where: { id: { in: daftarId }, roles: { has: 'PEMINJAM' }, NOT: { roles: { has: 'ADMIN' } } },
     select: { id: true },
   });
   const idPeminjam = peminjam.map((p) => p.id);
@@ -289,8 +340,8 @@ async function hapusBanyakPeminjam(ids) {
 async function getStatistik() {
   const [totalUser, totalAdmin, totalPeminjam] = await Promise.all([
     prisma.user.count(),
-    prisma.user.count({ where: { role: 'ADMIN' } }),
-    prisma.user.count({ where: { role: 'PEMINJAM' } }),
+    prisma.user.count({ where: { roles: { has: 'ADMIN' } } }),
+    prisma.user.count({ where: { roles: { has: 'PEMINJAM' } } }),
   ]);
 
   return { totalUser, totalAdmin, totalPeminjam };
@@ -301,6 +352,8 @@ module.exports = {
   getById,
   create,
   update,
+  tambahRole,
+  hapusRole,
   resetPassword,
   remove,
   hapusBanyakPeminjam,

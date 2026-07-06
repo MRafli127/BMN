@@ -93,6 +93,20 @@ export default function KategoriDashboardPage() {
     refetch();
   };
 
+  // Promote/demote admin untuk satu peminjam. Melempar ulang error agar dialog
+  // konfirmasi di dalam tabel tetap terbuka saat gagal (mis. admin terakhir).
+  const ubahRole = async (id: string, aksi: 'promote' | 'demote') => {
+    try {
+      if (aksi === 'promote') await userManagementService.jadikanAdmin(id);
+      else await userManagementService.cabutAdmin(id);
+      notify.suksess(aksi === 'promote' ? 'Akun berhasil dijadikan admin.' : 'Peran admin berhasil dicabut.');
+      segarkanData();
+    } catch (error) {
+      notify.gagal(ambilPesanError(error, 'Gagal mengubah peran akun.'));
+      throw error;
+    }
+  };
+
   // Hapus peminjam terpilih sekaligus (yang punya peminjaman aktif dilewati).
   const hapusMassal = async () => {
     setSedangMassal(true);
@@ -284,6 +298,7 @@ export default function KategoriDashboardPage() {
             nomorAwal={(halaman - 1) * limit}
             terpilih={terpilih}
             onUbahTerpilih={setTerpilih}
+            onUbahRole={ubahRole}
           />
         </div>
       ) : (
