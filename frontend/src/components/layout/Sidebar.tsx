@@ -8,7 +8,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { usePathname, useRouter } from 'next/navigation';
 import { Icon } from '@/components/ui/icon';
-import { cn, ambilPesanError } from '@/lib/utils';
+import { cn, ambilPesanError, inisial } from '@/lib/utils';
 import { notify } from '@/components/ui/toast';
 import { RUTE, RUTE_DEFAULT } from '@/constants/routes';
 import { useAuth } from '@/hooks/useAuth';
@@ -48,6 +48,8 @@ export function Sidebar() {
   const jumlahKeranjang = useJumlahKeranjang();
 
   const menu = isAdmin ? menuAdmin : menuPeminjam;
+  // Panduan selalu tampil untuk semua peran → digabung agar satu pemetaan.
+  const semuaMenu: ItemMenu[] = [...menu, { label: 'Panduan Penggunaan', href: RUTE.bantuan, ikon: 'menu_book' }];
 
   // Logo mengarah ke dashboard sesuai peran (bukan landing page)
   const berandaHref = isAdmin ? RUTE.adminDashboard : RUTE.peminjamDashboard;
@@ -74,6 +76,15 @@ export function Sidebar() {
     pathname === href ||
     (href !== RUTE.adminDashboard && href !== RUTE.peminjamDashboard && pathname.startsWith(href));
 
+  // Kelas satu item navigasi (state aktif = kartu terang + aksen hijau).
+  const kelasItem = (aktif: boolean) =>
+    cn(
+      'group relative flex items-center gap-3 rounded-xl px-3 py-2.5 transition-all duration-200',
+      aktif
+        ? 'bg-white/15 font-bold text-white shadow-lg shadow-black/25 ring-1 ring-white/10'
+        : 'text-white/70 hover:bg-white/10 hover:text-white'
+    );
+
   return (
     <>
       {/* Overlay untuk mobile */}
@@ -86,100 +97,134 @@ export function Sidebar() {
       )}
 
       <aside
+        style={{ backgroundImage: 'linear-gradient(180deg, #001453 0%, #00226b 52%, #002a86 100%)' }}
         className={cn(
-          'fixed inset-y-0 left-0 z-40 flex w-[17rem] max-w-[85vw] flex-col bg-primary py-stack-lg text-white shadow-xl transition-transform duration-300 ease-out',
+          'fixed inset-y-0 left-0 z-40 flex w-[17rem] max-w-[85vw] flex-col overflow-hidden bg-primary py-stack-lg text-white shadow-2xl transition-transform duration-300 ease-out',
           // Desktop: tetap diam saat halaman di-scroll (sticky setinggi layar).
           'lg:sticky lg:top-0 lg:h-screen lg:max-h-screen lg:max-w-none lg:translate-x-0 lg:self-start',
           sidebarTerbuka ? 'translate-x-0' : '-translate-x-full'
         )}
       >
-        {/* Header logo */}
-        <div className="mb-8 flex items-center justify-between gap-2 px-6">
-          <Link href={berandaHref} className="flex items-center overflow-hidden">
-            <Image src="/images/logo-kemenkeu.png" alt="Logo Kementerian Keuangan" width={200} height={56} className="object-contain" />
-          </Link>
-          <button onClick={tutupSidebar} className="rounded-md p-1 hover:bg-white/10 lg:hidden">
-            <Icon name="close" className="text-white" />
-          </button>
+        {/* Aksen dekoratif: glow lembut khas instansi (biru + hijau) */}
+        <div aria-hidden className="pointer-events-none absolute inset-0">
+          <div className="absolute -left-16 -top-20 h-56 w-56 rounded-full bg-secondary/20 blur-3xl" />
+          <div className="absolute -right-24 top-1/3 h-56 w-56 rounded-full bg-[#1e40af]/40 blur-3xl" />
+          <div className="absolute inset-x-0 bottom-0 h-40 bg-gradient-to-t from-black/25 to-transparent" />
         </div>
 
-        {/* Identitas pengguna */}
-        <div className="mx-4 mb-2 rounded-xl bg-white/10 px-4 py-3 backdrop-blur-md">
-          <p className="truncate text-sm font-bold">{user?.nama || 'Pengguna'}</p>
-          <p className="text-xs text-white/70">{isAdmin ? 'Administrator' : 'Peminjam'}</p>
-        </div>
-
-        {/* Beralih peran (akun multi-role) — tepat di bawah logo & identitas */}
-        {bisaGantiRole && (
-          <div className="mx-4 mb-2">
-            {roles
-              .filter((r) => r !== user?.activeRole)
-              .map((r) => (
-                <button
-                  key={r}
-                  onClick={() => gantiPeran(r)}
-                  className="flex w-full items-center gap-3 rounded-xl border border-white/15 bg-white/5 px-4 py-2.5 text-sm font-semibold text-white transition-all hover:bg-white/15 active:scale-[0.98]"
-                >
-                  <Icon name="swap_horiz" className="text-secondary" />
-                  Beralih ke {LABEL_PERAN[r]}
-                </button>
-              ))}
+        {/* Konten (di atas aksen dekoratif) */}
+        <div className="relative z-10 flex min-h-0 flex-1 flex-col">
+          {/* Header logo */}
+          <div className="mb-6 flex items-center justify-between gap-2 px-6">
+            <Link href={berandaHref} className="flex items-center overflow-hidden transition-opacity hover:opacity-90">
+              <Image
+                src="/images/logo-kemenkeu.png"
+                alt="Logo Kementerian Keuangan"
+                width={200}
+                height={56}
+                className="object-contain"
+              />
+            </Link>
+            <button
+              onClick={tutupSidebar}
+              className="rounded-lg p-1.5 text-white/80 transition-colors hover:bg-white/10 hover:text-white lg:hidden"
+              aria-label="Tutup menu"
+            >
+              <Icon name="close" />
+            </button>
           </div>
-        )}
 
-        {/* Menu navigasi */}
-        <nav className="custom-scrollbar mt-4 flex flex-1 flex-col gap-1 overflow-y-auto">
-          {menu.map((item) => {
-            const aktif = isAktif(item.href);
-            return (
-              <Link
-                key={item.href}
-                href={item.href}
-                onClick={tutupSidebar}
-                aria-current={aktif ? 'page' : undefined}
-                className={cn(
-                  'flex items-center gap-4 px-6 py-4 transition-all hover:translate-x-1',
-                  aktif
-                    ? 'border-l-4 border-secondary bg-white/10 font-bold text-white backdrop-blur-lg'
-                    : 'text-white/70 hover:bg-white/5'
-                )}
-              >
-                <Icon name={item.ikon} fill={aktif} />
-                <span className="font-label-md">{item.label}</span>
-                {item.href === RUTE.peminjamKeranjang && jumlahKeranjang > 0 && (
-                  <span className="ml-auto inline-flex min-w-5 items-center justify-center rounded-full bg-secondary px-1.5 py-0.5 text-xs font-bold text-primary">
-                    {jumlahKeranjang}
+          {/* Identitas pengguna */}
+          <div className="mx-3 mb-3 flex items-center gap-3 rounded-2xl border border-white/10 bg-white/10 px-3 py-3 shadow-lg shadow-black/10 backdrop-blur-md">
+            <div className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-gradient-to-br from-white/25 to-white/5 text-sm font-bold ring-2 ring-white/20">
+              {inisial(user?.nama)}
+            </div>
+            <div className="min-w-0">
+              <p className="truncate text-sm font-bold leading-tight">{user?.nama || 'Pengguna'}</p>
+              <div className="mt-0.5 inline-flex items-center gap-1.5">
+                <span className={cn('h-1.5 w-1.5 rounded-full', isAdmin ? 'bg-secondary' : 'bg-amber-400')} />
+                <span className="truncate text-xs text-white/70">{isAdmin ? 'Administrator' : 'Peminjam'}</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Beralih peran (akun multi-role) — tepat di bawah logo & identitas */}
+          {bisaGantiRole && (
+            <div className="mx-3 mb-3">
+              {roles
+                .filter((r) => r !== user?.activeRole)
+                .map((r) => (
+                  <button
+                    key={r}
+                    onClick={() => gantiPeran(r)}
+                    className="group flex w-full items-center justify-center gap-2 rounded-xl border border-white/15 bg-white/5 px-4 py-2.5 text-sm font-semibold text-white transition-all hover:border-secondary/40 hover:bg-white/10 active:scale-[0.98]"
+                  >
+                    <Icon
+                      name="swap_horiz"
+                      className="text-secondary transition-transform duration-300 group-hover:rotate-180"
+                      style={{ fontSize: 20 }}
+                    />
+                    Beralih ke {LABEL_PERAN[r]}
+                  </button>
+                ))}
+            </div>
+          )}
+
+          {/* Label seksi menu */}
+          <p className="mb-1 px-5 text-[10px] font-bold uppercase tracking-[0.18em] text-white/40">Menu Utama</p>
+
+          {/* Menu navigasi */}
+          <nav className="custom-scrollbar flex min-h-0 flex-1 flex-col gap-1 overflow-y-auto px-3">
+            {semuaMenu.map((item) => {
+              const aktif = isAktif(item.href);
+              const badge = item.href === RUTE.peminjamKeranjang ? jumlahKeranjang : undefined;
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  onClick={tutupSidebar}
+                  aria-current={aktif ? 'page' : undefined}
+                  className={kelasItem(aktif)}
+                >
+                  {/* Aksen kiri saat aktif */}
+                  {aktif && (
+                    <span
+                      aria-hidden
+                      className="absolute left-0 top-1/2 h-7 w-1 -translate-y-1/2 rounded-r-full bg-secondary"
+                    />
+                  )}
+                  <span
+                    className={cn(
+                      'grid h-9 w-9 shrink-0 place-items-center rounded-lg transition-colors',
+                      aktif ? 'bg-white/20' : 'text-white/80 group-hover:bg-white/5 group-hover:text-white'
+                    )}
+                  >
+                    <Icon name={item.ikon} fill={aktif} style={{ fontSize: 22 }} />
                   </span>
-                )}
-              </Link>
-            );
-          })}
+                  <span className="font-label-md">{item.label}</span>
+                  {badge != null && badge > 0 && (
+                    <span className="ml-auto inline-flex min-w-5 items-center justify-center rounded-full bg-secondary px-1.5 py-0.5 text-xs font-bold text-primary shadow">
+                      {badge}
+                    </span>
+                  )}
+                </Link>
+              );
+            })}
+          </nav>
 
-          <Link
-            href={RUTE.bantuan}
-            onClick={tutupSidebar}
-            aria-current={pathname === RUTE.bantuan ? 'page' : undefined}
-            className={cn(
-              'flex items-center gap-4 px-6 py-4 transition-all hover:translate-x-1',
-              pathname === RUTE.bantuan
-                ? 'border-l-4 border-secondary bg-white/10 font-bold text-white backdrop-blur-lg'
-                : 'text-white/70 hover:bg-white/5'
-            )}
-          >
-            <Icon name="menu_book" fill={pathname === RUTE.bantuan} />
-            <span className="font-label-md">Panduan Penggunaan</span>
-          </Link>
-        </nav>
-
-        {/* Tombol keluar */}
-        <div className="mt-auto border-t border-white/10 pt-4">
-          <button
-            onClick={tanganiKeluar}
-            className="flex w-full items-center gap-4 px-6 py-4 text-white/70 transition-all hover:translate-x-1 hover:bg-white/5"
-          >
-            <Icon name="logout" className="text-error-container" />
-            <span className="font-label-md">Keluar Sesi</span>
-          </button>
+          {/* Tombol keluar */}
+          <div className="mt-2 px-3 pt-3">
+            <div className="mb-2 h-px bg-white/10" />
+            <button
+              onClick={tanganiKeluar}
+              className="group flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-white/70 transition-all hover:bg-error/20 hover:text-white"
+            >
+              <span className="grid h-9 w-9 shrink-0 place-items-center rounded-lg text-error-container transition-colors group-hover:bg-error/20">
+                <Icon name="logout" style={{ fontSize: 22 }} />
+              </span>
+              <span className="font-label-md font-semibold">Keluar Sesi</span>
+            </button>
+          </div>
         </div>
       </aside>
     </>

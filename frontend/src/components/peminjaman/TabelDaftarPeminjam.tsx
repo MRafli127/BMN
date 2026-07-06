@@ -16,16 +16,15 @@ import { cn } from '@/lib/utils';
 import type { Role } from '@/types/user.type';
 
 // --- Konfigurasi kolom beku (freeze) ---
-// Kolom checkbox, "#", Nama, NIP, Jabatan dibekukan di kiri; sisanya
-// (Email, Unit Kerja, Eselon II/III/IV, Peran, Aksi) bisa digulir horizontal.
+// Kolom checkbox, "#", Nama, NIP dibekukan di kiri; sisanya (Jabatan, Email,
+// Unit Kerja, Eselon II/III/IV, Peran, Aksi) bisa digulir horizontal.
 // Lebar dibuat tetap agar offset `left` tiap kolom beku presisi & saling rapat.
 const W_CHECK = 44; //   kolom checkbox
 const W_NUM = 56; //     kolom nomor "#"
 const W_NAMA = 200;
 const W_NIP = 160;
-const W_JABATAN = 200;
 
-// Garis pemisah + bayangan halus di tepi kanan blok beku (kolom Jabatan)
+// Garis pemisah + bayangan halus di tepi kanan blok beku (kolom NIP)
 // sebagai penanda batas area yang dibekukan saat tabel digulir ke kanan.
 const SHADOW_BEKU = 'shadow-[1px_0_0_hsl(var(--border)),6px_0_10px_-8px_rgba(2,6,23,0.15)]';
 
@@ -172,7 +171,6 @@ export function TabelDaftarPeminjam({ data, nomorAwal = 0, onHapus, terpilih, on
   const leftNum = pilihAktif ? W_CHECK : 0;
   const leftNama = leftNum + W_NUM;
   const leftNip = leftNama + W_NAMA;
-  const leftJabatan = leftNip + W_NIP;
 
   return (
     <>
@@ -206,17 +204,12 @@ export function TabelDaftarPeminjam({ data, nomorAwal = 0, onHapus, terpilih, on
                 Nama
               </TableHead>
               <TableHead
-                className="sticky z-20 bg-muted"
+                className={cn('sticky z-20 bg-muted', SHADOW_BEKU)}
                 style={{ left: leftNip, width: W_NIP, minWidth: W_NIP, maxWidth: W_NIP }}
               >
                 NIP
               </TableHead>
-              <TableHead
-                className={cn('sticky z-20 bg-muted', SHADOW_BEKU)}
-                style={{ left: leftJabatan, width: W_JABATAN, minWidth: W_JABATAN, maxWidth: W_JABATAN }}
-              >
-                Jabatan
-              </TableHead>
+              <TableHead>Jabatan</TableHead>
               <TableHead>Email</TableHead>
               <TableHead>Unit Kerja</TableHead>
               <TableHead>Eselon II</TableHead>
@@ -255,16 +248,12 @@ export function TabelDaftarPeminjam({ data, nomorAwal = 0, onHapus, terpilih, on
                     {user.nama}
                   </TableCell>
                   <TableCell
-                    className={cn('sticky z-10 font-mono text-sm text-primary', bgBeku)}
+                    className={cn('sticky z-10 font-mono text-sm text-primary', bgBeku, SHADOW_BEKU)}
                     style={{ left: leftNip, width: W_NIP, minWidth: W_NIP, maxWidth: W_NIP }}
                   >
                     {user.nip}
                   </TableCell>
-                  <SelTeks
-                    nilai={user.jabatan}
-                    className={cn('sticky z-10 text-sm text-on-surface-variant', bgBeku, SHADOW_BEKU)}
-                    style={{ left: leftJabatan, width: W_JABATAN, minWidth: W_JABATAN, maxWidth: W_JABATAN }}
-                  />
+                  <SelTeks nilai={user.jabatan} className="text-sm text-on-surface-variant" />
                   <TableCell className="text-sm text-on-surface-variant">{user.email}</TableCell>
                   <SelTeks nilai={user.unitKerja} className="text-sm text-on-surface-variant" />
                   <SelTeks nilai={user.eselon2} className="text-sm text-on-surface-variant" />
