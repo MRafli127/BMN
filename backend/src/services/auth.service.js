@@ -81,13 +81,25 @@ async function cleanupExpiredTokens() {
 // Daftar role valid dalam sistem
 const ROLE_VALID = ['ADMIN', 'PEMINJAM'];
 
+// Peran EFEKTIF: setiap ADMIN otomatis juga berkapasitas sebagai PEMINJAM
+// (admin pun bisa meminjam & WAJIB dapat beralih ke mode Peminjam). Aturan ini
+// hanya dipakai untuk sesi/token & validasi peralihan peran — kolom `roles` di
+// DB tidak diubah. Tidak pernah menambahkan ADMIN, jadi tanpa eskalasi hak.
+function rolesEfektif(roles = []) {
+  const dimiliki = new Set(Array.isArray(roles) ? roles : []);
+  if (dimiliki.has('ADMIN')) dimiliki.add('PEMINJAM');
+  // Urutan stabil mengikuti ROLE_VALID.
+  return ROLE_VALID.filter((r) => dimiliki.has(r));
+}
+
 // Tentukan active role untuk sesi:
-// - `diminta` dipakai bila valid & dimiliki user
-// - bila user hanya punya 1 role → role itu
-// - bila punya >1 role & tak ada permintaan → PEMINJAM (least-privilege), fallback role pertama
+// - `diminta` dihormati bila valid secara EFEKTIF (mis. admin boleh memilih PEMINJAM)
+// - default berdasarkan role NYATA di DB: admin murni tetap masuk sebagai ADMIN,
+//   akun yang benar-benar multi-role default ke PEMINJAM (least-privilege).
 function pilihActiveRole(roles = [], diminta = null) {
   const dimiliki = Array.isArray(roles) ? roles : [];
-  if (diminta && dimiliki.includes(diminta)) return diminta;
+  const efektif = rolesEfektif(dimiliki);
+  if (diminta && efektif.includes(diminta)) return diminta;
   if (dimiliki.length === 1) return dimiliki[0];
   if (dimiliki.includes('PEMINJAM')) return 'PEMINJAM';
   return dimiliki[0] || 'PEMINJAM';
@@ -98,7 +110,7 @@ function buatAccessToken(user, activeRole) {
   return jwt.sign(
     {
       sub: user.id,
-      roles: user.roles, // seluruh role yang dimiliki
+      roles: rolesEfektif(user.roles), // peran efektif (ADMIN ⇒ termasuk PEMINJAM)
       activeRole, // role yang sedang dipakai dalam sesi ini
       nama: user.nama,
       email: user.email,
@@ -121,8 +133,11 @@ function buatRefreshToken(user, activeRole) {
 }
 
 // Bungkus user tanpa password + sertakan activeRole untuk konsumsi frontend.
+// `roles` yang dikirim adalah peran EFEKTIF (rolesEfektif) agar tombol
+// "Beralih peran" pada Header muncul untuk admin — admin selalu bisa beralih ke
+// mode Peminjam meski di DB hanya tercatat ADMIN.
 function serialisasiSesi(user, activeRole) {
-  return { ...tanpaPassword(user), activeRole };
+  return { ...tanpaPassword(user), roles: rolesEfektif(user.roles), activeRole };
 }
 
 // Generate unique ID untuk JWT (untuk blacklist tracking)
@@ -191,7 +206,7 @@ async function switchRole(userId, targetRole) {
   if (!user) {
     throw new AppError('Pengguna tidak ditemukan.', 404);
   }
-  if (!user.roles.includes(targetRole)) {
+  if (!rolesEfektif(user.roles).includes(targetRole)) {
     throw new AppError('Anda tidak memiliki peran tersebut.', 403);
   }
 

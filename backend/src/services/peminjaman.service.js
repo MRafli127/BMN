@@ -462,7 +462,11 @@ async function getSemua({ status, q, userId, role, page = 1, limit = 10 } = {}) 
     prisma.peminjaman.findMany({
       where,
       include: includeLengkap,
-      orderBy: { createdAt: 'desc' },
+      // Urut berdasarkan aktivitas terakhir: setiap perubahan status (Menunggu →
+      // Disetujui → Dipinjam → Dikembalikan, dst.) membumbungkan `updatedAt`
+      // (@updatedAt), sehingga transaksi yang statusnya baru berubah otomatis
+      // naik ke paling atas. `createdAt` sebagai pemecah seri agar stabil.
+      orderBy: [{ updatedAt: 'desc' }, { createdAt: 'desc' }],
       skip: (halaman - 1) * perHalaman,
       take: perHalaman,
     }),

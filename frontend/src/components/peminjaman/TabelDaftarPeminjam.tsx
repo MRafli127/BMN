@@ -6,13 +6,28 @@
 
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, type CSSProperties } from 'react';
 import { Trash2, ShieldCheck, ShieldMinus } from 'lucide-react';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { KonfirmasiDialog } from '@/components/shared/KonfirmasiDialog';
+import { cn } from '@/lib/utils';
 import type { Role } from '@/types/user.type';
+
+// --- Konfigurasi kolom beku (freeze) ---
+// Kolom checkbox, "#", Nama, NIP, Jabatan dibekukan di kiri; sisanya
+// (Email, Unit Kerja, Eselon II/III/IV, Peran, Aksi) bisa digulir horizontal.
+// Lebar dibuat tetap agar offset `left` tiap kolom beku presisi & saling rapat.
+const W_CHECK = 44; //   kolom checkbox
+const W_NUM = 56; //     kolom nomor "#"
+const W_NAMA = 200;
+const W_NIP = 160;
+const W_JABATAN = 200;
+
+// Garis pemisah + bayangan halus di tepi kanan blok beku (kolom Jabatan)
+// sebagai penanda batas area yang dibekukan saat tabel digulir ke kanan.
+const SHADOW_BEKU = 'shadow-[1px_0_0_hsl(var(--border)),6px_0_10px_-8px_rgba(2,6,23,0.15)]';
 
 export interface PeminjamRow {
   id: string;
@@ -29,9 +44,17 @@ export interface PeminjamRow {
 
 // Sel teks yang panjang (nama unit/eselon) dipangkas dengan elipsis; teks
 // lengkap tampil saat kursor diarahkan (title).
-function SelTeks({ nilai, className }: { nilai: string | null; className?: string }) {
+function SelTeks({
+  nilai,
+  className,
+  style,
+}: {
+  nilai: string | null;
+  className?: string;
+  style?: CSSProperties;
+}) {
   return (
-    <TableCell className={className}>
+    <TableCell className={className} style={style}>
       <span className="block max-w-[16rem] truncate" title={nilai || undefined}>
         {nilai || '-'}
       </span>
@@ -143,6 +166,14 @@ export function TabelDaftarPeminjam({ data, nomorAwal = 0, onHapus, terpilih, on
   // checkbox + (#, nama, nip, jabatan, email, unit kerja, eselon II/III/IV) + peran + aksi
   const jumlahKolom = (pilihAktif ? 1 : 0) + 9 + (tampilPeran ? 1 : 0) + (onHapus ? 1 : 0);
 
+  // Offset kiri kumulatif tiap kolom beku. Kolom checkbox (bila ada) menempel
+  // di 0; kolom "#" mengikuti selebar checkbox, dst. Bila checkbox tidak
+  // ditampilkan, "#" ikut mundur ke 0 sehingga blok beku tetap rapat.
+  const leftNum = pilihAktif ? W_CHECK : 0;
+  const leftNama = leftNum + W_NUM;
+  const leftNip = leftNama + W_NAMA;
+  const leftJabatan = leftNip + W_NIP;
+
   return (
     <>
       <div className="rounded-xl border bg-card">
@@ -150,7 +181,10 @@ export function TabelDaftarPeminjam({ data, nomorAwal = 0, onHapus, terpilih, on
           <TableHeader>
             <TableRow>
               {pilihAktif && (
-                <TableHead className="w-10">
+                <TableHead
+                  className="sticky z-20 bg-muted"
+                  style={{ left: 0, width: W_CHECK, minWidth: W_CHECK, maxWidth: W_CHECK }}
+                >
                   <Kotak
                     checked={semuaTerpilih}
                     indeterminate={sebagianTerpilih}
@@ -159,10 +193,30 @@ export function TabelDaftarPeminjam({ data, nomorAwal = 0, onHapus, terpilih, on
                   />
                 </TableHead>
               )}
-              <TableHead className="w-16">#</TableHead>
-              <TableHead>Nama</TableHead>
-              <TableHead>NIP</TableHead>
-              <TableHead>Jabatan</TableHead>
+              <TableHead
+                className="sticky z-20 bg-muted"
+                style={{ left: leftNum, width: W_NUM, minWidth: W_NUM, maxWidth: W_NUM }}
+              >
+                #
+              </TableHead>
+              <TableHead
+                className="sticky z-20 bg-muted"
+                style={{ left: leftNama, width: W_NAMA, minWidth: W_NAMA, maxWidth: W_NAMA }}
+              >
+                Nama
+              </TableHead>
+              <TableHead
+                className="sticky z-20 bg-muted"
+                style={{ left: leftNip, width: W_NIP, minWidth: W_NIP, maxWidth: W_NIP }}
+              >
+                NIP
+              </TableHead>
+              <TableHead
+                className={cn('sticky z-20 bg-muted', SHADOW_BEKU)}
+                style={{ left: leftJabatan, width: W_JABATAN, minWidth: W_JABATAN, maxWidth: W_JABATAN }}
+              >
+                Jabatan
+              </TableHead>
               <TableHead>Email</TableHead>
               <TableHead>Unit Kerja</TableHead>
               <TableHead>Eselon II</TableHead>
@@ -175,17 +229,42 @@ export function TabelDaftarPeminjam({ data, nomorAwal = 0, onHapus, terpilih, on
           <TableBody>
             {data.map((user, index) => {
               const dipilih = set.has(user.id);
+              // Latar OPAQUE untuk sel beku agar sel yang tergulir di baliknya
+              // tidak menembus. Selaras dgn status baris (terpilih / hover).
+              const bgBeku = dipilih ? 'bg-surface-container-low' : 'bg-card group-hover:bg-muted';
               return (
-                <TableRow key={user.id} className={dipilih ? 'bg-primary/5' : undefined}>
+                <TableRow key={user.id} className={cn('group', dipilih && 'bg-primary/5')}>
                   {pilihAktif && (
-                    <TableCell>
+                    <TableCell
+                      className={cn('sticky z-10', bgBeku)}
+                      style={{ left: 0, width: W_CHECK, minWidth: W_CHECK, maxWidth: W_CHECK }}
+                    >
                       <Kotak checked={dipilih} onChange={() => toggleSatu(user.id)} label={`Pilih ${user.nama}`} />
                     </TableCell>
                   )}
-                  <TableCell className="text-muted-foreground">{nomorAwal + index + 1}</TableCell>
-                  <TableCell className="font-medium text-on-surface">{user.nama}</TableCell>
-                  <TableCell className="font-mono text-sm text-primary">{user.nip}</TableCell>
-                  <SelTeks nilai={user.jabatan} className="text-sm text-on-surface-variant" />
+                  <TableCell
+                    className={cn('sticky z-10 text-muted-foreground', bgBeku)}
+                    style={{ left: leftNum, width: W_NUM, minWidth: W_NUM, maxWidth: W_NUM }}
+                  >
+                    {nomorAwal + index + 1}
+                  </TableCell>
+                  <TableCell
+                    className={cn('sticky z-10 font-medium text-on-surface', bgBeku)}
+                    style={{ left: leftNama, width: W_NAMA, minWidth: W_NAMA, maxWidth: W_NAMA }}
+                  >
+                    {user.nama}
+                  </TableCell>
+                  <TableCell
+                    className={cn('sticky z-10 font-mono text-sm text-primary', bgBeku)}
+                    style={{ left: leftNip, width: W_NIP, minWidth: W_NIP, maxWidth: W_NIP }}
+                  >
+                    {user.nip}
+                  </TableCell>
+                  <SelTeks
+                    nilai={user.jabatan}
+                    className={cn('sticky z-10 text-sm text-on-surface-variant', bgBeku, SHADOW_BEKU)}
+                    style={{ left: leftJabatan, width: W_JABATAN, minWidth: W_JABATAN, maxWidth: W_JABATAN }}
+                  />
                   <TableCell className="text-sm text-on-surface-variant">{user.email}</TableCell>
                   <SelTeks nilai={user.unitKerja} className="text-sm text-on-surface-variant" />
                   <SelTeks nilai={user.eselon2} className="text-sm text-on-surface-variant" />

@@ -8,11 +8,16 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { usePathname, useRouter } from 'next/navigation';
 import { Icon } from '@/components/ui/icon';
-import { cn } from '@/lib/utils';
-import { RUTE } from '@/constants/routes';
+import { cn, ambilPesanError } from '@/lib/utils';
+import { notify } from '@/components/ui/toast';
+import { RUTE, RUTE_DEFAULT } from '@/constants/routes';
 import { useAuth } from '@/hooks/useAuth';
 import { useUIStore } from '@/store/uiStore';
 import { useJumlahKeranjang } from '@/store/keranjangStore';
+import type { Role } from '@/types/user.type';
+
+// Label peran untuk tampilan tombol beralih.
+const LABEL_PERAN: Record<Role, string> = { ADMIN: 'Administrator', PEMINJAM: 'Peminjam' };
 
 interface ItemMenu {
   label: string;
@@ -38,7 +43,7 @@ const menuPeminjam: ItemMenu[] = [
 export function Sidebar() {
   const pathname = usePathname();
   const router = useRouter();
-  const { isAdmin, logout, user } = useAuth();
+  const { isAdmin, logout, user, roles, bisaGantiRole, gantiRole } = useAuth();
   const { sidebarTerbuka, tutupSidebar } = useUIStore();
   const jumlahKeranjang = useJumlahKeranjang();
 
@@ -51,6 +56,18 @@ export function Sidebar() {
   const tanganiKeluar = async () => {
     await logout();
     router.push(RUTE.login);
+  };
+
+  // Ganti peran aktif (akun multi-role) lalu arahkan ke dashboard peran tsb.
+  const gantiPeran = async (role: Role) => {
+    tutupSidebar();
+    try {
+      await gantiRole(role);
+      notify.suksess(`Beralih ke ${LABEL_PERAN[role]}.`);
+      router.push(RUTE_DEFAULT[role]);
+    } catch (error) {
+      notify.gagal(ambilPesanError(error, 'Gagal mengganti peran.'));
+    }
   };
 
   const isAktif = (href: string) =>
@@ -91,6 +108,24 @@ export function Sidebar() {
           <p className="truncate text-sm font-bold">{user?.nama || 'Pengguna'}</p>
           <p className="text-xs text-white/70">{isAdmin ? 'Administrator' : 'Peminjam'}</p>
         </div>
+
+        {/* Beralih peran (akun multi-role) — tepat di bawah logo & identitas */}
+        {bisaGantiRole && (
+          <div className="mx-4 mb-2">
+            {roles
+              .filter((r) => r !== user?.activeRole)
+              .map((r) => (
+                <button
+                  key={r}
+                  onClick={() => gantiPeran(r)}
+                  className="flex w-full items-center gap-3 rounded-xl border border-white/15 bg-white/5 px-4 py-2.5 text-sm font-semibold text-white transition-all hover:bg-white/15 active:scale-[0.98]"
+                >
+                  <Icon name="swap_horiz" className="text-secondary" />
+                  Beralih ke {LABEL_PERAN[r]}
+                </button>
+              ))}
+          </div>
+        )}
 
         {/* Menu navigasi */}
         <nav className="custom-scrollbar mt-4 flex flex-1 flex-col gap-1 overflow-y-auto">
