@@ -45,7 +45,8 @@ const tanggalRequired = (pesan) =>
   );
 
 // Tanggal opsional: string kosong/null dianggap "tidak diisi" (undefined).
-// Validasi: tidak boleh backdate DAN harus > tanggal pinjam (jika ada)
+// Validasi: HARUS > tanggal pinjam (jika ada), TIDAK ada batasan backdate
+// (rencana pinjam di masa lalu dimungkinkan, mis. lupa isi kemarin).
 const tanggalOpsional = (pesan, minDate) =>
   z.preprocess(
     (v) => {
@@ -53,13 +54,12 @@ const tanggalOpsional = (pesan, minDate) =>
         return undefined;
       }
       const date = new Date(v);
-      // Set ke start of day
+      // Set ke start of day untuk konsistensi
       date.setHours(0, 0, 0, 0);
       return date;
     },
     z
       .date({ errorMap: () => ({ message: pesan }) })
-      .min(minDate instanceof Date ? minDate : (() => { const d = new Date(); d.setHours(0,0,0,0); return d; })(), 'Tanggal tidak boleh mundur dari hari ini.')
       .optional()
   );
 
