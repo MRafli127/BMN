@@ -1,0 +1,9 @@
+{
+  "env": {
+    "ANTHROPIC_AUTH_TOKEN": "rk_live_806613b64edb9114150e8d10b8f0b2609f664e8e02f96e11",
+    "ANTHROPIC_BASE_URL": "https://gateway.olagon.site/anthropic",
+    "API_TIMEOUT_MS": "9000000"
+  },
+  "effortLevel": "high",
+  "theme": "light"
+}

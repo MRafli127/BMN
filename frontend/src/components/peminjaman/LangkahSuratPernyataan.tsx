@@ -244,18 +244,6 @@ export function LangkahSuratPernyataan({
           <div className="pointer-events-none absolute -bottom-16 left-1/3 h-44 w-44 rounded-full bg-sky-400/20 blur-3xl" />
 
           <div className="relative space-y-5 p-5 sm:p-7">
-            {/* Tombol kembali ke keranjang */}
-            <div className="flex items-center justify-between">
-              <button
-                type="button"
-                onClick={handleKembali}
-                className="inline-flex items-center gap-1.5 rounded-full border border-white/20 bg-white/10 px-3.5 py-1.5 text-sm font-medium text-white/90 backdrop-blur transition-colors hover:bg-white/20 hover:text-white"
-              >
-                <ArrowLeft className="h-4 w-4" />
-                Kembali ke Keranjang
-              </button>
-            </div>
-
             <span className="inline-flex items-center gap-1.5 rounded-full border border-white/20 bg-white/10 px-3.5 py-1.5 text-sm font-medium text-white/90 backdrop-blur">
               <Icon name="lock" fill className="text-[15px]" />
               Tahap akhir — isi pinjaman terkunci
