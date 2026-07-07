@@ -22,12 +22,24 @@ if (!DATABASE_URL) {
   console.error('[BACKUP] ❌ DATABASE_URL not found in .env');
   process.exit(1);
 }
-const BACKUP_DIR = path.join(__dirname, '..', 'backups');
+
+// Vercel serverless: gunakan /tmp untuk backup ( satu-satunya direktori writable )
+const IS_VERCEL = process.env.VERCEL === 'true' || process.env.NODE_ENV === 'production';
+const BACKUP_DIR = IS_VERCEL
+  ? '/tmp/backups'
+  : path.join(__dirname, '..', 'backups');
 
 // Create backup directory if not exists
 if (!fs.existsSync(BACKUP_DIR)) {
-  fs.mkdirSync(BACKUP_DIR, { recursive: true });
-  console.log(`[BACKUP] Created directory: ${BACKUP_DIR}`);
+  try {
+    fs.mkdirSync(BACKUP_DIR, { recursive: true });
+    console.log(`[BACKUP] Created directory: ${BACKUP_DIR}`);
+  } catch (err) {
+    // Ignore error if directory already exists (race condition)
+    if (err.code !== 'EEXIST') {
+      console.error(`[BACKUP] Warning: Could not create backup directory: ${err.message}`);
+    }
+  }
 }
 
 // Tables to backup (order matters for foreign keys)
