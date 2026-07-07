@@ -11,7 +11,14 @@
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev",
     "prisma:studio": "prisma studio",
-    "seed": "node prisma/seed.js"
+    "seed": "node prisma/seed.js",
+    "backup": "node scripts/backup.js",
+    "backup:list": "node scripts/backup.js list",
+    "backup:schedule": "node scripts/scheduler.js start",
+    "backup:stop": "node scripts/scheduler.js stop",
+    "backup:run": "node scripts/scheduler.js run",
+    "backup:status": "node scripts/scheduler.js status",
+    "restore": "node scripts/restore.js"
   },
   "prisma": {
     "seed": "node prisma/seed.js"

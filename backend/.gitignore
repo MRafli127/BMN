@@ -25,3 +25,6 @@ uploads/foto-barang/*
 # OS
 .DS_Store
 Thumbs.db
+
+# Backups
+backups/
