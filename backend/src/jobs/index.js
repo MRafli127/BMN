@@ -6,6 +6,7 @@
 // ============================================================
 
 const notifikasiPensiunJob = require('./notifikasiPensiun.job');
+const backupJob = require('./backup.job');
 
 /**
  * Daftarkan semua cron jobs
@@ -17,6 +18,7 @@ function registerAllJobs() {
   // Daftar semua cron job
   const jobs = [
     notifikasiPensiunJob,
+    backupJob,
   ];
 
   // Register setiap job

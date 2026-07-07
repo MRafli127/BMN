@@ -68,6 +68,13 @@ export default function AjukanPage() {
     router.push(RUTE.peminjamRiwayatReview(p.id));
   };
 
+  // Kembali ke keranjang dari tahap surat → kembali ke fase pilih barang
+  // onKembaliKeKeranjang akan dipanggil dari FormPeminjaman/LangkahSuratPernyataan
+  const kembaliKeKeranjang = () => {
+    // Navigate back using browser history
+    router.back();
+  };
+
   return (
     <div className="mx-auto max-w-4xl space-y-5">
       <Button asChild variant="ghost" size="sm">
@@ -92,6 +99,7 @@ export default function AjukanPage() {
               onSelesai={selesai}
               praPilihId={praId}
               barangAktifIds={barangAktifIds}
+              onKembaliKeKeranjang={kembaliKeKeranjang}
             />
           )}
         </CardContent>

@@ -331,6 +331,7 @@ export default function KeranjangPage() {
             router.push(RUTE.peminjamRiwayatReview(p.id));
           }
         }}
+        onKembali={() => setLangkah('tinjau')}
       />
     </div>
   );

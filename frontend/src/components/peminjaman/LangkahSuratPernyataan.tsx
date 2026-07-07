@@ -9,7 +9,8 @@
 'use client';
 
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Loader2 } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { Loader2, ArrowLeft } from 'lucide-react';
 import { Icon } from '@/components/ui/icon';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -18,6 +19,7 @@ import { peminjamanService } from '@/services/peminjaman.service';
 import { ambilPesanError, cn } from '@/lib/utils';
 import { useAuth } from '@/hooks/useAuth';
 import { useDebounceSubmit } from '@/hooks/useDebounceSubmit';
+import { RUTE } from '@/constants/routes';
 import type { ItemPengajuan, Peminjaman } from '@/types/peminjaman.type';
 
 interface ItemDenganNama extends ItemPengajuan {
@@ -35,6 +37,8 @@ interface Props {
   hero?: boolean;
   /** Label langkah sebelumnya pada indikator langkah di hero. */
   langkahSebelumnya?: string;
+  /** Callback untuk tombol kembali. Jika tidak diberikan, default ke /peminjam/keranjang. */
+  onKembali?: () => void;
 }
 
 /** Baris data peminjam dengan ikon kecil (tampil pada kartu Data Peminjam). */
@@ -60,14 +64,36 @@ export function LangkahSuratPernyataan({
   onSelesai,
   hero = false,
   langkahSebelumnya = 'Pilih Barang',
+  onKembali,
 }: Props) {
   const { user } = useAuth();
+  const router = useRouter();
   const fileRef = useRef<HTMLInputElement>(null);
   const [suratUrl, setSuratUrl] = useState<string | null>(null);
   const [memuatSurat, setMemuatSurat] = useState(false);
   const [gagalSurat, setGagalSurat] = useState(false);
   const [sedangKirim, setSedangKirim] = useState(false);
   const [berkas, setBerkas] = useState<File | null>(null);
+  // Track apakah sedang menampilkan error date
+  const [errorTanggal, setErrorTanggal] = useState<string | null>(null);
+  // Track retry attempt untuk mencegah infinite loop
+  const retryCountRef = useRef(0);
+  // Flag untuk menandai sedang navigasi internal (bukan back button browser)
+  const isNavigatingRef = useRef(false);
+
+  // Handler untuk tombol kembali
+  const handleKembali = () => {
+    // Flag untuk mencegah popstate listener menampilkan notification
+    isNavigatingRef.current = true;
+    // Delay kecil untuk memastikan flag set sebelum popstate event
+    setTimeout(() => {
+      if (onKembali) {
+        onKembali();
+      } else {
+        router.push(RUTE.peminjamKeranjang);
+      }
+    }, 0);
+  };
 
   // Anti-spam: cegah submit berkali-kali dalam 2 detik
   const { callback: ajukan, sedangDiblokir: diblokirSpam } = useDebounceSubmit(
@@ -121,16 +147,50 @@ export function LangkahSuratPernyataan({
     if (items.length === 0) return;
     setMemuatSurat(true);
     setGagalSurat(false);
+    setErrorTanggal(null);
 
     peminjamanService
       .previewSurat({ items, pangkatGolongan, tanggalPinjamRencana, tanggalKembaliRencana })
-      .then(setSuratUrl)
-      .catch(() => {
-        setGagalSurat(true);
-        notify.gagal('Gagal menyiapkan surat pernyataan.');
+      .then((url) => {
+        setSuratUrl(url);
+        retryCountRef.current = 0; // Reset retry counter on success
       })
-      .finally(() => setMemuatSurat(false));
+      .catch((err) => {
+        const msg = err?.response?.data?.message || err?.message || '';
+        // Tangkap error tanggal dari backend
+        if (msg.toLowerCase().includes('tanggal')) {
+          setErrorTanggal(msg);
+          setGagalSurat(true);
+          notify.gagal(msg);
+          retryCountRef.current = 999; // Stop retry for date errors
+        } else if (msg.toLowerCase().includes('tidak ditemukan') || msg.toLowerCase().includes('barang')) {
+          // Error data tidak valid
+          setErrorTanggal(msg);
+          setGagalSurat(true);
+          notify.gagal(msg);
+          retryCountRef.current = 999; // Stop retry for data errors
+        } else {
+          console.warn('[Surat] Preview gagal:', msg);
+          setGagalSurat(true);
+          // Biarkan retry ber chance untuk coba lagi
+        }
+      })
+      .finally(() => {
+        setMemuatSurat(false);
+      });
   }, [items, pangkatGolongan, tanggalPinjamRencana, tanggalKembaliRencana]);
+
+  // Retry on failure after a short delay (max 2 retries)
+  useEffect(() => {
+    if (gagalSurat && !errorTanggal && !memuatSurat && retryCountRef.current < 2) {
+      retryCountRef.current += 1;
+      console.log(`[Surat] Retrying preview... (attempt ${retryCountRef.current})`);
+      const timer = setTimeout(() => {
+        buatSurat();
+      }, 1500);
+      return () => clearTimeout(timer);
+    }
+  }, [gagalSurat, errorTanggal, memuatSurat, buatSurat]);
 
   useEffect(() => {
     const timer = setTimeout(buatSurat, 300);
@@ -142,6 +202,11 @@ export function LangkahSuratPernyataan({
   useEffect(() => {
     window.history.pushState(null, '', window.location.href);
     const cegahKembali = () => {
+      // Jika sedang navigasi internal (dari tombol kembali kami), abaikan
+      if (isNavigatingRef.current) {
+        isNavigatingRef.current = false;
+        return;
+      }
       window.history.pushState(null, '', window.location.href);
       notify.info(
         'Anda berada di tahap akhir pengajuan. Selesaikan unggah surat untuk melanjutkan.'
@@ -179,6 +244,18 @@ export function LangkahSuratPernyataan({
           <div className="pointer-events-none absolute -bottom-16 left-1/3 h-44 w-44 rounded-full bg-sky-400/20 blur-3xl" />
 
           <div className="relative space-y-5 p-5 sm:p-7">
+            {/* Tombol kembali ke keranjang */}
+            <div className="flex items-center justify-between">
+              <button
+                type="button"
+                onClick={handleKembali}
+                className="inline-flex items-center gap-1.5 rounded-full border border-white/20 bg-white/10 px-3.5 py-1.5 text-sm font-medium text-white/90 backdrop-blur transition-colors hover:bg-white/20 hover:text-white"
+              >
+                <ArrowLeft className="h-4 w-4" />
+                Kembali ke Keranjang
+              </button>
+            </div>
+
             <span className="inline-flex items-center gap-1.5 rounded-full border border-white/20 bg-white/10 px-3.5 py-1.5 text-sm font-medium text-white/90 backdrop-blur">
               <Icon name="lock" fill className="text-[15px]" />
               Tahap akhir — isi pinjaman terkunci
@@ -297,10 +374,37 @@ export function LangkahSuratPernyataan({
                   <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-red-50 text-red-500 dark:bg-red-950/20">
                     <Icon name="error" fill className="text-[24px]" />
                   </div>
-                  <p className="text-sm text-muted-foreground">Surat gagal dibuat.</p>
-                  <Button variant="outline" size="sm" onClick={buatSurat}>
-                    <Icon name="refresh" className="text-[18px]" /> Coba Lagi
-                  </Button>
+                  <div className="text-center">
+                    {errorTanggal ? (
+                      <>
+                        <p className="font-semibold text-red-600">{errorTanggal}</p>
+                        <p className="mt-1 text-xs text-muted-foreground">Kembali ke Keranjang untuk mengubah tanggal.</p>
+                      </>
+                    ) : (
+                      <>
+                        <p className="font-semibold">Gagal menyiapkan surat pernyataan.</p>
+                        <p className="mt-1 text-xs text-muted-foreground">
+                          Coba lagi dalam beberapa detik atau klik tombol di bawah.
+                        </p>
+                      </>
+                    )}
+                  </div>
+                  {errorTanggal ? (
+                    <Button variant="outline" size="sm" onClick={handleKembali}>
+                      <ArrowLeft className="h-4 w-4" /> Kembali ke Keranjang
+                    </Button>
+                  ) : (
+                    <div className="flex gap-2">
+                      <Button variant="outline" size="sm" onClick={buatSurat}>
+                        <Icon name="refresh" className="h-4 w-4" /> Coba Lagi
+                      </Button>
+                      {hero && (
+                        <Button variant="outline" size="sm" onClick={handleKembali}>
+                          <ArrowLeft className="h-4 w-4" /> Kembali
+                        </Button>
+                      )}
+                    </div>
+                  )}
                 </div>
               ) : suratUrl ? (
                 <iframe
