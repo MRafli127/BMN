@@ -651,16 +651,19 @@ async function setujui(id, adminId, catatan, requestInfo = {}) {
 // --- Setujui banyak pengajuan sekaligus (khusus admin) ---
 // Memakai ulang logika setujui() per item (cek stok + ubah status + QR).
 // Pengajuan yang bukan MENUNGGU atau stoknya tidak cukup dilewati tanpa
-// menggagalkan yang lain.
-async function setujuiBanyak(ids, adminId) {
+// menggagalkan yang lain. `catatan` opsional: bila diisi, catatan yang sama
+// disematkan (catatanAdmin) & dikirim via email ke tiap pengajuan yang disetujui.
+async function setujuiBanyak(ids, adminId, catatan, requestInfo = {}) {
   const daftarId = Array.isArray(ids) ? [...new Set(ids.filter((v) => typeof v === 'string' && v))] : [];
   if (daftarId.length === 0) throw new AppError('Tidak ada peminjaman yang dipilih.', 400);
+
+  const catatanBersih = typeof catatan === 'string' && catatan.trim() ? catatan.trim() : undefined;
 
   let disetujui = 0;
   const dilewati = [];
   for (const id of daftarId) {
     try {
-      await setujui(id, adminId);
+      await setujui(id, adminId, catatanBersih, requestInfo);
       disetujui += 1;
     } catch (e) {
       dilewati.push({ id, pesan: e.message || 'Gagal disetujui.' });
