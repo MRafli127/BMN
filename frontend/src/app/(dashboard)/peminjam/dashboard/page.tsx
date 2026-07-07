@@ -91,15 +91,17 @@ export default function PeminjamDashboardPage() {
 
       {/* Statistik */}
       <div className="grid grid-cols-1 gap-gutter sm:grid-cols-2 lg:grid-cols-4">
-        {kartu.map((k) => {
+        {kartu.map((k, indeks) => {
           const g = GAYA[k.warna];
           return (
             <Link
               key={k.label}
               href={RUTE.peminjamRiwayatStatus(k.filter)}
               aria-label={`Lihat Riwayat Peminjaman: ${k.label}`}
+              // Muncul berurutan saat halaman dimuat (stagger).
+              style={{ animationDelay: `${indeks * 60}ms` }}
               className={cn(
-                'group relative block overflow-hidden rounded-2xl border p-stack-lg transition-all duration-300 hover:-translate-y-1 hover:shadow-elevated focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50',
+                'group relative block overflow-hidden rounded-2xl border p-stack-lg transition-all duration-300 animate-page-in hover:-translate-y-1 hover:shadow-elevated active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50',
                 g.gradasi,
                 g.garis,
               )}

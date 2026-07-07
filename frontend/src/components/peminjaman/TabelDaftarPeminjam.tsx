@@ -7,10 +7,10 @@
 'use client';
 
 import { useEffect, useRef, useState, type CSSProperties } from 'react';
-import { Trash2, ShieldCheck, ShieldMinus } from 'lucide-react';
+import { Trash2, ShieldCheck, User } from 'lucide-react';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
+import { Switch } from '@/components/ui/switch';
 import { KonfirmasiDialog } from '@/components/shared/KonfirmasiDialog';
 import { cn } from '@/lib/utils';
 import type { Role } from '@/types/user.type';
@@ -261,37 +261,41 @@ export function TabelDaftarPeminjam({ data, nomorAwal = 0, onHapus, terpilih, on
                   <SelTeks nilai={user.eselon4} className="text-sm text-on-surface-variant" />
                   {tampilPeran && (
                     <TableCell>
-                      <div className="flex flex-col items-start gap-1.5">
-                        <div className="flex flex-wrap gap-1">
-                          {(user.roles || []).includes('ADMIN') && (
-                            <Badge className="border-primary/20 bg-primary/10 text-primary">Admin</Badge>
-                          )}
-                          {(user.roles || []).includes('PEMINJAM') && (
-                            <Badge className="border-outline-variant bg-surface-container-low text-on-surface-variant">
-                              Peminjam
-                            </Badge>
-                          )}
-                        </div>
-                        {(user.roles || []).includes('ADMIN') ? (
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            className="h-7 gap-1 text-xs text-error"
-                            onClick={() => setTargetRole({ row: user, aksi: 'demote' })}
-                          >
-                            <ShieldMinus className="h-3.5 w-3.5" /> Cabut Admin
-                          </Button>
-                        ) : (
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            className="h-7 gap-1 text-xs text-primary"
-                            onClick={() => setTargetRole({ row: user, aksi: 'promote' })}
-                          >
-                            <ShieldCheck className="h-3.5 w-3.5" /> Jadikan Admin
-                          </Button>
-                        )}
-                      </div>
+                      {(() => {
+                        const isAdmin = (user.roles || []).includes('ADMIN');
+                        const isPeminjam = (user.roles || []).includes('PEMINJAM');
+                        return (
+                          <div className="flex min-w-[150px] flex-col gap-2">
+                            {/* Admin — dapat diaktifkan/dinonaktifkan (via konfirmasi) */}
+                            <div className="flex items-center justify-between gap-3">
+                              <span className="flex items-center gap-1.5 text-sm text-on-surface">
+                                <ShieldCheck className="h-4 w-4 text-primary" />
+                                Admin
+                              </span>
+                              <Switch
+                                checked={isAdmin}
+                                onCheckedChange={() =>
+                                  setTargetRole({ row: user, aksi: isAdmin ? 'demote' : 'promote' })
+                                }
+                                label={`${isAdmin ? 'Cabut' : 'Jadikan'} admin untuk ${user.nama}`}
+                              />
+                            </div>
+                            {/* Peminjam — peran dasar, tidak dapat dilepas */}
+                            <div className="flex items-center justify-between gap-3">
+                              <span className="flex items-center gap-1.5 text-sm text-on-surface-variant">
+                                <User className="h-4 w-4" />
+                                Peminjam
+                              </span>
+                              <Switch
+                                checked={isPeminjam}
+                                disabled
+                                label="Peran dasar peminjam"
+                                title="Peran dasar peminjam tidak dapat dilepas."
+                              />
+                            </div>
+                          </div>
+                        );
+                      })()}
                     </TableCell>
                   )}
                   {onHapus && (

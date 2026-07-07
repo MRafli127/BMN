@@ -22,8 +22,8 @@ export function KartuBarang({ barang, aksi }: Props) {
 
   return (
     <Card className="group flex flex-col overflow-hidden transition-all duration-300 hover:-translate-y-1 hover:shadow-elevated">
-      {/* Foto */}
-      <div className="relative h-40 w-full overflow-hidden bg-muted">
+      {/* Foto — dengan sapuan cahaya saat kartu di-hover */}
+      <div className="shine-sweep relative h-40 w-full overflow-hidden bg-muted">
         {barang.fotoUrl ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img

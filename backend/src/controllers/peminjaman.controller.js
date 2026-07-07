@@ -164,7 +164,12 @@ const hapusMassal = asyncHandler(async (req, res) => {
 });
 
 const setujuiMassal = asyncHandler(async (req, res) => {
-  const hasil = await peminjamanService.setujuiBanyak(req.body.ids, req.user.id);
+  const hasil = await peminjamanService.setujuiBanyak(
+    req.body.ids,
+    req.user.id,
+    req.body.catatanAdmin,
+    getRequestInfo(req)
+  );
   const pesan =
     hasil.dilewati > 0
       ? `${hasil.disetujui} pengajuan disetujui, ${hasil.dilewati} dilewati.`

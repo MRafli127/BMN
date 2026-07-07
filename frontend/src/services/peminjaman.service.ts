@@ -145,8 +145,9 @@ export const peminjamanService = {
   },
 
   // Setujui banyak pengajuan sekaligus (admin). Mengembalikan ringkasan hasil.
-  async setujuiMassal(ids: string[]): Promise<{ disetujui: number; dilewati: number }> {
-    const res = await api.post('/peminjaman/setujui-massal', { ids });
+  // catatanAdmin opsional: catatan yang sama dikirim ke tiap pengajuan yang disetujui.
+  async setujuiMassal(ids: string[], catatanAdmin?: string): Promise<{ disetujui: number; dilewati: number }> {
+    const res = await api.post('/peminjaman/setujui-massal', { ids, catatanAdmin });
     return { disetujui: res.data.data?.disetujui ?? 0, dilewati: res.data.data?.dilewati ?? 0 };
   },
 

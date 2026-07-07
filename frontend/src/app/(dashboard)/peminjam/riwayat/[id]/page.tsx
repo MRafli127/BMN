@@ -152,6 +152,17 @@ export default function DetailRiwayatPage() {
   const bisaAjukanKembali = sedangDipinjam && !data.tanggalPermintaanKembali;
   const menungguKonfirmasi = sedangDipinjam && !!data.tanggalPermintaanKembali;
 
+  // Nama berkas unduhan surat: "Surat-<Jenis>-laptop_<Nama Peminjam>.pdf".
+  // Nama peminjam disanitasi agar aman sebagai nama file (spasi → tanda hubung,
+  // karakter non-alfanumerik dibuang). Fallback ke kode bila nama kosong.
+  const namaBerkasPeminjam = (data.peminjam?.nama || data.kodePeminjaman)
+    .trim()
+    .replace(/\s+/g, '-')
+    .replace(/[^A-Za-z0-9._-]/g, '');
+  const namaFilePeminjaman = `Surat-Peminjaman-laptop_${namaBerkasPeminjam}.pdf`;
+  const namaFilePeminjamanStempel = `Surat-Peminjaman-Berstempel-laptop_${namaBerkasPeminjam}.pdf`;
+  const namaFilePengembalian = `Surat-Pengembalian-laptop_${namaBerkasPeminjam}.pdf`;
+
   return (
     <div className="mx-auto max-w-5xl space-y-gutter">
       {/* Hero: identitas peminjaman + status terkini */}
@@ -255,13 +266,13 @@ export default function DetailRiwayatPage() {
                       </a>
                     </Button>
                     <Button asChild variant="outline" size="sm">
-                      <a href={data.dokumenUrl} download={`surat-pernyataan-${data.kodePeminjaman}.pdf`}>
+                      <a href={data.dokumenUrl} download={namaFilePeminjaman}>
                         <Icon name="download" className="text-[18px]" /> Unduh
                       </a>
                     </Button>
                     {data.dokumenStempelUrl && (
                       <Button asChild variant="sukses" size="sm">
-                        <a href={data.dokumenStempelUrl} download={`surat-berstempel-${data.kodePeminjaman}.pdf`}>
+                        <a href={data.dokumenStempelUrl} download={namaFilePeminjamanStempel}>
                           <Icon name="verified" fill className="text-[18px]" /> Surat Berstempel
                         </a>
                       </Button>
@@ -308,7 +319,7 @@ export default function DetailRiwayatPage() {
                       </a>
                     </Button>
                     <Button asChild variant="outline" size="sm">
-                      <a href={data.dokumenPengembalianUrl} download={`surat-pengembalian-${data.kodePeminjaman}.pdf`}>
+                      <a href={data.dokumenPengembalianUrl} download={namaFilePengembalian}>
                         <Icon name="download" className="text-[18px]" /> Unduh
                       </a>
                     </Button>
@@ -352,7 +363,7 @@ export default function DetailRiwayatPage() {
                       ) : suratPengajuanUrl ? (
                         <>
                           <Button asChild variant="outline" size="sm">
-                            <a href={suratPengajuanUrl} download={`surat-pernyataan-${data.kodePeminjaman}.pdf`}>
+                            <a href={suratPengajuanUrl} download={namaFilePeminjaman}>
                               <Icon name="download" className="text-[18px]" /> Unduh Surat
                             </a>
                           </Button>
@@ -450,7 +461,7 @@ export default function DetailRiwayatPage() {
                           ) : suratUrl ? (
                             <>
                               <Button asChild variant="outline" size="sm">
-                                <a href={suratUrl} download={`surat-pengembalian-${data.kodePeminjaman}.pdf`}>
+                                <a href={suratUrl} download={namaFilePengembalian}>
                                   <Icon name="download" className="text-[18px]" /> Unduh Surat
                                 </a>
                               </Button>

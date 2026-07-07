@@ -7,7 +7,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { ChevronLeft, ChevronRight, ClipboardList, Trash2, X, CheckCheck, List, FolderTree, PackageCheck, Undo2 } from 'lucide-react';
 import { Icon } from '@/components/ui/icon';
-import { Input, Select } from '@/components/ui/input';
+import { Input, Select, Textarea, Label } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { TabelPeminjaman } from '@/components/peminjaman/TabelPeminjaman';
 import { FolderPeminjaman } from '@/components/peminjaman/FolderPeminjaman';
@@ -37,6 +37,7 @@ export default function AdminPeminjamanPage() {
   const [sedangMassal, setSedangMassal] = useState(false);
   const [dialogSetujui, setDialogSetujui] = useState(false);
   const [sedangSetujui, setSedangSetujui] = useState(false);
+  const [catatanSetujui, setCatatanSetujui] = useState('');
   const [dialogSerahkan, setDialogSerahkan] = useState(false);
   const [sedangSerahkan, setSedangSerahkan] = useState(false);
   const [dialogKembalikan, setDialogKembalikan] = useState(false);
@@ -93,7 +94,7 @@ export default function AdminPeminjamanPage() {
   const setujuiMassal = async () => {
     setSedangSetujui(true);
     try {
-      const { disetujui, dilewati } = await peminjamanService.setujuiMassal(terpilih);
+      const { disetujui, dilewati } = await peminjamanService.setujuiMassal(terpilih, catatanSetujui.trim() || undefined);
       if (disetujui > 0) {
         notify.suksess(
           dilewati > 0
@@ -104,6 +105,7 @@ export default function AdminPeminjamanPage() {
         notify.gagal('Tidak ada pengajuan yang dapat disetujui (stok kurang / bukan status menunggu).');
       }
       setDialogSetujui(false);
+      setCatatanSetujui('');
       await muat();
     } catch (error) {
       notify.gagal(ambilPesanError(error, 'Gagal menyetujui data terpilih.'));
@@ -344,14 +346,33 @@ export default function AdminPeminjamanPage() {
 
       <KonfirmasiDialog
         terbuka={dialogSetujui}
-        onUbahTerbuka={(o) => !o && setDialogSetujui(false)}
+        onUbahTerbuka={(o) => {
+          if (!o) {
+            setDialogSetujui(false);
+            setCatatanSetujui('');
+          }
+        }}
         judul="Setujui Pengajuan Terpilih"
         deskripsi={`Setujui ${jumlahBisaSetujui} pengajuan berstatus "Menunggu"? Stok barang akan dikurangi dan QR Code dibuat untuk tiap peminjaman. Pengajuan dengan stok tidak mencukupi akan dilewati.`}
         teksKonfirmasi={`Ya, Setujui ${jumlahBisaSetujui}`}
         variantKonfirmasi="sukses"
         sedangProses={sedangSetujui}
         onKonfirmasi={setujuiMassal}
-      />
+      >
+        <div>
+          <Label htmlFor="catatan-setujui-massal">Catatan (opsional)</Label>
+          <Textarea
+            id="catatan-setujui-massal"
+            value={catatanSetujui}
+            onChange={(e) => setCatatanSetujui(e.target.value)}
+            placeholder="Catatan tambahan untuk peminjam..."
+            className="mt-1"
+          />
+          <p className="mt-1 text-xs text-muted-foreground">
+            Catatan ini dikirim ke seluruh {jumlahBisaSetujui} peminjaman yang disetujui dan dapat dilihat peminjam.
+          </p>
+        </div>
+      </KonfirmasiDialog>
 
       <KonfirmasiDialog
         terbuka={dialogSerahkan}
