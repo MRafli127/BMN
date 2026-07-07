@@ -10,6 +10,8 @@ const crypto = require('crypto');
 const { responsGagal } = require('../utils/apiResponse');
 const env = require('../config/env');
 
+const isProduction = env.isProduction;
+
 // Nama cookie dan header CSRF
 const CSRF_COOKIE_NAME = 'csrf_token';
 const CSRF_HEADER_NAME = 'x-csrf-token';
@@ -37,11 +39,14 @@ function verifyCsrfToken(token, expected) {
 }
 
 // Cookie options untuk CSRF token (bisa dibaca JS frontend)
+// sameSite HARUS 'none' di production (cross-origin request dari frontend ke backend)
+// secure: true WAJIB untuk sameSite: 'none'
 const csrfCookieOptions = {
   httpOnly: false, // JS perlu baca untuk kirim di header
   secure: env.cookie.secure,
-  sameSite: 'strict', // SameSite strict untuk proteksi CSRF max
+  sameSite: isProduction ? 'none' : 'lax', // Ikuti env untuk cross-origin
   maxAge: 7 * 24 * 60 * 60 * 1000, // 7 hari
+  domain: isProduction ? undefined : undefined, // Biarkan browser atur otomatis
 };
 
 // Middleware: Generate CSRF token dan set cookie
