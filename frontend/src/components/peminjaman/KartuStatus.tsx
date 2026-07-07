@@ -48,9 +48,10 @@ export function KartuStatus({ peminjaman, hrefDetail, tampilkanPeminjam }: Props
 
         <Link
           href={hrefDetail}
-          className="mt-3 inline-flex items-center gap-1 text-sm font-medium text-primary hover:underline"
+          className="group/link mt-3 inline-flex items-center gap-1 text-sm font-medium text-primary hover:underline"
         >
-          Lihat detail <ArrowRight className="h-4 w-4" />
+          Lihat detail{' '}
+          <ArrowRight className="h-4 w-4 transition-transform duration-200 group-hover/link:translate-x-1" />
         </Link>
       </CardContent>
     </Card>

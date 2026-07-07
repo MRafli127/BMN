@@ -230,15 +230,30 @@ button {
   .timeline-line {
     background: linear-gradient(to bottom, transparent, #1e40af 15%, #1e40af 85%, transparent);
   }
-  /* Riak (ripple) saat elemen diklik — dibuat dinamis oleh sidebar.
+  /* Sapuan cahaya diagonal yang meluncur saat kartu di-hover.
+     Pasang pada elemen di dalam pembungkus ber-kelas `group`. */
+  .shine-sweep {
+    position: relative;
+    overflow: hidden;
+  }
+  .shine-sweep::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(105deg, transparent 40%, rgba(255, 255, 255, 0.35) 50%, transparent 60%);
+    transform: translateX(-100%);
+    transition: transform 0.7s ease;
+    pointer-events: none;
+  }
+  .group:hover .shine-sweep::after {
+    transform: translateX(100%);
+  }
+  /* Riak (ripple) saat elemen diklik — dibuat dinamis lewat lib/ripple.ts
+     (gaya layout ditulis inline di sana; di sini hanya warna & animasi).
      Warna bisa dioverride lewat variabel --ripple-c. */
   .ripple-ink {
-    position: absolute;
-    border-radius: 9999px;
-    background: var(--ripple-c, rgba(255, 255, 255, 0.35));
-    transform: scale(0);
-    animation: ripple-ink 0.55s ease-out forwards;
-    pointer-events: none;
+    background: var(--ripple-c, rgba(255, 255, 255, 0.25));
+    animation: ripple-ink 0.5s ease-out forwards;
   }
 }
 

@@ -273,14 +273,16 @@ export default function AdminDashboardPage() {
 
       {/* Kartu statistik */}
       <section className="grid grid-cols-1 gap-gutter sm:grid-cols-2 lg:grid-cols-5">
-        {kartu.map((k) => {
+        {kartu.map((k, indeks) => {
           const g = GAYA[k.warna];
           return (
             <div
               key={k.label}
               onClick={() => router.push(tujuanKategori(k.kategori))}
+              // Muncul berurutan saat halaman dimuat (stagger).
+              style={{ animationDelay: `${indeks * 60}ms` }}
               className={cn(
-                'group relative cursor-pointer overflow-hidden rounded-2xl border p-stack-lg transition-all duration-300 hover:-translate-y-1 hover:shadow-elevated',
+                'group relative cursor-pointer overflow-hidden rounded-2xl border p-stack-lg transition-all duration-300 animate-page-in hover:-translate-y-1 hover:shadow-elevated active:scale-[0.98]',
                 g.gradasi,
                 g.garis,
               )}

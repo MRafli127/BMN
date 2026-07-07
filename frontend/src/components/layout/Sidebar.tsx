@@ -11,6 +11,7 @@ import Image from 'next/image';
 import { usePathname, useRouter } from 'next/navigation';
 import { Icon } from '@/components/ui/icon';
 import { cn, ambilPesanError, inisial } from '@/lib/utils';
+import { buatRipple } from '@/lib/ripple';
 import { notify } from '@/components/ui/toast';
 import { RUTE, RUTE_DEFAULT } from '@/constants/routes';
 import { useAuth } from '@/hooks/useAuth';
@@ -41,20 +42,6 @@ const menuPeminjam: ItemMenu[] = [
   { label: 'Keranjang', href: RUTE.peminjamKeranjang, ikon: 'shopping_cart' },
   { label: 'Riwayat Peminjaman', href: RUTE.peminjamRiwayat, ikon: 'history' },
 ];
-
-// Efek riak (ripple) dari titik klik — elemen wajib relative + overflow-hidden.
-function buatRipple(e: React.MouseEvent<HTMLElement>) {
-  const el = e.currentTarget;
-  const rect = el.getBoundingClientRect();
-  const ukuran = Math.max(rect.width, rect.height) * 2;
-  const riak = document.createElement('span');
-  riak.className = 'ripple-ink';
-  riak.style.width = riak.style.height = `${ukuran}px`;
-  riak.style.left = `${e.clientX - rect.left - ukuran / 2}px`;
-  riak.style.top = `${e.clientY - rect.top - ukuran / 2}px`;
-  el.appendChild(riak);
-  riak.addEventListener('animationend', () => riak.remove());
-}
 
 export function Sidebar() {
   const pathname = usePathname();
@@ -95,9 +82,9 @@ export function Sidebar() {
   // Kelas satu item navigasi (aktif = pill putih kontras di atas biru).
   const kelasItem = (aktif: boolean) =>
     cn(
-      'group relative flex items-center gap-3 overflow-hidden rounded-xl px-3 py-2.5 transition-all duration-200 active:scale-[0.97]',
+      'group relative flex items-center gap-3 overflow-hidden rounded-xl px-3 py-2.5 transition-all duration-200 active:scale-[0.99]',
       aktif
-        ? 'bg-white font-bold text-primary shadow-lg shadow-blue-950/30 [--ripple-c:rgba(30,64,175,0.22)]'
+        ? 'bg-white font-bold text-primary shadow-lg shadow-blue-950/30 [--ripple-c:rgba(30,64,175,0.14)]'
         : 'text-white/80 hover:translate-x-1 hover:bg-white/10 hover:text-white'
     );
 
@@ -185,7 +172,7 @@ export function Sidebar() {
                       buatRipple(e);
                       gantiPeran(r);
                     }}
-                    className="group relative flex w-full items-center justify-center gap-2 overflow-hidden rounded-xl border border-white/20 bg-white/10 px-4 py-2.5 text-sm font-semibold text-white transition-all duration-300 hover:border-secondary-container/60 hover:bg-white/15 active:scale-[0.97]"
+                    className="group relative flex w-full items-center justify-center gap-2 overflow-hidden rounded-xl border border-white/20 bg-white/10 px-4 py-2.5 text-sm font-semibold text-white transition-all duration-300 hover:border-secondary-container/60 hover:bg-white/15 active:scale-[0.99]"
                   >
                     <Icon
                       name="swap_horiz"
@@ -270,7 +257,7 @@ export function Sidebar() {
                 buatRipple(e);
                 tanganiKeluar();
               }}
-              className="group relative flex w-full items-center gap-3 overflow-hidden rounded-xl px-3 py-2.5 text-white/80 transition-all duration-200 hover:bg-error/25 hover:text-white active:scale-[0.97]"
+              className="group relative flex w-full items-center gap-3 overflow-hidden rounded-xl px-3 py-2.5 text-white/80 transition-all duration-200 hover:bg-error/25 hover:text-white active:scale-[0.99]"
             >
               <span className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-white/10 text-error-container ring-1 ring-white/10 transition-all duration-200 group-hover:scale-110 group-hover:bg-error group-hover:text-white">
                 <Icon name="logout" style={{ fontSize: 22 }} />
