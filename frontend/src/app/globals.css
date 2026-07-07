@@ -180,7 +180,7 @@ button {
   .no-scrollbar::-webkit-scrollbar {
     display: none;
   }
-  /* Scrollbar tipis & translucent (dipakai area gulir sidebar gelap) */
+  /* Scrollbar tipis & translucent (dipakai area gulir sidebar biru) */
   .custom-scrollbar {
     scrollbar-width: thin;
     scrollbar-color: rgba(255, 255, 255, 0.25) transparent;
@@ -229,6 +229,23 @@ button {
   /* Garis vertikal timeline panduan */
   .timeline-line {
     background: linear-gradient(to bottom, transparent, #1e40af 15%, #1e40af 85%, transparent);
+  }
+  /* Riak (ripple) saat elemen diklik — dibuat dinamis oleh sidebar.
+     Warna bisa dioverride lewat variabel --ripple-c. */
+  .ripple-ink {
+    position: absolute;
+    border-radius: 9999px;
+    background: var(--ripple-c, rgba(255, 255, 255, 0.35));
+    transform: scale(0);
+    animation: ripple-ink 0.55s ease-out forwards;
+    pointer-events: none;
+  }
+}
+
+@keyframes ripple-ink {
+  to {
+    transform: scale(1);
+    opacity: 0;
   }
 }
 

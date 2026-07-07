@@ -1,5 +1,7 @@
 // ============================================================
 //  Sidebar navigasi — menu menyesuaikan peran pengguna.
+//  Tema biru royal (lebih cerah dari navy) dengan aksen hijau;
+//  item aktif tampil sebagai pill putih + efek riak saat klik.
 // ============================================================
 
 'use client';
@@ -40,6 +42,20 @@ const menuPeminjam: ItemMenu[] = [
   { label: 'Riwayat Peminjaman', href: RUTE.peminjamRiwayat, ikon: 'history' },
 ];
 
+// Efek riak (ripple) dari titik klik — elemen wajib relative + overflow-hidden.
+function buatRipple(e: React.MouseEvent<HTMLElement>) {
+  const el = e.currentTarget;
+  const rect = el.getBoundingClientRect();
+  const ukuran = Math.max(rect.width, rect.height) * 2;
+  const riak = document.createElement('span');
+  riak.className = 'ripple-ink';
+  riak.style.width = riak.style.height = `${ukuran}px`;
+  riak.style.left = `${e.clientX - rect.left - ukuran / 2}px`;
+  riak.style.top = `${e.clientY - rect.top - ukuran / 2}px`;
+  el.appendChild(riak);
+  riak.addEventListener('animationend', () => riak.remove());
+}
+
 export function Sidebar() {
   const pathname = usePathname();
   const router = useRouter();
@@ -76,13 +92,13 @@ export function Sidebar() {
     pathname === href ||
     (href !== RUTE.adminDashboard && href !== RUTE.peminjamDashboard && pathname.startsWith(href));
 
-  // Kelas satu item navigasi (state aktif = kartu terang + aksen hijau).
+  // Kelas satu item navigasi (aktif = pill putih kontras di atas biru).
   const kelasItem = (aktif: boolean) =>
     cn(
-      'group relative flex items-center gap-3 rounded-xl px-3 py-2.5 transition-all duration-200',
+      'group relative flex items-center gap-3 overflow-hidden rounded-xl px-3 py-2.5 transition-all duration-200 active:scale-[0.97]',
       aktif
-        ? 'bg-white/15 font-bold text-white shadow-lg shadow-black/25 ring-1 ring-white/10'
-        : 'text-white/70 hover:bg-white/10 hover:text-white'
+        ? 'bg-white font-bold text-primary shadow-lg shadow-blue-950/30 [--ripple-c:rgba(30,64,175,0.22)]'
+        : 'text-white/80 hover:translate-x-1 hover:bg-white/10 hover:text-white'
     );
 
   return (
@@ -97,26 +113,29 @@ export function Sidebar() {
       )}
 
       <aside
-        style={{ backgroundImage: 'linear-gradient(180deg, #001453 0%, #00226b 52%, #002a86 100%)' }}
+        style={{ backgroundImage: 'linear-gradient(180deg, #1e3a8a 0%, #1d4ed8 52%, #2563eb 100%)' }}
         className={cn(
-          'fixed inset-y-0 left-0 z-40 flex w-[17rem] max-w-[85vw] flex-col overflow-hidden bg-primary py-stack-lg text-white shadow-2xl transition-transform duration-300 ease-out',
+          'fixed inset-y-0 left-0 z-40 flex w-[17rem] max-w-[85vw] flex-col overflow-hidden py-stack-lg text-white shadow-2xl transition-transform duration-300 ease-out',
           // Desktop: tetap diam saat halaman di-scroll (sticky setinggi layar).
           'lg:sticky lg:top-0 lg:h-screen lg:max-h-screen lg:max-w-none lg:translate-x-0 lg:self-start',
           sidebarTerbuka ? 'translate-x-0' : '-translate-x-full'
         )}
       >
-        {/* Aksen dekoratif: glow lembut khas instansi (biru + hijau) */}
+        {/* Aksen dekoratif: glow lembut cyan & hijau di atas biru royal */}
         <div aria-hidden className="pointer-events-none absolute inset-0">
-          <div className="absolute -left-16 -top-20 h-56 w-56 rounded-full bg-secondary/20 blur-3xl" />
-          <div className="absolute -right-24 top-1/3 h-56 w-56 rounded-full bg-[#1e40af]/40 blur-3xl" />
-          <div className="absolute inset-x-0 bottom-0 h-40 bg-gradient-to-t from-black/25 to-transparent" />
+          <div className="absolute -left-16 -top-20 h-56 w-56 rounded-full bg-cyan-300/20 blur-3xl" />
+          <div className="absolute -right-24 top-1/3 h-56 w-56 rounded-full bg-secondary-container/20 blur-3xl" />
+          <div className="absolute inset-x-0 bottom-0 h-40 bg-gradient-to-t from-blue-950/30 to-transparent" />
         </div>
 
         {/* Konten (di atas aksen dekoratif) */}
         <div className="relative z-10 flex min-h-0 flex-1 flex-col">
-          {/* Header logo */}
-          <div className="mb-6 flex items-center justify-between gap-2 px-6">
-            <Link href={berandaHref} className="flex items-center overflow-hidden transition-opacity hover:opacity-90">
+          {/* Header logo — panel putih agar teks logo tetap terbaca */}
+          <div className="mb-5 flex items-center justify-between gap-2 px-4">
+            <Link
+              href={berandaHref}
+              className="flex flex-1 items-center overflow-hidden rounded-2xl bg-white px-3 py-2 shadow-lg shadow-blue-950/25 ring-1 ring-white/40 transition-transform duration-200 hover:scale-[1.02] active:scale-[0.99]"
+            >
               <Image
                 src="/images/logo-kemenkeu.png"
                 alt="Logo Kementerian Keuangan"
@@ -135,33 +154,42 @@ export function Sidebar() {
           </div>
 
           {/* Identitas pengguna */}
-          <div className="mx-3 mb-3 flex items-center gap-3 rounded-2xl border border-white/10 bg-white/10 px-3 py-3 shadow-lg shadow-black/10 backdrop-blur-md">
-            <div className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-gradient-to-br from-white/25 to-white/5 text-sm font-bold ring-2 ring-white/20">
-              {inisial(user?.nama)}
+          <div className="mx-3 mb-3 flex animate-page-in items-center gap-3 rounded-2xl border border-white/15 bg-white/10 px-3 py-3 shadow-lg shadow-blue-950/10 backdrop-blur-md">
+            <div className="relative shrink-0">
+              <div className="grid h-11 w-11 place-items-center rounded-full bg-gradient-to-br from-white/30 to-white/5 text-sm font-bold ring-2 ring-white/25">
+                {inisial(user?.nama)}
+              </div>
+              {/* Titik status online (ping halus) */}
+              <span className="absolute -bottom-0.5 -right-0.5 flex h-3.5 w-3.5">
+                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-secondary-container opacity-60" />
+                <span className="relative inline-flex h-3.5 w-3.5 rounded-full border-2 border-blue-800 bg-secondary-container" />
+              </span>
             </div>
             <div className="min-w-0">
               <p className="truncate text-sm font-bold leading-tight">{user?.nama || 'Pengguna'}</p>
-              <div className="mt-0.5 inline-flex items-center gap-1.5">
-                <span className={cn('h-1.5 w-1.5 rounded-full', isAdmin ? 'bg-secondary' : 'bg-amber-400')} />
-                <span className="truncate text-xs text-white/70">{isAdmin ? 'Administrator' : 'Peminjam'}</span>
-              </div>
+              <span className="mt-1 inline-flex max-w-full items-center truncate rounded-full bg-white/15 px-2 py-0.5 text-[11px] font-bold text-white/90 ring-1 ring-white/20">
+                {isAdmin ? 'Administrator' : 'Peminjam'}
+              </span>
             </div>
           </div>
 
           {/* Beralih peran (akun multi-role) — tepat di bawah logo & identitas */}
           {bisaGantiRole && (
-            <div className="mx-3 mb-3">
+            <div className="mx-3 mb-3 animate-page-in" style={{ animationDelay: '60ms' }}>
               {roles
                 .filter((r) => r !== user?.activeRole)
                 .map((r) => (
                   <button
                     key={r}
-                    onClick={() => gantiPeran(r)}
-                    className="group flex w-full items-center justify-center gap-2 rounded-xl border border-white/15 bg-white/5 px-4 py-2.5 text-sm font-semibold text-white transition-all hover:border-secondary/40 hover:bg-white/10 active:scale-[0.98]"
+                    onClick={(e) => {
+                      buatRipple(e);
+                      gantiPeran(r);
+                    }}
+                    className="group relative flex w-full items-center justify-center gap-2 overflow-hidden rounded-xl border border-white/20 bg-white/10 px-4 py-2.5 text-sm font-semibold text-white transition-all duration-300 hover:border-secondary-container/60 hover:bg-white/15 active:scale-[0.97]"
                   >
                     <Icon
                       name="swap_horiz"
-                      className="text-secondary transition-transform duration-300 group-hover:rotate-180"
+                      className="text-secondary-container transition-transform duration-300 group-hover:rotate-180"
                       style={{ fontSize: 20 }}
                     />
                     Beralih ke {LABEL_PERAN[r]}
@@ -171,41 +199,63 @@ export function Sidebar() {
           )}
 
           {/* Label seksi menu */}
-          <p className="mb-1 px-5 text-[10px] font-bold uppercase tracking-[0.18em] text-white/40">Menu Utama</p>
+          <p className="mb-1 px-5 text-[10px] font-bold uppercase tracking-[0.18em] text-white/50">Menu Utama</p>
 
           {/* Menu navigasi */}
-          <nav className="custom-scrollbar flex min-h-0 flex-1 flex-col gap-1 overflow-y-auto px-3">
-            {semuaMenu.map((item) => {
+          <nav className="custom-scrollbar flex min-h-0 flex-1 flex-col gap-1.5 overflow-y-auto px-3 pb-2">
+            {semuaMenu.map((item, indeks) => {
               const aktif = isAktif(item.href);
               const badge = item.href === RUTE.peminjamKeranjang ? jumlahKeranjang : undefined;
               return (
                 <Link
                   key={item.href}
                   href={item.href}
-                  onClick={tutupSidebar}
+                  onClick={(e) => {
+                    buatRipple(e);
+                    tutupSidebar();
+                  }}
                   aria-current={aktif ? 'page' : undefined}
-                  className={kelasItem(aktif)}
+                  // Muncul berurutan saat sidebar dimuat (stagger).
+                  style={{ animationDelay: `${100 + indeks * 45}ms` }}
+                  className={cn(kelasItem(aktif), 'animate-page-in')}
                 >
-                  {/* Aksen kiri saat aktif */}
+                  {/* Aksen kiri hijau menyala saat aktif */}
                   {aktif && (
                     <span
                       aria-hidden
-                      className="absolute left-0 top-1/2 h-7 w-1 -translate-y-1/2 rounded-r-full bg-secondary"
+                      className="absolute left-0 top-1/2 h-7 w-1 -translate-y-1/2 rounded-r-full bg-secondary shadow-[0_0_10px_rgba(0,108,73,0.6)]"
                     />
                   )}
                   <span
                     className={cn(
-                      'grid h-9 w-9 shrink-0 place-items-center rounded-lg transition-colors',
-                      aktif ? 'bg-white/20' : 'text-white/80 group-hover:bg-white/5 group-hover:text-white'
+                      'grid h-9 w-9 shrink-0 place-items-center rounded-lg transition-all duration-200',
+                      aktif
+                        ? 'bg-gradient-to-br from-primary to-primary-container text-white shadow-md'
+                        : 'bg-white/10 text-white/90 ring-1 ring-white/10 group-hover:scale-110 group-hover:bg-white group-hover:text-primary'
                     )}
                   >
                     <Icon name={item.ikon} fill={aktif} style={{ fontSize: 22 }} />
                   </span>
                   <span className="font-label-md">{item.label}</span>
-                  {badge != null && badge > 0 && (
-                    <span className="ml-auto inline-flex min-w-5 items-center justify-center rounded-full bg-secondary px-1.5 py-0.5 text-xs font-bold text-primary shadow">
+                  {badge != null && badge > 0 ? (
+                    <span
+                      className={cn(
+                        'ml-auto inline-flex min-w-5 items-center justify-center rounded-full px-1.5 py-0.5 text-xs font-bold shadow transition-transform duration-200 group-hover:scale-110',
+                        aktif
+                          ? 'bg-primary text-white'
+                          : 'bg-secondary-container text-on-secondary-container'
+                      )}
+                    >
                       {badge}
                     </span>
+                  ) : (
+                    !aktif && (
+                      <Icon
+                        name="chevron_right"
+                        className="ml-auto -translate-x-1 opacity-0 transition-all duration-200 group-hover:translate-x-0 group-hover:opacity-100"
+                        style={{ fontSize: 18 }}
+                      />
+                    )
                   )}
                 </Link>
               );
@@ -214,12 +264,15 @@ export function Sidebar() {
 
           {/* Tombol keluar */}
           <div className="mt-2 px-3 pt-3">
-            <div className="mb-2 h-px bg-white/10" />
+            <div className="mb-2 h-px bg-white/15" />
             <button
-              onClick={tanganiKeluar}
-              className="group flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-white/70 transition-all hover:bg-error/20 hover:text-white"
+              onClick={(e) => {
+                buatRipple(e);
+                tanganiKeluar();
+              }}
+              className="group relative flex w-full items-center gap-3 overflow-hidden rounded-xl px-3 py-2.5 text-white/80 transition-all duration-200 hover:bg-error/25 hover:text-white active:scale-[0.97]"
             >
-              <span className="grid h-9 w-9 shrink-0 place-items-center rounded-lg text-error-container transition-colors group-hover:bg-error/20">
+              <span className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-white/10 text-error-container ring-1 ring-white/10 transition-all duration-200 group-hover:scale-110 group-hover:bg-error group-hover:text-white">
                 <Icon name="logout" style={{ fontSize: 22 }} />
               </span>
               <span className="font-label-md font-semibold">Keluar Sesi</span>
