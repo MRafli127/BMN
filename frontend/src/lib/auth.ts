@@ -35,7 +35,8 @@ export function ambilToken(): string | null {
 // --- User ---
 export function simpanUser(user: User) {
   if (typeof window !== 'undefined') localStorage.setItem(KUNCI_USER, JSON.stringify(user));
-  setCookie('sipp_role', user.role);
+  // Cookie berisi ACTIVE role (dasar gating middleware Next.js).
+  setCookie('sipp_role', user.activeRole);
 }
 
 export function ambilUser(): User | null {

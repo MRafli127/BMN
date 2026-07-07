@@ -180,6 +180,24 @@ button {
   .no-scrollbar::-webkit-scrollbar {
     display: none;
   }
+  /* Scrollbar tipis & translucent (dipakai area gulir sidebar biru) */
+  .custom-scrollbar {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(255, 255, 255, 0.25) transparent;
+  }
+  .custom-scrollbar::-webkit-scrollbar {
+    width: 6px;
+  }
+  .custom-scrollbar::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    background-color: rgba(255, 255, 255, 0.2);
+    border-radius: 9999px;
+  }
+  .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+    background-color: rgba(255, 255, 255, 0.38);
+  }
 }
 
 /* ============================================================
@@ -211,6 +229,38 @@ button {
   /* Garis vertikal timeline panduan */
   .timeline-line {
     background: linear-gradient(to bottom, transparent, #1e40af 15%, #1e40af 85%, transparent);
+  }
+  /* Sapuan cahaya diagonal yang meluncur saat kartu di-hover.
+     Pasang pada elemen di dalam pembungkus ber-kelas `group`. */
+  .shine-sweep {
+    position: relative;
+    overflow: hidden;
+  }
+  .shine-sweep::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(105deg, transparent 40%, rgba(255, 255, 255, 0.35) 50%, transparent 60%);
+    transform: translateX(-100%);
+    transition: transform 0.7s ease;
+    pointer-events: none;
+  }
+  .group:hover .shine-sweep::after {
+    transform: translateX(100%);
+  }
+  /* Riak (ripple) saat elemen diklik — dibuat dinamis lewat lib/ripple.ts
+     (gaya layout ditulis inline di sana; di sini hanya warna & animasi).
+     Warna bisa dioverride lewat variabel --ripple-c. */
+  .ripple-ink {
+    background: var(--ripple-c, rgba(255, 255, 255, 0.25));
+    animation: ripple-ink 0.5s ease-out forwards;
+  }
+}
+
+@keyframes ripple-ink {
+  to {
+    transform: scale(1);
+    opacity: 0;
   }
 }
 
@@ -278,22 +328,29 @@ button {
   display: none;
 }
 
-/* Scrollbar lebih halus */
+/* Scrollbar berwarna (biru brand instansi) */
+/* Firefox */
+html {
+  scrollbar-width: thin;
+  scrollbar-color: hsl(222 100% 28%) hsl(214 60% 94%);
+}
+/* Chrome, Edge, Safari */
 ::-webkit-scrollbar {
   width: 10px;
   height: 10px;
 }
 ::-webkit-scrollbar-track {
-  background: transparent;
+  background: hsl(214 60% 94%);
+  border-radius: 9999px;
 }
 ::-webkit-scrollbar-thumb {
-  background: hsl(214 20% 82%);
+  background: hsl(222 100% 28%);
   border: 2px solid transparent;
   background-clip: padding-box;
   border-radius: 9999px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: hsl(214 25% 68%);
+  background: hsl(222 100% 22%);
   border: 2px solid transparent;
   background-clip: padding-box;
 }

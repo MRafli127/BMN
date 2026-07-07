@@ -11,6 +11,7 @@ export const notify = {
   suksess: (pesan: string) => toast.success(pesan),
   gagal: (pesan: string) => toast.error(pesan),
   info: (pesan: string) => toast(pesan, { icon: 'ℹ️' }),
+  warning: (pesan: string) => toast(pesan, { icon: '⚠️', style: { borderLeft: '4px solid #f59e0b' } }),
   memuat: (pesan: string) => toast.loading(pesan),
   tutup: (id: string) => toast.dismiss(id),
 };

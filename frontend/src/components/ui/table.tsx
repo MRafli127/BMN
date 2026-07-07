@@ -5,9 +5,15 @@
 import * as React from 'react';
 import { cn } from '@/lib/utils';
 
-const Table = React.forwardRef<HTMLTableElement, React.HTMLAttributes<HTMLTableElement>>(
-  ({ className, ...props }, ref) => (
-    <div className="relative w-full overflow-x-auto">
+interface TableProps extends React.HTMLAttributes<HTMLTableElement> {
+  // Kelas untuk div pembungkus (area gulir). Mis. max-height agar isi tabel
+  // bisa di-scroll sendiri sementara header dibuat sticky terhadap pembungkus ini.
+  containerClassName?: string;
+}
+
+const Table = React.forwardRef<HTMLTableElement, TableProps>(
+  ({ className, containerClassName, ...props }, ref) => (
+    <div className={cn('relative w-full overflow-auto', containerClassName)}>
       <table ref={ref} className={cn('w-full caption-bottom text-sm', className)} {...props} />
     </div>
   )
@@ -30,7 +36,10 @@ const TableRow = React.forwardRef<HTMLTableRowElement, React.HTMLAttributes<HTML
   ({ className, ...props }, ref) => (
     <tr
       ref={ref}
-      className={cn('border-b transition-colors hover:bg-muted/40 data-[state=selected]:bg-muted', className)}
+      className={cn(
+        'border-b transition-all duration-200 hover:bg-primary/[0.04] hover:shadow-[inset_3px_0_0_hsl(222,100%,28%)] data-[state=selected]:bg-muted',
+        className
+      )}
       {...props}
     />
   )

@@ -6,15 +6,15 @@
 
 'use client';
 
-import { useState, useEffect } from 'react';
-import { Folder, FolderOpen, ChevronDown, Package, Trash2, Check } from 'lucide-react';
-import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table';
+import { useState } from 'react';
+import { Icon } from '@/components/ui/icon';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { cn, urlFile } from '@/lib/utils';
 import { useKeranjangStore } from '@/store/keranjangStore';
 import { notify } from '@/components/ui/toast';
 import type { ItemKeranjang } from '@/store/keranjangStore';
+import { AlertTriangle } from 'lucide-react';
 
 export interface GrupBarang {
   id: string; // identifier unik untuk grup (kombinasi nama + merk)
@@ -47,14 +47,15 @@ export function kelompokkanPerNama(items: ItemKeranjang[]): GrupBarang[] {
   })).sort((a, b) => a.nama.localeCompare(b.nama, 'id', { sensitivity: 'base' }));
 }
 
-export function FolderKeranjang() {
+interface Props {
+  /** Judul/heading yang tampil sejajar dengan tombol buka-tutup folder. */
+  header?: React.ReactNode;
+}
+
+export function FolderKeranjang({ header }: Props) {
   const [terbuka, setTerbuka] = useState<Set<string>>(new Set());
   const items = useKeranjangStore((s) => s.items);
   const hapus = useKeranjangStore((s) => s.hapus);
-
-  // Hindari hydration mismatch
-  const [mounted, setMounted] = useState(false);
-  useEffect(() => setMounted(true), []);
 
   const daftar = Object.values(items);
   const grup = kelompokkanPerNama(daftar);
@@ -84,9 +85,16 @@ export function FolderKeranjang() {
   };
 
   return (
-    <>
-      <div className="flex justify-end">
-        <Button variant="ghost" size="sm" onClick={bukaTutupSemua}>
+    <div className="space-y-3">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        {header ?? <span />}
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={bukaTutupSemua}
+          className="text-muted-foreground hover:text-primary"
+        >
+          <Icon name={semuaTerbuka ? 'unfold_less' : 'unfold_more'} className="text-[18px]" />
           {semuaTerbuka ? 'Tutup semua folder' : 'Buka semua folder'}
         </Button>
       </div>
@@ -95,94 +103,118 @@ export function FolderKeranjang() {
         {grup.map((g) => {
           const aktif = terbuka.has(g.id);
           return (
-            <div key={g.id} className="overflow-hidden rounded-xl border bg-card">
+            <div
+              key={g.id}
+              className={cn(
+                'group overflow-hidden rounded-2xl border bg-gradient-to-br from-white to-primary/[0.04] shadow-soft transition-all duration-300',
+                aktif
+                  ? 'border-primary/25 shadow-card'
+                  : 'border-primary/10 hover:-translate-y-0.5 hover:border-primary/25 hover:shadow-card'
+              )}
+            >
               {/* Header folder */}
               <button
                 type="button"
                 onClick={() => toggle(g.id)}
                 aria-expanded={aktif}
-                className="flex w-full items-center gap-3 px-4 py-3 text-left transition-colors hover:bg-muted/40"
+                className="flex w-full items-center gap-3 px-4 py-3.5 text-left"
               >
-                <span className="text-primary">
-                  {aktif ? <FolderOpen className="h-5 w-5" /> : <Folder className="h-5 w-5" />}
+                <span
+                  className={cn(
+                    'flex h-11 w-11 shrink-0 items-center justify-center rounded-xl transition-colors duration-300',
+                    aktif ? 'bg-primary text-white' : 'bg-primary/10 text-primary group-hover:bg-primary/15'
+                  )}
+                >
+                  <Icon name={aktif ? 'folder_open' : 'folder'} fill className="text-[22px]" />
                 </span>
                 <div className="min-w-0 flex-1">
-                  <p className="truncate font-semibold text-foreground">{g.nama}</p>
+                  <p className="truncate font-jakarta font-bold text-foreground">{g.nama}</p>
                   <p className="text-xs text-muted-foreground">
                     {g.items.length} unit
                     {g.merk && ` • Merk: ${g.merk}`}
                   </p>
                 </div>
                 <Badge className="border-primary/20 bg-primary/10 text-primary">{g.totalUnit} unit</Badge>
-                <ChevronDown
-                  className={cn('h-4 w-4 shrink-0 text-muted-foreground transition-transform', aktif && 'rotate-180')}
-                />
+                <span
+                  className={cn(
+                    'flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-all duration-300',
+                    aktif ? 'rotate-180 bg-primary/10 text-primary' : 'group-hover:bg-muted'
+                  )}
+                >
+                  <Icon name="expand_more" className="text-[20px]" />
+                </span>
               </button>
 
               {/* Isi folder: daftar items */}
               {aktif && (
-                <div className="border-t">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead className="w-14">Foto</TableHead>
-                        <TableHead>Kode / Merk</TableHead>
-                        <TableHead className="text-center">Stok</TableHead>
-                        <TableHead className="text-right">Aksi</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {g.items.map((item) => {
-                        const stokHabis = item.jumlahTersedia < 1;
+                <ul className="animate-fade-in border-t border-primary/10">
+                  {g.items.map((item) => {
+                    const stokHabis = item.jumlahTersedia < 1;
+                    const tidakTersedia = item.tidakTersedia ?? false;
 
-                        return (
-                          <TableRow key={item.barangId} className="bg-green-50/50 dark:bg-green-950/20">
-                            <TableCell>
-                              <div className="h-10 w-10 overflow-hidden rounded-md bg-muted">
-                                {item.fotoUrl ? (
-                                  // eslint-disable-next-line @next/next/no-img-element
-                                  <img src={urlFile(item.fotoUrl)} alt={item.nama} className="h-full w-full object-cover" />
-                                ) : (
-                                  <div className="flex h-full w-full items-center justify-center text-muted-foreground">
-                                    <Package className="h-5 w-5" />
-                                  </div>
-                                )}
-                              </div>
-                            </TableCell>
-                            <TableCell>
-                              <p className="font-mono text-xs break-all text-muted-foreground">{item.kodeBarang}</p>
-                              {item.merk && <p className="text-sm text-muted-foreground">{item.merk}</p>}
-                            </TableCell>
-                            <TableCell className="text-center font-medium">
-                              <span className={stokHabis ? 'text-red-600' : 'text-green-700'}>
-                                {item.jumlahTersedia}
-                              </span>
-                            </TableCell>
-                            <TableCell>
-                              <div className="flex items-center justify-end gap-1">
-                                <Button
-                                  type="button"
-                                  size="icon"
-                                  variant="ghost"
-                                  className="h-8 w-8 text-red-600"
-                                  onClick={() => hapusItem(item)}
-                                  aria-label="Hapus dari keranjang"
-                                >
-                                  <Trash2 className="h-4 w-4" />
-                                </Button>
-                              </div>
-                            </TableCell>
-                          </TableRow>
-                        );
-                      })}
-                    </TableBody>
-                  </Table>
-                </div>
+                    return (
+                      <li
+                        key={item.barangId}
+                        className={cn(
+                          'flex items-center gap-3 border-b border-primary/5 px-4 py-3 transition-colors last:border-b-0 hover:bg-primary/[0.03]',
+                          tidakTersedia && 'bg-red-50/50'
+                        )}
+                      >
+                        <div className="h-12 w-12 shrink-0 overflow-hidden rounded-lg border border-primary/10 bg-muted">
+                          {item.fotoUrl ? (
+                            // eslint-disable-next-line @next/next/no-img-element
+                            <img
+                              src={urlFile(item.fotoUrl)}
+                              alt={item.nama}
+                              className="h-full w-full object-cover"
+                            />
+                          ) : (
+                            <div className="flex h-full w-full items-center justify-center text-muted-foreground">
+                              <Icon name="package_2" className="text-[20px]" />
+                            </div>
+                          )}
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <p className="break-all font-mono text-xs font-medium text-foreground">{item.kodeBarang}</p>
+                          {item.merk && <p className="truncate text-xs text-muted-foreground">Merk: {item.merk}</p>}
+                          {tidakTersedia && (
+                            <p className="mt-0.5 flex items-center gap-1 text-xs font-medium text-red-600">
+                              <AlertTriangle className="h-3 w-3" />
+                              Tidak tersedia lagi
+                            </p>
+                          )}
+                        </div>
+                        <span
+                          className={cn(
+                            'shrink-0 rounded-full border px-2.5 py-0.5 text-xs font-semibold',
+                            tidakTersedia
+                              ? 'border-red-200 bg-red-100 text-red-600'
+                              : stokHabis
+                              ? 'border-red-200 bg-red-50 text-red-600 dark:bg-red-950/20'
+                              : 'border-emerald-200 bg-emerald-50 text-emerald-700 dark:bg-emerald-950/20'
+                          )}
+                        >
+                          {tidakTersedia ? 'Stok Habis' : stokHabis ? 'Stok habis' : `Stok ${item.jumlahTersedia}`}
+                        </span>
+                        <Button
+                          type="button"
+                          size="icon"
+                          variant="ghost"
+                          className="h-9 w-9 shrink-0 rounded-full text-muted-foreground hover:bg-red-50 hover:text-red-600"
+                          onClick={() => hapusItem(item)}
+                          aria-label="Hapus dari keranjang"
+                        >
+                          <Icon name="delete" className="text-[18px]" />
+                        </Button>
+                      </li>
+                    );
+                  })}
+                </ul>
               )}
             </div>
           );
         })}
       </div>
-    </>
+    </div>
   );
 }

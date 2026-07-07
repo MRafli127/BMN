@@ -119,15 +119,24 @@ export function FolderBarang({ grup, onHapus }: Props) {
         {grup.map((g) => {
           const aktif = terbuka.has(g.merk);
           return (
-            <div key={g.merk} className="overflow-hidden rounded-xl border bg-card">
+            <div
+              key={g.merk}
+              className={cn(
+                'overflow-hidden rounded-xl border bg-card transition-colors',
+                aktif && 'border-blue-400 ring-1 ring-blue-400'
+              )}
+            >
               {/* Header folder */}
               <button
                 type="button"
                 onClick={() => toggle(g.merk)}
                 aria-expanded={aktif}
-                className="flex w-full items-center gap-3 px-4 py-3 text-left transition-colors hover:bg-muted/40"
+                className={cn(
+                  'flex w-full items-center gap-3 px-4 py-3 text-left transition-colors',
+                  aktif ? 'bg-blue-50 hover:bg-blue-100' : 'hover:bg-muted/40'
+                )}
               >
-                <span className="text-primary">
+                <span className={aktif ? 'text-blue-600' : 'text-primary'}>
                   {aktif ? <FolderOpen className="h-5 w-5" /> : <Folder className="h-5 w-5" />}
                 </span>
                 <div className="min-w-0 flex-1">
@@ -142,11 +151,12 @@ export function FolderBarang({ grup, onHapus }: Props) {
                 />
               </button>
 
-              {/* Isi folder: daftar unit dengan kode & NUP */}
+              {/* Isi folder: daftar unit dengan kode & NUP.
+                  Area gulir sendiri agar isi folder bisa di-scroll terpisah dari halaman. */}
               {aktif && (
                 <div className="border-t">
-                  <Table>
-                    <TableHeader>
+                  <Table containerClassName="max-h-[420px]">
+                    <TableHeader className="sticky top-0 z-10 bg-card shadow-sm">
                       <TableRow>
                         <TableHead className="w-14">Foto</TableHead>
                         <TableHead>Kode / Nama</TableHead>

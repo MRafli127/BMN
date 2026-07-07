@@ -43,6 +43,7 @@ export const TIPE_NOTIFIKASI = {
   EXPORT_SELESAI: 'EXPORT_SELESAI',
   IMPORT_SELESAI: 'IMPORT_SELESAI',
   SISTEM: 'SISTEM',
+  PENSIUN_MENDEKATI: 'PENSIUN_MENDEKATI',
 } as const;
 
 // Ikon untuk setiap tipe notifikasi
@@ -57,4 +58,5 @@ export const IKON_NOTIFIKASI: Record<string, string> = {
   [TIPE_NOTIFIKASI.EXPORT_SELESAI]: 'file_download_done',
   [TIPE_NOTIFIKASI.IMPORT_SELESAI]: 'upload_file',
   [TIPE_NOTIFIKASI.SISTEM]: 'info',
+  [TIPE_NOTIFIKASI.PENSIUN_MENDEKATI]: 'elderly',
 };

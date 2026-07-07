@@ -9,12 +9,19 @@ import type {
   DataRegister,
   DataUpdateProfil,
   HasilAuth,
+  Role,
   User,
 } from '@/types/user.type';
 
 export const authService = {
   async login(data: DataLogin): Promise<HasilAuth> {
     const res = await api.post('/auth/login', data);
+    return res.data.data;
+  },
+
+  // Ganti active role (akun multi-role) — backend menerbitkan token baru.
+  async switchRole(role: Role): Promise<{ user: User; accessToken: string }> {
+    const res = await api.post('/auth/switch-role', { role });
     return res.data.data;
   },
 

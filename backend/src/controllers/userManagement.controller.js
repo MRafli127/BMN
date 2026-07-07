@@ -45,6 +45,18 @@ const update = asyncHandler(async (req, res) => {
   return responsSukses(res, { pesan: 'User berhasil diperbarui.', data: user });
 });
 
+// Tambah role ke user (promote)
+const tambahRole = asyncHandler(async (req, res) => {
+  const user = await userManagementService.tambahRole(req.params.id, req.body.role);
+  return responsSukses(res, { pesan: `Peran ${req.body.role} ditambahkan.`, data: user });
+});
+
+// Hapus role dari user (demote)
+const hapusRole = asyncHandler(async (req, res) => {
+  const user = await userManagementService.hapusRole(req.params.id, req.params.role);
+  return responsSukses(res, { pesan: `Peran ${req.params.role} dicabut.`, data: user });
+});
+
 // Reset password user
 const resetPassword = asyncHandler(async (req, res) => {
   const hasil = await userManagementService.resetPassword(req.params.id);
@@ -76,6 +88,8 @@ module.exports = {
   getStatistik,
   create,
   update,
+  tambahRole,
+  hapusRole,
   resetPassword,
   remove,
   hapusMassalPeminjam,

@@ -7,6 +7,7 @@
 const { prisma } = require('../config/database');
 const { kodeNaturalBarang } = require('../utils/generateKode');
 const { urlPublik } = require('../utils/apiResponse');
+const { parsePagination } = require('../utils/pagination');
 const { AppError } = require('../middleware/error.middleware');
 
 // Ubah fotoUrl relatif menjadi absolut untuk client
@@ -17,8 +18,7 @@ function serialisasi(barang) {
 
 // --- Ambil daftar barang dengan pencarian/filter/pagination ---
 async function getSemua({ q, jenis, kondisi, ketersediaan, page = 1, limit = 10 } = {}) {
-  const halaman = Math.max(1, parseInt(page, 10) || 1);
-  const perHalaman = Math.min(200, Math.max(1, parseInt(limit, 10) || 10));
+  const { halaman, perHalaman, skip } = parsePagination({ page, limit });
 
   const where = {};
   if (q) {
@@ -163,4 +163,31 @@ async function remove(id) {
   return { id };
 }
 
-module.exports = { getSemua, getById, create, update, remove, serialisasi };
+// --- Cek stok barang untuk polling cart ---
+// Input: array of barang IDs
+// Output: barang yang tidak tersedia lagi (stok = 0 atau tidak ada)
+async function checkStokTersedia(barangIds) {
+  if (!barangIds || barangIds.length === 0) return [];
+
+  const barang = await prisma.barang.findMany({
+    where: { id: { in: barangIds } },
+    select: {
+      id: true,
+      nama: true,
+      merk: true,
+      kodeBarang: true,
+      jumlahTersedia: true,
+      fotoUrl: true,
+    },
+  });
+
+  // Barang yang sudah tidak tersedia (stok habis atau dihapus)
+  const tidakTersedia = barang.filter((b) => b.jumlahTersedia < 1);
+
+  return tidakTersedia.map((b) => ({
+    ...b,
+    fotoUrl: urlPublik(b.fotoUrl),
+  }));
+}
+
+module.exports = { getSemua, getById, create, update, remove, serialisasi, checkStokTersedia };

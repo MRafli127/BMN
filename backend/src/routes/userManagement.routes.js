@@ -9,7 +9,7 @@ const authMiddleware = require('../middleware/auth.middleware');
 const roleMiddleware = require('../middleware/role.middleware');
 const validate = require('../middleware/validate.middleware');
 const { validateCsrfTokenMiddleware } = require('../middleware/csrf.middleware');
-const { createUserSchema, updateUserSchema } = require('../validators/userManagement.validator');
+const { createUserSchema, updateUserSchema, tambahRoleSchema } = require('../validators/userManagement.validator');
 
 const router = express.Router();
 
@@ -35,6 +35,12 @@ router.get('/:id', userManagementController.getById);
 
 // Update user
 router.patch('/:id', validateCsrfTokenMiddleware, validate(updateUserSchema), userManagementController.update);
+
+// Tambah role ke user (promote)
+router.post('/:id/roles', validateCsrfTokenMiddleware, validate(tambahRoleSchema), userManagementController.tambahRole);
+
+// Hapus role dari user (demote)
+router.delete('/:id/roles/:role', validateCsrfTokenMiddleware, userManagementController.hapusRole);
 
 // Reset password user
 router.post('/:id/reset-password', validateCsrfTokenMiddleware, userManagementController.resetPassword);

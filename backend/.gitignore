@@ -1,5 +1,6 @@
 # Dependencies
-node_modules/
+/node_modules
+/.claude
 
 # Environment
 .env
@@ -25,3 +26,6 @@ uploads/foto-barang/*
 # OS
 .DS_Store
 Thumbs.db
+
+# Backups
+backups/

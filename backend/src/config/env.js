@@ -14,6 +14,17 @@ dotenv.config({ path: path.resolve(__dirname, '../../.env') });
 const isProduction = process.env.NODE_ENV === 'production';
 const envFilePath = path.resolve(__dirname, '../../.env');
 
+// Simple logger - hanya log di development, silent di production
+const log = {
+  info: (...args) => {
+    if (!isProduction) console.log('[ENV]', ...args);
+  },
+  warn: (...args) => {
+    if (!isProduction) console.warn('[ENV]', ...args);
+    else console.warn(...args);
+  },
+};
+
 // =============================================================================
 //  AUTO-GENERATE JWT SECRETS
 //  Sekali generate, simpan ke .env, tidak berubah sampai di-reset manual
@@ -63,24 +74,16 @@ function ensureJwtSecrets() {
   // Reload environment variables
   dotenv.config({ path: envFilePath, override: true });
 
-  if (isProduction) {
-    console.log('✅ JWT Secrets auto-generated dan disimpan ke .env');
-  } else {
-    console.log('\n🔐 JWT Secrets baru di-generate:');
-    console.log(`   JWT_ACCESS_SECRET=${newAccessSecret}`);
-    console.log(`   JWT_REFRESH_SECRET=${newRefreshSecret}`);
-    console.log('');
-  }
+  log.info('JWT Secrets auto-generated dan disimpan ke .env');
 }
 
-// Jalankan auto-generate
 ensureJwtSecrets();
 
 // Validasi panjang secret
 function validateSecret(secret, name) {
   if (!secret) return null;
   if (secret.length < 32) {
-    console.warn(`⚠️  PERINGATAN: ${name} kurang dari 32 karakter. Disarankan menggunakan 64+ karakter.`);
+    log.warn(`PERINGATAN: ${name} kurang dari 32 karakter.`);
   }
   return secret;
 }
@@ -158,13 +161,13 @@ if (process.argv.includes('reset-secrets')) {
     content = content.replace(/^JWT_REFRESH_SECRET=.*$/m, 'JWT_REFRESH_SECRET=');
     fs2.writeFileSync(envFilePath, content.trim() + '\n', 'utf8');
   }
-  console.log('🔄 JWT Secrets di-reset. Jalankan ulang server untuk generate yang baru.');
+  log.info('JWT Secrets di-reset. Jalankan ulang server untuk generate yang baru.');
   process.exit(0);
 }
 
 // Peringatkan bila variabel penting belum diisi
 if (!env.databaseUrl) {
-  console.warn('⚠️  PERINGATAN: DATABASE_URL belum diatur di file .env');
+  log.warn('DATABASE_URL belum diatur di file .env');
 }
 
 module.exports = env;

@@ -22,7 +22,7 @@ import type { Peminjaman } from '@/types/peminjaman.type';
 
 // Status peminjaman yang masih "menahan" barang sehingga barang yang sama
 // tidak boleh diajukan ulang oleh peminjam yang sama.
-const STATUS_AKTIF = ['MENUNGGU', 'DISETUJUI', 'DIPINJAM', 'TERLAMBAT'];
+const STATUS_AKTIF = ['DRAFT', 'MENUNGGU', 'DISETUJUI', 'DIPINJAM', 'TERLAMBAT'];
 
 export default function AjukanPage() {
   const router = useRouter();
@@ -59,8 +59,20 @@ export default function AjukanPage() {
 
   // Pengajuan selesai dibuat (lewat LangkahSuratPernyataan di dalam FormPeminjaman)
   const selesai = (p: Peminjaman) => {
+    if (p.status === 'DRAFT') {
+      notify.info('Pengajuan disimpan ke Riwayat. Unggah Surat Pernyataan kapan saja untuk melanjutkan.');
+      router.push(RUTE.peminjamRiwayatDetail(p.id));
+      return;
+    }
     notify.suksess('Pengajuan peminjaman berhasil dikirim!');
     router.push(RUTE.peminjamRiwayatReview(p.id));
+  };
+
+  // Kembali ke keranjang dari tahap surat → kembali ke fase pilih barang
+  // onKembaliKeKeranjang akan dipanggil dari FormPeminjaman/LangkahSuratPernyataan
+  const kembaliKeKeranjang = () => {
+    // Navigate back using browser history
+    router.back();
   };
 
   return (
@@ -87,6 +99,7 @@ export default function AjukanPage() {
               onSelesai={selesai}
               praPilihId={praId}
               barangAktifIds={barangAktifIds}
+              onKembaliKeKeranjang={kembaliKeKeranjang}
             />
           )}
         </CardContent>

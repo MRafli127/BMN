@@ -43,8 +43,10 @@ export const peminjamanService = {
     const fd = new FormData();
     if (data.tanggalPinjamRencana) fd.append('tanggalPinjamRencana', data.tanggalPinjamRencana);
     if (data.tanggalKembaliRencana) fd.append('tanggalKembaliRencana', data.tanggalKembaliRencana);
+    if (data.pangkatGolongan) fd.append('pangkatGolongan', data.pangkatGolongan);
+    if (data.draft) fd.append('draft', 'true');
     fd.append('items', JSON.stringify(data.items));
-    // Surat pernyataan yang sudah ditandatangani (PDF) WAJIB diunggah.
+    // Surat pernyataan yang sudah ditandatangani (PDF) WAJIB diunggah — kecuali draft.
     if (data.dokumen) {
       fd.append('dokumen', data.dokumen);
     }
@@ -53,6 +55,29 @@ export const peminjamanService = {
       headers: { 'Content-Type': 'multipart/form-data' },
     });
     return res.data.data;
+  },
+
+  // Buat Surat Pernyataan Peminjaman (PDF, data URL) untuk pengajuan tersimpan
+  // (mis. draft) agar peminjam bisa mengunduh, menandatangani, lalu mengunggah.
+  async getSuratPernyataan(id: string): Promise<string> {
+    const res = await api.get(`/peminjaman/${id}/surat-pernyataan`);
+    return res.data.data.suratUrl;
+  },
+
+  // Unggah Surat Pernyataan yang sudah ditandatangani untuk pengajuan DRAFT.
+  // Status berpindah DRAFT -> MENUNGGU.
+  async unggahSurat(id: string, dokumen: File): Promise<Peminjaman> {
+    const fd = new FormData();
+    fd.append('dokumen', dokumen);
+    const res = await api.patch(`/peminjaman/${id}/unggah-surat`, fd, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+    return res.data.data;
+  },
+
+  // Batalkan pengajuan DRAFT milik peminjam (membebaskan barang yang terkunci).
+  async batalDraft(id: string): Promise<void> {
+    await api.delete(`/peminjaman/${id}/batal-draft`);
   },
 
   async setujui(id: string, catatanAdmin?: string): Promise<Peminjaman> {
@@ -120,8 +145,9 @@ export const peminjamanService = {
   },
 
   // Setujui banyak pengajuan sekaligus (admin). Mengembalikan ringkasan hasil.
-  async setujuiMassal(ids: string[]): Promise<{ disetujui: number; dilewati: number }> {
-    const res = await api.post('/peminjaman/setujui-massal', { ids });
+  // catatanAdmin opsional: catatan yang sama dikirim ke tiap pengajuan yang disetujui.
+  async setujuiMassal(ids: string[], catatanAdmin?: string): Promise<{ disetujui: number; dilewati: number }> {
+    const res = await api.post('/peminjaman/setujui-massal', { ids, catatanAdmin });
     return { disetujui: res.data.data?.disetujui ?? 0, dilewati: res.data.data?.dilewati ?? 0 };
   },
 

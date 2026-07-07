@@ -9,16 +9,17 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { Folder, FolderOpen, ChevronDown, Eye, ShoppingCart, Check, Plus, Package, Loader2, Trash2 } from 'lucide-react';
+import { Folder, FolderOpen, ChevronDown, Eye, ShoppingCart, Check, Plus, Package, Loader2, Trash2, AlertTriangle } from 'lucide-react';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { cn, urlFile } from '@/lib/utils';
 import { JENIS_BARANG, KONDISI_BARANG } from '@/constants/status';
 import { RUTE } from '@/constants/routes';
-import { useKeranjangStore } from '@/store/keranjangStore';
+import { useKeranjangStore, usePollingStokKeranjang } from '@/store/keranjangStore';
 import { notify } from '@/components/ui/toast';
 import { PeringatanKondisiDialog } from '@/components/shared/PeringatanKondisiDialog';
+import { DialogBarangTidakTersedia } from '@/components/keranjang/DialogBarangTidakTersedia';
 import type { Barang } from '@/types/barang.type';
 
 export interface GrupMerk {
@@ -73,15 +74,32 @@ export function FolderBarangPeminjam({ grup }: Props) {
   const tambah = useKeranjangStore((s) => s.tambah);
   const hapus = useKeranjangStore((s) => s.hapus);
 
+  // Hindari hydration mismatch
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
+
   // Dialog peringatan kondisi rusak berat
   const [dialogRusakBerat, setDialogRusakBerat] = useState<{ terbuka: boolean; barang: Barang | null }>({
     terbuka: false,
     barang: null,
   });
 
-  // Hindari hydration mismatch
-  const [mounted, setMounted] = useState(false);
-  useEffect(() => setMounted(true), []);
+  // Dialog barang tidak tersedia (dari polling)
+  const {
+    barangYangDihapus,
+    dialogTerbuka: dialogStokTerbuka,
+    setDialogTerbuka: setDialogStokTerbuka,
+  } = usePollingStokKeranjang({
+    enabled: mounted && Object.keys(items).length > 0,
+  });
+
+  // Hapus barang tidak tersedia dari keranjang
+  const handleHapusBarangTidakTersedia = () => {
+    for (const item of barangYangDihapus) {
+      hapus(item.barangId);
+    }
+    notify.warning(`${barangYangDihapus.length} barang yang tidak tersedia dihapus dari keranjang.`);
+  };
 
   const toggle = (merk: string) =>
     setTerbuka((lama) => {
@@ -228,6 +246,14 @@ export function FolderBarangPeminjam({ grup }: Props) {
         onKonfirmasi={handleKonfirmasiRusakBerat}
       />
 
+      {/* Dialog popup barang tidak tersedia (dari polling) */}
+      <DialogBarangTidakTersedia
+        terbuka={dialogStokTerbuka}
+        onUbahTerbuka={setDialogStokTerbuka}
+        barangTidakTersedia={barangYangDihapus}
+        onHapusSemua={handleHapusBarangTidakTersedia}
+      />
+
       <div className="flex justify-end">
         <Button variant="ghost" size="sm" onClick={bukaTutupSemua}>
           {semuaTerbuka ? 'Tutup semua folder' : 'Buka semua folder'}
@@ -242,15 +268,24 @@ export function FolderBarangPeminjam({ grup }: Props) {
           const dalamProses = sedangProses.has(g.merk);
 
           return (
-            <div key={g.merk} className="overflow-hidden rounded-xl border bg-card">
+            <div
+              key={g.merk}
+              className={cn(
+                'overflow-hidden rounded-xl border bg-card transition-colors',
+                aktif && 'border-blue-400 ring-1 ring-blue-400'
+              )}
+            >
               {/* Header folder */}
               <button
                 type="button"
                 onClick={() => toggle(g.merk)}
                 aria-expanded={aktif}
-                className="flex w-full items-center gap-3 px-4 py-3 text-left transition-colors hover:bg-muted/40"
+                className={cn(
+                  'flex w-full items-center gap-3 px-4 py-3 text-left transition-colors',
+                  aktif ? 'bg-blue-50 hover:bg-blue-100' : 'hover:bg-muted/40'
+                )}
               >
-                <span className="text-primary">
+                <span className={aktif ? 'text-blue-600' : 'text-primary'}>
                   {aktif ? <FolderOpen className="h-5 w-5" /> : <Folder className="h-5 w-5" />}
                 </span>
                 <div className="min-w-0 flex-1">
@@ -307,11 +342,12 @@ export function FolderBarangPeminjam({ grup }: Props) {
                 />
               </button>
 
-              {/* Isi folder: daftar unit dengan aksi tambah ke keranjang */}
+              {/* Isi folder: daftar unit dengan aksi tambah ke keranjang.
+                  Area gulir sendiri agar isi folder bisa di-scroll terpisah dari halaman. */}
               {aktif && (
                 <div className="border-t">
-                  <Table>
-                    <TableHeader>
+                  <Table containerClassName="max-h-[420px]">
+                    <TableHeader className="sticky top-0 z-10 bg-card shadow-sm">
                       <TableRow>
                         <TableHead className="w-14">Foto</TableHead>
                         <TableHead>Kode / Nama</TableHead>
@@ -327,10 +363,15 @@ export function FolderBarangPeminjam({ grup }: Props) {
                       {g.items.map((barang) => {
                         const kondisi = KONDISI_BARANG[barang.kondisi];
                         const diKeranjang = mounted && !!items[barang.id];
+                        const itemDiKeranjang = diKeranjang ? items[barang.id] : null;
+                        const tidakTersedia = diKeranjang && (itemDiKeranjang?.tidakTersedia ?? false);
                         const habis = barang.jumlahTersedia < 1;
 
                         return (
-                          <TableRow key={barang.id} className={diKeranjang ? 'bg-green-50 dark:bg-green-950/20' : ''}>
+                          <TableRow key={barang.id} className={cn(
+                            diKeranjang && 'bg-green-50 dark:bg-green-950/20',
+                            tidakTersedia && 'bg-red-50 dark:bg-red-950/20'
+                          )}>
                             <TableCell>
                               <div className="h-10 w-10 overflow-hidden rounded-md bg-muted">
                                 {barang.fotoUrl ? (
@@ -346,6 +387,12 @@ export function FolderBarangPeminjam({ grup }: Props) {
                             <TableCell>
                               <p className="font-medium text-foreground">{barang.nama}</p>
                               <p className="font-mono text-xs break-all text-muted-foreground">{barang.kodeBarang}</p>
+                              {tidakTersedia && (
+                                <p className="mt-0.5 flex items-center gap-1 text-xs font-medium text-red-600">
+                                  <AlertTriangle className="h-3 w-3" />
+                                  Tidak tersedia - akan dihapus
+                                </p>
+                              )}
                             </TableCell>
                             <TableCell className="font-mono text-sm text-muted-foreground">{barang.nup || '-'}</TableCell>
                             <TableCell>
@@ -372,6 +419,16 @@ export function FolderBarangPeminjam({ grup }: Props) {
                                 {habis ? (
                                   <Button className="flex-1" disabled size="sm">
                                     Stok Habis
+                                  </Button>
+                                ) : tidakTersedia ? (
+                                  // Mode: di keranjang tapi tidak tersedia - tampilkan tombol hapus dengan warning
+                                  <Button
+                                    type="button"
+                                    variant="destructive"
+                                    size="sm"
+                                    onClick={() => tanganiKeranjang(barang)}
+                                  >
+                                    <Trash2 className="h-4 w-4" /> Hapus
                                   </Button>
                                 ) : diKeranjang ? (
                                   // Mode: di keranjang - tampilkan tombol hapus

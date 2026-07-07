@@ -10,6 +10,7 @@ import { EmptyState } from '@/components/shared/EmptyState';
 import { TabelPeminjaman } from '@/components/peminjaman/TabelPeminjaman';
 import { TabelDaftarPeminjam, type PeminjamRow } from '@/components/peminjaman/TabelDaftarPeminjam';
 import { ImportPegawaiDialog } from '@/components/peminjaman/ImportPegawaiDialog';
+import { TambahPeminjamDialog } from '@/components/peminjaman/TambahPeminjamDialog';
 import { KonfirmasiDialog } from '@/components/shared/KonfirmasiDialog';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -92,6 +93,20 @@ export default function KategoriDashboardPage() {
     refetch();
   };
 
+  // Promote/demote admin untuk satu peminjam. Melempar ulang error agar dialog
+  // konfirmasi di dalam tabel tetap terbuka saat gagal (mis. admin terakhir).
+  const ubahRole = async (id: string, aksi: 'promote' | 'demote') => {
+    try {
+      if (aksi === 'promote') await userManagementService.jadikanAdmin(id);
+      else await userManagementService.cabutAdmin(id);
+      notify.suksess(aksi === 'promote' ? 'Akun berhasil dijadikan admin.' : 'Peran admin berhasil dicabut.');
+      segarkanData();
+    } catch (error) {
+      notify.gagal(ambilPesanError(error, 'Gagal mengubah peran akun.'));
+      throw error;
+    }
+  };
+
   // Hapus peminjam terpilih sekaligus (yang punya peminjaman aktif dilewati).
   const hapusMassal = async () => {
     setSedangMassal(true);
@@ -139,9 +154,10 @@ export default function KategoriDashboardPage() {
             <p className="text-sm text-on-surface-variant">{info.deskripsi}</p>
           </div>
         </div>
-        {/* Import data pegawai — mengisi & menyinkronkan data diri peminjam */}
+        {/* Tambah manual + import data pegawai (mengisi/menyinkronkan data diri peminjam) */}
         {adalahPeminjam && (
-          <div className="ml-auto">
+          <div className="ml-auto flex flex-wrap gap-2">
+            <TambahPeminjamDialog onSelesai={segarkanData} />
             <ImportPegawaiDialog onSelesai={segarkanData} />
           </div>
         )}
@@ -282,6 +298,7 @@ export default function KategoriDashboardPage() {
             nomorAwal={(halaman - 1) * limit}
             terpilih={terpilih}
             onUbahTerpilih={setTerpilih}
+            onUbahRole={ubahRole}
           />
         </div>
       ) : (

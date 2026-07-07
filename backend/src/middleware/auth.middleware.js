@@ -7,7 +7,7 @@
 const jwt = require('jsonwebtoken');
 const env = require('../config/env');
 const { responsGagal } = require('../utils/apiResponse');
-const { validateAccessTokenWithVersion } = require('../services/auth.service');
+const { validateAccessTokenWithVersion, pilihActiveRole } = require('../services/auth.service');
 
 async function authMiddleware(req, res, next) {
   try {
@@ -53,9 +53,17 @@ async function authMiddleware(req, res, next) {
       });
     }
 
+    // Roles diambil dari DB live (validation.user) agar promote/demote langsung
+    // tercermin. Active role di-heal terhadap roles terkini: bila role aktif
+    // sudah dicabut, otomatis turun ke role valid berikutnya.
+    // Backward-compat token lama: pakai payload.role sbg activeRole awal.
+    const rolesLive = validation.user.roles || [];
+    const activeRole = pilihActiveRole(rolesLive, payload.activeRole || payload.role);
+
     req.user = {
       id: payload.sub,
-      role: payload.role,
+      roles: rolesLive, // seluruh role yang dimiliki (live)
+      role: activeRole, // active role — dasar gating ketat (role.middleware & service peminjaman)
       nama: payload.nama,
       email: payload.email,
     };

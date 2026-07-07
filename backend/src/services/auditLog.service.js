@@ -5,6 +5,8 @@
 // ============================================================
 
 const { prisma } = require('../config/database');
+const { parsePagination } = require('../utils/pagination');
+const logger = require('../utils/logger');
 
 // --- Aksi yang didukung ---
 const AKSI = {
@@ -106,7 +108,7 @@ async function log({
   try {
     // Validasi parameter wajib
     if (!aksi || !entitas) {
-      console.warn('[AUDIT] Missing required fields: aksi or entitas');
+      logger.warn('[AUDIT] Missing required fields: aksi or entitas');
       return null;
     }
 
@@ -125,11 +127,11 @@ async function log({
       },
     });
 
-    console.log(`[AUDIT] ${userEmail || 'SYSTEM'}: ${LABEL_AKSI[aksi] || aksi} pada ${LABEL_ENTITAS[entitas] || entitas}`);
+    logger.info(`[AUDIT] ${userEmail || 'SYSTEM'}: ${LABEL_AKSI[aksi] || aksi} pada ${LABEL_ENTITAS[entitas] || entitas}`);
     return entry;
   } catch (error) {
     // Audit log gagal tidak boleh menggagalkan operasi utama
-    console.error('[AUDIT] Gagal menyimpan audit log:', error.message);
+    logger.error('[AUDIT] Gagal menyimpan audit log:', error.message);
     return null;
   }
 }
@@ -199,8 +201,7 @@ async function getSemua({
   page = 1,
   limit = 50,
 } = {}) {
-  const halaman = Math.max(1, parseInt(page, 10) || 1);
-  const perHalaman = Math.min(200, Math.max(1, parseInt(limit, 10) || 50));
+  const { halaman, perHalaman, skip } = parsePagination({ page, limit, defaultLimit: 50 });
 
   const where = {};
 

@@ -10,7 +10,27 @@ export interface HasilHapusPeminjam {
   dilewati: number; // dilewati karena masih punya peminjaman aktif
 }
 
+// Data untuk menambah peminjam (pegawai) secara manual oleh admin.
+// Nama, NIP, Email, dan password wajib; sisanya opsional.
+export interface DataTambahPeminjam {
+  nama: string;
+  nip: string;
+  email: string;
+  password: string;
+  jabatan?: string;
+  unitKerja?: string;
+  eselon2?: string; // Eselon II
+  eselon3?: string; // Eselon III
+  eselon4?: string; // Eselon IV
+}
+
 export const userManagementService = {
+  // Tambah peminjam baru secara manual (role PEMINJAM, sumber MANUAL).
+  async create(data: DataTambahPeminjam): Promise<{ id: string; nama: string; nip: string; email: string }> {
+    const res = await api.post('/users', data);
+    return res.data.data?.user ?? res.data.data;
+  },
+
   // Hapus satu user (peminjam) berdasarkan id.
   async remove(id: string): Promise<void> {
     await api.delete(`/users/${id}`);
@@ -23,5 +43,15 @@ export const userManagementService = {
       dihapus: res.data.data?.dihapus ?? 0,
       dilewati: res.data.data?.dilewati ?? 0,
     };
+  },
+
+  // Jadikan admin (promote): tambahkan peran ADMIN ke akun.
+  async jadikanAdmin(id: string): Promise<void> {
+    await api.post(`/users/${id}/roles`, { role: 'ADMIN' });
+  },
+
+  // Cabut admin (demote): hapus peran ADMIN dari akun.
+  async cabutAdmin(id: string): Promise<void> {
+    await api.delete(`/users/${id}/roles/ADMIN`);
   },
 };

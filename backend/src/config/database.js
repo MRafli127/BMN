@@ -5,6 +5,7 @@
 // ============================================================
 
 const { PrismaClient } = require('@prisma/client');
+const logger = require('../utils/logger');
 
 // Simpan instance di global agar tidak membuat koneksi baru berulang kali
 const globalForPrisma = globalThis;
@@ -23,9 +24,9 @@ if (process.env.NODE_ENV !== 'production') {
 async function cekKoneksiDatabase() {
   try {
     await prisma.$connect();
-    console.log('✅ Berhasil terhubung ke database PostgreSQL.');
+    logger.success('Berhasil terhubung ke database PostgreSQL.');
   } catch (error) {
-    console.error('❌ Gagal terhubung ke database:', error.message);
+    logger.error('Gagal terhubung ke database:', error.message);
     throw error;
   }
 }

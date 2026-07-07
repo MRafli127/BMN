@@ -7,7 +7,9 @@ const jwt = require('jsonwebtoken');
 const { prisma } = require('../config/database');
 const env = require('../config/env');
 const { hashPassword, bandingkanPassword } = require('../utils/hashPassword');
+const { tanpaPassword } = require('../utils/userHelper');
 const { AppError } = require('../middleware/error.middleware');
+const logger = require('../utils/logger');
 
 // Helper: cek apakah token ada di blacklist
 async function isTokenBlacklisted(token) {
@@ -59,7 +61,7 @@ async function invalidateAllUserTokens(userId, oldTokenVersion) {
 
   // Tandai di DB bahwa versi token berubah (untuk validasi)
   // Ini ditangani dengan increment tokenVersion di user record
-  console.log(`[AUTH] Invalidated all tokens for user ${userId} (version ${oldVersion} -> ${oldVersion + 1})`);
+  logger.info(`[AUTH] Invalidated all tokens for user ${userId}`);
 }
 
 // Helper: cleanup expired tokens secara periodik (async, tidak blocking)
@@ -69,19 +71,47 @@ async function cleanupExpiredTokens() {
       where: { expiresAt: { lt: new Date() } },
     });
     if (result.count > 0) {
-      console.log(`[AUTH] Cleaned up ${result.count} expired blacklisted tokens`);
+      logger.info(`[AUTH] Cleaned up ${result.count} expired blacklisted tokens`);
     }
   } catch {
     // Silent fail
   }
 }
 
+// Daftar role valid dalam sistem
+const ROLE_VALID = ['ADMIN', 'PEMINJAM'];
+
+// Peran EFEKTIF: setiap ADMIN otomatis juga berkapasitas sebagai PEMINJAM
+// (admin pun bisa meminjam & WAJIB dapat beralih ke mode Peminjam). Aturan ini
+// hanya dipakai untuk sesi/token & validasi peralihan peran — kolom `roles` di
+// DB tidak diubah. Tidak pernah menambahkan ADMIN, jadi tanpa eskalasi hak.
+function rolesEfektif(roles = []) {
+  const dimiliki = new Set(Array.isArray(roles) ? roles : []);
+  if (dimiliki.has('ADMIN')) dimiliki.add('PEMINJAM');
+  // Urutan stabil mengikuti ROLE_VALID.
+  return ROLE_VALID.filter((r) => dimiliki.has(r));
+}
+
+// Tentukan active role untuk sesi:
+// - `diminta` dihormati bila valid secara EFEKTIF (mis. admin boleh memilih PEMINJAM)
+// - default berdasarkan role NYATA di DB: admin murni tetap masuk sebagai ADMIN,
+//   akun yang benar-benar multi-role default ke PEMINJAM (least-privilege).
+function pilihActiveRole(roles = [], diminta = null) {
+  const dimiliki = Array.isArray(roles) ? roles : [];
+  const efektif = rolesEfektif(dimiliki);
+  if (diminta && efektif.includes(diminta)) return diminta;
+  if (dimiliki.length === 1) return dimiliki[0];
+  if (dimiliki.includes('PEMINJAM')) return 'PEMINJAM';
+  return dimiliki[0] || 'PEMINJAM';
+}
+
 // Buat access token (masa berlaku pendek) dengan jti dan tokenVersion
-function buatAccessToken(user) {
+function buatAccessToken(user, activeRole) {
   return jwt.sign(
     {
       sub: user.id,
-      role: user.role,
+      roles: rolesEfektif(user.roles), // peran efektif (ADMIN ⇒ termasuk PEMINJAM)
+      activeRole, // role yang sedang dipakai dalam sesi ini
       nama: user.nama,
       email: user.email,
       jti: generateJti(),
@@ -92,25 +122,27 @@ function buatAccessToken(user) {
   );
 }
 
-// Buat refresh token (masa berlaku lebih panjang) dengan jti dan tokenVersion
-function buatRefreshToken(user) {
+// Buat refresh token (masa berlaku lebih panjang) dengan jti dan tokenVersion.
+// Membawa activeRole agar mode tetap terjaga setelah refresh.
+function buatRefreshToken(user, activeRole) {
   return jwt.sign(
-    { sub: user.id, jti: generateJti(), v: user.tokenVersion },
+    { sub: user.id, activeRole, jti: generateJti(), v: user.tokenVersion },
     env.jwt.refreshSecret,
     { expiresIn: env.jwt.refreshExpiresIn }
   );
 }
 
+// Bungkus user tanpa password + sertakan activeRole untuk konsumsi frontend.
+// `roles` yang dikirim adalah peran EFEKTIF (rolesEfektif) agar tombol
+// "Beralih peran" pada Header muncul untuk admin — admin selalu bisa beralih ke
+// mode Peminjam meski di DB hanya tercatat ADMIN.
+function serialisasiSesi(user, activeRole) {
+  return { ...tanpaPassword(user), roles: rolesEfektif(user.roles), activeRole };
+}
+
 // Generate unique ID untuk JWT (untuk blacklist tracking)
 function generateJti() {
   return `${Date.now()}-${Math.random().toString(36).substring(2, 15)}`;
-}
-
-// Hilangkan field password sebelum dikirim ke client
-function tanpaPassword(user) {
-  if (!user) return user;
-  const { password, ...sisanya } = user;
-  return sisanya;
 }
 
 // --- Registrasi peminjam baru ---
@@ -136,18 +168,20 @@ async function register(data) {
       password: passwordHash,
       eselon4: data.eselon4 || null, // form registrasi: label "Eselon IV"
       eselon3: data.eselon3 || null, // form registrasi: label "Eselon III"
-      role: 'PEMINJAM', // registrasi publik selalu peminjam
+      roles: ['PEMINJAM'], // registrasi publik selalu peminjam
       tokenVersion: 1,
     },
   });
 
-  const accessToken = buatAccessToken(user);
-  const refreshToken = buatRefreshToken(user);
-  return { user: tanpaPassword(user), accessToken, refreshToken };
+  const activeRole = pilihActiveRole(user.roles);
+  const accessToken = buatAccessToken(user, activeRole);
+  const refreshToken = buatRefreshToken(user, activeRole);
+  return { user: serialisasiSesi(user, activeRole), accessToken, refreshToken };
 }
 
 // --- Login ---
-async function login({ email, password }) {
+// `activeRole` opsional: dipakai untuk akun multi-role bila user memilih peran saat login.
+async function login({ email, password, activeRole }) {
   const user = await prisma.user.findUnique({ where: { email } });
   if (!user) {
     throw new AppError('Email atau kata sandi salah.', 401);
@@ -158,22 +192,41 @@ async function login({ email, password }) {
     throw new AppError('Email atau kata sandi salah.', 401);
   }
 
-  const accessToken = buatAccessToken(user);
-  const refreshToken = buatRefreshToken(user);
-  return { user: tanpaPassword(user), accessToken, refreshToken };
+  const roleAktif = pilihActiveRole(user.roles, activeRole);
+  const accessToken = buatAccessToken(user, roleAktif);
+  const refreshToken = buatRefreshToken(user, roleAktif);
+  return { user: serialisasiSesi(user, roleAktif), accessToken, refreshToken };
 }
 
-// --- Ambil profil pengguna saat ini ---
-async function getMe(userId) {
+// --- Switch active role (akun multi-role) ---
+// Menerbitkan token baru dengan active role yang dipilih, setelah memastikan
+// role tsb benar-benar dimiliki user (validasi terhadap DB live).
+async function switchRole(userId, targetRole) {
   const user = await prisma.user.findUnique({ where: { id: userId } });
   if (!user) {
     throw new AppError('Pengguna tidak ditemukan.', 404);
   }
-  return tanpaPassword(user);
+  if (!rolesEfektif(user.roles).includes(targetRole)) {
+    throw new AppError('Anda tidak memiliki peran tersebut.', 403);
+  }
+
+  const accessToken = buatAccessToken(user, targetRole);
+  const refreshToken = buatRefreshToken(user, targetRole);
+  return { user: serialisasiSesi(user, targetRole), accessToken, refreshToken };
+}
+
+// --- Ambil profil pengguna saat ini ---
+async function getMe(userId, activeRole) {
+  const user = await prisma.user.findUnique({ where: { id: userId } });
+  if (!user) {
+    throw new AppError('Pengguna tidak ditemukan.', 404);
+  }
+  // activeRole berasal dari sesi (req.user.role); jaga tetap valid terhadap roles terkini.
+  return serialisasiSesi(user, pilihActiveRole(user.roles, activeRole));
 }
 
 // --- Perbarui profil pengguna saat ini ---
-async function perbaruiProfil(userId, data) {
+async function perbaruiProfil(userId, data, activeRole) {
   const pengguna = await prisma.user.findUnique({ where: { id: userId } });
   if (!pengguna) {
     throw new AppError('Pengguna tidak ditemukan.', 404);
@@ -208,8 +261,9 @@ async function perbaruiProfil(userId, data) {
   });
 
   // Terbitkan ulang access token agar nama/email pada token tetap sinkron
-  const accessToken = buatAccessToken(user);
-  return { user: tanpaPassword(user), accessToken };
+  const roleAktif = pilihActiveRole(user.roles, activeRole);
+  const accessToken = buatAccessToken(user, roleAktif);
+  return { user: serialisasiSesi(user, roleAktif), accessToken };
 }
 
 // --- Ganti kata sandi pengguna saat ini ---
@@ -239,7 +293,7 @@ async function gantiPassword(userId, { passwordLama, passwordBaru }) {
     });
   });
 
-  console.log(`[AUTH] Password changed for user ${userId}. All old tokens invalidated.`);
+  logger.info(`[AUTH] Password changed for user ${userId}`);
 }
 
 // --- Perbarui access token menggunakan refresh token ---
@@ -278,9 +332,11 @@ async function refresh(refreshToken) {
   // Cleanup expired tokens secara async
   cleanupExpiredTokens().catch(() => {});
 
-  const accessToken = buatAccessToken(user);
-  const refreshTokenBaru = buatRefreshToken(user);
-  return { user: tanpaPassword(user), accessToken, refreshToken: refreshTokenBaru };
+  // Pertahankan active role dari token; heal ke role valid bila sudah dicabut.
+  const roleAktif = pilihActiveRole(user.roles, payload.activeRole);
+  const accessToken = buatAccessToken(user, roleAktif);
+  const refreshTokenBaru = buatRefreshToken(user, roleAktif);
+  return { user: serialisasiSesi(user, roleAktif), accessToken, refreshToken: refreshTokenBaru };
 }
 
 // --- Validasi access token dengan tokenVersion check ---
@@ -304,6 +360,7 @@ async function validateAccessTokenWithVersion(payload) {
 module.exports = {
   register,
   login,
+  switchRole,
   getMe,
   perbaruiProfil,
   gantiPassword,
@@ -313,4 +370,5 @@ module.exports = {
   validateAccessTokenWithVersion,
   buatAccessToken,
   buatRefreshToken,
+  pilihActiveRole,
 };

@@ -13,7 +13,12 @@ export const notificationService = {
     const params: Record<string, string | number | boolean> = { page, limit };
     if (belumBaca) params.belumBaca = true;
     const res = await api.get('/notifications', { params });
-    return res.data.data;
+    // Backend returns { sukses, pesan, data: [...], meta }
+    // Transform ke format store: { notifikasi: [...], meta }
+    return {
+      notifikasi: res.data.data,
+      meta: res.data.meta,
+    };
   },
 
   /**
@@ -21,6 +26,7 @@ export const notificationService = {
    */
   async ambilJumlahBelumBaca(): Promise<ResponseJumlahBelumBaca> {
     const res = await api.get('/notifications/belum-baca');
+    // Backend returns { sukses, pesan, data: { jumlah } }
     return res.data.data;
   },
 

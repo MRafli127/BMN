@@ -68,6 +68,13 @@ export const barangService = {
     return semua;
   },
 
+  // Cek stok barang untuk polling cart.
+  // Mengembalikan daftar barang yang tidak tersedia lagi (stok habis).
+  async cekStokKeranjang(barangIds: string[]): Promise<Barang[]> {
+    const res = await api.post('/barang/check-stok', { barangIds });
+    return res.data.data;
+  },
+
   async getById(id: string): Promise<Barang> {
     const res = await api.get(`/barang/${id}`);
     return res.data.data;

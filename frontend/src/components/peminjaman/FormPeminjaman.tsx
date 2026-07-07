@@ -8,13 +8,15 @@
 'use client';
 
 import { useMemo, useState } from 'react';
-import { Search, Plus, Minus, Trash2, Package, FileText, ArrowRight } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { Search, Plus, Minus, Trash2, Package, FileText, ArrowRight, ArrowLeft } from 'lucide-react';
 import { Input, Label } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { notify } from '@/components/ui/toast';
 import { LangkahSuratPernyataan } from '@/components/peminjaman/LangkahSuratPernyataan';
 import { urlFile } from '@/lib/utils';
+import { RUTE } from '@/constants/routes';
 import type { Barang } from '@/types/barang.type';
 import type { Peminjaman } from '@/types/peminjaman.type';
 
@@ -26,11 +28,14 @@ interface Props {
   /** Id barang yang sedang dalam peminjaman aktif milik peminjam ini —
    *  tidak boleh diajukan ulang (1 barang hanya 1 peminjaman aktif). */
   barangAktifIds?: string[];
+  /** Callback untuk tombol kembali di tahap surat. Default ke /peminjam/keranjang. */
+  onKembaliKeKeranjang?: () => void;
 }
 
 type Langkah = 'pilih' | 'surat';
 
-export function FormPeminjaman({ daftarBarang, onSelesai, praPilihId, barangAktifIds = [] }: Props) {
+export function FormPeminjaman({ daftarBarang, onSelesai, praPilihId, barangAktifIds = [], onKembaliKeKeranjang }: Props) {
+  const router = useRouter();
   const aktifSet = useMemo(() => new Set(barangAktifIds), [barangAktifIds]);
 
   // Map barangId -> jumlah dipilih.
@@ -95,15 +100,25 @@ export function FormPeminjaman({ daftarBarang, onSelesai, praPilihId, barangAkti
     setLangkah('surat');
   };
 
+  const kePilih = () => {
+    setLangkah('pilih');
+  };
+
   if (langkah === 'surat') {
     return (
-      <LangkahSuratPernyataan
-        items={idTerpilih.map((barangId) => ({ barangId, jumlahPinjam: terpilih[barangId] }))}
-        tanggalPinjamRencana={tglPinjam || undefined}
-        tanggalKembaliRencana={tglKembali || undefined}
-        onKembali={() => setLangkah('pilih')}
-        onSelesai={onSelesai}
-      />
+      <div className="space-y-4">
+        {/* Tombol kembali ke pilih barang */}
+        <Button type="button" variant="outline" onClick={kePilih} className="gap-2">
+          <ArrowLeft className="h-4 w-4" /> Kembali ke Pilih Barang
+        </Button>
+        <LangkahSuratPernyataan
+          items={idTerpilih.map((barangId) => ({ barangId, jumlahPinjam: terpilih[barangId] }))}
+          tanggalPinjamRencana={tglPinjam || undefined}
+          tanggalKembaliRencana={tglKembali || undefined}
+          onSelesai={onSelesai}
+          onKembali={onKembaliKeKeranjang}
+        />
+      </div>
     );
   }
 

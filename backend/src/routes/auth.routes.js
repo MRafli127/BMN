@@ -19,6 +19,7 @@ const {
 const {
   registerSchema,
   loginSchema,
+  switchRoleSchema,
   updateProfilSchema,
   gantiPasswordSchema,
 } = require('../validators/auth.validator');
@@ -35,6 +36,7 @@ router.get('/csrf-token', authController.getCsrf);
 
 // Endpoint yang butuh auth + CSRF
 router.post('/logout', authMiddleware, validateCsrfTokenMiddleware, authController.logout);
+router.post('/switch-role', authMiddleware, validateCsrfTokenMiddleware, validate(switchRoleSchema), authController.switchRole);
 router.get('/me', authMiddleware, authController.me);
 router.patch('/me', authMiddleware, validateCsrfTokenMiddleware, validate(updateProfilSchema), authController.updateMe);
 router.patch('/me/password', passwordLimiter, authMiddleware, validateCsrfTokenMiddleware, validate(gantiPasswordSchema), authController.gantiPassword);

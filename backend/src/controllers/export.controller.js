@@ -70,7 +70,7 @@ const exportUsers = async (req, res) => {
   const { role } = req.query;
 
   const where = {};
-  if (role) where.role = role;
+  if (role) where.roles = { has: role };
 
   const data = await prisma.user.findMany({
     where,
@@ -81,7 +81,7 @@ const exportUsers = async (req, res) => {
       email: true,
       jabatan: true,
       unitKerja: true,
-      role: true,
+      roles: true,
       sumber: true,
       createdAt: true,
       _count: {

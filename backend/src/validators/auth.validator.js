@@ -52,10 +52,16 @@ const registerSchema = z.object({
   eselon3: z.string().optional().or(z.literal('')), // form registrasi: "Eselon III"
 });
 
-// Validasi login
+// Validasi login. `activeRole` opsional untuk akun multi-role (pilih peran saat login).
 const loginSchema = z.object({
   email: z.string({ required_error: 'Email wajib diisi.' }).email('Format email tidak valid.'),
   password: z.string({ required_error: 'Kata sandi wajib diisi.' }).min(1, 'Kata sandi wajib diisi.'),
+  activeRole: z.enum(['ADMIN', 'PEMINJAM']).optional(),
+});
+
+// Validasi ganti active role
+const switchRoleSchema = z.object({
+  role: z.enum(['ADMIN', 'PEMINJAM'], { required_error: 'Peran wajib dipilih.' }),
 });
 
 // Validasi pembaruan profil (data diri, tanpa password)
@@ -79,4 +85,4 @@ const gantiPasswordSchema = z.object({
   passwordBaru: passwordSchema('Kata sandi baru tidak memenuhi syarat.'),
 });
 
-module.exports = { registerSchema, loginSchema, updateProfilSchema, gantiPasswordSchema };
+module.exports = { registerSchema, loginSchema, switchRoleSchema, updateProfilSchema, gantiPasswordSchema };

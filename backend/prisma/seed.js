@@ -32,7 +32,8 @@ async function main() {
   const passwordAdmin = await bcrypt.hash(adminConfig.password, 10);
   const admin = await prisma.user.upsert({
     where: { email: adminConfig.email },
-    update: {},
+    // Akun demo multi-role: ADMIN + PEMINJAM, agar fitur switch role bisa langsung dicoba.
+    update: { roles: ['ADMIN', 'PEMINJAM'] },
     create: {
       nama: adminConfig.nama,
       nip: adminConfig.nip,
@@ -40,7 +41,7 @@ async function main() {
       password: passwordAdmin,
       jabatan: 'Kepala Sub Bagian Pengelolaan BMN',
       unitKerja: 'Bagian Umum',
-      role: 'ADMIN',
+      roles: ['ADMIN', 'PEMINJAM'],
     },
   });
   console.log(`✅ Admin siap: ${admin.email}`);
@@ -61,13 +62,6 @@ async function main() {
       jabatan: 'Bendahara',
       unitKerja: 'Bagian Keuangan',
     },
-    {
-      nama: 'Rafli Pratama',
-      nip: '199801102021011004',
-      email: 'rafli@kemenkeu.go.id',
-      jabatan: 'Staf Pengelola BMN',
-      unitKerja: 'Bagian Umum',
-    },
   ];
 
   for (const p of peminjamContoh) {
@@ -75,7 +69,7 @@ async function main() {
     await prisma.user.upsert({
       where: { email: p.email },
       update: {},
-      create: { ...p, password, role: 'PEMINJAM' },
+      create: { ...p, password, roles: ['PEMINJAM'] },
     });
   }
   console.log(`✅ ${peminjamContoh.length} peminjam contoh siap (password: Peminjam123!)`);
@@ -96,66 +90,6 @@ async function main() {
       kondisi: 'BAIK',
       lokasiPenyimpanan: 'Gudang Lt. 2 — Rak A1',
       deskripsi: 'Laptop untuk keperluan dinas, RAM 16GB, SSD 512GB.',
-    },
-    {
-      kodeSatker: SATKER,
-      kodeBarangBmn: '3100103001',
-      nup: '0002',
-      nama: 'Proyektor Epson EB-X51',
-      jenis: 'ELEKTRONIK',
-      jumlahTotal: 5,
-      jumlahTersedia: 5,
-      kondisi: 'BAIK',
-      lokasiPenyimpanan: 'Ruang Multimedia',
-      deskripsi: 'Proyektor untuk rapat dan presentasi.',
-    },
-    {
-      kodeSatker: SATKER,
-      kodeBarangBmn: '4010101003',
-      nup: '0003',
-      nama: 'Kursi Lipat Chitose',
-      jenis: 'FURNITUR',
-      jumlahTotal: 50,
-      jumlahTersedia: 50,
-      kondisi: 'BAIK',
-      lokasiPenyimpanan: 'Gudang Lt. 1',
-      deskripsi: 'Kursi lipat untuk kegiatan acara dan rapat besar.',
-    },
-    {
-      kodeSatker: SATKER,
-      kodeBarangBmn: '3100102050',
-      nup: '0004',
-      nama: 'Kamera DSLR Canon EOS 800D',
-      jenis: 'ELEKTRONIK',
-      jumlahTotal: 3,
-      jumlahTersedia: 3,
-      kondisi: 'BAIK',
-      lokasiPenyimpanan: 'Ruang Humas',
-      deskripsi: 'Kamera untuk dokumentasi kegiatan kantor.',
-    },
-    {
-      kodeSatker: SATKER,
-      kodeBarangBmn: '3020104001',
-      nup: '0005',
-      nama: 'Mobil Dinas Toyota Avanza',
-      jenis: 'KENDARAAN',
-      jumlahTotal: 2,
-      jumlahTersedia: 2,
-      kondisi: 'BAIK',
-      lokasiPenyimpanan: 'Garasi Kantor',
-      deskripsi: 'Kendaraan operasional untuk perjalanan dinas dalam kota.',
-    },
-    {
-      kodeSatker: SATKER,
-      kodeBarangBmn: '3100102099',
-      nup: '0006',
-      nama: 'Pengeras Suara (Sound System) Portable',
-      jenis: 'ELEKTRONIK',
-      jumlahTotal: 4,
-      jumlahTersedia: 4,
-      kondisi: 'RUSAK_RINGAN',
-      lokasiPenyimpanan: 'Gudang Lt. 2 — Rak B3',
-      deskripsi: 'Sound system portable, salah satu speaker perlu perbaikan kecil.',
     },
   ];
 

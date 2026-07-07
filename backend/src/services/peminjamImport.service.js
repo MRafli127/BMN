@@ -237,7 +237,7 @@ async function importDariExcel(buffer, { dryRun = false } = {}) {
       nip: true,
       eselon4: true, // kolom "Eselon IV"
       eselon3: true, // kolom "Eselon III"
-      role: true,
+      roles: true,
       sumber: true,
     },
   });
@@ -320,8 +320,8 @@ async function importDariExcel(buffer, { dryRun = false } = {}) {
 
         let user = userByNip.get(r.nip) || userByEmail.get(r.email);
 
-        if (user && user.role !== 'PEMINJAM') {
-          gagal.push({ baris: r.baris, nama: r.nama, pesan: `NIP/email milik akun ${user.role}, dilewati.` });
+        if (user && user.roles.includes('ADMIN')) {
+          gagal.push({ baris: r.baris, nama: r.nama, pesan: `NIP/email milik akun admin, dilewati.` });
           continue;
         }
 
@@ -334,7 +334,7 @@ async function importDariExcel(buffer, { dryRun = false } = {}) {
               password: passwordHash,
               eselon4: r.eselonIV, // kolom "Eselon IV"
               eselon3: r.eselonIII, // kolom "Eselon III"
-              role: 'PEMINJAM',
+              roles: ['PEMINJAM'],
               sumber: 'IMPORT',
             },
           });
@@ -345,7 +345,7 @@ async function importDariExcel(buffer, { dryRun = false } = {}) {
             nama: r.nama,
             eselon4: r.eselonIV,
             eselon3: r.eselonIII,
-            role: 'PEMINJAM',
+            roles: ['PEMINJAM'],
             sumber: 'IMPORT',
           };
           // Daftarkan ke peta agar baris lain dengan NIP/email sama (NUP beda)

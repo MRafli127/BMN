@@ -17,6 +17,7 @@ const TIPE_NOTIFIKASI = {
   EXPORT_SELESAI: 'EXPORT_SELESAI',
   IMPORT_SELESAI: 'IMPORT_SELESAI',
   SISTEM: 'SISTEM',
+  PENSIUN_MENDEKATI: 'PENSIUN_MENDEKATI',
 };
 
 // Prioritas default berdasarkan tipe
@@ -25,6 +26,7 @@ const PRIORITAS_DEFAULT = {
   [TIPE_NOTIFIKASI.TERLAMBAT]: 'TINGGI',
   [TIPE_NOTIFIKASI.KERUSAKAN]: 'TINGGI',
   [TIPE_NOTIFIKASI.KEHILANGAN]: 'TINGGI',
+  [TIPE_NOTIFIKASI.PENSIUN_MENDEKATI]: 'TINGGI',
   [TIPE_NOTIFIKASI.PEMINJAMAN_DISETUJUI]: 'RENDAH',
   [TIPE_NOTIFIKASI.PEMINJAMAN_DITOLAK]: 'RENDAH',
   [TIPE_NOTIFIKASI.PENGEMBALIAN]: 'RENDAH',
@@ -57,7 +59,7 @@ async function buat(data) {
  */
 async function kirimKeSemuaAdmin(data) {
   const admins = await prisma.user.findMany({
-    where: { role: Role.ADMIN },
+    where: { roles: { has: Role.ADMIN } },
     select: { id: true },
   });
 
