@@ -8,6 +8,7 @@ const { prisma } = require('../config/database');
 const env = require('../config/env');
 const { hashPassword, bandingkanPassword } = require('../utils/hashPassword');
 const { tanpaPassword } = require('../utils/userHelper');
+const { hitungRetirementDateDariNip, validasiNip } = require('../utils/nipHelper');
 const { AppError } = require('../middleware/error.middleware');
 const logger = require('../utils/logger');
 
@@ -246,17 +247,32 @@ async function perbaruiProfil(userId, data, activeRole) {
     throw new AppError('NIP sudah digunakan pengguna lain.', 409);
   }
 
+  // Validasi NIP & hitung ulang retirementDate jika NIP diubah
+  let retirementDate = pengguna.retirementDate;
+  if (data.nip && data.nip !== pengguna.nip) {
+    const validasi = validasiNip(data.nip);
+    if (!validasi.valid) {
+      throw new AppError(validasi.error, 400);
+    }
+    const tanggalPensiun = hitungRetirementDateDariNip(data.nip);
+    if (!tanggalPensiun) {
+      throw new AppError('Format NIP tidak valid. Pastikan tanggal lahir dalam NIP benar.', 400);
+    }
+    retirementDate = tanggalPensiun;
+  }
+
   const user = await prisma.user.update({
     where: { id: userId },
     data: {
       nama: data.nama,
       nip: data.nip,
       email: data.email,
-      jabatan: data.jabatan ? data.jabatan : null, //     "Jabatan"
-      unitKerja: data.unitKerja ? data.unitKerja : null, // "Unit Kerja"
-      eselon2: data.eselon2 ? data.eselon2 : null, //     "Eselon II"
-      eselon3: data.eselon3 ? data.eselon3 : null, //     "Eselon III"
-      eselon4: data.eselon4 ? data.eselon4 : null, //     "Eselon IV"
+      jabatan: data.jabatan ? data.jabatan : null,
+      unitKerja: data.unitKerja ? data.unitKerja : null,
+      eselon2: data.eselon2 ? data.eselon2 : null,
+      eselon3: data.eselon3 ? data.eselon3 : null,
+      eselon4: data.eselon4 ? data.eselon4 : null,
+      retirementDate,
     },
   });
 
