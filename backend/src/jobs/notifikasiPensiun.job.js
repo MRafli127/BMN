@@ -70,7 +70,7 @@ async function jalankanNotifikasiPensiun() {
     const semuaUser = await prisma.user.findMany({
       where: {
         retirementDate: { not: null },
-        role: 'PEMINJAM', // Hanya pegawai, bukan admin
+        roles: { has: 'PEMINJAM' }, // Filter user dengan role PEMINJAM (array field)
       },
       select: {
         id: true,
