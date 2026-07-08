@@ -299,6 +299,7 @@ export default function KategoriDashboardPage() {
             terpilih={terpilih}
             onUbahTerpilih={setTerpilih}
             onUbahRole={ubahRole}
+            onEdit={segarkanData}
           />
         </div>
       ) : (

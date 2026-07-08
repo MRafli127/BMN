@@ -8,6 +8,7 @@
 
 import { useEffect, useRef, useState, type CSSProperties } from 'react';
 import { Trash2, ShieldCheck, User } from 'lucide-react';
+import { EditPeminjamDialog } from './EditPeminjamDialog';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
@@ -72,6 +73,8 @@ interface Props {
   onUbahTerpilih?: (ids: string[]) => void;
   // Bila diberikan, aksi promote/demote admin ditampilkan pada kolom Peran.
   onUbahRole?: (id: string, aksi: 'promote' | 'demote') => Promise<void>;
+  // Dipanggil setelah edit berhasil agar parent bisa me-refresh data.
+  onEdit?: () => void;
 }
 
 // Checkbox native bergaya, mendukung kondisi indeterminate (sebagian terpilih).
@@ -102,7 +105,7 @@ function Kotak({
   );
 }
 
-export function TabelDaftarPeminjam({ data, nomorAwal = 0, onHapus, terpilih, onUbahTerpilih, onUbahRole }: Props) {
+export function TabelDaftarPeminjam({ data, nomorAwal = 0, onHapus, terpilih, onUbahTerpilih, onUbahRole, onEdit }: Props) {
   const [target, setTarget] = useState<PeminjamRow | null>(null);
   const [sedangHapus, setSedangHapus] = useState(false);
   // Target konfirmasi promote/demote admin.
@@ -163,7 +166,7 @@ export function TabelDaftarPeminjam({ data, nomorAwal = 0, onHapus, terpilih, on
 
   const tampilPeran = !!onUbahRole;
   // checkbox + (#, nama, nip, jabatan, email, unit kerja, eselon II/III/IV) + peran + aksi
-  const jumlahKolom = (pilihAktif ? 1 : 0) + 9 + (tampilPeran ? 1 : 0) + (onHapus ? 1 : 0);
+  const jumlahKolom = (pilihAktif ? 1 : 0) + 9 + (tampilPeran ? 1 : 0) + 1; // +1 = kolom aksi
 
   // Offset kiri kumulatif tiap kolom beku. Kolom checkbox (bila ada) menempel
   // di 0; kolom "#" mengikuti selebar checkbox, dst. Bila checkbox tidak
@@ -298,13 +301,17 @@ export function TabelDaftarPeminjam({ data, nomorAwal = 0, onHapus, terpilih, on
                       })()}
                     </TableCell>
                   )}
-                  {onHapus && (
-                    <TableCell className="text-right">
-                      <Button variant="destructive" size="icon" onClick={() => setTarget(user)} aria-label={`Hapus ${user.nama}`}>
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </TableCell>
-                  )}
+                  {/* Tombol Edit & Hapus selalu ditampilkan */}
+                  <TableCell className="text-right">
+                    <div className="flex items-center justify-end gap-2">
+                      {onEdit && <EditPeminjamDialog peminjam={user} onSelesai={onEdit} />}
+                      {onHapus && (
+                        <Button variant="destructive" size="icon" onClick={() => setTarget(user)} aria-label={`Hapus ${user.nama}`}>
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      )}
+                    </div>
+                  </TableCell>
                 </TableRow>
               );
             })}
