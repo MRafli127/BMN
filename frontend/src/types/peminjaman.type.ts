@@ -50,6 +50,8 @@ export interface Peminjaman {
   peminjam?: Partial<User>;
   admin?: Partial<User> | null;
   detail?: DetailPeminjaman[];
+  /** Flag: apakah ada surat pernyataan yang diunggah (false/null = hasil import) */
+  adaDokumen?: boolean;
 }
 
 export interface ItemPengajuan {

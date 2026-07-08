@@ -4,6 +4,13 @@
 
 export type Role = 'ADMIN' | 'PEMINJAM';
 
+export type SumberUser = 'MANUAL' | 'IMPORT';
+
+/**
+ * Sumber asal akun:
+ * - MANUAL: akun dibuat oleh admin atau registrasi mandiri
+ * - IMPORT: akun dibuat melalui fitur Import Peminjam (migrasi data BMN)
+ */
 export interface User {
   id: string;
   nama: string;
@@ -17,6 +24,7 @@ export interface User {
   roles: Role[]; //      Peran yang dimiliki akun (bisa >1)
   activeRole: Role; //   Peran yang sedang dipakai dalam sesi ini
   retirementDate?: string | null; // Tanggal pensiun (dihitung otomatis dari NIP)
+  sumber?: SumberUser | null; // Asal pembuatan akun (MANUAL/IMPORT)
   createdAt?: string;
   updatedAt?: string;
 }

@@ -43,6 +43,7 @@ const includeLengkap = {
       eselon3: true, //   "Eselon III"
       eselon4: true, //   "Eselon IV"
       retirementDate: true, // Tanggal pensiun (untuk indikator pensiun mendekat)
+      sumber: true, // Asal akun: MANUAL atau IMPORT
     },
   },
   admin: { select: { id: true, nama: true } },

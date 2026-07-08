@@ -8,7 +8,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
-import { Eye, Trash2, AlertTriangle } from 'lucide-react';
+import { Eye, Trash2, AlertTriangle, Upload } from 'lucide-react';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -213,8 +213,18 @@ export function TabelPeminjaman({
                   {tampilkanPeminjam && (
                     <TableCell>
                       <p className="font-medium text-foreground">{p.peminjam?.nama ?? '-'}</p>
-                      <div className="flex items-center gap-1.5">
+                      <div className="flex flex-wrap items-center gap-1.5">
                         <p className="text-xs text-muted-foreground">{p.peminjam?.eselon3 ?? ''}</p>
+                        {/* Indikator Surat: tidak ada surat = hasil import (migrasi data) */}
+                        {!p.adaDokumen && (
+                          <span
+                            className="inline-flex items-center gap-0.5 rounded-full bg-violet-100 px-1.5 py-0.5 text-xs font-medium text-violet-700 dark:bg-violet-900/30 dark:text-violet-300"
+                            title="Data migrasi: tidak ada surat pernyataan peminjaman"
+                          >
+                            <Upload className="h-3 w-3" />
+                            Import
+                          </span>
+                        )}
                         {/* Indikator Pensiun */}
                         {(() => {
                           const info = hitungInfoPensiun(p.peminjam?.retirementDate);
