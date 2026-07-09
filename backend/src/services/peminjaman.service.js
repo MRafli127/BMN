@@ -46,7 +46,18 @@ const includeLengkap = {
       sumber: true, // Asal akun: MANUAL atau IMPORT
     },
   },
-  admin: { select: { id: true, nama: true } },
+  admin: {
+    select: {
+      id: true,
+      nama: true,
+      nip: true,
+      jabatan: true,
+      unitKerja: true,
+      eselon2: true,
+      eselon3: true,
+      eselon4: true,
+    },
+  },
   detail: { include: { barang: true } },
 };
 

@@ -12,8 +12,9 @@
 //
 //  Surat DIHASILKAN otomatis (on-demand) saat peminjam hendak mengembalikan
 //  barang, lalu diunduh & dicetak. Blok tanda tangan "Yang menerima BMN"
-//  (petugas BMN) memakai keterangan "Ditandatangani secara elektronik"
-//  (abu #BFBFBF) dengan jarak 7 baris untuk ruang tanda tangan, sesuai templat.
+//  menampilkan NAMA & NIP ADMIN YANG MENYETUJUI pengembalian tersebut,
+//  bukan petugas BMN statis. Setiap admin yang ACC akan tercantum sebagai
+//  penanda tangan di surat pengembalian.
 //
 //  Nomor surat memakai nomor & tahun yang sama dengan surat peminjamannya
 //  (satu transaksi = satu nomor PRN yang ditetapkan saat pengajuan dibuat),
@@ -31,7 +32,6 @@ const { formatTanggalSaja } = require('../utils/formatTanggal');
 const { wrapText } = require('../utils/pdfHelper');
 const { LABEL_KONDISI } = require('../constants');
 const nomorSuratService = require('./nomorSurat.service');
-const env = require('../config/env');
 
 // Ukuran halaman A4 & margin sesuai sectPr templat (twips -> pt, 1pt = 20 twips).
 const PAGE_W = 595.28; // 11906 twips
@@ -173,15 +173,23 @@ async function generate(peminjaman) {
   teksTengah(nomorSurat(peminjaman), { font: fontBold, size: SIZE_JUDUL });
   y -= 28;
 
-  // ---------- Identitas penerima (petugas BMN) ----------
-  const petugas = env.petugasBmn || {};
+  // ---------- Identitas penanda tangan (admin yang menyetujui) ----------
+  // Yang bertandatangan = admin yang ACC peminjaman (bukan petugas BMN statis).
+  // Data admin diambil dari relasi 'admin' yang terisi saat persetujuan.
+  const admin = peminjaman.admin;
+  const penandaTangan = {
+    nama: admin?.nama || '-',
+    nip: admin?.nip || '-',
+    unitKerja: admin?.unitKerja || admin?.eselon3 || '-',
+    bagian: admin?.jabatan || admin?.eselon4 || '-',
+  };
   teks('Yang bertandatangan di bawah ini:', MARGIN_L);
   y -= 20;
   blokIdentitas([
-    ['nama', petugas.nama || '-'],
-    ['NIP', petugas.nip || '-'],
-    ['unit kerja', petugas.unitKerja || '-'],
-    ['bagian', petugas.bagian || '-'],
+    ['nama', penandaTangan.nama],
+    ['NIP', penandaTangan.nip],
+    ['unit kerja', penandaTangan.unitKerja],
+    ['bagian', penandaTangan.bagian],
   ]);
   y -= 4;
 
@@ -286,19 +294,19 @@ async function generate(peminjaman) {
   // ---------- Blok tanda tangan (kanan) ----------
   // Sesuai templat: "Jakarta, <tanggal hari ini>" / "Yang menerima BMN," /
   // (7 baris kosong untuk ruang tanda tangan) / "Ditandatangani secara
-  // elektronik" (abu #BFBFBF) / Nama & NIP penerima BMN.
+  // elektronik" (abu #BFBFBF) / Nama & NIP admin yang ACC.
   pastikanRuang(LINE * 12);
-  const blokKiri = RIGHT_EDGE - 210;
-  teks(`Jakarta, ${formatTanggalSaja(new Date())}`, blokKiri);
+  const blokKanan = RIGHT_EDGE - 210;
+  teks(`Jakarta, ${formatTanggalSaja(new Date())}`, blokKanan);
   y -= LINE;
-  teks('Yang menerima BMN,', blokKiri);
+  teks('Yang menerima BMN,', blokKanan);
   y -= LINE; //     pindah ke baris berikutnya
   y -= LINE * 7; // 7 baris kosong (ruang tanda tangan) sebelum keterangan elektronik
-  teks('Ditandatangani secara elektronik ', blokKiri, { color: abuTtd });
+  teks('Ditandatangani secara elektronik ', blokKanan, { color: abuTtd });
   y -= LINE;
-  teks(petugas.nama || 'Petugas BMN', blokKiri);
+  teks(penandaTangan.nama, blokKanan);
   y -= LINE;
-  teks(`NIP ${petugas.nip || '-'}`, blokKiri);
+  teks(`NIP ${penandaTangan.nip}`, blokKanan);
 
   const bytes = await pdf.save();
   return bufferKeDataUrl(Buffer.from(bytes), 'application/pdf');
