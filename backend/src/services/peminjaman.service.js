@@ -442,7 +442,7 @@ async function generateSuratPernyataan(id, { userId, role } = {}) {
 }
 
 // --- Ambil daftar peminjaman (role-aware) ---
-async function getSemua({ status, q, userId, role, page = 1, limit = 10 } = {}) {
+async function getSemua({ status, q, userId, role, page = 1, limit = 10, importMode } = {}) {
   const { halaman, perHalaman, skip } = parsePagination({ page, limit });
 
   const where = {};
@@ -469,6 +469,12 @@ async function getSemua({ status, q, userId, role, page = 1, limit = 10 } = {}) 
       { peminjam: { nama: cocok } },
       { peminjam: { nip: cocok } },
     ];
+  }
+  // Filter berdasarkan asal data: hasil import (tanpa dokumen) vs input manual (ada dokumen).
+  if (importMode === 'import') {
+    where.dokumenUrl = null;
+  } else if (importMode === 'manual') {
+    where.dokumenUrl = { not: null };
   }
 
   const [data, total] = await Promise.all([

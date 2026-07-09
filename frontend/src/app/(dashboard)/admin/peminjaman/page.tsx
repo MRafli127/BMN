@@ -216,6 +216,15 @@ export default function AdminPeminjamanPage() {
                 </option>
               ))}
             </Select>
+            <Select
+              value={filter.importMode || ''}
+              onChange={(e) => setFilter((f) => ({ ...f, importMode: (e.target.value || undefined) as never, page: 1 }))}
+              className="flex-1"
+            >
+              <option value="">Semua Asal Data</option>
+              <option value="import">Hasil Import</option>
+              <option value="manual">Input Manual</option>
+            </Select>
 
             {/* Switch tampilan: list ↔ folder (folder dikelompokkan per peminjam) */}
             <button

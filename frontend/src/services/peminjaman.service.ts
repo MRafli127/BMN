@@ -11,6 +11,8 @@ export interface FilterPeminjaman {
   q?: string;
   page?: number;
   limit?: number;
+  /** Filter berdasarkan asal data: 'import' = hasil migrasi/import, 'manual' = input manual */
+  importMode?: 'import' | 'manual' | '';
 }
 
 export interface DataQrcode {
