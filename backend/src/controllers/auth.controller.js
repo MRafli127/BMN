@@ -100,6 +100,12 @@ const logout = asyncHandler(async (req, res) => {
   if (token) {
     await authService.blacklistToken(token);
   }
+
+  // Invalidate semua sesi user (logout paksa)
+  if (req.user?.id) {
+    await authService.invalidateUserSessions(req.user.id);
+  }
+
   res.clearCookie('refreshToken', {
     httpOnly: true,
     secure: env.cookie.secure,

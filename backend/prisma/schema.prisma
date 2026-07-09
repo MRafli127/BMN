@@ -109,6 +109,9 @@ model User {
   sumber    SumberAkun @default(MANUAL) // MANUAL (admin/registrasi) atau IMPORT (sinkron Excel)
   tokenVersion Int      @default(1) // Increment saat password diubah untuk invalidate semua token
   retirementDate DateTime? // Tanggal pensiun (dihitung otomatis dari NIP: tanggal lahir + 58 tahun)
+  // Session security: tracking aktivitas untuk invalidate sesi saat tab ditutup
+  lastActivityAt      DateTime? // Timestamp aktivitas terakhir user
+  sessionInvalidatedAt DateTime? // Timestamp ketika sesi di-invalidate (tab ditutup / logout paksa)
   createdAt DateTime   @default(now())
   updatedAt DateTime   @updatedAt
 

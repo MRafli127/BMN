@@ -205,6 +205,9 @@ async function login({ email, password, activeRole }) {
     throw new AppError('Email atau kata sandi salah.', 401);
   }
 
+  // Reset sesi user (clear invalidation dari login sebelumnya)
+  await resetUserSessions(user.id);
+
   const roleAktif = pilihActiveRole(user.roles, activeRole);
   const accessToken = buatAccessToken(user, roleAktif);
   const refreshToken = buatRefreshToken(user, roleAktif);
@@ -385,6 +388,83 @@ async function validateAccessTokenWithVersion(payload) {
   return { valid: true, user };
 }
 
+// Inactivity timeout dalam milidetik (15 menit)
+const INACTIVITY_TIMEOUT_MS = 15 * 60 * 1000;
+
+// --- Validasi sesi: cek apakah sesi valid (belum di-invalidate & masih aktif) ---
+// Dipanggil oleh auth middleware pada setiap request terproteksi
+async function validateSession(userId, jti) {
+  // Cek apakah user ada dan apakah sesi sudah di-invalidate
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: {
+      sessionInvalidatedAt: true,
+      lastActivityAt: true,
+    },
+  });
+
+  if (!user) {
+    return { valid: false, reason: 'USER_NOT_FOUND' };
+  }
+
+  // Jika sesi di-invalidate (tab ditutup / logout paksa), tolak
+  // Bandingkan dengan timestamp token jika ada (jti timestamp)
+  if (user.sessionInvalidatedAt) {
+    return { valid: false, reason: 'SESSION_INVALIDATED' };
+  }
+
+  // Cek apakah user sudah tidak aktif lebih dari 15 menit
+  // Jika lastActivityAt null, berarti user login baru dan belum ada aktivitas tercatat
+  if (user.lastActivityAt) {
+    const lastActivityMs = new Date(user.lastActivityAt).getTime();
+    const nowMs = Date.now();
+    if (nowMs - lastActivityMs > INACTIVITY_TIMEOUT_MS) {
+      return { valid: false, reason: 'INACTIVITY_TIMEOUT' };
+    }
+  }
+
+  return { valid: true };
+}
+
+// --- Update last activity timestamp ---
+// Dipanggil oleh auth middleware pada setiap request terproteksi
+// Menggunakan jti sebagai identifier tambahan untuk konsistensi
+async function updateLastActivity(userId, jti) {
+  await prisma.user.update({
+    where: { id: userId },
+    data: {
+      lastActivityAt: new Date(),
+    },
+  });
+  logger.info(`[AUTH] Updated last activity for user ${userId}, jti: ${jti}`);
+}
+
+// --- Invalidate semua sesi user (dipanggil saat logout atau tab close) ---
+// Ini akan menolak semua request baru dari user ini
+async function invalidateUserSessions(userId) {
+  await prisma.user.update({
+    where: { id: userId },
+    data: {
+      sessionInvalidatedAt: new Date(),
+      lastActivityAt: null, // Reset aktivitas
+    },
+  });
+  logger.info(`[AUTH] Invalidated all sessions for user ${userId}`);
+}
+
+// --- Reset sesi user (dipanggil saat login baru) ---
+// Ini mengaktifkan ulang sesi user setelah invalidasi sebelumnya
+async function resetUserSessions(userId) {
+  await prisma.user.update({
+    where: { id: userId },
+    data: {
+      sessionInvalidatedAt: null,
+      lastActivityAt: new Date(),
+    },
+  });
+  logger.info(`[AUTH] Reset sessions for user ${userId}`);
+}
+
 module.exports = {
   register,
   login,
@@ -396,6 +476,10 @@ module.exports = {
   blacklistToken,
   isTokenBlacklisted,
   validateAccessTokenWithVersion,
+  validateSession,
+  updateLastActivity,
+  invalidateUserSessions,
+  resetUserSessions,
   buatAccessToken,
   buatRefreshToken,
   pilihActiveRole,
