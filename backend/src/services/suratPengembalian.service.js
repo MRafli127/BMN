@@ -10,11 +10,9 @@
 //    - Halaman A4 & margin mengikuti sectPr templat.
 //    - Lebar kolom tabel mengikuti tblGrid templat.
 //
-//  Surat DIHASILKAN otomatis (on-demand) saat peminjam hendak mengembalikan
-//  barang, lalu diunduh & dicetak. Blok tanda tangan "Yang menerima BMN"
-//  menampilkan NAMA & NIP ADMIN YANG MENYETUJUI pengembalian tersebut,
-//  bukan petugas BMN statis. Setiap admin yang ACC akan tercantum sebagai
-//  penanda tangan di surat pengembalian.
+//  ATURAN TANDA TANGAN:
+//  - Peminjam dari IMPORT → Yang menerima BMN = Petugas BMN statis (Taufan)
+//  - Peminjam dari MANUAL/registrasi → Yang menerima BMN = Admin yang ACC
 //
 //  Nomor surat memakai nomor & tahun yang sama dengan surat peminjamannya
 //  (satu transaksi = satu nomor PRN yang ditetapkan saat pengajuan dibuat),
@@ -32,6 +30,7 @@ const { formatTanggalSaja } = require('../utils/formatTanggal');
 const { wrapText } = require('../utils/pdfHelper');
 const { LABEL_KONDISI } = require('../constants');
 const nomorSuratService = require('./nomorSurat.service');
+const env = require('../config/env');
 
 // Ukuran halaman A4 & margin sesuai sectPr templat (twips -> pt, 1pt = 20 twips).
 const PAGE_W = 595.28; // 11906 twips
@@ -219,16 +218,33 @@ async function generate(peminjaman) {
   teksTengah(nomorSurat(peminjaman), { font: fontBold, size: SIZE_JUDUL });
   y -= 28;
 
-  // ---------- Identitas penanda tangan (admin yang menyetujui) ----------
-  // Yang bertandatangan = admin yang ACC peminjaman (bukan petugas BMN statis).
-  // Data admin diambil dari relasi 'admin' yang terisi saat persetujuan.
-  const admin = peminjaman.admin;
-  const penandaTangan = {
-    nama: admin?.nama || '-',
-    nip: admin?.nip || '-',
-    unitKerja: admin?.unitKerja || admin?.eselon3 || '-',
-    bagian: admin?.jabatan || admin?.eselon4 || '-',
-  };
+  // ---------- Identitas penanda tangan ----------
+  // ATURAN:
+  // - Peminjam dari IMPORT → Yang menerima BMN = Petugas BMN statis (Taufan)
+  // - Peminjam dari MANUAL/registrasi → Yang menerima BMN = Admin yang ACC
+  const peminjam = peminjaman.peminjam;
+  const adalahImport = peminjam?.sumber === 'IMPORT';
+
+  let penandaTangan;
+  if (adalahImport) {
+    // Data import → tandatangan petugas BMN statis
+    const pb = env.petugasBmn || {};
+    penandaTangan = {
+      nama: pb.nama || 'Taufan Sukma Nugraha',
+      nip: pb.nip || '198605132007011001',
+      unitKerja: pb.unitKerja || 'Sekretariat BPPK',
+      bagian: pb.bagian || 'Umum',
+    };
+  } else {
+    // Data manual/registrasi → tandatangan admin yang ACC
+    const admin = peminjaman.admin;
+    penandaTangan = {
+      nama: admin?.nama || '-',
+      nip: admin?.nip || '-',
+      unitKerja: admin?.unitKerja || admin?.eselon3 || '-',
+      bagian: admin?.jabatan || admin?.eselon4 || '-',
+    };
+  }
   teks('Yang bertandatangan di bawah ini:', MARGIN_L);
   y -= 20;
   blokIdentitas([
