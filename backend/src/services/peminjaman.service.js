@@ -743,7 +743,7 @@ async function tolak(id, adminId, catatan, requestInfo = {}) {
 
 // --- Tandai barang telah diserahkan/diambil (DISETUJUI -> DIPINJAM) ---
 async function serahkan(id) {
-  const p = await prisma.peminjaman.findUnique({ where: { id } });
+  const p = await prisma.peminjaman.findUnique({ where: { id }, include: includeLengkap });
   if (!p) throw new AppError('Data peminjaman tidak ditemukan.', 404);
   if (p.status !== 'DISETUJUI') {
     throw new AppError('Hanya peminjaman berstatus "Disetujui" yang dapat diserahkan.', 400);
@@ -754,6 +754,24 @@ async function serahkan(id) {
     data: { status: 'DIPINJAM' },
     include: includeLengkap,
   });
+
+  // Kirim email notifikasi ke peminjam
+  const peminjam = p.peminjam;
+  emailService.kirimStatusUpdate(updated, peminjam, 'DISETUJUI', 'DIPINJAM').catch(() => {});
+
+  // Kirim notifikasi ke peminjam bahwa barang telah diserahkan/diambil
+  const barangDipinjam = updated.detail?.[0]?.barang?.nama || 'Barang';
+  const tenggat = updated.tanggalKembaliRencana
+    ? ` dengan batas pengembalian ${new Date(updated.tanggalKembaliRencana).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}`
+    : '';
+  notificationService.kirimKeUser(peminjam.id, {
+    tipe: notificationService.TIPE_NOTIFIKASI.BARANG_DISERAHKAN,
+    judul: 'Barang Dapat Diambil',
+    pesan: `Barang ${barangDipinjam} telah siap untuk diambil.${tenggat}.`,
+    referenceId: id,
+    referenceType: 'PEMINJAMAN',
+  }).catch(() => {});
+
   return serialisasi(updated);
 }
 

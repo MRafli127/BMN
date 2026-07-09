@@ -79,6 +79,7 @@ export default function NotifikasiPage() {
       [TIPE_NOTIFIKASI.PEMINJAMAN_BARU]: 'Pengajuan Baru',
       [TIPE_NOTIFIKASI.PEMINJAMAN_DISETUJUI]: 'Pengajuan Disetujui',
       [TIPE_NOTIFIKASI.PEMINJAMAN_DITOLAK]: 'Pengajuan Ditolak',
+      [TIPE_NOTIFIKASI.BARANG_DISERAHKAN]: 'Barang Dapat Diambil',
       [TIPE_NOTIFIKASI.PENGEMBALIAN]: 'Pengembalian',
       [TIPE_NOTIFIKASI.TERLAMBAT]: 'Terlambat',
       [TIPE_NOTIFIKASI.KERUSAKAN]: 'Kerusakan',
