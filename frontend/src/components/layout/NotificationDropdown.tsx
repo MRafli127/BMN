@@ -57,7 +57,7 @@ export function NotificationDropdown({ terbuka, onTutup }: NotificationDropdownP
   return (
     <div
       ref={dropdownRef}
-      className="absolute right-0 top-full z-50 mt-2 w-96 origin-top-right animate-fade-up overflow-hidden rounded-2xl border border-outline-variant/60 bg-white shadow-xl"
+      className="absolute right-0 top-full z-50 mt-2 w-[calc(100vw-2rem)] max-w-sm origin-top-right animate-fade-up overflow-hidden rounded-2xl border border-outline-variant/60 bg-white shadow-xl sm:w-96"
       role="menu"
       aria-label="Notifikasi"
     >

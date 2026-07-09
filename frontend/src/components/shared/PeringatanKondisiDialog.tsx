@@ -45,7 +45,7 @@ export function PeringatanKondisiDialog({
           </div>
           <DialogTitle className="text-center text-lg">Peringatan Kondisi Barang</DialogTitle>
           <DialogDescription className="text-center">
-            Barang <strong>"{namaBarang}"</strong> memiliki kondisi{' '}
+            Barang <strong>&quot;{namaBarang}&quot;</strong> memiliki kondisi{' '}
             <span className="font-semibold text-red-600">Rusak Berat</span>.
           </DialogDescription>
         </DialogHeader>

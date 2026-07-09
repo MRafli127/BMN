@@ -2,6 +2,7 @@
 //  Tampilan keranjang dalam format folder berdasarkan nama barang.
 //  Mirip tampilan katalog - barang dikelompokkan per nama/merk.
 //  Setiap unit barang hanya berjumlah 1.
+//  Responsive: compact layout untuk mobile.
 // ============================================================
 
 'use client';
@@ -13,8 +14,9 @@ import { Button } from '@/components/ui/button';
 import { cn, urlFile } from '@/lib/utils';
 import { useKeranjangStore } from '@/store/keranjangStore';
 import { notify } from '@/components/ui/toast';
+import { useIsMobile } from '@/hooks/useIsMobile';
 import type { ItemKeranjang } from '@/store/keranjangStore';
-import { AlertTriangle } from 'lucide-react';
+import { AlertTriangle, ChevronDown } from 'lucide-react';
 
 export interface GrupBarang {
   id: string; // identifier unik untuk grup (kombinasi nama + merk)
@@ -56,6 +58,7 @@ export function FolderKeranjang({ header }: Props) {
   const [terbuka, setTerbuka] = useState<Set<string>>(new Set());
   const items = useKeranjangStore((s) => s.items);
   const hapus = useKeranjangStore((s) => s.hapus);
+  const isMobile = useIsMobile();
 
   const daftar = Object.values(items);
   const grup = kelompokkanPerNama(daftar);
@@ -85,7 +88,7 @@ export function FolderKeranjang({ header }: Props) {
   };
 
   return (
-    <div className="space-y-3">
+    <div className={isMobile ? 'space-y-2' : 'space-y-3'}>
       <div className="flex flex-wrap items-center justify-between gap-2">
         {header ?? <span />}
         <Button
@@ -95,11 +98,11 @@ export function FolderKeranjang({ header }: Props) {
           className="text-muted-foreground hover:text-primary"
         >
           <Icon name={semuaTerbuka ? 'unfold_less' : 'unfold_more'} className="text-[18px]" />
-          {semuaTerbuka ? 'Tutup semua folder' : 'Buka semua folder'}
+          <span className="hidden sm:inline">{semuaTerbuka ? 'Tutup semua' : 'Buka semua'}</span>
         </Button>
       </div>
 
-      <div className="space-y-3">
+      <div className={isMobile ? 'space-y-2' : 'space-y-3'}>
         {grup.map((g) => {
           const aktif = terbuka.has(g.id);
           return (
@@ -109,7 +112,8 @@ export function FolderKeranjang({ header }: Props) {
                 'group overflow-hidden rounded-2xl border bg-gradient-to-br from-white to-primary/[0.04] shadow-soft transition-all duration-300',
                 aktif
                   ? 'border-primary/25 shadow-card'
-                  : 'border-primary/10 hover:-translate-y-0.5 hover:border-primary/25 hover:shadow-card'
+                  : 'border-primary/10 hover:-translate-y-0.5 hover:border-primary/25 hover:shadow-card',
+                isMobile && 'rounded-xl'
               )}
             >
               {/* Header folder */}
@@ -117,37 +121,42 @@ export function FolderKeranjang({ header }: Props) {
                 type="button"
                 onClick={() => toggle(g.id)}
                 aria-expanded={aktif}
-                className="flex w-full items-center gap-3 px-4 py-3.5 text-left"
+                className={cn(
+                  'flex w-full items-center gap-3 px-4 py-3.5 text-left',
+                  isMobile && 'px-3 py-2.5'
+                )}
               >
                 <span
                   className={cn(
-                    'flex h-11 w-11 shrink-0 items-center justify-center rounded-xl transition-colors duration-300',
-                    aktif ? 'bg-primary text-white' : 'bg-primary/10 text-primary group-hover:bg-primary/15'
+                    'flex shrink-0 items-center justify-center rounded-xl transition-colors duration-300',
+                    aktif ? 'bg-primary text-white' : 'bg-primary/10 text-primary',
+                    isMobile ? 'h-9 w-9' : 'h-11 w-11'
                   )}
                 >
-                  <Icon name={aktif ? 'folder_open' : 'folder'} fill className="text-[22px]" />
+                  <Icon name={aktif ? 'folder_open' : 'folder'} fill className={isMobile ? 'text-[18px]' : 'text-[22px]'} />
                 </span>
                 <div className="min-w-0 flex-1">
-                  <p className="truncate font-jakarta font-bold text-foreground">{g.nama}</p>
-                  <p className="text-xs text-muted-foreground">
+                  <p className={cn('truncate font-jakarta font-bold text-foreground', isMobile ? 'text-sm' : '')}>{g.nama}</p>
+                  <p className={cn('text-muted-foreground', isMobile ? 'text-[10px]' : 'text-xs')}>
                     {g.items.length} unit
-                    {g.merk && ` • Merk: ${g.merk}`}
+                    {g.merk && ` • ${g.merk}`}
                   </p>
                 </div>
-                <Badge className="border-primary/20 bg-primary/10 text-primary">{g.totalUnit} unit</Badge>
+                <Badge className={cn('border-primary/20 bg-primary/10 text-primary', isMobile ? 'text-[10px] px-1.5' : '')}>{g.totalUnit}</Badge>
                 <span
                   className={cn(
-                    'flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-all duration-300',
-                    aktif ? 'rotate-180 bg-primary/10 text-primary' : 'group-hover:bg-muted'
+                    'flex shrink-0 items-center justify-center rounded-full text-muted-foreground transition-all duration-300',
+                    aktif ? 'rotate-180 bg-primary/10 text-primary' : 'group-hover:bg-muted',
+                    isMobile ? 'h-6 w-6' : 'h-7 w-7'
                   )}
                 >
-                  <Icon name="expand_more" className="text-[20px]" />
+                  <Icon name="expand_more" className={isMobile ? 'text-[16px]' : 'text-[20px]'} />
                 </span>
               </button>
 
               {/* Isi folder: daftar items */}
               {aktif && (
-                <ul className="animate-fade-in border-t border-primary/10">
+                <ul className={cn('animate-fade-in border-t border-primary/10', isMobile ? 'space-y-2 p-3' : '')}>
                   {g.items.map((item) => {
                     const stokHabis = item.jumlahTersedia < 1;
                     const tidakTersedia = item.tidakTersedia ?? false;
@@ -157,10 +166,11 @@ export function FolderKeranjang({ header }: Props) {
                         key={item.barangId}
                         className={cn(
                           'flex items-center gap-3 border-b border-primary/5 px-4 py-3 transition-colors last:border-b-0 hover:bg-primary/[0.03]',
-                          tidakTersedia && 'bg-red-50/50'
+                          tidakTersedia && 'bg-red-50/50',
+                          isMobile ? 'px-0 py-2' : ''
                         )}
                       >
-                        <div className="h-12 w-12 shrink-0 overflow-hidden rounded-lg border border-primary/10 bg-muted">
+                        <div className={cn('shrink-0 overflow-hidden rounded-lg border border-primary/10 bg-muted', isMobile ? 'h-10 w-10' : 'h-12 w-12')}>
                           {item.fotoUrl ? (
                             // eslint-disable-next-line @next/next/no-img-element
                             <img
@@ -170,39 +180,40 @@ export function FolderKeranjang({ header }: Props) {
                             />
                           ) : (
                             <div className="flex h-full w-full items-center justify-center text-muted-foreground">
-                              <Icon name="package_2" className="text-[20px]" />
+                              <Icon name="package_2" className={isMobile ? 'text-[16px]' : 'text-[20px]'} />
                             </div>
                           )}
                         </div>
                         <div className="min-w-0 flex-1">
-                          <p className="break-all font-mono text-xs font-medium text-foreground">{item.kodeBarang}</p>
-                          {item.merk && <p className="truncate text-xs text-muted-foreground">Merk: {item.merk}</p>}
+                          <p className={cn('break-all font-medium text-foreground', isMobile ? 'text-xs' : 'text-sm')}>{item.kodeBarang}</p>
+                          {item.merk && <p className={cn('truncate text-muted-foreground', isMobile ? 'text-[10px]' : 'text-xs')}>{item.merk}</p>}
                           {tidakTersedia && (
                             <p className="mt-0.5 flex items-center gap-1 text-xs font-medium text-red-600">
                               <AlertTriangle className="h-3 w-3" />
-                              Tidak tersedia lagi
+                              Tidak tersedia
                             </p>
                           )}
                         </div>
                         <span
                           className={cn(
-                            'shrink-0 rounded-full border px-2.5 py-0.5 text-xs font-semibold',
+                            'shrink-0 rounded-full border px-2 py-0.5 text-xs font-semibold',
+                            isMobile ? 'text-[10px]' : '',
                             tidakTersedia
                               ? 'border-red-200 bg-red-100 text-red-600'
                               : stokHabis
-                              ? 'border-red-200 bg-red-50 text-red-600 dark:bg-red-950/20'
-                              : 'border-emerald-200 bg-emerald-50 text-emerald-700 dark:bg-emerald-950/20'
+                              ? 'border-red-200 bg-red-50 text-red-600'
+                              : 'border-emerald-200 bg-emerald-50 text-emerald-700'
                           )}
                         >
-                          {tidakTersedia ? 'Stok Habis' : stokHabis ? 'Stok habis' : `Stok ${item.jumlahTersedia}`}
+                          {tidakTersedia ? 'Habis' : stokHabis ? 'Habis' : item.jumlahTersedia}
                         </span>
                         <Button
                           type="button"
-                          size="icon"
+                          size={isMobile ? 'sm' : 'icon'}
                           variant="ghost"
-                          className="h-9 w-9 shrink-0 rounded-full text-muted-foreground hover:bg-red-50 hover:text-red-600"
+                          className={cn('shrink-0 text-muted-foreground hover:bg-red-50 hover:text-red-600', isMobile ? 'h-8 w-8 rounded-lg' : 'h-9 w-9 rounded-full')}
                           onClick={() => hapusItem(item)}
-                          aria-label="Hapus dari keranjang"
+                          aria-label="Hapus"
                         >
                           <Icon name="delete" className="text-[18px]" />
                         </Button>

@@ -108,8 +108,8 @@ function DialogRentangWaktu({
   if (!terbuka) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-      <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+      <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl sm:p-6">
         <div className="mb-4 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <CalendarDays className="h-5 w-5 text-primary" />
@@ -214,29 +214,30 @@ export default function AdminDashboardPage() {
         {/* Orb dekoratif lembut sebagai latar */}
         <div className="pointer-events-none absolute -right-12 -top-12 h-44 w-44 rounded-full bg-white/10 blur-3xl" />
         <div className="pointer-events-none absolute -bottom-20 right-1/4 h-48 w-48 rounded-full bg-sky-400/20 blur-3xl" />
-        <div className="relative flex flex-col items-start justify-between gap-4 md:flex-row md:items-center">
-          <div>
+        <div className="relative flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-center">
+          <div className="flex-1">
             <p className="mb-1 flex items-center gap-2 font-label-sm uppercase tracking-widest text-white/70">
               <Icon name="space_dashboard" className="text-[16px]" fill />
               Dashboard Admin
             </p>
-            <h1 className="font-jakarta text-headline-lg text-white">Ringkasan Eksekutif</h1>
+            <h1 className="font-jakarta text-headline-lg-mobile text-white sm:text-headline-lg">Ringkasan Eksekutif</h1>
             <p className="text-white/80">
               Monitoring real-time aset dan inventaris Kementerian Keuangan.
             </p>
           </div>
-          <div className="flex gap-3">
+          <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row">
             <Button
               onClick={() => setDialogTerbuka(true)}
               className={cn(
-                'backdrop-blur-sm',
+                'w-full backdrop-blur-sm sm:w-auto',
                 adaFilter
                   ? 'gap-2 bg-white text-primary hover:bg-white/90'
                   : 'border border-white/30 bg-white/10 text-white hover:bg-white/20',
               )}
             >
               <Icon name="calendar_today" className="text-[18px]" />
-              <span>Rentang Waktu</span>
+              <span className="hidden sm:inline">Rentang Waktu</span>
+              <span className="sm:hidden">Filter</span>
               {adaFilter && (
                 <span className="ml-1 flex h-5 w-5 items-center justify-center rounded-full bg-primary/15 text-xs">
                   <X className="h-3 w-3" onClick={(e) => {
@@ -248,9 +249,9 @@ export default function AdminDashboardPage() {
             </Button>
             <ExportModal
               trigger={
-                <Button className="border border-white/30 bg-white/10 text-white backdrop-blur-sm hover:bg-white/20">
+                <Button className="w-full border border-white/30 bg-white/10 text-white backdrop-blur-sm hover:bg-white/20 sm:w-auto">
                   <Icon name="download" className="text-[18px]" />
-                  <span>Ekspor</span>
+                  <span className="hidden sm:inline">Ekspor</span>
                 </Button>
               }
             />
@@ -333,9 +334,10 @@ export default function AdminDashboardPage() {
                   title={`Lihat peminjaman berstatus ${info.label}`}
                   className="group flex cursor-pointer items-center gap-3 rounded-lg px-2 py-1.5 transition-colors hover:bg-surface-container/50 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
                 >
-                  <span className="flex w-40 shrink-0 items-center gap-2 font-label-md text-on-surface-variant">
+                  <span className="flex w-20 shrink-0 items-center gap-2 font-label-md text-on-surface-variant sm:w-40">
                     <span className={cn('h-2.5 w-2.5 shrink-0 rounded-full ring-2 ring-white transition-transform group-hover:scale-125', w.titik)} />
-                    <span>{info.label}</span>
+                    <span className="hidden text-xs sm:inline">{info.label}</span>
+                    <span className="text-xs sm:hidden">{info.label.split(' ')[0]}</span>
                   </span>
                   <div className="h-6 flex-1 overflow-hidden rounded-full bg-surface-container/70">
                     <div
