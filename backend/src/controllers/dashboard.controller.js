@@ -186,9 +186,10 @@ const ambilDataKategori = asyncHandler(async (req, res) => {
       break;
 
     case 'peminjam': {
-      // Semua peminjam (user dengan role PEMINJAM), dengan pencarian opsional.
+      // Semua peminjam (user dengan role PEMINJAM), dengan pencarian & filter peran opsional.
       // Data pegawai: jabatan, unitKerja, eselon2/eselon3/eselon4 (lihat import).
       const q = String(req.query.q || '').trim();
+      const filterRole = String(req.query.role || '').trim().toUpperCase(); // 'ADMIN' | 'PEMINJAM' | ''
       const wherePeminjam = { roles: { has: 'PEMINJAM' } };
       if (q) {
         wherePeminjam.OR = [
@@ -201,6 +202,13 @@ const ambilDataKategori = asyncHandler(async (req, res) => {
           { eselon3: { contains: q, mode: 'insensitive' } }, //   Eselon III
           { eselon4: { contains: q, mode: 'insensitive' } }, //   Eselon IV
         ];
+      }
+      // Filter berdasarkan peran: ADMIN (superuser), Non-Admin (selain ADMIN)
+      if (filterRole === 'ADMIN') {
+        wherePeminjam.roles = { has: 'ADMIN' };
+      } else if (filterRole === 'NON_ADMIN') {
+        // Semua user yang BUKAN admin
+        wherePeminjam.NOT = { roles: { has: 'ADMIN' } };
       }
       [data, total] = await Promise.all([
         prisma.user.findMany({
