@@ -24,6 +24,7 @@ export function useSessionSecurity() {
   const heartbeatIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const inactivityCheckRef = useRef<NodeJS.Timeout | null>(null);
   const isActiveRef = useRef<boolean>(false);
+  const closeTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // Update timestamp aktivitas terakhir
   const updateActivity = useCallback(() => {
@@ -37,6 +38,23 @@ export function useSessionSecurity() {
       }
     }
   }, []);
+
+  // Cleanup sesi saat benar-benar menutup tab/browser
+  const handleTabClose = useCallback(() => {
+    if (!user) return;
+
+    // Kirim sinyal invalidate session ke server
+    const token = localStorage.getItem('sipp_access_token');
+    if (token && navigator.sendBeacon) {
+      const data = JSON.stringify({ action: 'invalidate_session' });
+      navigator.sendBeacon(
+        '/api/auth/invalidate-session',
+        new Blob([data], { type: 'application/json' })
+      );
+    }
+
+    bersihkanSesi();
+  }, [user]);
 
   // Handle visibility change (tab tersembunyi / muncul)
   const handleVisibilityChange = useCallback(() => {
@@ -56,9 +74,22 @@ export function useSessionSecurity() {
 
       // Tab muncul — update activity
       updateActivity();
+
+      // Batalkan timeout close jika tab muncul kembali
+      if (closeTimeoutRef.current) {
+        clearTimeout(closeTimeoutRef.current);
+        closeTimeoutRef.current = null;
+      }
     } else {
       // Tab tersembunyi — update activity juga
       updateActivity();
+
+      // Set flag bahwa tab tersembunyi
+      try {
+        sessionStorage.setItem('sipp_tabHidden', 'true');
+      } catch {
+        // ignore
+      }
     }
   }, [user, updateActivity]);
 
@@ -94,9 +125,15 @@ export function useSessionSecurity() {
     isActiveRef.current = true;
     updateActivity();
 
-    // Tandai halaman ini sudah dimuat (untuk deteksi refresh)
+    // Tandai halaman ini sudah dimuat
     try {
-      sessionStorage.setItem('sipp_pageLoaded', 'true');
+      // Cek apakah tab sebelumnya ditutup atau ini fresh load
+      const wasHidden = sessionStorage.getItem('sipp_tabHidden');
+      if (wasHidden === null) {
+        // Flag tidak ada = ini fresh load (buka tab baru), tidak perlu logout
+      }
+      // Set/reset flag
+      sessionStorage.setItem('sipp_tabHidden', 'false');
     } catch {
       // ignore
     }
@@ -110,14 +147,20 @@ export function useSessionSecurity() {
     // Visibility change
     document.addEventListener('visibilitychange', handleVisibilityChange);
 
-    // Handle tab close / browser close
-    // pagehide dengan persisted:false = tab benar-benar ditutup
-    // pagehide dengan persisted:true = browser di-background (refresh/navigate)
-    const handlePageHide = (e: PageTransitionEvent) => {
+    // Handle beforeunload (refresh/close/navigate)
+    // NOTE: beforeunload tidak bisa membedakan refresh dari close secara reliable.
+    // Kami menggunakan heuristic: jika tab pernah tersembunyi sebelum unload,
+    // kemungkinan besar ini adalah close tab, bukan refresh.
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
       if (!user) return;
 
-      if (!e.persisted) {
-        // Tab benar-benar ditutup - logout
+      const wasHidden = sessionStorage.getItem('sipp_tabHidden');
+
+      // Hanya logout jika tab pernah tersembunyi sebelumnya
+      // Ini mengasumsikan: refresh cepat biasanya tidak menyebabkan tab tersembunyi
+      // sedangkan close tab pasti menyebabkan tab tersembunyi
+      if (wasHidden === 'true') {
+        // Tab pernah tersembunyi = kemungkinan besar close tab
         const token = localStorage.getItem('sipp_access_token');
         if (token && navigator.sendBeacon) {
           const data = JSON.stringify({ action: 'invalidate_session' });
@@ -128,9 +171,9 @@ export function useSessionSecurity() {
         }
         bersihkanSesi();
       }
-      // Jika e.persisted = true, ini refresh atau navigate - TIDAK logout
+      // Jika tab tidak pernah tersembunyi = kemungkinan besar refresh = tidak logout
     };
-    document.addEventListener('pagehide', handlePageHide);
+    window.addEventListener('beforeunload', handleBeforeUnload);
 
     // Heartbeat interval — kirim aktivitas ke server secara periodik
     heartbeatIntervalRef.current = setInterval(() => {
@@ -158,7 +201,7 @@ export function useSessionSecurity() {
         document.removeEventListener(event, handleUserActivity);
       });
       document.removeEventListener('visibilitychange', handleVisibilityChange);
-      document.removeEventListener('pagehide', handlePageHide);
+      window.removeEventListener('beforeunload', handleBeforeUnload);
 
       if (heartbeatIntervalRef.current) {
         clearInterval(heartbeatIntervalRef.current);
@@ -168,6 +211,10 @@ export function useSessionSecurity() {
         clearInterval(inactivityCheckRef.current);
         inactivityCheckRef.current = null;
       }
+      if (closeTimeoutRef.current) {
+        clearTimeout(closeTimeoutRef.current);
+        closeTimeoutRef.current = null;
+      }
     };
-  }, [user, handleUserActivity, handleVisibilityChange, updateActivity, handleInactivityLogout]);
+  }, [user, handleUserActivity, handleVisibilityChange, handleTabClose, updateActivity, handleInactivityLogout]);
 }
