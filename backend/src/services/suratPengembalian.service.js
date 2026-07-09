@@ -48,6 +48,11 @@ const SIZE = 11;
 const SIZE_JUDUL = 12;
 const LINE = 15; // tinggi baris untuk teks 11pt (spasi tunggal + sedikit lega)
 
+// Helper: cek apakah teks adalah checkmark
+function adalahCheckmark(str) {
+  return str === '✓' || str === 'V';
+}
+
 // Nomor surat: pakai nomor tersimpan (nomorSurat/tahunSurat) bila ada.
 // Satu transaksi peminjaman memakai satu nomor PRN yang sama untuk surat
 // peminjaman & pengembalian; format pengembalian tanpa segmen "PP.1".
@@ -111,6 +116,47 @@ async function generate(peminjaman) {
     const kiri = opt.kiri ?? 0;
     const kanan = opt.kanan ?? PAGE_W;
     teks(str, kiri + (kanan - kiri - w) / 2, opt);
+  };
+
+  // Gambar checkbox dengan border dan centang ✓
+  // Style: 15x15px border 1px solid #000, checkmark di tengah
+  const gambarCheckbox = (selX, selY, selW, selH) => {
+    const boxSize = 15;
+    const cx = selX + selW / 2;
+    const cy = selY + selH / 2;
+    const boxX = cx - boxSize / 2;
+    const boxY = cy - boxSize / 2;
+
+    // Kotak checkbox dengan border 1px
+    page.drawRectangle({
+      x: boxX,
+      y: boxY,
+      width: boxSize,
+      height: boxSize,
+      borderColor: rgb(0, 0, 0),
+      borderWidth: 1,
+      color: rgb(1, 1, 1),
+    });
+
+    // Checkmark ✓ di tengah kotak
+    const ckL = 4;
+    const ckR = 11;
+    const ckTop = 10;
+    const ckBot = 4;
+    const ckMid = 6;
+
+    page.drawLine({
+      start: { x: boxX + ckL, y: boxY + ckMid },
+      end: { x: boxX + ckMid, y: boxY + ckBot },
+      thickness: 1.2,
+      color: rgb(0, 0, 0),
+    });
+    page.drawLine({
+      start: { x: boxX + ckMid, y: boxY + ckBot },
+      end: { x: boxX + ckR, y: boxY + ckTop },
+      thickness: 1.2,
+      color: rgb(0, 0, 0),
+    });
   };
 
   // Blok identitas: "label : nilai" (dengan wrap pada kolom nilai).
@@ -231,7 +277,7 @@ async function generate(peminjaman) {
       nup: String(b.kodeBarang || '').split('-').pop() || '-',
       jumlah: String(d.jumlahPinjam ?? '-'),
       kondisi: LABEL_KONDISI[b.kondisi] || b.kondisi || '-',
-      join: '',
+      join: '✓',
     };
   });
 
@@ -256,10 +302,15 @@ async function generate(peminjaman) {
       });
       const lines = selBaris[idx];
       lines.forEach((ln, li) => {
-        const tw = f.widthOfTextAtSize(ln, sizeTabel);
-        let tx = x + padX;
-        if (c.align === 'center') tx = x + (c.w - tw) / 2;
-        page.drawText(ln, { x: tx, y: yAtas - padY - sizeTabel - li * lineH, size: sizeTabel, font: f, color: hitam });
+        // Jika checkmark, gambar checkbox dengan border dan centang
+        if (c.key === 'join' && ln === '✓') {
+          gambarCheckbox(x, yAtas - tinggi, c.w, tinggi);
+        } else {
+          const tw = f.widthOfTextAtSize(ln, sizeTabel);
+          let tx = x + padX;
+          if (c.align === 'center') tx = x + (c.w - tw) / 2;
+          page.drawText(ln, { x: tx, y: yAtas - padY - sizeTabel - li * lineH, size: sizeTabel, font: f, color: hitam });
+        }
       });
       x += c.w;
     });
