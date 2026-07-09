@@ -181,12 +181,21 @@ export default function ImportLogPage() {
                       </span>
                     </div>
                   </div>
-                  <button
-                    onClick={() => setLogTerpilih(logTerpilih?.id === log.id ? null : log)}
-                    className="rounded-lg p-2 text-primary transition-colors hover:bg-primary/10"
-                  >
-                    <Icon name={logTerpilih?.id === log.id ? 'expand_less' : 'expand_more'} />
-                  </button>
+                  <div className="flex items-center gap-1">
+                    <button
+                      onClick={() => tanganiHapus(log.id)}
+                      className="rounded-lg p-2 text-error transition-colors hover:bg-error/10"
+                      title="Hapus log"
+                    >
+                      <Icon name="delete" />
+                    </button>
+                    <button
+                      onClick={() => setLogTerpilih(logTerpilih?.id === log.id ? null : log)}
+                      className="rounded-lg p-2 text-primary transition-colors hover:bg-primary/10"
+                    >
+                      <Icon name={logTerpilih?.id === log.id ? 'expand_less' : 'expand_more'} />
+                    </button>
+                  </div>
                 </div>
 
                 {/* Ringkasan */}
