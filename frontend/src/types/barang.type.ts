@@ -42,6 +42,7 @@ export interface FilterBarang {
   jenis?: JenisBarang | '';
   kondisi?: KondisiBarang | '';
   ketersediaan?: Ketersediaan | '';
+  kodeSatker?: string | '';
   page?: number;
   limit?: number;
 }

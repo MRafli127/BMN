@@ -11,6 +11,7 @@ export interface FilterExport {
   jenis?: string;
   kondisi?: string;
   role?: string;
+  kodeSatker?: string;
 }
 
 export const exportService = {
@@ -28,7 +29,7 @@ export const exportService = {
 
   async exportBarang(filter: FilterExport = {}): Promise<Blob> {
     const params = new URLSearchParams();
-    if (filter.jenis) params.append('jenis', filter.jenis);
+    if (filter.kodeSatker) params.append('kodeSatker', filter.kodeSatker);
     if (filter.kondisi) params.append('kondisi', filter.kondisi);
 
     const res = await api.get(`/export/barang?${params.toString()}`, {

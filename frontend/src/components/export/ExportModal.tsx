@@ -112,20 +112,30 @@ interface FilterBarangProps {
 }
 
 function FilterBarang({ filter, onChange }: FilterBarangProps) {
+  const opsiFilterBarang = [
+    { value: '015110199411868000KP', label: '015110199411868000KP' },
+    { value: '015110199411868001KP', label: '015110199411868001KP' },
+    { value: '015110199411868002KP', label: '015110199411868002KP' },
+    { value: '015110199411868003KP', label: '015110199411868003KP' },
+    { value: '015110199411868004KP', label: '015110199411868004KP' },
+    { value: '015110199411868005KP', label: '015110199411868005KP' },
+    { value: '015110199411868006KP', label: '015110199411868006KP' },
+  ];
+
   return (
     <div className="space-y-4">
       <div className="space-y-2">
-        <Label htmlFor="jenis">Jenis Barang</Label>
+        <Label htmlFor="kodeSatker">Kode Satker</Label>
         <Select
-          value={filter.jenis || 'all'}
-          onChange={(e) => onChange({ ...filter, jenis: e.target.value === 'all' ? undefined : e.target.value })}
+          value={filter.kodeSatker || 'all'}
+          onChange={(e) => onChange({ ...filter, kodeSatker: e.target.value === 'all' ? undefined : e.target.value })}
         >
-          <option value="all">Semua Jenis</option>
-          <option value="ELEKTRONIK">Elektronik</option>
-          <option value="FURNITUR">Furnitur</option>
-          <option value="KENDARAAN">Kendaraan</option>
-          <option value="ATK">Alat Tulis Kantor</option>
-          <option value="LAINNYA">Lainnya</option>
+          <option value="all">Semua Kode Satker</option>
+          {opsiFilterBarang.map((o) => (
+            <option key={o.value} value={o.value}>
+              {o.label}
+            </option>
+          ))}
         </Select>
       </div>
       <div className="space-y-2">

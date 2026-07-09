@@ -9,8 +9,8 @@ function pathFoto(file) {
 }
 
 const getSemua = asyncHandler(async (req, res) => {
-  const { q, jenis, kondisi, ketersediaan, page, limit } = req.query;
-  const hasil = await barangService.getSemua({ q, jenis, kondisi, ketersediaan, page, limit });
+  const { q, jenis, kondisi, ketersediaan, kodeSatker, page, limit } = req.query;
+  const hasil = await barangService.getSemua({ q, jenis, kondisi, ketersediaan, kodeSatker, page, limit });
   return responsSukses(res, {
     pesan: 'Daftar barang berhasil dimuat.',
     data: hasil.data,

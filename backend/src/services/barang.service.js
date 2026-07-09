@@ -17,7 +17,7 @@ function serialisasi(barang) {
 }
 
 // --- Ambil daftar barang dengan pencarian/filter/pagination ---
-async function getSemua({ q, jenis, kondisi, ketersediaan, page = 1, limit = 10 } = {}) {
+async function getSemua({ q, jenis, kondisi, ketersediaan, kodeSatker, page = 1, limit = 10 } = {}) {
   const { halaman, perHalaman, skip } = parsePagination({ page, limit });
 
   const where = {};
@@ -31,6 +31,7 @@ async function getSemua({ q, jenis, kondisi, ketersediaan, page = 1, limit = 10 
   }
   if (jenis) where.jenis = jenis;
   if (kondisi) where.kondisi = kondisi;
+  if (kodeSatker) where.kodeSatker = kodeSatker;
   // Ketersediaan stok: 'tersedia' = masih ada unit (>0), 'habis' = nol/terpinjam penuh.
   if (ketersediaan === 'tersedia') where.jumlahTersedia = { gt: 0 };
   else if (ketersediaan === 'habis') where.jumlahTersedia = { lte: 0 };

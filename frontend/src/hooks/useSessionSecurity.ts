@@ -38,25 +38,6 @@ export function useSessionSecurity() {
     }
   }, []);
 
-  // Handle tab close / browser close
-  const handleTabClose = useCallback(async () => {
-    if (!user) return;
-
-    // Kirim sinyal invalidate session ke server
-    // Menggunakan sendBeacon untuk pengiriman yang lebih reliable saat tab ditutup
-    const token = localStorage.getItem('sipp_access_token');
-    if (token && navigator.sendBeacon) {
-      const data = JSON.stringify({ action: 'invalidate_session' });
-      navigator.sendBeacon(
-        '/api/auth/invalidate-session',
-        new Blob([data], { type: 'application/json' })
-      );
-    }
-
-    // Bersihkan sesi lokal
-    bersihkanSesi();
-  }, [user]);
-
   // Handle visibility change (tab tersembunyi / muncul)
   const handleVisibilityChange = useCallback(() => {
     if (document.visibilityState === 'visible') {
@@ -113,6 +94,13 @@ export function useSessionSecurity() {
     isActiveRef.current = true;
     updateActivity();
 
+    // Tandai halaman ini sudah dimuat (untuk deteksi refresh)
+    try {
+      sessionStorage.setItem('sipp_pageLoaded', 'true');
+    } catch {
+      // ignore
+    }
+
     // Activity events
     const events = ['mousedown', 'mousemove', 'keydown', 'scroll', 'touchstart', 'click'];
     events.forEach(event => {
@@ -122,8 +110,27 @@ export function useSessionSecurity() {
     // Visibility change
     document.addEventListener('visibilitychange', handleVisibilityChange);
 
-    // Beforeunload (tab close)
-    window.addEventListener('beforeunload', handleTabClose);
+    // Handle tab close / browser close
+    // pagehide dengan persisted:false = tab benar-benar ditutup
+    // pagehide dengan persisted:true = browser di-background (refresh/navigate)
+    const handlePageHide = (e: PageTransitionEvent) => {
+      if (!user) return;
+
+      if (!e.persisted) {
+        // Tab benar-benar ditutup - logout
+        const token = localStorage.getItem('sipp_access_token');
+        if (token && navigator.sendBeacon) {
+          const data = JSON.stringify({ action: 'invalidate_session' });
+          navigator.sendBeacon(
+            '/api/auth/invalidate-session',
+            new Blob([data], { type: 'application/json' })
+          );
+        }
+        bersihkanSesi();
+      }
+      // Jika e.persisted = true, ini refresh atau navigate - TIDAK logout
+    };
+    document.addEventListener('pagehide', handlePageHide);
 
     // Heartbeat interval — kirim aktivitas ke server secara periodik
     heartbeatIntervalRef.current = setInterval(() => {
@@ -151,7 +158,7 @@ export function useSessionSecurity() {
         document.removeEventListener(event, handleUserActivity);
       });
       document.removeEventListener('visibilitychange', handleVisibilityChange);
-      window.removeEventListener('beforeunload', handleTabClose);
+      document.removeEventListener('pagehide', handlePageHide);
 
       if (heartbeatIntervalRef.current) {
         clearInterval(heartbeatIntervalRef.current);
@@ -162,5 +169,5 @@ export function useSessionSecurity() {
         inactivityCheckRef.current = null;
       }
     };
-  }, [user, handleUserActivity, handleVisibilityChange, handleTabClose, updateActivity, handleInactivityLogout]);
+  }, [user, handleUserActivity, handleVisibilityChange, updateActivity, handleInactivityLogout]);
 }
