@@ -27,6 +27,7 @@ const XLSX = require('xlsx');
 const { prisma } = require('../config/database');
 const { hashPassword } = require('../utils/hashPassword');
 const { AppError } = require('../middleware/error.middleware');
+const { hitungRetirementDateDariNip, validasiNip } = require('../utils/nipHelper');
 
 const PASSWORD_DEFAULT = 'Bmn@2026';
 
@@ -245,6 +246,7 @@ async function importDariExcel(buffer, { dryRun = false, userId, userEmail, user
       eselon3: true, // kolom "Eselon III"
       roles: true,
       sumber: true,
+      retirementDate: true,
     },
   });
   const userByNip = new Map(allUsers.map((u) => [u.nip, u]));
@@ -338,6 +340,19 @@ async function importDariExcel(buffer, { dryRun = false, userId, userEmail, user
         }
 
         if (!user) {
+          // Validasi NIP dan hitung retirement date
+          const validasi = validasiNip(r.nip);
+          if (!validasi.valid) {
+            gagal.push({ baris: r.baris, nama: r.nama, pesan: `NIP tidak valid: ${validasi.error}` });
+            continue;
+          }
+
+          const retirementDate = hitungRetirementDateDariNip(r.nip);
+          if (!retirementDate) {
+            gagal.push({ baris: r.baris, nama: r.nama, pesan: 'Format NIP tidak valid. Pastikan tanggal lahir dalam NIP benar.' });
+            continue;
+          }
+
           const dibuat = await tx.user.create({
             data: {
               nama: r.nama,
@@ -348,6 +363,7 @@ async function importDariExcel(buffer, { dryRun = false, userId, userEmail, user
               eselon3: r.eselonIII, // kolom "Eselon III"
               roles: ['PEMINJAM'],
               sumber: 'IMPORT',
+              retirementDate,
             },
           });
           user = {
@@ -374,18 +390,44 @@ async function importDariExcel(buffer, { dryRun = false, userId, userEmail, user
           if (!sama(user.nama, r.nama)) perubahan.push('Nama');
           if (!sama(user.eselon4, r.eselonIV)) perubahan.push('Eselon IV');
           if (!sama(user.eselon3, r.eselonIII)) perubahan.push('Eselon III');
+
+          // Update retirementDate jika user belum punya (user lama sebelum fitur ini)
+          let perluUpdateRetirement = false;
+          if (!user.retirementDate) {
+            const validasi = validasiNip(r.nip);
+            if (validasi.valid) {
+              const newRetirementDate = hitungRetirementDateDariNip(r.nip);
+              if (newRetirementDate) {
+                perubahan.push('Tanggal Pensiun');
+                perluUpdateRetirement = true;
+              }
+            }
+          }
+
           const fieldBerubah = perubahan.length > 0;
           const perluClaim = user.sumber !== 'IMPORT';
           if (fieldBerubah || perluClaim) {
+            const dataUpdate = {
+              nama: r.nama,
+              eselon4: r.eselonIV,
+              eselon3: r.eselonIII,
+              sumber: 'IMPORT',
+            };
+            if (perluUpdateRetirement) {
+              dataUpdate.retirementDate = hitungRetirementDateDariNip(r.nip);
+            }
             await tx.user.update({
               where: { id: user.id },
-              data: { nama: r.nama, eselon4: r.eselonIV, eselon3: r.eselonIII, sumber: 'IMPORT' },
+              data: dataUpdate,
             });
             // Sinkronkan in-memory agar baris berikutnya tidak terdeteksi berubah lagi.
             user.nama = r.nama;
             user.eselon4 = r.eselonIV;
             user.eselon3 = r.eselonIII;
             user.sumber = 'IMPORT';
+            if (perluUpdateRetirement) {
+              user.retirementDate = hitungRetirementDateDariNip(r.nip);
+            }
             if (fieldBerubah) {
               akunDiperbarui += 1;
               diperbaruiList.push({ nama: r.nama, nip: r.nip, perubahan });

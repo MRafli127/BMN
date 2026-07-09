@@ -159,6 +159,17 @@ async function register(data) {
     throw new AppError('NIP sudah terdaftar. Periksa kembali NIP Anda.', 409);
   }
 
+  // Validasi NIP dan hitung retirement date
+  const validasi = validasiNip(data.nip);
+  if (!validasi.valid) {
+    throw new AppError(validasi.error, 400);
+  }
+
+  const retirementDate = hitungRetirementDateDariNip(data.nip);
+  if (!retirementDate) {
+    throw new AppError('Format NIP tidak valid. Pastikan tanggal lahir dalam NIP benar.', 400);
+  }
+
   const passwordHash = await hashPassword(data.password);
 
   const user = await prisma.user.create({
@@ -171,6 +182,7 @@ async function register(data) {
       eselon3: data.eselon3 || null, // form registrasi: label "Eselon III"
       roles: ['PEMINJAM'], // registrasi publik selalu peminjam
       tokenVersion: 1,
+      retirementDate,
     },
   });
 
