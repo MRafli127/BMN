@@ -940,6 +940,16 @@ async function kembalikan(id, catatan, requestInfo = {}) {
     referenceType: 'PEMINJAMAN',
   }).catch(() => {});
 
+  // Kirim notifikasi ke semua admin bahwa ada barang yang dikembalikan
+  const namaPeminjam = pLama.peminjam.nama || 'Peminjam';
+  notificationService.kirimKeSemuaAdmin({
+    tipe: notificationService.TIPE_NOTIFIKASI.PENGEMBALIAN,
+    judul: 'Pengembalian Baru',
+    pesan: `${namaPeminjam} telah mengembalikan barang ${barangDikembalikan}.`,
+    referenceId: id,
+    referenceType: 'PEMINJAMAN',
+  }).catch(() => {});
+
   return serialisasi(updated);
 }
 
