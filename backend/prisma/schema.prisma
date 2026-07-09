@@ -270,3 +270,36 @@ model Notifikasi {
   @@index([createdAt])
   @@map("notifikasi")
 }
+
+// 7) Log Import — untuk menyimpan hasil/catatan setiap proses import
+// Menyimpan siapa, kapan, apa saja yang berhasil/gagal diimport
+model ImportLog {
+  id              String   @id @default(uuid())
+  userId          String   // Admin yang melakukan import
+  userEmail       String   // Snapshot email admin
+  userNama        String   // Snapshot nama admin
+  jenisImport     String   // JENIS: PEMINJAM, BARANG, PEGAWAI
+  namaFile        String   // Nama file yang diimport
+  jumlahBaris     Int      // Total baris yang diproses
+  akunDitambahkan Int      @default(0) // Jumlah akun baru dibuat
+  akunDiperbarui  Int      @default(0) // Jumlah akun diperbarui
+  peminjamanDibuat Int     @default(0) // Jumlah peminjaman baru dibuat
+  peminjamanDipertahankan Int @default(0) // Jumlah peminjaman yang sudah ada (dipertahankan)
+  dilewatiTanpaNup Int    @default(0) // Baris tanpa NUP
+  gagal           Int      @default(0) // Jumlah baris gagal diproses
+  barangTidakDitemukan Int @default(0) // NUP tidak ditemukan/stok habis
+
+  // Detail dalam JSON
+  detailDitambahkan  Json?  // [{nama, nip, email}]
+  detailDiperbarui   Json?  // [{nama, nip, perubahan}]
+  detailPeminjaman   Json?  // [{nama, merk, nup, kodeBarang}]
+  detailGagal        Json?  // [{baris, nama, pesan}]
+  detailBarangTidakDitemukan Json? // [{baris, nama, merk, nup, pesan}]
+
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([jenisImport])
+  @@index([createdAt])
+  @@map("import_logs")
+}

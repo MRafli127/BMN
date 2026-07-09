@@ -34,6 +34,7 @@ const menuAdmin: ItemMenu[] = [
   { label: 'Manajemen Peminjaman', href: RUTE.adminPeminjaman, ikon: 'sync_alt' },
   { label: 'Pengguna Terdaftar', href: RUTE.adminKategori('peminjam'), ikon: 'group' },
   { label: 'Scan Pengembalian', href: RUTE.adminScan, ikon: 'qr_code_scanner' },
+  { label: 'Log Import', href: RUTE.adminLogImport, ikon: 'upload_file' },
 ];
 
 const menuPeminjam: ItemMenu[] = [

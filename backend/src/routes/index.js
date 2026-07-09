@@ -14,6 +14,7 @@ const userManagementRoutes = require('./userManagement.routes');
 const auditLogRoutes = require('./auditLog.routes');
 const exportRoutes = require('./export.routes');
 const notificationRoutes = require('./notification.routes');
+const importLogRoutes = require('./importLog.routes');
 
 const router = express.Router();
 
@@ -39,9 +40,10 @@ router.use('/import-peminjam', peminjamImportRoutes);
 router.use('/import-pegawai', pegawaiImportRoutes);
 router.use('/users', userManagementRoutes);
 
-// Rute baru: Audit Log, Export & Notifications (khusus ADMIN)
+// Rute baru: Audit Log, Export, Notifications & Import Logs (khusus ADMIN)
 router.use('/audit-logs', auditLogRoutes);
 router.use('/export', exportRoutes);
 router.use('/notifications', notificationRoutes);
+router.use('/import-logs', importLogRoutes);
 
 module.exports = router;
