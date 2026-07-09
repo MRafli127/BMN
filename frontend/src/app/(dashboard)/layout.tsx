@@ -15,6 +15,7 @@ import { Header } from '@/components/layout/Header';
 import { Footer } from '@/components/layout/Footer';
 import { LoadingSpinner } from '@/components/shared/LoadingSpinner';
 import { useAuth } from '@/hooks/useAuth';
+import { useSessionSecurity } from '@/hooks/useSessionSecurity';
 import { RUTE } from '@/constants/routes';
 import { useIsMobile } from '@/hooks/useIsMobile';
 
@@ -22,6 +23,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const { user, sedangMemuat } = useAuth();
   const router = useRouter();
   const isMobile = useIsMobile();
+
+  // Aktifkan keamanan sesi (tab close detection & inactivity timeout)
+  useSessionSecurity();
 
   useEffect(() => {
     if (!sedangMemuat && !user) {
