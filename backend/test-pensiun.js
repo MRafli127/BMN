@@ -68,7 +68,7 @@ async function test() {
         nip,
         email,
         password: passwordHash,
-        role: 'PEMINJAM',
+        roles: ['PEMINJAM'],
         retirementDate: pensiun,
         unitKerja
       }
@@ -158,7 +158,7 @@ async function test() {
 
   // Langkah 1: Ambil user
   const userList = await prisma.user.findMany({
-    where: { retirementDate: { not: null }, role: 'PEMINJAM' },
+    where: { retirementDate: { not: null }, roles: { has: 'PEMINJAM' } },
     select: { id: true, nama: true, nip: true, retirementDate: true }
   });
   console.log(`[CRON] Total user dengan retirementDate: ${userList.length}`);

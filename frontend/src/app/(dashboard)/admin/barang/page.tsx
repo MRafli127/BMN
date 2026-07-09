@@ -21,7 +21,7 @@ import { notify } from '@/components/ui/toast';
 import { useBarangFolder } from '@/hooks/useBarangFolder';
 import { barangService } from '@/services/barang.service';
 import { ambilPesanError } from '@/lib/utils';
-import { OPSI_JENIS, OPSI_KONDISI } from '@/constants/status';
+import { OPSI_FILTER_BARANG, OPSI_KONDISI } from '@/constants/status';
 import { RUTE } from '@/constants/routes';
 
 // Pilihan jumlah folder yang ditampilkan per halaman
@@ -119,9 +119,9 @@ function KontenBarang() {
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input value={cari} onChange={(e) => setCari(e.target.value)} placeholder="Cari kode / nama / merk / lokasi..." className="pl-9" />
         </div>
-        <Select value={filter.jenis || ''} onChange={(e) => ubahFilter({ jenis: (e.target.value || undefined) as never })}>
-          <option value="">Semua Jenis</option>
-          {OPSI_JENIS.map((o) => (
+        <Select value={filter.kodeSatker || ''} onChange={(e) => ubahFilter({ kodeSatker: (e.target.value || undefined) as never })}>
+          <option value="">Semua Kode Satker</option>
+          {OPSI_FILTER_BARANG.map((o) => (
             <option key={o.value} value={o.value}>
               {o.label}
             </option>

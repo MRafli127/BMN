@@ -37,6 +37,7 @@ const XLSX = require('xlsx');
 const { prisma } = require('../config/database');
 const { hashPassword } = require('../utils/hashPassword');
 const { AppError } = require('../middleware/error.middleware');
+const { hitungRetirementDateDariNip, validasiNip } = require('../utils/nipHelper');
 
 // Password default untuk akun baru hasil import. Samakan dengan importer
 // peminjam lain agar admin cukup menyampaikan satu kata sandi awal.
@@ -271,6 +272,20 @@ async function importDariExcel(buffer) {
         continue;
       }
       emailBaruDipakai.add(r.email);
+
+      // Validasi NIP dan hitung retirement date
+      const validasi = validasiNip(r.nip);
+      if (!validasi.valid) {
+        gagal.push({ baris: r.baris, nama: r.nama, pesan: `NIP tidak valid: ${validasi.error}` });
+        continue;
+      }
+
+      const retirementDate = hitungRetirementDateDariNip(r.nip);
+      if (!retirementDate) {
+        gagal.push({ baris: r.baris, nama: r.nama, pesan: 'Format NIP tidak valid. Pastikan tanggal lahir dalam NIP benar.' });
+        continue;
+      }
+
       toCreate.push({
         nama: r.nama,
         nip: r.nip,
@@ -283,6 +298,7 @@ async function importDariExcel(buffer) {
         eselon2: r.eselon2,
         eselon3: r.eselon3,
         eselon4: r.eselon4,
+        retirementDate,
       });
       ditambahkanList.push({ nama: r.nama, nip: r.nip, email: r.email });
       continue;

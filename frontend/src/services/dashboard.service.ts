@@ -35,6 +35,9 @@ export interface DashboardPeminjam {
 // Kategori untuk data dashboard
 export type KategoriDashboard = 'semua' | 'barang' | 'pengajuan_menunggu' | 'peminjaman_aktif' | 'barang_terlambat' | 'peminjam';
 
+// Filter peran untuk daftar peminjam
+export type FilterRole = '' | 'ADMIN' | 'NON_ADMIN';
+
 export interface ResponseKategori {
   items: Peminjaman[] | Barang[] | UserList[];
   meta: {
@@ -79,9 +82,10 @@ export const dashboardService = {
     return res.data.data;
   },
 
-  async ambilKategori(kategori: KategoriDashboard, page = 1, limit = 10, q = ''): Promise<ResponseKategori> {
+  async ambilKategori(kategori: KategoriDashboard, page = 1, limit = 10, q = '', role?: FilterRole): Promise<ResponseKategori> {
     const params: Record<string, string | number> = { page, limit };
     if (q.trim()) params.q = q.trim();
+    if (role) params.role = role;
     const res = await api.get(`/dashboard/kategori/${kategori}`, { params });
     return res.data.data;
   },

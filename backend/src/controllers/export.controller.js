@@ -44,10 +44,10 @@ const exportPeminjaman = async (req, res) => {
 
 // Export barang
 const exportBarang = async (req, res) => {
-  const { jenis, kondisi } = req.query;
+  const { kodeSatker, kondisi } = req.query;
 
   const where = {};
-  if (jenis) where.jenis = jenis;
+  if (kodeSatker) where.kodeSatker = kodeSatker;
   if (kondisi) where.kondisi = kondisi;
 
   const data = await prisma.barang.findMany({

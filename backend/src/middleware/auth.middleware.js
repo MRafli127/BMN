@@ -7,7 +7,10 @@
 const jwt = require('jsonwebtoken');
 const env = require('../config/env');
 const { responsGagal } = require('../utils/apiResponse');
-const { validateAccessTokenWithVersion, pilihActiveRole } = require('../services/auth.service');
+const { validateAccessTokenWithVersion, validateSession, updateLastActivity } = require('../services/auth.service');
+
+// Inactivity timeout dalam milidetik (15 menit)
+const INACTIVITY_TIMEOUT_MS = 15 * 60 * 1000;
 
 async function authMiddleware(req, res, next) {
   try {
@@ -53,6 +56,30 @@ async function authMiddleware(req, res, next) {
       });
     }
 
+    // Validasi sesi: cek apakah sesi di-invalidate atau sudah tidak aktif
+    const sessionValidation = await validateSession(payload.sub, payload.jti);
+    if (!sessionValidation.valid) {
+      if (sessionValidation.reason === 'SESSION_INVALIDATED') {
+        return responsGagal(res, {
+          pesan: 'Sesi Anda telah berakhir. Tab lain telah login dengan akun ini atau sesi tidak valid. Silakan login kembali.',
+          status: 401,
+        });
+      }
+      if (sessionValidation.reason === 'INACTIVITY_TIMEOUT') {
+        return responsGagal(res, {
+          pesan: 'Sesi Anda telah berakhir karena tidak aktif selama 15 menit. Silakan login kembali.',
+          status: 401,
+        });
+      }
+      return responsGagal(res, {
+        pesan: 'Sesi tidak valid. Silakan login kembali.',
+        status: 401,
+      });
+    }
+
+    // Update last activity timestamp (async, tidak blocking request)
+    updateLastActivity(payload.sub, payload.jti).catch(() => {});
+
     // Roles diambil dari DB live (validation.user) agar promote/demote langsung
     // tercermin. Active role di-heal terhadap roles terkini: bila role aktif
     // sudah dicabut, otomatis turun ke role valid berikutnya.
@@ -66,6 +93,7 @@ async function authMiddleware(req, res, next) {
       role: activeRole, // active role — dasar gating ketat (role.middleware & service peminjaman)
       nama: payload.nama,
       email: payload.email,
+      jti: payload.jti, // session identifier untuk tracking
     };
 
     next();
@@ -81,6 +109,19 @@ async function authMiddleware(req, res, next) {
       status: 401,
     });
   }
+}
+
+// Helper: pilih active role
+function pilihActiveRole(roles = [], diminta = null) {
+  const ROLE_VALID = ['ADMIN', 'PEMINJAM'];
+  const dimiliki = Array.isArray(roles) ? roles : [];
+  const dimilikiSet = new Set(dimiliki);
+  if (dimilikiSet.has('ADMIN')) dimilikiSet.add('PEMINJAM');
+  const efektif = ROLE_VALID.filter((r) => dimilikiSet.has(r));
+  if (diminta && efektif.includes(diminta)) return diminta;
+  if (dimiliki.length === 1) return dimiliki[0];
+  if (dimiliki.includes('PEMINJAM')) return 'PEMINJAM';
+  return dimiliki[0] || 'PEMINJAM';
 }
 
 module.exports = authMiddleware;

@@ -34,6 +34,7 @@ const menuAdmin: ItemMenu[] = [
   { label: 'Manajemen Peminjaman', href: RUTE.adminPeminjaman, ikon: 'sync_alt' },
   { label: 'Pengguna Terdaftar', href: RUTE.adminKategori('peminjam'), ikon: 'group' },
   { label: 'Scan Pengembalian', href: RUTE.adminScan, ikon: 'qr_code_scanner' },
+  { label: 'Log Import', href: RUTE.adminLogImport, ikon: 'upload_file' },
 ];
 
 const menuPeminjam: ItemMenu[] = [
@@ -93,7 +94,7 @@ export function Sidebar() {
       {/* Overlay untuk mobile */}
       {sidebarTerbuka && (
         <div
-          className="fixed inset-0 z-30 bg-on-surface/50 backdrop-blur-sm lg:hidden"
+          className="fixed inset-0 z-30 bg-on-surface/50 backdrop-blur-sm md:hidden"
           onClick={tutupSidebar}
           aria-hidden
         />
@@ -104,7 +105,8 @@ export function Sidebar() {
         className={cn(
           'fixed inset-y-0 left-0 z-40 flex w-[17rem] max-w-[85vw] flex-col overflow-hidden py-stack-lg text-white shadow-2xl transition-transform duration-300 ease-out',
           // Desktop: tetap diam saat halaman di-scroll (sticky setinggi layar).
-          'lg:sticky lg:top-0 lg:h-screen lg:max-h-screen lg:max-w-none lg:translate-x-0 lg:self-start',
+          // md+ = desktop, di bawah itu = mobile dengan BottomNav
+          'md:sticky md:top-0 md:h-screen md:max-h-screen md:max-w-none md:translate-x-0 md:self-start',
           sidebarTerbuka ? 'translate-x-0' : '-translate-x-full'
         )}
       >
@@ -128,12 +130,13 @@ export function Sidebar() {
                 alt="Logo Kementerian Keuangan"
                 width={200}
                 height={56}
+                style={{ width: 'auto', height: 'auto' }}
                 className="object-contain"
               />
             </Link>
             <button
               onClick={tutupSidebar}
-              className="rounded-lg p-1.5 text-white/80 transition-colors hover:bg-white/10 hover:text-white lg:hidden"
+              className="rounded-lg p-1.5 text-white/80 transition-colors hover:bg-white/10 hover:text-white md:hidden"
               aria-label="Tutup menu"
             >
               <Icon name="close" />

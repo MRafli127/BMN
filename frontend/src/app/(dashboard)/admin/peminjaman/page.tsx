@@ -5,7 +5,7 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
-import { ChevronLeft, ChevronRight, ClipboardList, Trash2, X, CheckCheck, List, FolderTree, PackageCheck, Undo2 } from 'lucide-react';
+import { ChevronLeft, ChevronRight, ClipboardList, Trash2, X, CheckCheck, List, FolderTree, PackageCheck, Undo2, Upload } from 'lucide-react';
 import { Icon } from '@/components/ui/icon';
 import { Input, Select, Textarea, Label } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -216,6 +216,15 @@ export default function AdminPeminjamanPage() {
                 </option>
               ))}
             </Select>
+            <Select
+              value={filter.importMode || ''}
+              onChange={(e) => setFilter((f) => ({ ...f, importMode: (e.target.value || undefined) as never, page: 1 }))}
+              className="flex-1"
+            >
+              <option value="">Semua Asal Data</option>
+              <option value="import">Hasil Import</option>
+              <option value="manual">Input Manual</option>
+            </Select>
 
             {/* Switch tampilan: list ↔ folder (folder dikelompokkan per peminjam) */}
             <button
@@ -253,6 +262,21 @@ export default function AdminPeminjamanPage() {
               </span>
             </button>
           </div>
+        </div>
+
+        {/* Legenda: perbedaan data import (tanpa surat) vs manual (ada surat) */}
+        <div className="flex flex-wrap items-center gap-4 border-b border-outline-variant bg-muted/20 px-stack-md py-2 text-xs text-muted-foreground">
+          <span className="flex items-center gap-1.5">
+            <span className="inline-flex items-center gap-0.5 rounded-full bg-violet-100 px-1.5 py-0.5 font-medium text-violet-700 dark:bg-violet-900/30 dark:text-violet-300">
+              <Upload className="h-3 w-3" />
+              Import
+            </span>
+            = Data migrasi (tanpa surat pernyataan)
+          </span>
+          <span className="flex items-center gap-1.5">
+            <span className="h-2 w-2 rounded-full bg-outline-variant" />
+            = Input manual (ada surat pernyataan)
+          </span>
         </div>
 
         {/* Bilah aksi massal — muncul saat ada baris terpilih */}

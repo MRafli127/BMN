@@ -83,6 +83,17 @@ export const OPSI_KONDISI = Object.entries(KONDISI_BARANG).map(([value, info]) =
   value,
   label: info.label,
 }));
+// Opsi untuk dropdown filter - berdasarkan kode barang
+export const OPSI_FILTER_BARANG = [
+  { value: '015110199411868000KP', label: '015110199411868000KP' },
+  { value: '015110199411868001KP', label: '015110199411868001KP' },
+  { value: '015110199411868002KP', label: '015110199411868002KP' },
+  { value: '015110199411868003KP', label: '015110199411868003KP' },
+  { value: '015110199411868004KP', label: '015110199411868004KP' },
+  { value: '015110199411868005KP', label: '015110199411868005KP' },
+  { value: '015110199411868006KP', label: '015110199411868006KP' },
+];
+
 // DRAFT dikecualikan dari opsi filter: hanya dipakai internal peminjam dan tidak
 // pernah tampil di daftar admin.
 export const OPSI_STATUS = Object.entries(STATUS_PEMINJAMAN)

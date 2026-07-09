@@ -8,6 +8,7 @@ const { prisma } = require('../config/database');
 const env = require('../config/env');
 const { hashPassword, bandingkanPassword } = require('../utils/hashPassword');
 const { tanpaPassword } = require('../utils/userHelper');
+const { hitungRetirementDateDariNip, validasiNip } = require('../utils/nipHelper');
 const { AppError } = require('../middleware/error.middleware');
 const logger = require('../utils/logger');
 
@@ -158,6 +159,17 @@ async function register(data) {
     throw new AppError('NIP sudah terdaftar. Periksa kembali NIP Anda.', 409);
   }
 
+  // Validasi NIP dan hitung retirement date
+  const validasi = validasiNip(data.nip);
+  if (!validasi.valid) {
+    throw new AppError(validasi.error, 400);
+  }
+
+  const retirementDate = hitungRetirementDateDariNip(data.nip);
+  if (!retirementDate) {
+    throw new AppError('Format NIP tidak valid. Pastikan tanggal lahir dalam NIP benar.', 400);
+  }
+
   const passwordHash = await hashPassword(data.password);
 
   const user = await prisma.user.create({
@@ -170,6 +182,7 @@ async function register(data) {
       eselon3: data.eselon3 || null, // form registrasi: label "Eselon III"
       roles: ['PEMINJAM'], // registrasi publik selalu peminjam
       tokenVersion: 1,
+      retirementDate,
     },
   });
 
@@ -191,6 +204,9 @@ async function login({ email, password, activeRole }) {
   if (!cocok) {
     throw new AppError('Email atau kata sandi salah.', 401);
   }
+
+  // Reset sesi user (clear invalidation dari login sebelumnya)
+  await resetUserSessions(user.id);
 
   const roleAktif = pilihActiveRole(user.roles, activeRole);
   const accessToken = buatAccessToken(user, roleAktif);
@@ -246,17 +262,32 @@ async function perbaruiProfil(userId, data, activeRole) {
     throw new AppError('NIP sudah digunakan pengguna lain.', 409);
   }
 
+  // Validasi NIP & hitung ulang retirementDate jika NIP diubah
+  let retirementDate = pengguna.retirementDate;
+  if (data.nip && data.nip !== pengguna.nip) {
+    const validasi = validasiNip(data.nip);
+    if (!validasi.valid) {
+      throw new AppError(validasi.error, 400);
+    }
+    const tanggalPensiun = hitungRetirementDateDariNip(data.nip);
+    if (!tanggalPensiun) {
+      throw new AppError('Format NIP tidak valid. Pastikan tanggal lahir dalam NIP benar.', 400);
+    }
+    retirementDate = tanggalPensiun;
+  }
+
   const user = await prisma.user.update({
     where: { id: userId },
     data: {
       nama: data.nama,
       nip: data.nip,
       email: data.email,
-      jabatan: data.jabatan ? data.jabatan : null, //     "Jabatan"
-      unitKerja: data.unitKerja ? data.unitKerja : null, // "Unit Kerja"
-      eselon2: data.eselon2 ? data.eselon2 : null, //     "Eselon II"
-      eselon3: data.eselon3 ? data.eselon3 : null, //     "Eselon III"
-      eselon4: data.eselon4 ? data.eselon4 : null, //     "Eselon IV"
+      jabatan: data.jabatan ? data.jabatan : null,
+      unitKerja: data.unitKerja ? data.unitKerja : null,
+      eselon2: data.eselon2 ? data.eselon2 : null,
+      eselon3: data.eselon3 ? data.eselon3 : null,
+      eselon4: data.eselon4 ? data.eselon4 : null,
+      retirementDate,
     },
   });
 
@@ -357,6 +388,83 @@ async function validateAccessTokenWithVersion(payload) {
   return { valid: true, user };
 }
 
+// Inactivity timeout dalam milidetik (15 menit)
+const INACTIVITY_TIMEOUT_MS = 15 * 60 * 1000;
+
+// --- Validasi sesi: cek apakah sesi valid (belum di-invalidate & masih aktif) ---
+// Dipanggil oleh auth middleware pada setiap request terproteksi
+async function validateSession(userId, jti) {
+  // Cek apakah user ada dan apakah sesi sudah di-invalidate
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: {
+      sessionInvalidatedAt: true,
+      lastActivityAt: true,
+    },
+  });
+
+  if (!user) {
+    return { valid: false, reason: 'USER_NOT_FOUND' };
+  }
+
+  // Jika sesi di-invalidate (tab ditutup / logout paksa), tolak
+  // Bandingkan dengan timestamp token jika ada (jti timestamp)
+  if (user.sessionInvalidatedAt) {
+    return { valid: false, reason: 'SESSION_INVALIDATED' };
+  }
+
+  // Cek apakah user sudah tidak aktif lebih dari 15 menit
+  // Jika lastActivityAt null, berarti user login baru dan belum ada aktivitas tercatat
+  if (user.lastActivityAt) {
+    const lastActivityMs = new Date(user.lastActivityAt).getTime();
+    const nowMs = Date.now();
+    if (nowMs - lastActivityMs > INACTIVITY_TIMEOUT_MS) {
+      return { valid: false, reason: 'INACTIVITY_TIMEOUT' };
+    }
+  }
+
+  return { valid: true };
+}
+
+// --- Update last activity timestamp ---
+// Dipanggil oleh auth middleware pada setiap request terproteksi
+// Menggunakan jti sebagai identifier tambahan untuk konsistensi
+async function updateLastActivity(userId, jti) {
+  await prisma.user.update({
+    where: { id: userId },
+    data: {
+      lastActivityAt: new Date(),
+    },
+  });
+  logger.info(`[AUTH] Updated last activity for user ${userId}, jti: ${jti}`);
+}
+
+// --- Invalidate semua sesi user (dipanggil saat logout atau tab close) ---
+// Ini akan menolak semua request baru dari user ini
+async function invalidateUserSessions(userId) {
+  await prisma.user.update({
+    where: { id: userId },
+    data: {
+      sessionInvalidatedAt: new Date(),
+      lastActivityAt: null, // Reset aktivitas
+    },
+  });
+  logger.info(`[AUTH] Invalidated all sessions for user ${userId}`);
+}
+
+// --- Reset sesi user (dipanggil saat login baru) ---
+// Ini mengaktifkan ulang sesi user setelah invalidasi sebelumnya
+async function resetUserSessions(userId) {
+  await prisma.user.update({
+    where: { id: userId },
+    data: {
+      sessionInvalidatedAt: null,
+      lastActivityAt: new Date(),
+    },
+  });
+  logger.info(`[AUTH] Reset sessions for user ${userId}`);
+}
+
 module.exports = {
   register,
   login,
@@ -368,6 +476,10 @@ module.exports = {
   blacklistToken,
   isTokenBlacklisted,
   validateAccessTokenWithVersion,
+  validateSession,
+  updateLastActivity,
+  invalidateUserSessions,
+  resetUserSessions,
   buatAccessToken,
   buatRefreshToken,
   pilihActiveRole,

@@ -8,8 +8,22 @@ const { asyncHandler, AppError } = require('../middleware/error.middleware');
 
 const importExcel = asyncHandler(async (req, res) => {
   if (!req.file) throw new AppError('File belum diunggah.', 400);
-  const hasil = await peminjamImportService.importDariExcel(req.file.buffer);
-  return responsSukses(res, { pesan: 'Sinkronisasi data peminjam selesai diproses.', data: hasil });
+
+  // Ambil info user dari auth middleware
+  const user = req.user;
+  const namaFile = req.file.originalname || 'file-import.xlsx';
+
+  const hasil = await peminjamImportService.importDariExcel(req.file.buffer, {
+    userId: user.id,
+    userEmail: user.email,
+    userNama: user.nama,
+    namaFile,
+  });
+
+  return responsSukses(res, {
+    pesan: 'Sinkronisasi data peminjam selesai diproses.',
+    data: hasil
+  });
 });
 
 const unduhTemplate = asyncHandler(async (req, res) => {

@@ -2,39 +2,41 @@
 //  Daftar barang admin dalam bentuk folder per merk.
 //  Setiap merk yang sama menjadi satu folder; saat dibuka,
 //  menampilkan tiap unit beserta kode barang dan NUP-nya.
+//  Responsive: Card view di mobile dengan swipe actions.
+//  Compact mobile design dengan touch targets 44px.
 // ============================================================
 
 'use client';
 
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import Link from 'next/link';
-import { Folder, FolderOpen, ChevronDown, Eye, Trash2, Package } from 'lucide-react';
+import { Folder, FolderOpen, ChevronDown, Eye, Trash2, Package, Info } from 'lucide-react';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { KonfirmasiDialog } from '@/components/shared/KonfirmasiDialog';
+import { SwipeableRow, SwipeableList } from '@/components/ui/swipeable';
+import { ConfirmationSheet } from '@/components/ui/bottom-sheet';
 import { cn, urlFile } from '@/lib/utils';
 import { JENIS_BARANG, KONDISI_BARANG } from '@/constants/status';
 import { RUTE } from '@/constants/routes';
+import { useIsMobile } from '@/hooks/useIsMobile';
 import type { Barang } from '@/types/barang.type';
 
 export interface GrupMerk {
-  merk: string; // nama folder (merk), atau "Tanpa Merk" bila kosong
+  merk: string;
   items: Barang[];
   totalUnit: number;
   totalStok: number;
   totalTersedia: number;
 }
 
-// Kelompokkan daftar barang menjadi folder berdasarkan merk yang sama.
-// Perbedaan huruf besar/kecil dan spasi berlebih diabaikan agar merk yang
-// sama (mis. "Hp Probook 430 G7" vs "HP Probook 430 G7") tetap satu folder.
 export function kelompokkanPerMerk(data: Barang[]): GrupMerk[] {
   const peta = new Map<string, { items: Barang[]; jumlahLabel: Map<string, number> }>();
 
   for (const barang of data) {
     const asli = barang.merk?.trim() || 'Tanpa Merk';
-    const kunci = asli.toLowerCase().replace(/\s+/g, ' '); // kunci ternormalisasi
+    const kunci = asli.toLowerCase().replace(/\s+/g, ' ');
     let grup = peta.get(kunci);
     if (!grup) {
       grup = { items: [], jumlahLabel: new Map() };
@@ -45,7 +47,6 @@ export function kelompokkanPerMerk(data: Barang[]): GrupMerk[] {
   }
 
   return Array.from(peta.values(), ({ items, jumlahLabel }) => {
-    // Pakai variasi penulisan merk yang paling sering muncul sebagai nama folder.
     let merk = 'Tanpa Merk';
     let terbanyak = -1;
     for (const [label, jumlah] of jumlahLabel) {
@@ -73,6 +74,8 @@ export function FolderBarang({ grup, onHapus }: Props) {
   const [terbuka, setTerbuka] = useState<Set<string>>(new Set());
   const [target, setTarget] = useState<Barang | null>(null);
   const [sedangHapus, setSedangHapus] = useState(false);
+  const [showMobileConfirm, setShowMobileConfirm] = useState(false);
+  const isMobile = useIsMobile();
 
   const toggle = (merk: string) =>
     setTerbuka((lama) => {
@@ -82,7 +85,6 @@ export function FolderBarang({ grup, onHapus }: Props) {
       return baru;
     });
 
-  // Buka/tutup hanya folder yang sedang tampil; status folder di halaman lain dipertahankan.
   const semuaTerbuka = grup.length > 0 && grup.every((g) => terbuka.has(g.merk));
   const bukaTutupSemua = () =>
     setTerbuka((lama) => {
@@ -100,16 +102,153 @@ export function FolderBarang({ grup, onHapus }: Props) {
     try {
       await onHapus(target.id);
       setTarget(null);
+      setShowMobileConfirm(false);
     } catch {
-      // Error sudah ditampilkan via toast oleh parent; dialog dibiarkan terbuka.
+      // Error sudah ditampilkan via toast oleh parent
     } finally {
       setSedangHapus(false);
     }
   };
 
+  const handleDeleteClick = useCallback((barang: Barang) => {
+    setTarget(barang);
+    if (isMobile) {
+      setShowMobileConfirm(true);
+    }
+  }, [isMobile]);
+
+  // Mobile View - Instagram-like
+  if (isMobile) {
+    return (
+      <>
+        {/* Header bar */}
+        <div className="mb-2 flex items-center justify-between px-1">
+          <span className="text-xs font-medium text-gray-500">{grup.length} folder</span>
+          <button
+            onClick={bukaTutupSemua}
+            className="text-[11px] font-medium text-blue-500"
+          >
+            {semuaTerbuka ? 'Tutup' : 'Buka'}
+          </button>
+        </div>
+
+        {/* List */}
+        <SwipeableList className="gap-0">
+          {grup.map((g) => {
+            const aktif = terbuka.has(g.merk);
+            return (
+              <div key={g.merk}>
+                {/* Folder header - Instagram style */}
+                <button
+                  type="button"
+                  onClick={() => toggle(g.merk)}
+                  className={cn(
+                    'flex w-full items-center gap-2 px-1 py-2 text-left border-b border-gray-100',
+                    aktif ? 'bg-gray-50' : 'bg-white'
+                  )}
+                >
+                  <span className={cn(
+                    'flex h-8 w-8 shrink-0 items-center justify-center rounded-lg',
+                    aktif ? 'bg-blue-100 text-blue-600' : 'bg-gray-100 text-gray-500'
+                  )}>
+                    {aktif ? <FolderOpen className="h-4 w-4" /> : <Folder className="h-4 w-4" />}
+                  </span>
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-[12px] font-medium text-gray-900">{g.merk}</p>
+                    <p className="text-[10px] text-gray-400">
+                      {g.totalUnit} item
+                    </p>
+                  </div>
+                  <ChevronDown
+                    className={cn(
+                      'h-4 w-4 text-gray-400 transition-transform',
+                      aktif && 'rotate-180'
+                    )}
+                  />
+                </button>
+
+                {/* Items - compact list */}
+                {aktif && (
+                  <div className="bg-gray-50">
+                    {g.items.map((barang) => {
+                      const kondisi = KONDISI_BARANG[barang.kondisi];
+                      return (
+                        <SwipeableRow
+                          key={barang.id}
+                          actions={[
+                            {
+                              label: 'Hapus',
+                              icon: 'delete',
+                              onClick: () => handleDeleteClick(barang),
+                              variant: 'destructive',
+                            },
+                          ]}
+                        >
+                          <Link
+                            href={RUTE.adminBarangDetail(barang.id)}
+                            className="flex items-center gap-2 border-b border-gray-100 bg-white px-1 py-2"
+                          >
+                            <div className="h-10 w-10 shrink-0 overflow-hidden rounded-md bg-gray-100">
+                              {barang.fotoUrl ? (
+                                // eslint-disable-next-line @next/next/no-img-element
+                                <img src={urlFile(barang.fotoUrl)} alt={barang.nama} className="h-full w-full object-cover" />
+                              ) : (
+                                <div className="flex h-full w-full items-center justify-center text-gray-400">
+                                  <Package className="h-4 w-4" />
+                                </div>
+                              )}
+                            </div>
+                            <div className="min-w-0 flex-1">
+                              <p className="truncate text-[11px] font-medium text-gray-900">{barang.nama}</p>
+                              <p className="text-[10px] text-gray-400">{barang.kodeBarang}</p>
+                            </div>
+                            <div className="flex items-center gap-1.5">
+                              <span className={barang.jumlahTersedia > 0 ? 'text-[10px] font-medium text-green-500' : 'text-[10px] font-medium text-red-500'}>
+                                {barang.jumlahTersedia}/{barang.jumlahTotal}
+                              </span>
+                            </div>
+                          </Link>
+                        </SwipeableRow>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </SwipeableList>
+
+        {/* Confirmation Sheet */}
+        <ConfirmationSheet
+          isOpen={showMobileConfirm}
+          onClose={() => { setShowMobileConfirm(false); setTarget(null); }}
+          onConfirm={konfirmasiHapus}
+          title="Hapus Barang"
+          message={`Hapus "${target?.nama}"?`}
+          confirmLabel="Hapus"
+          cancelLabel="Batal"
+          confirmVariant="destructive"
+          isLoading={sedangHapus}
+        />
+
+        <KonfirmasiDialog
+          terbuka={!!target && !showMobileConfirm}
+          onUbahTerbuka={(o) => !o && setTarget(null)}
+          judul="Hapus Barang"
+          deskripsi={`Apakah Anda yakin ingin menghapus "${target?.nama}"? Tindakan ini tidak dapat dibatalkan.`}
+          teksKonfirmasi="Ya, Hapus"
+          variantKonfirmasi="destructive"
+          sedangProses={sedangHapus}
+          onKonfirmasi={konfirmasiHapus}
+        />
+      </>
+    );
+  }
+
+  // Desktop View
   return (
     <>
-      <div className="flex justify-end">
+      <div className="mb-3 flex justify-end">
         <Button variant="ghost" size="sm" onClick={bukaTutupSemua}>
           {semuaTerbuka ? 'Tutup semua folder' : 'Buka semua folder'}
         </Button>
@@ -151,8 +290,7 @@ export function FolderBarang({ grup, onHapus }: Props) {
                 />
               </button>
 
-              {/* Isi folder: daftar unit dengan kode & NUP.
-                  Area gulir sendiri agar isi folder bisa di-scroll terpisah dari halaman. */}
+              {/* Isi folder */}
               {aktif && (
                 <div className="border-t">
                   <Table containerClassName="max-h-[420px]">
@@ -210,7 +348,7 @@ export function FolderBarang({ grup, onHapus }: Props) {
                                     <Eye className="h-4 w-4" /> Detail
                                   </Link>
                                 </Button>
-                                <Button variant="destructive" size="icon" onClick={() => setTarget(barang)} aria-label="Hapus">
+                                <Button variant="destructive" size="icon" onClick={() => handleDeleteClick(barang)} aria-label="Hapus">
                                   <Trash2 className="h-4 w-4" />
                                 </Button>
                               </div>

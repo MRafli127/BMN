@@ -43,9 +43,21 @@ const includeLengkap = {
       eselon3: true, //   "Eselon III"
       eselon4: true, //   "Eselon IV"
       retirementDate: true, // Tanggal pensiun (untuk indikator pensiun mendekat)
+      sumber: true, // Asal akun: MANUAL atau IMPORT
     },
   },
-  admin: { select: { id: true, nama: true } },
+  admin: {
+    select: {
+      id: true,
+      nama: true,
+      nip: true,
+      jabatan: true,
+      unitKerja: true,
+      eselon2: true,
+      eselon3: true,
+      eselon4: true,
+    },
+  },
   detail: { include: { barang: true } },
 };
 
@@ -430,7 +442,7 @@ async function generateSuratPernyataan(id, { userId, role } = {}) {
 }
 
 // --- Ambil daftar peminjaman (role-aware) ---
-async function getSemua({ status, q, userId, role, page = 1, limit = 10 } = {}) {
+async function getSemua({ status, q, userId, role, page = 1, limit = 10, importMode } = {}) {
   const { halaman, perHalaman, skip } = parsePagination({ page, limit });
 
   const where = {};
@@ -457,6 +469,12 @@ async function getSemua({ status, q, userId, role, page = 1, limit = 10 } = {}) 
       { peminjam: { nama: cocok } },
       { peminjam: { nip: cocok } },
     ];
+  }
+  // Filter berdasarkan asal data: hasil import (tanpa dokumen) vs input manual (ada dokumen).
+  if (importMode === 'import') {
+    where.dokumenUrl = null;
+  } else if (importMode === 'manual') {
+    where.dokumenUrl = { not: null };
   }
 
   const [data, total] = await Promise.all([
@@ -725,7 +743,7 @@ async function tolak(id, adminId, catatan, requestInfo = {}) {
 
 // --- Tandai barang telah diserahkan/diambil (DISETUJUI -> DIPINJAM) ---
 async function serahkan(id) {
-  const p = await prisma.peminjaman.findUnique({ where: { id } });
+  const p = await prisma.peminjaman.findUnique({ where: { id }, include: includeLengkap });
   if (!p) throw new AppError('Data peminjaman tidak ditemukan.', 404);
   if (p.status !== 'DISETUJUI') {
     throw new AppError('Hanya peminjaman berstatus "Disetujui" yang dapat diserahkan.', 400);
@@ -736,6 +754,24 @@ async function serahkan(id) {
     data: { status: 'DIPINJAM' },
     include: includeLengkap,
   });
+
+  // Kirim email notifikasi ke peminjam
+  const peminjam = p.peminjam;
+  emailService.kirimStatusUpdate(updated, peminjam, 'DISETUJUI', 'DIPINJAM').catch(() => {});
+
+  // Kirim notifikasi ke peminjam bahwa barang telah diserahkan/diambil
+  const barangDipinjam = updated.detail?.[0]?.barang?.nama || 'Barang';
+  const tenggat = updated.tanggalKembaliRencana
+    ? ` dengan batas pengembalian ${new Date(updated.tanggalKembaliRencana).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}`
+    : '';
+  notificationService.kirimKeUser(peminjam.id, {
+    tipe: notificationService.TIPE_NOTIFIKASI.BARANG_DISERAHKAN,
+    judul: 'Barang Dapat Diambil',
+    pesan: `Barang ${barangDipinjam} telah siap untuk diambil.${tenggat}.`,
+    referenceId: id,
+    referenceType: 'PEMINJAMAN',
+  }).catch(() => {});
+
   return serialisasi(updated);
 }
 
@@ -900,6 +936,16 @@ async function kembalikan(id, catatan, requestInfo = {}) {
     tipe: notificationService.TIPE_NOTIFIKASI.PENGEMBALIAN,
     judul: 'Barang Dikembalikan',
     pesan: `Barang ${barangDikembalikan} telah berhasil dikembalikan.`,
+    referenceId: id,
+    referenceType: 'PEMINJAMAN',
+  }).catch(() => {});
+
+  // Kirim notifikasi ke semua admin bahwa ada barang yang dikembalikan
+  const namaPeminjam = pLama.peminjam.nama || 'Peminjam';
+  notificationService.kirimKeSemuaAdmin({
+    tipe: notificationService.TIPE_NOTIFIKASI.PENGEMBALIAN,
+    judul: 'Pengembalian Baru',
+    pesan: `${namaPeminjam} telah mengembalikan barang ${barangDikembalikan}.`,
     referenceId: id,
     referenceType: 'PEMINJAMAN',
   }).catch(() => {});

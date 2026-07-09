@@ -10,15 +10,22 @@
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Sidebar } from '@/components/layout/Sidebar';
+import { BottomNav } from '@/components/layout/BottomNav';
 import { Header } from '@/components/layout/Header';
 import { Footer } from '@/components/layout/Footer';
 import { LoadingSpinner } from '@/components/shared/LoadingSpinner';
 import { useAuth } from '@/hooks/useAuth';
+import { useSessionSecurity } from '@/hooks/useSessionSecurity';
 import { RUTE } from '@/constants/routes';
+import { useIsMobile } from '@/hooks/useIsMobile';
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const { user, sedangMemuat } = useAuth();
   const router = useRouter();
+  const isMobile = useIsMobile();
+
+  // Aktifkan keamanan sesi (tab close detection & inactivity timeout)
+  useSessionSecurity();
 
   useEffect(() => {
     if (!sedangMemuat && !user) {
@@ -74,11 +81,17 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       <Sidebar />
       <div className="flex min-w-0 flex-1 flex-col">
         <Header />
-        <main className="flex-1 p-margin-mobile sm:p-6 lg:p-margin-desktop">
+        <main className={
+          `flex-1 p-margin-mobile sm:p-6 lg:p-margin-desktop`
+          // Mobile: extra padding bottom untuk BottomNav
+          + (isMobile ? ' pb-24' : '')
+        }>
           {children}
         </main>
         <Footer />
       </div>
+      {/* Bottom Navigation untuk Mobile */}
+      <BottomNav />
     </div>
   );
 }

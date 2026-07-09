@@ -24,11 +24,28 @@ export interface DataTambahPeminjam {
   eselon4?: string; // Eselon IV
 }
 
+// Data untuk mengedit profil peminjam (tanpa password — password direset terpisah).
+export interface DataEditPeminjam {
+  nama?: string;
+  nip?: string;
+  email?: string;
+  jabatan?: string;
+  unitKerja?: string;
+  eselon2?: string;
+  eselon3?: string;
+  eselon4?: string;
+}
+
 export const userManagementService = {
   // Tambah peminjam baru secara manual (role PEMINJAM, sumber MANUAL).
   async create(data: DataTambahPeminjam): Promise<{ id: string; nama: string; nip: string; email: string }> {
     const res = await api.post('/users', data);
     return res.data.data?.user ?? res.data.data;
+  },
+
+  // Update profil peminjam (Nama, NIP, Email, Jabatan, Unit Kerja, Eselon II/III/IV).
+  async update(id: string, data: DataEditPeminjam): Promise<void> {
+    await api.patch(`/users/${id}`, data);
   },
 
   // Hapus satu user (peminjam) berdasarkan id.

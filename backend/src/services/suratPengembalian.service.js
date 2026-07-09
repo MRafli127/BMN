@@ -10,10 +10,9 @@
 //    - Halaman A4 & margin mengikuti sectPr templat.
 //    - Lebar kolom tabel mengikuti tblGrid templat.
 //
-//  Surat DIHASILKAN otomatis (on-demand) saat peminjam hendak mengembalikan
-//  barang, lalu diunduh & dicetak. Blok tanda tangan "Yang menerima BMN"
-//  (petugas BMN) memakai keterangan "Ditandatangani secara elektronik"
-//  (abu #BFBFBF) dengan jarak 7 baris untuk ruang tanda tangan, sesuai templat.
+//  ATURAN TANDA TANGAN:
+//  - Peminjam dari IMPORT → Yang menerima BMN = Petugas BMN statis (Taufan)
+//  - Peminjam dari MANUAL/registrasi → Yang menerima BMN = Admin yang ACC
 //
 //  Nomor surat memakai nomor & tahun yang sama dengan surat peminjamannya
 //  (satu transaksi = satu nomor PRN yang ditetapkan saat pengajuan dibuat),
@@ -47,6 +46,11 @@ const CONTENT_W = RIGHT_EDGE - MARGIN_L;
 const SIZE = 11;
 const SIZE_JUDUL = 12;
 const LINE = 15; // tinggi baris untuk teks 11pt (spasi tunggal + sedikit lega)
+
+// Helper: cek apakah teks adalah checkmark
+function adalahCheckmark(str) {
+  return str === '✓' || str === 'V';
+}
 
 // Nomor surat: pakai nomor tersimpan (nomorSurat/tahunSurat) bila ada.
 // Satu transaksi peminjaman memakai satu nomor PRN yang sama untuk surat
@@ -113,6 +117,47 @@ async function generate(peminjaman) {
     teks(str, kiri + (kanan - kiri - w) / 2, opt);
   };
 
+  // Gambar checkbox dengan border dan centang ✓
+  // Style: 15x15px border 1px solid #000, checkmark di tengah
+  const gambarCheckbox = (selX, selY, selW, selH) => {
+    const boxSize = 15;
+    const cx = selX + selW / 2;
+    const cy = selY + selH / 2;
+    const boxX = cx - boxSize / 2;
+    const boxY = cy - boxSize / 2;
+
+    // Kotak checkbox dengan border 1px
+    page.drawRectangle({
+      x: boxX,
+      y: boxY,
+      width: boxSize,
+      height: boxSize,
+      borderColor: rgb(0, 0, 0),
+      borderWidth: 1,
+      color: rgb(1, 1, 1),
+    });
+
+    // Checkmark ✓ di tengah kotak
+    const ckL = 4;
+    const ckR = 11;
+    const ckTop = 10;
+    const ckBot = 4;
+    const ckMid = 6;
+
+    page.drawLine({
+      start: { x: boxX + ckL, y: boxY + ckMid },
+      end: { x: boxX + ckMid, y: boxY + ckBot },
+      thickness: 1.2,
+      color: rgb(0, 0, 0),
+    });
+    page.drawLine({
+      start: { x: boxX + ckMid, y: boxY + ckBot },
+      end: { x: boxX + ckR, y: boxY + ckTop },
+      thickness: 1.2,
+      color: rgb(0, 0, 0),
+    });
+  };
+
   // Blok identitas: "label : nilai" (dengan wrap pada kolom nilai).
   const blokIdentitas = (rows) => {
     const xLabel = MARGIN_L;
@@ -173,15 +218,40 @@ async function generate(peminjaman) {
   teksTengah(nomorSurat(peminjaman), { font: fontBold, size: SIZE_JUDUL });
   y -= 28;
 
-  // ---------- Identitas penerima (petugas BMN) ----------
-  const petugas = env.petugasBmn || {};
+  // ---------- Identitas penanda tangan ----------
+  // ATURAN:
+  // - Peminjam dari IMPORT → Yang menerima BMN = Petugas BMN statis (Taufan)
+  // - Peminjam dari MANUAL/registrasi → Yang menerima BMN = Admin yang ACC
+  const peminjam = peminjaman.peminjam;
+  const adalahImport = peminjam?.sumber === 'IMPORT';
+
+  let penandaTangan;
+  if (adalahImport) {
+    // Data import → tandatangan petugas BMN statis
+    const pb = env.petugasBmn || {};
+    penandaTangan = {
+      nama: pb.nama || 'Taufan Sukma Nugraha',
+      nip: pb.nip || '198605132007011001',
+      unitKerja: pb.unitKerja || 'Sekretariat BPPK',
+      bagian: pb.bagian || 'Umum',
+    };
+  } else {
+    // Data manual/registrasi → tandatangan admin yang ACC
+    const admin = peminjaman.admin;
+    penandaTangan = {
+      nama: admin?.nama || '-',
+      nip: admin?.nip || '-',
+      unitKerja: admin?.unitKerja || admin?.eselon3 || '-',
+      bagian: admin?.jabatan || admin?.eselon4 || '-',
+    };
+  }
   teks('Yang bertandatangan di bawah ini:', MARGIN_L);
   y -= 20;
   blokIdentitas([
-    ['nama', petugas.nama || '-'],
-    ['NIP', petugas.nip || '-'],
-    ['unit kerja', petugas.unitKerja || '-'],
-    ['bagian', petugas.bagian || '-'],
+    ['nama', penandaTangan.nama],
+    ['NIP', penandaTangan.nip],
+    ['unit kerja', penandaTangan.unitKerja],
+    ['bagian', penandaTangan.bagian],
   ]);
   y -= 4;
 
@@ -223,7 +293,7 @@ async function generate(peminjaman) {
       nup: String(b.kodeBarang || '').split('-').pop() || '-',
       jumlah: String(d.jumlahPinjam ?? '-'),
       kondisi: LABEL_KONDISI[b.kondisi] || b.kondisi || '-',
-      join: '',
+      join: '✓',
     };
   });
 
@@ -248,10 +318,15 @@ async function generate(peminjaman) {
       });
       const lines = selBaris[idx];
       lines.forEach((ln, li) => {
-        const tw = f.widthOfTextAtSize(ln, sizeTabel);
-        let tx = x + padX;
-        if (c.align === 'center') tx = x + (c.w - tw) / 2;
-        page.drawText(ln, { x: tx, y: yAtas - padY - sizeTabel - li * lineH, size: sizeTabel, font: f, color: hitam });
+        // Jika checkmark, gambar checkbox dengan border dan centang
+        if (c.key === 'join' && ln === '✓') {
+          gambarCheckbox(x, yAtas - tinggi, c.w, tinggi);
+        } else {
+          const tw = f.widthOfTextAtSize(ln, sizeTabel);
+          let tx = x + padX;
+          if (c.align === 'center') tx = x + (c.w - tw) / 2;
+          page.drawText(ln, { x: tx, y: yAtas - padY - sizeTabel - li * lineH, size: sizeTabel, font: f, color: hitam });
+        }
       });
       x += c.w;
     });
@@ -286,19 +361,19 @@ async function generate(peminjaman) {
   // ---------- Blok tanda tangan (kanan) ----------
   // Sesuai templat: "Jakarta, <tanggal hari ini>" / "Yang menerima BMN," /
   // (7 baris kosong untuk ruang tanda tangan) / "Ditandatangani secara
-  // elektronik" (abu #BFBFBF) / Nama & NIP penerima BMN.
+  // elektronik" (abu #BFBFBF) / Nama & NIP admin yang ACC.
   pastikanRuang(LINE * 12);
-  const blokKiri = RIGHT_EDGE - 210;
-  teks(`Jakarta, ${formatTanggalSaja(new Date())}`, blokKiri);
+  const blokKanan = RIGHT_EDGE - 210;
+  teks(`Jakarta, ${formatTanggalSaja(new Date())}`, blokKanan);
   y -= LINE;
-  teks('Yang menerima BMN,', blokKiri);
+  teks('Yang menerima BMN,', blokKanan);
   y -= LINE; //     pindah ke baris berikutnya
   y -= LINE * 7; // 7 baris kosong (ruang tanda tangan) sebelum keterangan elektronik
-  teks('Ditandatangani secara elektronik ', blokKiri, { color: abuTtd });
+  teks('Ditandatangani secara elektronik ', blokKanan, { color: abuTtd });
   y -= LINE;
-  teks(petugas.nama || 'Petugas BMN', blokKiri);
+  teks(penandaTangan.nama, blokKanan);
   y -= LINE;
-  teks(`NIP ${petugas.nip || '-'}`, blokKiri);
+  teks(`NIP ${penandaTangan.nip}`, blokKanan);
 
   const bytes = await pdf.save();
   return bufferKeDataUrl(Buffer.from(bytes), 'application/pdf');

@@ -5,7 +5,7 @@
 export function Footer() {
   const tahun = new Date().getFullYear();
   return (
-    <footer className="border-t border-outline-variant bg-surface-container-low px-margin-mobile py-stack-md md:px-margin-desktop">
+    <footer className="border-t border-outline-variant bg-surface-container-low px-margin-mobile py-stack-md md:px-margin-desktop pb-safe md:pb-0">
       <div className="mx-auto flex max-w-container-max flex-col items-center justify-between gap-2 text-center md:flex-row md:text-left">
         <p className="font-label-sm text-on-surface-variant">
           © {tahun} <span className="font-bold text-primary">SIPP-BMN</span> — Kementerian Keuangan RI.

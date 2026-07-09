@@ -6,7 +6,7 @@
 
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, useCallback } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Icon } from '@/components/ui/icon';
@@ -15,9 +15,11 @@ import { NotificationDropdown } from './NotificationDropdown';
 import { useUIStore } from '@/store/uiStore';
 import { useAuth } from '@/hooks/useAuth';
 import { useNotificationStore } from '@/store/notificationStore';
+import { useIsMobile } from '@/hooks/useIsMobile';
 import { inisial, ambilPesanError } from '@/lib/utils';
 import { notify } from '@/components/ui/toast';
 import { RUTE, RUTE_DEFAULT } from '@/constants/routes';
+import { searchService } from '@/services/search.service';
 import type { Role } from '@/types/user.type';
 
 // Label peran untuk tampilan.
@@ -30,11 +32,63 @@ export function Header() {
   const jumlahBelumBaca = notifikasiStore.jumlahBelumBaca ?? 0;
   const init = notifikasiStore.init;
   const router = useRouter();
+  const isMobile = useIsMobile();
 
   const [menuBuka, setMenuBuka] = useState(false);
   const [notifikasiBuka, setNotifikasiBuka] = useState(false);
+  const [searchTerbuka, setSearchTerbuka] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchHasil, setSearchHasil] = useState<{
+    barang: Array<{ id: string; nama: string; kodeBarang: string }>;
+    peminjaman: Array<{ id: string; kodePeminjaman: string }>;
+  } | null>(null);
+  const [sedangCari, setSedangCari] = useState(false);
+
   const menuRef = useRef<HTMLDivElement>(null);
   const notifikasiRef = useRef<HTMLDivElement>(null);
+  const searchInputRef = useRef<HTMLInputElement>(null);
+  const searchTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Focus search input when opened on mobile
+  useEffect(() => {
+    if (searchTerbuka && searchInputRef.current) {
+      searchInputRef.current.focus();
+    }
+  }, [searchTerbuka]);
+
+  // Search handler with debounce
+  const tanganiSearch = useCallback(async (query: string) => {
+    setSearchQuery(query);
+
+    if (searchTimeoutRef.current) {
+      clearTimeout(searchTimeoutRef.current);
+    }
+
+    if (query.trim().length < 2) {
+      setSearchHasil(null);
+      return;
+    }
+
+    searchTimeoutRef.current = setTimeout(async () => {
+      setSedangCari(true);
+      try {
+        const hasil = await searchService.cari(query);
+        setSearchHasil(hasil);
+      } catch {
+        setSearchHasil(null);
+      } finally {
+        setSedangCari(false);
+      }
+    }, 300);
+  }, []);
+
+  // Navigate to search result
+  const navigasiSearch = (href: string) => {
+    setSearchTerbuka(false);
+    setSearchQuery('');
+    setSearchHasil(null);
+    router.push(href);
+  };
 
   // Inisialisasi notifikasi saat mount
   useEffect(() => {
@@ -77,11 +131,11 @@ export function Header() {
   };
 
   return (
-    <header className="sticky top-0 z-20 flex h-16 items-center justify-between gap-4 border-b border-white/20 bg-white/80 px-4 shadow-sm backdrop-blur-md supports-[backdrop-filter]:bg-white/70 sm:px-6">
+    <header className="sticky top-0 z-20 flex h-16 items-center justify-between gap-4 border-b border-white/20 bg-white/80 px-4 shadow-sm backdrop-blur-md supports-[backdrop-filter]:bg-white/70 md:px-6">
       <div className="flex items-center gap-3">
         <button
           onClick={bukaSidebar}
-          className="-ml-1 rounded-lg p-2 text-primary transition-all hover:bg-primary/5 active:scale-90 lg:hidden"
+          className="-ml-1 rounded-lg p-2 text-primary transition-all hover:bg-primary/5 active:scale-90 md:hidden"
           aria-label="Buka menu"
         >
           <Icon name="menu" />
@@ -89,19 +143,28 @@ export function Header() {
         <JamRealtime className="hidden sm:flex" />
       </div>
 
-      <div className="flex items-center gap-4 sm:gap-6">
-        {/* Pencarian */}
-        <div className="relative hidden md:block">
+      <div className="flex items-center gap-4 md:gap-6">
+        {/* Pencarian — Desktop: inline input */}
+        <div className="relative hidden lg:block">
           <input
             type="text"
             placeholder="Cari data aset..."
-            className="w-56 rounded-full border-none bg-surface-container-low px-5 py-2 font-body-md text-sm transition-all focus:outline-none focus:ring-2 focus:ring-primary/20 lg:w-64"
+            className="w-56 rounded-full border-none bg-surface-container-low px-5 py-2 font-body-md text-sm transition-all focus:outline-none focus:ring-2 focus:ring-primary/20 xl:w-64"
           />
           <Icon
             name="search"
             className="absolute right-3 top-1/2 -translate-y-1/2 text-on-surface-variant"
           />
         </div>
+
+        {/* Pencarian — Mobile: icon button */}
+        <button
+          onClick={() => setSearchTerbuka(true)}
+          className="flex items-center justify-center rounded-full p-2 text-on-surface-variant transition-all hover:bg-primary/5 lg:hidden"
+          aria-label="Cari"
+        >
+          <Icon name="search" />
+        </button>
 
         {/* Notifikasi & pengaturan */}
         <div className="hidden items-center gap-1 sm:flex">
@@ -231,6 +294,102 @@ export function Header() {
           )}
         </div>
       </div>
+
+      {/* Mobile Search Overlay */}
+      {searchTerbuka && isMobile && (
+        <div className="fixed inset-0 z-50 flex flex-col bg-white md:hidden">
+          {/* Search Header */}
+          <div className="flex items-center gap-2 border-b p-4">
+            <button
+              onClick={() => {
+                setSearchTerbuka(false);
+                setSearchQuery('');
+                setSearchHasil(null);
+              }}
+              className="rounded-lg p-2 text-on-surface-variant hover:bg-surface-container-high"
+              aria-label="Tutup pencarian"
+            >
+              <Icon name="arrow_back" />
+            </button>
+            <div className="relative flex-1">
+              <input
+                ref={searchInputRef}
+                type="text"
+                value={searchQuery}
+                onChange={(e) => tanganiSearch(e.target.value)}
+                placeholder="Cari barang, peminjaman..."
+                className="w-full rounded-full border border-outline-variant bg-surface-container-low py-3 pl-4 pr-10 text-base focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
+                autoComplete="off"
+              />
+              {sedangCari && (
+                <Icon name="progress_activity" className="absolute right-4 top-1/2 -translate-y-1/2 animate-spin text-primary" />
+              )}
+            </div>
+          </div>
+
+          {/* Search Results */}
+          <div className="flex-1 overflow-y-auto p-4">
+            {!searchQuery || searchQuery.length < 2 ? (
+              <div className="flex flex-col items-center justify-center py-12 text-center text-muted-foreground">
+                <Icon name="search" className="mb-3 text-5xl opacity-30" />
+                <p className="text-sm">Ketik minimal 2 karakter untuk mencari</p>
+              </div>
+            ) : searchHasil && (searchHasil.barang.length > 0 || searchHasil.peminjaman.length > 0) ? (
+              <div className="space-y-4">
+                {/* Barang */}
+                {searchHasil.barang.length > 0 && (
+                  <div>
+                    <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                      Barang ({searchHasil.barang.length})
+                    </p>
+                    {searchHasil.barang.map((item) => (
+                      <button
+                        key={item.id}
+                        onClick={() => navigasiSearch(RUTE.adminBarangDetail(item.id))}
+                        className="mb-2 flex w-full items-center gap-3 rounded-lg bg-surface-container-low p-3 text-left transition-colors hover:bg-surface-container-high"
+                      >
+                        <Icon name="inventory_2" className="text-primary" />
+                        <div className="min-w-0 flex-1">
+                          <p className="truncate font-medium text-on-surface">{item.nama}</p>
+                          <p className="truncate text-xs text-muted-foreground">{item.kodeBarang}</p>
+                        </div>
+                        <Icon name="chevron_right" className="text-muted-foreground" />
+                      </button>
+                    ))}
+                  </div>
+                )}
+
+                {/* Peminjaman */}
+                {searchHasil.peminjaman.length > 0 && (
+                  <div>
+                    <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                      Peminjaman ({searchHasil.peminjaman.length})
+                    </p>
+                    {searchHasil.peminjaman.map((item) => (
+                      <button
+                        key={item.id}
+                        onClick={() => navigasiSearch(RUTE.adminPeminjamanDetail(item.id))}
+                        className="mb-2 flex w-full items-center gap-3 rounded-lg bg-surface-container-low p-3 text-left transition-colors hover:bg-surface-container-high"
+                      >
+                        <Icon name="sync_alt" className="text-secondary" />
+                        <div className="min-w-0 flex-1">
+                          <p className="truncate font-medium text-on-surface">{item.kodePeminjaman}</p>
+                        </div>
+                        <Icon name="chevron_right" className="text-muted-foreground" />
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div className="flex flex-col items-center justify-center py-12 text-center text-muted-foreground">
+                <Icon name="search_off" className="mb-3 text-5xl opacity-30" />
+                <p className="text-sm">Tidak ada hasil untuk &quot;{searchQuery}&quot;</p>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </header>
   );
 }

@@ -2,19 +2,21 @@
 //  Tabel daftar peminjaman (dipakai admin & peminjam).
 //  Mendukung pilihan baris (checkbox) untuk hapus massal — aktif
 //  hanya bila prop onUbahTerpilih diberikan (khusus admin).
+//  Responsive: Tabel di desktop, Card view di mobile.
 // ============================================================
 
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
-import { Eye, Trash2, AlertTriangle } from 'lucide-react';
+import { Eye, Trash2, AlertTriangle, Upload } from 'lucide-react';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { KonfirmasiDialog } from '@/components/shared/KonfirmasiDialog';
 import { formatTanggal, cn } from '@/lib/utils';
 import { STATUS_PEMINJAMAN } from '@/constants/status';
+import { useIsMobile } from '@/hooks/useIsMobile';
 import type { Peminjaman } from '@/types/peminjaman.type';
 
 interface Props {
@@ -119,6 +121,7 @@ export function TabelPeminjaman({
 }: Props) {
   const [target, setTarget] = useState<Peminjaman | null>(null);
   const [sedangHapus, setSedangHapus] = useState(false);
+  const isMobile = useIsMobile();
 
   const konfirmasiHapus = async () => {
     if (!target || !onHapus) return;
@@ -162,6 +165,82 @@ export function TabelPeminjaman({
   const jumlahKolom =
     (pilihAktif ? 1 : 0) + (tampilkanPeminjam ? 1 : 0) + (tampilkanMerk ? 1 : 0) + 6; // kode, barang, 2 tanggal, status, aksi
 
+  // Mobile View - Instagram-like
+  if (isMobile) {
+    return (
+      <>
+        <div className="-mx-1">
+          {data.map((p) => {
+            const status = STATUS_PEMINJAMAN[p.status];
+            const infoPensiun = hitungInfoPensiun(p.peminjam?.retirementDate);
+            return (
+              <Link
+                key={p.id}
+                href={hrefDetail(p.id)}
+                className={cn(
+                  'flex items-center gap-2 border-b border-gray-100 bg-white px-1 py-3',
+                  infoPensiun.isDanger && 'bg-red-50/50',
+                  !infoPensiun.isDanger && infoPensiun.isWarning && 'bg-amber-50/50'
+                )}
+              >
+                {/* Icon */}
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-gray-100">
+                  <span className="text-[11px] font-medium text-gray-500">{p.kodePeminjaman.slice(-4)}</span>
+                </div>
+
+                {/* Info */}
+                <div className="min-w-0 flex-1">
+                  <p className="text-[12px] font-medium text-gray-900">{p.kodePeminjaman}</p>
+                  <div className="flex items-center gap-1 text-[10px] text-gray-400">
+                    {tampilkanPeminjam && p.peminjam?.nama && (
+                      <span>{p.peminjam.nama}</span>
+                    )}
+                    <span>•</span>
+                    <span>{formatTanggal(p.tanggalPinjamRencana)}</span>
+                  </div>
+                </div>
+
+                {/* Status */}
+                <div className="flex items-center gap-1.5">
+                  <span className={'text-[9px] px-1.5 py-0.5 rounded ' + status.kelas}>
+                    {status.label}
+                  </span>
+                  {infoPensiun.isWarning && (
+                    <span className={cn(
+                      'text-[9px] px-1 py-0.5 rounded',
+                      infoPensiun.isDanger ? 'bg-red-100 text-red-600' : 'bg-amber-100 text-amber-600'
+                    )}>
+                      {infoPensiun.sisaHari}d
+                    </span>
+                  )}
+                </div>
+              </Link>
+            );
+          })}
+
+          {data.length === 0 && (
+            <div className="border-t border-gray-100 bg-white p-8 text-center">
+              <p className="text-[11px] text-gray-400">Tidak ada data peminjaman.</p>
+            </div>
+          )}
+        </div>
+
+        {onHapus && (
+          <KonfirmasiDialog
+            terbuka={!!target}
+            onUbahTerbuka={(o) => !o && setTarget(null)}
+            judul="Hapus Peminjaman"
+            deskripsi={`Hapus data peminjaman "${target ? kodePeminjamanRingkas(target) : ''}"? Jika barang masih dipinjam, stok akan dikembalikan otomatis. Tindakan ini tidak dapat dibatalkan.`}
+            teksKonfirmasi="Ya, Hapus"
+            variantKonfirmasi="destructive"
+            sedangProses={sedangHapus}
+            onKonfirmasi={konfirmasiHapus}
+          />
+        )}
+      </>
+    );
+  }
+
   return (
     <>
       <div className="rounded-xl border bg-card">
@@ -198,7 +277,7 @@ export function TabelPeminjaman({
                   : '-';
               const merkBarang = p.detail?.[0]?.barang?.merk || '-';
               return (
-                <TableRow className={cn(
+                <TableRow key={p.id} className={cn(
                   dipilih ? 'bg-primary/5' : undefined,
                   // Row berwarna merah/kuning jika peminjam mendekati pensiun
                   hitungInfoPensiun(p.peminjam?.retirementDate).isDanger && 'border-l-4 border-l-error bg-error/5',
@@ -213,8 +292,18 @@ export function TabelPeminjaman({
                   {tampilkanPeminjam && (
                     <TableCell>
                       <p className="font-medium text-foreground">{p.peminjam?.nama ?? '-'}</p>
-                      <div className="flex items-center gap-1.5">
+                      <div className="flex flex-wrap items-center gap-1.5">
                         <p className="text-xs text-muted-foreground">{p.peminjam?.eselon3 ?? ''}</p>
+                        {/* Indikator Surat: tidak ada surat = hasil import (migrasi data) */}
+                        {!p.adaDokumen && (
+                          <span
+                            className="inline-flex items-center gap-0.5 rounded-full bg-violet-100 px-1.5 py-0.5 text-xs font-medium text-violet-700 dark:bg-violet-900/30 dark:text-violet-300"
+                            title="Data migrasi: tidak ada surat pernyataan peminjaman"
+                          >
+                            <Upload className="h-3 w-3" />
+                            Import
+                          </span>
+                        )}
                         {/* Indikator Pensiun */}
                         {(() => {
                           const info = hitungInfoPensiun(p.peminjam?.retirementDate);

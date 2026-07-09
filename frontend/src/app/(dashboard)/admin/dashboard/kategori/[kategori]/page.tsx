@@ -18,7 +18,7 @@ import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@
 import { notify } from '@/components/ui/toast';
 import { urlFile, ambilPesanError } from '@/lib/utils';
 import { JENIS_BARANG, KONDISI_BARANG } from '@/constants/status';
-import { dashboardService, type KategoriDashboard, type ResponseKategori } from '@/services/dashboard.service';
+import { dashboardService, type KategoriDashboard, type ResponseKategori, type FilterRole } from '@/services/dashboard.service';
 import { userManagementService } from '@/services/userManagement.service';
 import { useQuery, invalidasiCache } from '@/lib/cache';
 import { RUTE } from '@/constants/routes';
@@ -44,6 +44,7 @@ export default function KategoriDashboardPage() {
   const [limit, setLimit] = useState(10);
   const [cari, setCari] = useState('');
   const [cariDebounced, setCariDebounced] = useState('');
+  const [filterRole, setFilterRole] = useState<FilterRole>('');
 
   // State fitur hapus peminjam (mengikuti pola Manajemen Peminjaman): hapus
   // per-baris ditangani di dalam tabel, hapus massal lewat seleksi checkbox.
@@ -64,16 +65,16 @@ export default function KategoriDashboardPage() {
   // Kembali ke halaman 1 saat filter/ukuran data berubah.
   useEffect(() => {
     setHalaman(1);
-  }, [cariDebounced, limit, kategori]);
+  }, [cariDebounced, limit, filterRole, kategori]);
 
   const qCari = adalahPeminjam ? cariDebounced : '';
   const key = useMemo(
-    () => `kategori:${kategori}:${halaman}:${limit}:${qCari}`,
-    [kategori, halaman, limit, qCari]
+    () => `kategori:${kategori}:${halaman}:${limit}:${qCari}:${filterRole}`,
+    [kategori, halaman, limit, qCari, filterRole]
   );
   const { data, sedangMemuat: memuat, error, refetch } = useQuery<ResponseKategori>(
     key,
-    () => dashboardService.ambilKategori(kategori, halaman, limit, qCari)
+    () => dashboardService.ambilKategori(kategori, halaman, limit, qCari, filterRole)
   );
 
   // Gagal memuat → kembali ke dashboard.
@@ -163,7 +164,7 @@ export default function KategoriDashboardPage() {
         )}
       </section>
 
-      {/* Toolbar pencarian & ukuran halaman (khusus daftar peminjam) */}
+      {/* Toolbar pencarian, filter peran, & ukuran halaman (khusus daftar peminjam) */}
       {adalahPeminjam && (
         <section className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div className="relative w-full sm:max-w-md">
@@ -179,7 +180,17 @@ export default function KategoriDashboardPage() {
               className="w-full rounded-xl border border-outline-variant bg-white py-2.5 pl-10 pr-4 text-sm outline-none transition-all focus:border-primary focus:ring-2 focus:ring-primary/20"
             />
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
+            {/* Filter peran */}
+            <select
+              value={filterRole}
+              onChange={(e) => setFilterRole(e.target.value as FilterRole)}
+              className="rounded-xl border border-outline-variant bg-white px-3 py-2.5 text-sm outline-none transition-all focus:border-primary focus:ring-2 focus:ring-primary/20"
+            >
+              <option value="">Semua Peran</option>
+              <option value="ADMIN">Admin</option>
+              <option value="NON_ADMIN">Non Admin</option>
+            </select>
             <label htmlFor="ukuran-halaman" className="shrink-0 text-sm text-on-surface-variant">
               Tampilkan
             </label>
@@ -208,6 +219,11 @@ export default function KategoriDashboardPage() {
             {adalahPeminjam && cariDebounced && (
               <>
                 {' '}untuk pencarian &ldquo;<span className="font-semibold">{cariDebounced}</span>&rdquo;
+              </>
+            )}
+            {adalahPeminjam && filterRole && (
+              <>
+                {' '}&mdash; filter: <span className="font-semibold">{filterRole === 'ADMIN' ? 'Admin' : 'Non Admin'}</span>
               </>
             )}
           </p>
@@ -299,6 +315,7 @@ export default function KategoriDashboardPage() {
             terpilih={terpilih}
             onUbahTerpilih={setTerpilih}
             onUbahRole={ubahRole}
+            onEdit={segarkanData}
           />
         </div>
       ) : (

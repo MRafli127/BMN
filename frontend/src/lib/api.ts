@@ -6,8 +6,21 @@
 
 import axios, { AxiosError, type InternalAxiosRequestConfig } from 'axios';
 import { ambilToken, simpanToken, simpanUser, bersihkanSesi } from './auth';
+import toast from 'react-hot-toast';
 
 const BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
+
+// Pesan error yang menunjukkan sesi invalid
+const PESAN_SESI_INVALID = [
+  'Sesi Anda telah berakhir',
+  'sesi tidak valid',
+  'sudah tidak aktif',
+  'tab lain telah login',
+];
+
+function adalahPesanSesiInvalid(pesan: string): boolean {
+  return PESAN_SESI_INVALID.some(p => pesan.toLowerCase().includes(p.toLowerCase()));
+}
 
 export const api = axios.create({
   baseURL: BASE_URL,
@@ -54,6 +67,19 @@ function prosesAntrian(token: string | null) {
   antrian = [];
 }
 
+function redirectKeLogin(pesan?: string) {
+  bersihkanSesi();
+  if (typeof window !== 'undefined' && !window.location.pathname.startsWith('/login')) {
+    if (pesan) {
+      toast.error(pesan);
+    }
+    // Delay sedikit agar toast terlihat
+    setTimeout(() => {
+      window.location.href = '/login';
+    }, 500);
+  }
+}
+
 api.interceptors.response.use(
   (response) => response,
   async (error: AxiosError) => {
@@ -85,6 +111,14 @@ api.interceptors.response.use(
     const endpointAuth = url.includes('/auth/login') || url.includes('/auth/refresh') || url.includes('/auth/register');
 
     if (error.response?.status === 401 && !original._retry && !endpointAuth) {
+      const pesanError = (error.response?.data as { pesan?: string } | undefined)?.pesan || '';
+
+      // Jika sesi invalid karena inactivity atau tab close, langsung redirect
+      if (adalahPesanSesiInvalid(pesanError)) {
+        redirectKeLogin(pesanError);
+        return Promise.reject(error);
+      }
+
       if (refreshPromise) {
         // Tunggu proses refresh yang sedang berjalan
         return new Promise((resolve, reject) => {

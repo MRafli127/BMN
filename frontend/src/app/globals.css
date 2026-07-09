@@ -140,6 +140,30 @@ button {
       min-height: 2.75rem;
     }
   }
+
+  /* Mobile: Sippenas-style (konsep stitch) */
+  @media (max-width: 767px) {
+    html {
+      font-size: 14px;
+    }
+
+    /* Button - mengikuti desain stitch */
+    button, [type='button'], [type='submit'] {
+      min-height: 2.5rem;
+      padding: 0.625rem 1rem;
+      font-size: 0.875rem;
+      font-weight: 600;
+      border-radius: 0.5rem;
+    }
+
+    /* Input - mengikuti desain stitch */
+    input, select, textarea {
+      min-height: 2.75rem;
+      padding: 0.75rem 1rem;
+      font-size: 1rem;
+      border-radius: 0.75rem;
+    }
+  }
   /* Hormati preferensi gerak minimal pengguna */
   @media (prefers-reduced-motion: reduce) {
     *,
@@ -151,6 +175,29 @@ button {
       scroll-behavior: auto !important;
     }
   }
+}
+
+/* ============================================================
+   Animasi shimmer untuk skeleton loading
+   ============================================================ */
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+.shimmer {
+  background: linear-gradient(
+    90deg,
+    hsl(var(--muted) / 1) 0%,
+    hsl(var(--muted) / 0.5) 50%,
+    hsl(var(--muted) / 1) 100%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.5s ease-in-out infinite;
 }
 
 /* ============================================================

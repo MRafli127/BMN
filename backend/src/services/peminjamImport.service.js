@@ -13,6 +13,11 @@
 //    - NUP yang tidak ketemu / stok habis -> baris itu dilewati,
 //      tapi akun peminjam tetap dibuat bila datanya valid.
 //
+//  IDEMPOTENSI: NUP yang sama TIDAK AKAN diproses ulang untuk user
+//  yang sama, meskipun statusnya SUDAH DIKEMBALIKAN. Ini mencegah
+//  duplikasi peminjaman saat file di-import ulang. NUP berbeda
+//  akan diproses normally.
+//
 //  Semua akun baru memakai password default yang sama
 //  (lihat PASSWORD_DEFAULT) — admin wajib menyampaikan ke
 //  peminjam agar segera menggantinya.
@@ -22,6 +27,7 @@ const XLSX = require('xlsx');
 const { prisma } = require('../config/database');
 const { hashPassword } = require('../utils/hashPassword');
 const { AppError } = require('../middleware/error.middleware');
+const { hitungRetirementDateDariNip, validasiNip } = require('../utils/nipHelper');
 
 const PASSWORD_DEFAULT = 'Bmn@2026';
 
@@ -207,8 +213,9 @@ function tambahKe(map, kunci, nilai) {
 //  file punya akun), hanya tidak dibuatkan peminjaman. Satu orang boleh muncul
 //  di beberapa baris (NUP berbeda) -> beberapa peminjaman. Pembuatan peminjaman
 //  dari NUP idempoten (tidak dibuat ganda saat re-import).
-async function importDariExcel(buffer, { dryRun = false } = {}) {
+async function importDariExcel(buffer, { dryRun = false, userId, userEmail, userNama, namaFile = 'file-import.xlsx' } = {}) {
   const { rows, gagal } = parse(buffer);
+  const jumlahBaris = rows.length;
 
   // Dedup baris file dengan kunci NIP + NUP. Satu orang BOLEH muncul di
   // beberapa baris ber-NUP berbeda (meminjam beberapa unit) — tiap baris jadi
@@ -239,26 +246,33 @@ async function importDariExcel(buffer, { dryRun = false } = {}) {
       eselon3: true, // kolom "Eselon III"
       roles: true,
       sumber: true,
+      retirementDate: true,
     },
   });
   const userByNip = new Map(allUsers.map((u) => [u.nip, u]));
   const userByEmail = new Map(allUsers.map((u) => [u.email.toLowerCase(), u]));
 
-  // Kombinasi (merk+NUP) dan NUP barang yang SEDANG dipinjam tiap user, untuk
-  // idempotensi: re-import tidak boleh membuat peminjaman ganda. Combo dipakai
-  // saat baris menyebut merk (NUP bisa kembar antar-merk); NUP saja menjadi
-  // cadangan untuk baris tanpa merk.
-  const loansAktif = await prisma.peminjaman.findMany({
-    where: { status: 'DIPINJAM' },
+  // Kombinasi (merk+NUP) dan NUP barang yang PERNAH dipinjam tiap user (SEMUA
+  // history), untuk idempotensi: re-import tidak boleh membuat peminjaman
+  // ganda. Once-a-NUP: jika NUP yang sama sudah pernah dipinjam user ini
+  // (DIPINJAM, DIKEMBALIKAN, TERLAMBAT, dll), baris itu dilewati.
+  // Combo dipakai saat baris menyebut merk (NUP bisa kembar antar-merk);
+  // NUP saja menjadi cadangan untuk baris tanpa merk.
+  const allLoans = await prisma.peminjaman.findMany({
+    where: {
+      detail: {
+        some: { barang: { nup: { not: null } } },
+      },
+    },
     select: { userId: true, detail: { select: { barang: { select: { nup: true, merk: true } } } } },
   });
-  const comboAktifByUser = new Map(); // userId -> Set("<merk>|<nup>")
-  const nupAktifByUser = new Map(); //   userId -> Set("<nup>")
-  for (const p of loansAktif) {
+  const nupPernahByUser = new Map(); // userId -> Set("<nup>")
+  const comboPernahByUser = new Map(); // userId -> Set("<merk>|<nup>")
+  for (const p of allLoans) {
     for (const d of p.detail) {
       if (!d.barang?.nup) continue;
-      tambahKe(nupAktifByUser, p.userId, d.barang.nup);
-      tambahKe(comboAktifByUser, p.userId, `${normalMerk(d.barang.merk)}|${d.barang.nup}`);
+      tambahKe(nupPernahByUser, p.userId, d.barang.nup);
+      tambahKe(comboPernahByUser, p.userId, `${normalMerk(d.barang.merk)}|${d.barang.nup}`);
     }
   }
 
@@ -326,6 +340,19 @@ async function importDariExcel(buffer, { dryRun = false } = {}) {
         }
 
         if (!user) {
+          // Validasi NIP dan hitung retirement date
+          const validasi = validasiNip(r.nip);
+          if (!validasi.valid) {
+            gagal.push({ baris: r.baris, nama: r.nama, pesan: `NIP tidak valid: ${validasi.error}` });
+            continue;
+          }
+
+          const retirementDate = hitungRetirementDateDariNip(r.nip);
+          if (!retirementDate) {
+            gagal.push({ baris: r.baris, nama: r.nama, pesan: 'Format NIP tidak valid. Pastikan tanggal lahir dalam NIP benar.' });
+            continue;
+          }
+
           const dibuat = await tx.user.create({
             data: {
               nama: r.nama,
@@ -336,6 +363,7 @@ async function importDariExcel(buffer, { dryRun = false } = {}) {
               eselon3: r.eselonIII, // kolom "Eselon III"
               roles: ['PEMINJAM'],
               sumber: 'IMPORT',
+              retirementDate,
             },
           });
           user = {
@@ -362,18 +390,44 @@ async function importDariExcel(buffer, { dryRun = false } = {}) {
           if (!sama(user.nama, r.nama)) perubahan.push('Nama');
           if (!sama(user.eselon4, r.eselonIV)) perubahan.push('Eselon IV');
           if (!sama(user.eselon3, r.eselonIII)) perubahan.push('Eselon III');
+
+          // Update retirementDate jika user belum punya (user lama sebelum fitur ini)
+          let perluUpdateRetirement = false;
+          if (!user.retirementDate) {
+            const validasi = validasiNip(r.nip);
+            if (validasi.valid) {
+              const newRetirementDate = hitungRetirementDateDariNip(r.nip);
+              if (newRetirementDate) {
+                perubahan.push('Tanggal Pensiun');
+                perluUpdateRetirement = true;
+              }
+            }
+          }
+
           const fieldBerubah = perubahan.length > 0;
           const perluClaim = user.sumber !== 'IMPORT';
           if (fieldBerubah || perluClaim) {
+            const dataUpdate = {
+              nama: r.nama,
+              eselon4: r.eselonIV,
+              eselon3: r.eselonIII,
+              sumber: 'IMPORT',
+            };
+            if (perluUpdateRetirement) {
+              dataUpdate.retirementDate = hitungRetirementDateDariNip(r.nip);
+            }
             await tx.user.update({
               where: { id: user.id },
-              data: { nama: r.nama, eselon4: r.eselonIV, eselon3: r.eselonIII, sumber: 'IMPORT' },
+              data: dataUpdate,
             });
             // Sinkronkan in-memory agar baris berikutnya tidak terdeteksi berubah lagi.
             user.nama = r.nama;
             user.eselon4 = r.eselonIV;
             user.eselon3 = r.eselonIII;
             user.sumber = 'IMPORT';
+            if (perluUpdateRetirement) {
+              user.retirementDate = hitungRetirementDateDariNip(r.nip);
+            }
             if (fieldBerubah) {
               akunDiperbarui += 1;
               diperbaruiList.push({ nama: r.nama, nip: r.nip, perubahan });
@@ -391,12 +445,12 @@ async function importDariExcel(buffer, { dryRun = false } = {}) {
         // kosong/tak dikenali, dipakai cadangan: cocokkan hanya lewat NUP.
         const merkDikenali = !!r.merk && barangByMerk.has(normalMerk(r.merk));
 
-        // Idempoten: jika peminjam sudah memegang barang dengan kombinasi ini,
-        // biarkan (re-import tidak menggandakan peminjaman).
-        const sudahPunya = merkDikenali
-          ? (comboAktifByUser.get(user.id) || new Set()).has(`${normalMerk(r.merk)}|${r.nup}`)
-          : (nupAktifByUser.get(user.id) || new Set()).has(r.nup);
-        if (sudahPunya) {
+        // Idempoten: jika user sudah pernah memiliki barang dengan NUP ini
+        // (kondisi apapun: DIPINJAM, DIKEMBALIKAN, TERLAMBAT), baris dilewati.
+        const sudahPernah = merkDikenali
+          ? (comboPernahByUser.get(user.id) || new Set()).has(`${normalMerk(r.merk)}|${r.nup}`)
+          : (nupPernahByUser.get(user.id) || new Set()).has(r.nup);
+        if (sudahPernah) {
           peminjamanDipertahankan += 1;
           continue;
         }
@@ -436,8 +490,9 @@ async function importDariExcel(buffer, { dryRun = false } = {}) {
           where: { id: kandidat.id },
           data: { jumlahTersedia: { decrement: 1 } },
         });
-        tambahKe(nupAktifByUser, user.id, kandidat.nup);
-        tambahKe(comboAktifByUser, user.id, `${normalMerk(kandidat.merk)}|${kandidat.nup}`);
+        // Update tracking agar baris NUP sama di file ini juga idempoten
+        tambahKe(nupPernahByUser, user.id, kandidat.nup);
+        tambahKe(comboPernahByUser, user.id, `${normalMerk(kandidat.merk)}|${kandidat.nup}`);
         peminjamanDibuat += 1;
         peminjamanDibuatList.push({
           nama: r.nama,
@@ -459,7 +514,40 @@ async function importDariExcel(buffer, { dryRun = false } = {}) {
     throw e;
   });
 
+  // Simpan log import setelah transaksi berhasil (di luar transaksi)
+  let logId = null;
+  if (!dryRun && userId) {
+    try {
+      const log = await prisma.importLog.create({
+        data: {
+          userId,
+          userEmail: userEmail || '',
+          userNama: userNama || '',
+          jenisImport: 'PEMINJAM',
+          namaFile,
+          jumlahBaris,
+          akunDitambahkan,
+          akunDiperbarui,
+          peminjamanDibuat,
+          peminjamanDipertahankan,
+          dilewatiTanpaNup,
+          gagal: gagal.length,
+          barangTidakDitemukan: detailBarangGagal.length,
+          detailDitambahkan: { data: ditambahkanList.slice(0, 100) },
+          detailDiperbarui: { data: diperbaruiList.slice(0, 100) },
+          detailPeminjaman: { data: peminjamanDibuatList.slice(0, 100) },
+          detailGagal: { data: gagal.slice(0, 50) },
+          detailBarangTidakDitemukan: { data: detailBarangGagal.slice(0, 50) },
+        },
+      });
+      logId = log.id;
+    } catch (err) {
+      console.error('Gagal menyimpan log import:', err);
+    }
+  }
+
   return {
+    logId,
     akunDitambahkan,
     akunDiperbarui,
     peminjamanDibuat,

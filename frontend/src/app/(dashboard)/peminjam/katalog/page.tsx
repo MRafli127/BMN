@@ -16,7 +16,7 @@ import { LoadingSpinner } from '@/components/shared/LoadingSpinner';
 import { EmptyState } from '@/components/shared/EmptyState';
 import { useBarangFolder } from '@/hooks/useBarangFolder';
 import { useJumlahKeranjang, useTotalUnitKeranjang } from '@/store/keranjangStore';
-import { OPSI_JENIS, OPSI_KONDISI } from '@/constants/status';
+import { OPSI_FILTER_BARANG, OPSI_KONDISI } from '@/constants/status';
 import { RUTE } from '@/constants/routes';
 
 const OPSI_FOLDER = [8, 16, 32, 64];
@@ -81,9 +81,9 @@ export default function KatalogPage() {
             className="pl-9"
           />
         </div>
-        <Select value={filter.jenis || ''} onChange={(e) => ubahFilter({ jenis: (e.target.value || undefined) as never })}>
-          <option value="">Semua Jenis</option>
-          {OPSI_JENIS.map((o) => (
+        <Select value={filter.kodeSatker || ''} onChange={(e) => ubahFilter({ kodeSatker: (e.target.value || undefined) as never })}>
+          <option value="">Semua Kode Satker</option>
+          {OPSI_FILTER_BARANG.map((o) => (
             <option key={o.value} value={o.value}>
               {o.label}
             </option>

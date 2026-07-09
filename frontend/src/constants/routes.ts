@@ -30,6 +30,7 @@ export const RUTE = {
   adminPeminjamanDetail: (id: string) => `/admin/peminjaman/${id}`,
   adminScan: '/admin/scan',
   adminKategori: (kategori: string) => `/admin/dashboard/kategori/${kategori}`,
+  adminLogImport: '/admin/import-log',
 
   // Peminjam
   peminjamDashboard: '/peminjam/dashboard',

@@ -74,12 +74,13 @@ const previewSurat = asyncHandler(async (req, res) => {
 });
 
 const getSemua = asyncHandler(async (req, res) => {
-  const { status, q, page, limit } = req.query;
+  const { status, q, page, limit, importMode } = req.query;
   const hasil = await peminjamanService.getSemua({
     status,
     q,
     page,
     limit,
+    importMode,
     userId: req.user.id,
     role: req.user.role,
   });
