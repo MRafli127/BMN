@@ -21,6 +21,17 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { X, CalendarDays } from 'lucide-react';
 
+// Data kartu kode satker
+const KODE_SATKER = [
+  { kode: '015110199411868000KP', label: 'Kode Satker 000' },
+  { kode: '015110199411868001KP', label: 'Kode Satker 001' },
+  { kode: '015110199411868002KP', label: 'Kode Satker 002' },
+  { kode: '015110199411868003KP', label: 'Kode Satker 003' },
+  { kode: '015110199411868004KP', label: 'Kode Satker 004' },
+  { kode: '015110199411868005KP', label: 'Kode Satker 005' },
+  { kode: '015110199411868006KP', label: 'Kode Satker 006' },
+];
+
 // Kartu yang mewakili status peminjaman diarahkan ke Manajemen Peminjaman
 // dengan filter status terkait (alih-alih halaman kategori dashboard).
 const STATUS_KARTU: Partial<Record<KategoriDashboard, string>> = {
@@ -160,10 +171,57 @@ function DialogRentangWaktu({
   );
 }
 
+// Dialog konfirmasi sebelum navigasi ke halaman kode satker
+function DialogKonfirmasiSatker({
+  terbuka,
+  onUbahTerbuka,
+  kodeSatker,
+  label,
+}: {
+  terbuka: boolean;
+  onUbahTerbuka: (o: boolean) => void;
+  kodeSatker: string;
+  label: string;
+}) {
+  if (!terbuka) return null;
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+      <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl sm:p-6">
+        <div className="mb-4 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Icon name="help" className="h-5 w-5 text-primary" />
+            <h2 className="font-jakarta text-lg font-semibold text-primary">Konfirmasi</h2>
+          </div>
+          <button onClick={() => onUbahTerbuka(false)} className="rounded-lg p-1 hover:bg-muted">
+            <X className="h-5 w-5" />
+          </button>
+        </div>
+
+        <p className="mb-6 text-sm text-muted-foreground">
+          Anda akan memasuki halaman untuk <strong>{label}</strong>.<br />
+          Kode Satker: <code className="rounded bg-muted px-1.5 py-0.5 font-mono text-xs">{kodeSatker}</code>
+        </p>
+
+        <div className="flex justify-end gap-2">
+          <Button variant="outline" onClick={() => onUbahTerbuka(false)}>
+            Batal
+          </Button>
+          <Button onClick={() => onUbahTerbuka(false)}>
+            Lanjutkan
+          </Button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function AdminDashboardPage() {
   const router = useRouter();
   const [filterTanggal, setFilterTanggal] = useState<DashboardFilter>({});
   const [dialogTerbuka, setDialogTerbuka] = useState(false);
+  const [dialogSatkerTerbuka, setDialogSatkerTerbuka] = useState(false);
+  const [satkerTerpilih, setSatkerTerpilih] = useState<{ kode: string; label: string } | null>(null);
 
   // Cache key berdasarkan filter agar data berubah saat filter berubah
   const cacheKey = `dashboard-admin:${JSON.stringify(filterTanggal)}`;
@@ -207,6 +265,13 @@ export default function AdminDashboardPage() {
         onUbahTerbuka={setDialogTerbuka}
         filterAktif={filterTanggal}
         onFilter={setFilterTanggal}
+      />
+
+      <DialogKonfirmasiSatker
+        terbuka={dialogSatkerTerbuka}
+        onUbahTerbuka={setDialogSatkerTerbuka}
+        kodeSatker={satkerTerpilih?.kode || ''}
+        label={satkerTerpilih?.label || ''}
       />
 
       {/* Hero eksekutif */}
@@ -301,6 +366,42 @@ export default function AdminDashboardPage() {
             </div>
           );
         })}
+      </section>
+
+      {/* Kartu Kode Satker */}
+      <section className="glass-card rounded-2xl p-stack-lg">
+        <div className="mb-6">
+          <h3 className="flex items-center gap-2 font-jakarta text-headline-md text-primary">
+            <Icon name="location_city" className="text-[22px]" />
+            Pilih Kode Satker
+          </h3>
+          <p className="text-on-surface-variant">Klik kartu untuk memilih kode satker yang akan diakses</p>
+        </div>
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {KODE_SATKER.map((satker, indeks) => (
+            <div
+              key={satker.kode}
+              onClick={() => {
+                setSatkerTerpilih(satker);
+                setDialogSatkerTerbuka(true);
+              }}
+              style={{ animationDelay: `${indeks * 60}ms` }}
+              className="group relative cursor-pointer overflow-hidden rounded-xl border border-outline-variant bg-gradient-to-br from-white via-white to-primary/5 p-4 transition-all duration-300 hover:-translate-y-1 hover:shadow-elevated hover:border-primary/30 active:scale-[0.98] animate-page-in"
+            >
+              <div className="absolute -right-4 -top-4 h-20 w-20 rounded-full bg-primary/10 blur-2xl opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
+              <div className="relative flex items-center gap-4">
+                <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary transition-transform duration-300 group-hover:scale-110">
+                  <Icon name="badge" className="text-[24px]" />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="font-label-md text-on-surface-variant">{satker.label}</p>
+                  <p className="mt-1 break-all font-mono text-sm font-medium text-primary">{satker.kode}</p>
+                </div>
+                <Icon name="chevron_right" className="h-5 w-5 shrink-0 text-on-surface-variant transition-all duration-300 group-hover:translate-x-1 group-hover:text-primary" />
+              </div>
+            </div>
+          ))}
+        </div>
       </section>
 
       {/* Grafik & info */}

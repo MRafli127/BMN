@@ -442,7 +442,7 @@ async function generateSuratPernyataan(id, { userId, role } = {}) {
 }
 
 // --- Ambil daftar peminjaman (role-aware) ---
-async function getSemua({ status, q, userId, role, page = 1, limit = 10, importMode } = {}) {
+async function getSemua({ status, q, userId, role, page = 1, limit = 10, importMode, kodeSatker } = {}) {
   const { halaman, perHalaman, skip } = parsePagination({ page, limit });
 
   const where = {};
@@ -475,6 +475,10 @@ async function getSemua({ status, q, userId, role, page = 1, limit = 10, importM
     where.dokumenUrl = null;
   } else if (importMode === 'manual') {
     where.dokumenUrl = { not: null };
+  }
+  // Filter berdasarkan kode satker barang
+  if (kodeSatker) {
+    where.detail = { some: { barang: { kodeSatker: kodeSatker } } };
   }
 
   const [data, total] = await Promise.all([

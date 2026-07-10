@@ -13,6 +13,8 @@ export interface FilterPeminjaman {
   limit?: number;
   /** Filter berdasarkan asal data: 'import' = hasil migrasi/import, 'manual' = input manual */
   importMode?: 'import' | 'manual' | '';
+  /** Filter berdasarkan kode satker */
+  kodeSatker?: string;
 }
 
 export interface DataQrcode {

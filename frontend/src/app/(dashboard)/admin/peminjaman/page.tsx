@@ -20,7 +20,7 @@ import { notify } from '@/components/ui/toast';
 import { peminjamanService, type FilterPeminjaman } from '@/services/peminjaman.service';
 import { useQuery } from '@/lib/cache';
 import { ambilPesanError, cn } from '@/lib/utils';
-import { OPSI_STATUS, FILTER_STATUS_AKTIF } from '@/constants/status';
+import { OPSI_STATUS, FILTER_STATUS_AKTIF, OPSI_FILTER_BARANG } from '@/constants/status';
 import { RUTE } from '@/constants/routes';
 import type { Peminjaman } from '@/types/peminjaman.type';
 import type { MetaPagination } from '@/types/barang.type';
@@ -193,75 +193,88 @@ export default function AdminPeminjamanPage() {
 
       {/* Panel tabel */}
       <div className="glass-card overflow-hidden rounded-2xl border border-outline-variant">
-        {/* Filter */}
-        <div className="grid grid-cols-1 gap-3 border-b border-outline-variant p-stack-md sm:grid-cols-2">
-          <div className="relative">
+        {/* Search di atas sendiri -lebarnya penuh */}
+        <div className="border-b border-outline-variant p-stack-md">
+          <div className="relative w-full">
             <Icon
               name="search"
               className="absolute left-3 top-1/2 -translate-y-1/2 text-[20px] text-on-surface-variant"
             />
             <Input value={cari} onChange={(e) => setCari(e.target.value)} placeholder="Cari kode / nama barang / merk / nama peminjam..." className="pl-10" />
           </div>
-          <div className="flex items-center gap-2">
-            <Select
-              value={filter.status || ''}
-              onChange={(e) => setFilter((f) => ({ ...f, status: (e.target.value || undefined) as never, page: 1 }))}
-              className="flex-1"
-            >
-              <option value="">Semua Status</option>
-              <option value={FILTER_STATUS_AKTIF}>Sedang Aktif</option>
-              {OPSI_STATUS.map((o) => (
-                <option key={o.value} value={o.value}>
-                  {o.label}
-                </option>
-              ))}
-            </Select>
-            <Select
-              value={filter.importMode || ''}
-              onChange={(e) => setFilter((f) => ({ ...f, importMode: (e.target.value || undefined) as never, page: 1 }))}
-              className="flex-1"
-            >
-              <option value="">Semua Asal Data</option>
-              <option value="import">Hasil Import</option>
-              <option value="manual">Input Manual</option>
-            </Select>
+        </div>
 
-            {/* Switch tampilan: list ↔ folder (folder dikelompokkan per peminjam) */}
-            <button
-              type="button"
-              role="switch"
-              aria-checked={mode === 'folder'}
-              onClick={() => {
-                setMode((m) => (m === 'list' ? 'folder' : 'list'));
-                setTerpilih([]); // folder tak mendukung pilih massal
-              }}
-              title={mode === 'list' ? 'Beralih ke tampilan folder' : 'Beralih ke tampilan list'}
-              className="flex h-11 shrink-0 items-center gap-2 rounded-lg border border-input bg-background px-3 transition-colors hover:bg-primary/5 sm:h-10"
+        {/* Filter baris: Status, Asal Data, Kode Satker, Toggle */}
+        <div className="flex flex-wrap items-center gap-2 border-b border-outline-variant bg-muted/20 px-stack-md py-2">
+          <Select
+            value={filter.status || ''}
+            onChange={(e) => setFilter((f) => ({ ...f, status: (e.target.value || undefined) as never, page: 1 }))}
+            className="w-40"
+          >
+            <option value="">Semua Status</option>
+            <option value={FILTER_STATUS_AKTIF}>Sedang Aktif</option>
+            {OPSI_STATUS.map((o) => (
+              <option key={o.value} value={o.value}>
+                {o.label}
+              </option>
+            ))}
+          </Select>
+          <Select
+            value={filter.importMode || ''}
+            onChange={(e) => setFilter((f) => ({ ...f, importMode: (e.target.value || undefined) as never, page: 1 }))}
+            className="w-32"
+          >
+            <option value="">Semua Asal</option>
+            <option value="import">Import</option>
+            <option value="manual">Manual</option>
+          </Select>
+          <Select
+            value={filter.kodeSatker || ''}
+            onChange={(e) => setFilter((f) => ({ ...f, kodeSatker: (e.target.value || undefined) as never, page: 1 }))}
+            className="w-52"
+          >
+            <option value="">Semua Kode Satker</option>
+            {OPSI_FILTER_BARANG.map((o) => (
+              <option key={o.value} value={o.value}>
+                {o.label}
+              </option>
+            ))}
+          </Select>
+
+          {/* Switch tampilan: list ↔ folder */}
+          <button
+            type="button"
+            role="switch"
+            aria-checked={mode === 'folder'}
+            onClick={() => {
+              setMode((m) => (m === 'list' ? 'folder' : 'list'));
+              setTerpilih([]);
+            }}
+            className="ml-auto flex h-9 shrink-0 items-center gap-2 rounded-lg border border-input bg-background px-3 transition-colors hover:bg-primary/5"
+          >
+            <span className="text-sm text-on-surface-variant">
+              {mode === 'list' ? 'List' : 'Folder'}
+            </span>
+            <span
+              className={cn(
+                'relative flex h-5 w-9 shrink-0 items-center rounded-full transition-colors',
+                mode === 'folder' ? 'bg-primary' : 'bg-outline-variant'
+              )}
             >
-              <span className="whitespace-nowrap text-sm text-on-surface-variant">
-                {mode === 'list' ? 'Tampilan list' : 'Tampilan folder'}
-              </span>
               <span
                 className={cn(
-                  'relative flex h-6 w-11 shrink-0 items-center rounded-full transition-colors',
-                  mode === 'folder' ? 'bg-primary' : 'bg-outline-variant'
+                  'flex h-4 w-4 items-center justify-center rounded-full bg-white shadow transition-transform',
+                  mode === 'folder' ? 'translate-x-4' : 'translate-x-0.5'
                 )}
               >
-                <span
-                  className={cn(
-                    'flex h-5 w-5 items-center justify-center rounded-full bg-white shadow transition-transform',
-                    mode === 'folder' ? 'translate-x-5' : 'translate-x-0.5'
-                  )}
-                >
-                  {mode === 'folder' ? (
-                    <FolderTree className="h-3 w-3 text-primary" />
-                  ) : (
-                    <List className="h-3 w-3 text-on-surface-variant" />
-                  )}
-                </span>
+                {mode === 'folder' ? (
+                  <FolderTree className="h-2.5 w-2.5 text-primary" />
+                ) : (
+                  <List className="h-2.5 w-2.5 text-on-surface-variant" />
+                )}
               </span>
-            </button>
-          </div>
+            </span>
+          </button>
         </div>
 
         {/* Legenda: perbedaan data import (tanpa surat) vs manual (ada surat) */}
