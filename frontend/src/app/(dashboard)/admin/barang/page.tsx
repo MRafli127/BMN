@@ -36,11 +36,17 @@ function KontenBarang() {
   const stok = searchParams.get('stok');
   const ketersediaanUrl = stok === 'tersedia' || stok === 'habis' ? stok : undefined;
 
+  // Filter kode satker dari query URL (?kodeSatker=...), mis. saat datang dari popup dashboard.
+  const kodeSatkerUrl = searchParams.get('kodeSatker') || undefined;
+
   // Pakai nilai URL sebagai filter AWAL. Karena `template.tsx` me-mount ulang
   // konten tiap navigasi, halaman yang dibuka dari dashboard langsung memuat
-  // stok yang dimaksud tanpa menunggu effect.
+  // filter yang dimaksud tanpa menunggu effect.
   const { data, filter, ubahFilter, sedangMemuat, refetch } = useBarangFolder(
-    ketersediaanUrl ? { ketersediaan: ketersediaanUrl } : {}
+    {
+      ...(ketersediaanUrl ? { ketersediaan: ketersediaanUrl } : {}),
+      ...(kodeSatkerUrl ? { kodeSatker: kodeSatkerUrl } : {}),
+    }
   );
   const [cari, setCari] = useState('');
   const [halaman, setHalaman] = useState(1);
@@ -49,8 +55,8 @@ function KontenBarang() {
   // Cadangan bila konten TIDAK di-mount ulang (perubahan query pada rute yang
   // sama): selaraskan filter saat ?stok berubah agar tak balik ke "Semua Stok".
   useEffect(() => {
-    ubahFilter({ ketersediaan: ketersediaanUrl });
-  }, [ketersediaanUrl, ubahFilter]);
+    ubahFilter({ ketersediaan: ketersediaanUrl, kodeSatker: kodeSatkerUrl });
+  }, [ketersediaanUrl, kodeSatkerUrl, ubahFilter]);
 
   // Ubah filter ketersediaan dari dropdown: perbarui filter + URL sekaligus,
   // sehingga konsisten dan bertahan saat refresh.

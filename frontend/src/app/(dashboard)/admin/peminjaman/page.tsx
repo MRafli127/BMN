@@ -43,12 +43,15 @@ export default function AdminPeminjamanPage() {
   const [dialogKembalikan, setDialogKembalikan] = useState(false);
   const [sedangKembalikan, setSedangKembalikan] = useState(false);
 
-  // Terapkan filter status dari query (?status=...) saat halaman dibuka — mis. ketika
+  // Terapkan filter status dan kode satker dari query saat halaman dibuka — mis. ketika
   // datang dari kartu dashboard. Mendukung gabungan dipisah koma (Sedang Aktif).
   // Dibaca di useEffect agar render server & klien identik (aman dari hydration mismatch).
   useEffect(() => {
-    const status = new URLSearchParams(window.location.search).get('status');
+    const params = new URLSearchParams(window.location.search);
+    const status = params.get('status');
+    const kodeSatker = params.get('kodeSatker');
     if (status) setFilter((f) => ({ ...f, status: status as never, page: 1 }));
+    if (kodeSatker) setFilter((f) => ({ ...f, kodeSatker: kodeSatker as never }));
   }, []);
 
   const key = useMemo(() => `peminjaman:${JSON.stringify(filter)}`, [filter]);

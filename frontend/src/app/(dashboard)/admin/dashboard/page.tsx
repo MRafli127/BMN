@@ -20,6 +20,8 @@ import type { KategoriDashboard } from '@/services/dashboard.service';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { X, CalendarDays } from 'lucide-react';
+import { peminjamanService } from '@/services/peminjaman.service';
+import { barangService } from '@/services/barang.service';
 
 // Data kartu kode satker
 const KODE_SATKER = [
@@ -31,6 +33,43 @@ const KODE_SATKER = [
   { kode: '015110199411868005KP', label: 'Kode Satker 005' },
   { kode: '015110199411868006KP', label: 'Kode Satker 006' },
 ];
+
+// Fungsi untuk mengambil jumlah data berdasarkan kode satker
+async function ambilJumlahSatker(kodeSatker: string) {
+  try {
+    // Ambil semua data peminjaman untuk satker ini
+    const semuaPeminjaman: any[] = [];
+    let page = 1;
+    const limit = 100;
+
+    while (true) {
+      const res = await peminjamanService.getSemua({ kodeSatker, page, limit });
+      semuaPeminjaman.push(...res.data);
+      if (page >= res.meta.totalHalaman) break;
+      page++;
+    }
+
+    // Ambil semua barang untuk satker ini
+    const semuaBarang = await barangService.getSemuaLengkap({ kodeSatker });
+
+    const counts = {
+      menunggu: semuaPeminjaman.filter((p) => p.status === 'MENUNGGU').length,
+      disetujui: semuaPeminjaman.filter((p) => p.status === 'DISETUJUI').length,
+      dipinjam: semuaPeminjaman.filter((p) => p.status === 'DIPINJAM').length,
+      dikembalikan: semuaPeminjaman.filter((p) => p.status === 'DIKEMBALIKAN').length,
+      terlambat: semuaPeminjaman.filter((p) => p.status === 'TERLAMBAT').length,
+      ditolak: semuaPeminjaman.filter((p) => p.status === 'DITOLAK').length,
+      totalBarang: semuaBarang.length,
+      stokTersedia: semuaBarang.filter((b) => (b.jumlahTersedia ?? 0) > 0).length,
+      stokHabis: semuaBarang.filter((b) => (b.jumlahTersedia ?? 0) === 0).length,
+    };
+
+    return counts;
+  } catch (error) {
+    console.error('Gagal mengambil jumlah satker:', error);
+    return null;
+  }
+}
 
 // Kartu yang mewakili status peminjaman diarahkan ke Manajemen Peminjaman
 // dengan filter status terkait (alih-alih halaman kategori dashboard).
@@ -177,39 +216,138 @@ function DialogKonfirmasiSatker({
   onUbahTerbuka,
   kodeSatker,
   label,
+  onPilih,
+  counts,
+  memuat,
 }: {
   terbuka: boolean;
   onUbahTerbuka: (o: boolean) => void;
   kodeSatker: string;
   label: string;
+  onPilih: (tujuan: string) => void;
+  counts: {
+    menunggu: number;
+    disetujui: number;
+    dipinjam: number;
+    dikembalikan: number;
+    terlambat: number;
+    ditolak: number;
+    totalBarang: number;
+    stokTersedia: number;
+    stokHabis: number;
+  } | null;
+  memuat: boolean;
 }) {
   if (!terbuka) return null;
 
+  const statusOptions = [
+    { label: 'Menunggu Persetujuan', ikon: 'pending_actions', warna: 'text-amber-600', bg: 'bg-amber-100', countKey: 'menunggu' as const },
+    { label: 'Disetujui', ikon: 'check_circle', warna: 'text-green-600', bg: 'bg-green-100', countKey: 'disetujui' as const },
+    { label: 'Sedang Dipinjam', ikon: 'sync_alt', warna: 'text-pink-600', bg: 'bg-pink-100', countKey: 'dipinjam' as const },
+    { label: 'Dikembalikan', ikon: 'assignment_return', warna: 'text-teal-600', bg: 'bg-teal-100', countKey: 'dikembalikan' as const },
+    { label: 'Terlambat', ikon: 'report', warna: 'text-orange-600', bg: 'bg-orange-100', countKey: 'terlambat' as const },
+    { label: 'Ditolak', ikon: 'cancel', warna: 'text-red-600', bg: 'bg-red-100', countKey: 'ditolak' as const },
+  ];
+
+  const barangOptions = [
+    { label: 'Total Barang', ikon: 'inventory', warna: 'text-primary', bg: 'bg-primary/10', countKey: 'totalBarang' as const },
+    { label: 'Stok Tersedia', ikon: 'check_circle', warna: 'text-green-600', bg: 'bg-green-100', countKey: 'stokTersedia' as const },
+    { label: 'Stok Habis', ikon: 'error', warna: 'text-red-600', bg: 'bg-red-100', countKey: 'stokHabis' as const },
+  ];
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-      <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl sm:p-6">
-        <div className="mb-4 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <Icon name="help" className="h-5 w-5 text-primary" />
-            <h2 className="font-jakarta text-lg font-semibold text-primary">Konfirmasi</h2>
+      <div className="max-h-[90vh] w-full max-w-6xl overflow-y-auto rounded-3xl bg-white p-8 shadow-2xl">
+        {/* Header */}
+        <div className="mb-8 flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-primary/10">
+              <Icon name="location_city" className="h-8 w-8 text-primary" />
+            </div>
+            <div>
+              <h2 className="font-jakarta text-2xl font-bold text-primary">{label}</h2>
+              <p className="text-base text-muted-foreground">
+                Kode Satker: <code className="rounded bg-muted px-2 py-0.5 font-mono text-sm">{kodeSatker}</code>
+              </p>
+            </div>
           </div>
-          <button onClick={() => onUbahTerbuka(false)} className="rounded-lg p-1 hover:bg-muted">
-            <X className="h-5 w-5" />
+          <button
+            onClick={() => onUbahTerbuka(false)}
+            className="rounded-xl p-3 hover:bg-muted transition-colors"
+          >
+            <X className="h-6 w-6" />
           </button>
         </div>
 
-        <p className="mb-6 text-sm text-muted-foreground">
-          Anda akan memasuki halaman untuk <strong>{label}</strong>.<br />
-          Kode Satker: <code className="rounded bg-muted px-1.5 py-0.5 font-mono text-xs">{kodeSatker}</code>
-        </p>
+        {/* Manajemen Peminjaman */}
+        <div className="mb-10">
+          <h3 className="mb-6 flex items-center gap-3 font-jakarta text-lg font-semibold text-on-surface">
+            <Icon name="swap_horiz" className="text-[24px] text-primary" />
+            Manajemen Peminjaman
+          </h3>
+          <div className="grid grid-cols-2 gap-5 sm:grid-cols-3 lg:grid-cols-6">
+            {statusOptions.map((opt) => (
+              <button
+                key={opt.countKey}
+                onClick={() => {
+                  onUbahTerbuka(false);
+                  onPilih(`peminjaman:${opt.countKey.toUpperCase()}`);
+                }}
+                className="group relative flex flex-col items-center gap-4 rounded-3xl border-2 border-outline-variant bg-white p-6 text-center transition-all hover:border-primary/50 hover:shadow-xl hover:-translate-y-2 active:scale-[0.98]"
+              >
+                {/* Count Badge */}
+                <div className="absolute -top-3 -right-3 flex h-10 w-10 items-center justify-center rounded-full bg-primary text-sm font-bold text-white shadow-lg">
+                  {memuat ? (
+                    <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                  ) : (
+                    counts?.[opt.countKey] ?? 0
+                  )}
+                </div>
+                <div className={cn('flex h-16 w-16 items-center justify-center rounded-2xl transition-transform duration-300 group-hover:scale-110', opt.bg)}>
+                  <Icon name={opt.ikon} className={cn('text-[32px]', opt.warna)} />
+                </div>
+                <span className="text-sm font-semibold leading-tight">{opt.label}</span>
+              </button>
+            ))}
+          </div>
+        </div>
 
-        <div className="flex justify-end gap-2">
-          <Button variant="outline" onClick={() => onUbahTerbuka(false)}>
-            Batal
-          </Button>
-          <Button onClick={() => onUbahTerbuka(false)}>
-            Lanjutkan
-          </Button>
+        {/* Manajemen Barang */}
+        <div>
+          <h3 className="mb-6 flex items-center gap-3 font-jakarta text-lg font-semibold text-on-surface">
+            <Icon name="inventory_2" className="text-[24px] text-primary" />
+            Manajemen Barang
+          </h3>
+          <div className="grid grid-cols-2 gap-5 sm:grid-cols-3 lg:grid-cols-3">
+            {barangOptions.map((opt) => (
+              <button
+                key={opt.countKey}
+                onClick={() => {
+                  onUbahTerbuka(false);
+                  const routeMap: Record<string, string> = {
+                    totalBarang: 'barang:totalBarang',
+                    stokTersedia: 'barang:stokTersedia',
+                    stokHabis: 'barang:stokHabis',
+                  };
+                  onPilih(routeMap[opt.countKey] || `barang:${opt.countKey}`);
+                }}
+                className="group relative flex flex-col items-center gap-4 rounded-3xl border-2 border-outline-variant bg-white p-6 text-center transition-all hover:border-primary/50 hover:shadow-xl hover:-translate-y-2 active:scale-[0.98]"
+              >
+                {/* Count Badge */}
+                <div className="absolute -top-3 -right-3 flex h-10 w-10 items-center justify-center rounded-full bg-primary text-sm font-bold text-white shadow-lg">
+                  {memuat ? (
+                    <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                  ) : (
+                    counts?.[opt.countKey] ?? 0
+                  )}
+                </div>
+                <div className={cn('flex h-16 w-16 items-center justify-center rounded-2xl transition-transform duration-300 group-hover:scale-110', opt.bg)}>
+                  <Icon name={opt.ikon} className={cn('text-[32px]', opt.warna)} />
+                </div>
+                <span className="text-sm font-semibold leading-tight">{opt.label}</span>
+              </button>
+            ))}
+          </div>
         </div>
       </div>
     </div>
@@ -222,6 +360,18 @@ export default function AdminDashboardPage() {
   const [dialogTerbuka, setDialogTerbuka] = useState(false);
   const [dialogSatkerTerbuka, setDialogSatkerTerbuka] = useState(false);
   const [satkerTerpilih, setSatkerTerpilih] = useState<{ kode: string; label: string } | null>(null);
+  const [countsMemuat, setCountsMemuat] = useState(false);
+  const [countsData, setCountsData] = useState<{
+    menunggu: number;
+    disetujui: number;
+    dipinjam: number;
+    dikembalikan: number;
+    terlambat: number;
+    ditolak: number;
+    totalBarang: number;
+    stokTersedia: number;
+    stokHabis: number;
+  } | null>(null);
 
   // Cache key berdasarkan filter agar data berubah saat filter berubah
   const cacheKey = `dashboard-admin:${JSON.stringify(filterTanggal)}`;
@@ -272,6 +422,28 @@ export default function AdminDashboardPage() {
         onUbahTerbuka={setDialogSatkerTerbuka}
         kodeSatker={satkerTerpilih?.kode || ''}
         label={satkerTerpilih?.label || ''}
+        counts={countsData}
+        memuat={countsMemuat}
+        onPilih={(tujuan) => {
+          if (!satkerTerpilih) return;
+          const kodeSatker = satkerTerpilih.kode;
+
+          if (tujuan.startsWith('peminjaman:')) {
+            const status = tujuan.replace('peminjaman:', '');
+            // Navigasi ke halaman peminjaman dengan filter status dan kode satker
+            router.push(`${RUTE.adminPeminjaman}?status=${status}&kodeSatker=${kodeSatker}`);
+          } else if (tujuan.startsWith('barang:')) {
+            const jenis = tujuan.replace('barang:', '');
+            // Navigasi ke halaman barang dengan filter sesuai jenis
+            if (jenis === 'totalBarang') {
+              router.push(`${RUTE.adminBarang}?kodeSatker=${kodeSatker}`);
+            } else if (jenis === 'stokTersedia') {
+              router.push(`${RUTE.adminBarang}?kodeSatker=${kodeSatker}&stok=tersedia`);
+            } else if (jenis === 'stokHabis') {
+              router.push(`${RUTE.adminBarang}?kodeSatker=${kodeSatker}&stok=habis`);
+            }
+          }
+        }}
       />
 
       {/* Hero eksekutif */}
@@ -381,9 +553,15 @@ export default function AdminDashboardPage() {
           {KODE_SATKER.map((satker, indeks) => (
             <div
               key={satker.kode}
-              onClick={() => {
+              onClick={async () => {
                 setSatkerTerpilih(satker);
+                setCountsMemuat(true);
+                setCountsData(null);
                 setDialogSatkerTerbuka(true);
+                // Ambil data jumlah
+                const counts = await ambilJumlahSatker(satker.kode);
+                setCountsData(counts);
+                setCountsMemuat(false);
               }}
               style={{ animationDelay: `${indeks * 60}ms` }}
               className="group relative cursor-pointer overflow-hidden rounded-xl border border-outline-variant bg-gradient-to-br from-white via-white to-primary/5 p-4 transition-all duration-300 hover:-translate-y-1 hover:shadow-elevated hover:border-primary/30 active:scale-[0.98] animate-page-in"
