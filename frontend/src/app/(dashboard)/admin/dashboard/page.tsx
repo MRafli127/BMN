@@ -848,91 +848,88 @@ export default function AdminDashboardPage() {
         </div>
       </section>
 
-      {/* Grafik & info */}
-      <div className="grid grid-cols-1 gap-gutter lg:grid-cols-3">
-        {/* Grafik ringkasan per status */}
-        <section className="glass-card flex flex-col gap-6 rounded-2xl p-stack-lg lg:col-span-2">
-          <div>
-            <h3 className="flex items-center gap-2 font-jakarta text-headline-md text-primary">
-              <Icon name="bar_chart" className="text-[22px]" />
-              Ringkasan Aktivitas
-            </h3>
-            <p className="text-on-surface-variant">Distribusi peminjaman berdasarkan status</p>
-          </div>
-          <div className="flex flex-1 flex-col justify-end gap-3 pt-4">
-            {data.grafikStatus.map((g) => {
-              const info = STATUS_PEMINJAMAN[g.status];
-              const w = WARNA_BAR[g.status] ?? WARNA_BAR.DIPINJAM;
-              const persen = Math.max((g.jumlah / maxGrafik) * 100, g.jumlah > 0 ? 8 : 0);
-              return (
-                <div
-                  key={g.status}
-                  onClick={() => router.push(RUTE.adminPeminjamanStatus(g.status))}
-                  role="button"
-                  tabIndex={0}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter' || e.key === ' ') {
-                      e.preventDefault();
-                      router.push(RUTE.adminPeminjamanStatus(g.status));
-                    }
-                  }}
-                  title={`Lihat peminjaman berstatus ${info.label}`}
-                  className="group flex cursor-pointer items-center gap-3 rounded-lg px-2 py-1.5 transition-colors hover:bg-surface-container/50 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
-                >
-                  <span className="flex w-20 shrink-0 items-center gap-2 font-label-md text-on-surface-variant sm:w-40">
-                    <span className={cn('h-2.5 w-2.5 shrink-0 rounded-full ring-2 ring-white transition-transform group-hover:scale-125', w.titik)} />
-                    <span className="hidden text-xs sm:inline">{info.label}</span>
-                    <span className="text-xs sm:hidden">{info.label.split(' ')[0]}</span>
-                  </span>
-                  <div className="h-6 flex-1 overflow-hidden rounded-full bg-surface-container/70">
-                    <div
-                      className={cn(
-                        'flex h-full items-center justify-end rounded-full bg-gradient-to-r px-2 text-xs font-bold text-white shadow-sm transition-[width,filter] duration-700 ease-out group-hover:brightness-110',
-                        w.bar,
-                      )}
-                      style={{ width: barTampil ? `${persen}%` : '0%' }}
-                    >
-                      {g.jumlah > 0 && g.jumlah}
-                    </div>
+      {/* Ringkasan Aktivitas */}
+      <section className="glass-card flex flex-col gap-6 rounded-2xl p-stack-lg">
+        <div>
+          <h3 className="flex items-center gap-2 font-jakarta text-headline-md text-primary">
+            <Icon name="bar_chart" className="text-[22px]" />
+            Ringkasan Aktivitas
+          </h3>
+          <p className="text-on-surface-variant">Distribusi peminjaman berdasarkan status</p>
+        </div>
+        <div className="flex flex-1 flex-col justify-end gap-3 pt-4">
+          {data.grafikStatus.map((g) => {
+            const info = STATUS_PEMINJAMAN[g.status];
+            const w = WARNA_BAR[g.status] ?? WARNA_BAR.DIPINJAM;
+            const persen = Math.max((g.jumlah / maxGrafik) * 100, g.jumlah > 0 ? 8 : 0);
+            return (
+              <div
+                key={g.status}
+                onClick={() => router.push(RUTE.adminPeminjamanStatus(g.status))}
+                role="button"
+                tabIndex={0}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    router.push(RUTE.adminPeminjamanStatus(g.status));
+                  }
+                }}
+                title={`Lihat peminjaman berstatus ${info.label}`}
+                className="group flex cursor-pointer items-center gap-3 rounded-lg px-2 py-1.5 transition-colors hover:bg-surface-container/50 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+              >
+                <span className="flex w-20 shrink-0 items-center gap-2 font-label-md text-on-surface-variant sm:w-40">
+                  <span className={cn('h-2.5 w-2.5 shrink-0 rounded-full ring-2 ring-white transition-transform group-hover:scale-125', w.titik)} />
+                  <span className="hidden text-xs sm:inline">{info.label}</span>
+                  <span className="text-xs sm:hidden">{info.label.split(' ')[0]}</span>
+                </span>
+                <div className="h-6 flex-1 overflow-hidden rounded-full bg-surface-container/70">
+                  <div
+                    className={cn(
+                      'flex h-full items-center justify-end rounded-full bg-gradient-to-r px-2 text-xs font-bold text-white shadow-sm transition-[width,filter] duration-700 ease-out group-hover:brightness-110',
+                      w.bar,
+                    )}
+                    style={{ width: barTampil ? `${persen}%` : '0%' }}
+                  >
+                    {g.jumlah > 0 && g.jumlah}
                   </div>
-                  <span className={cn('w-10 text-right text-sm font-bold tabular-nums', w.teks)}>{g.jumlah}</span>
-                  <Icon name="chevron_right" className="h-4 w-4 shrink-0 text-on-surface-variant opacity-0 transition-opacity group-hover:opacity-100" />
                 </div>
-              );
-            })}
-          </div>
-        </section>
+                <span className={cn('w-10 text-right text-sm font-bold tabular-nums', w.teks)}>{g.jumlah}</span>
+                <Icon name="chevron_right" className="h-4 w-4 shrink-0 text-on-surface-variant opacity-0 transition-opacity group-hover:opacity-100" />
+              </div>
+            );
+          })}
+        </div>
+      </section>
 
-        {/* Peminjaman Terbaru */}
-        <section className="glass-card overflow-hidden rounded-2xl">
-          <div className="flex items-center justify-between border-b border-outline-variant bg-white/40 p-stack-lg">
-            <h3 className="flex items-center gap-2 font-jakarta text-headline-md text-primary">
-              <Icon name="receipt_long" className="text-[22px]" />
-              Peminjaman Terbaru
-            </h3>
-            <Button
-              variant="ghost"
-              size="sm"
-              className="group gap-1 text-primary hover:bg-primary/10"
-              onClick={() => router.push(RUTE.adminPeminjaman)}
-            >
-              Lihat Semua
-              <Icon name="arrow_forward" className="text-[16px] transition-transform group-hover:translate-x-1" />
-            </Button>
-          </div>
-          <div className="p-stack-md">
-            {data.peminjamanTerbaru.length === 0 ? (
-              <EmptyState judul="Belum ada peminjaman" deskripsi="Pengajuan peminjaman akan tampil di sini." />
-            ) : (
-              <TabelPeminjaman
-                data={data.peminjamanTerbaru}
-                hrefDetail={RUTE.adminPeminjamanDetail}
-                tampilkanPeminjam
-              />
-            )}
-          </div>
-        </section>
-      </div>
+      {/* Peminjaman Terbaru */}
+      <section className="glass-card overflow-hidden rounded-2xl">
+        <div className="flex items-center justify-between border-b border-outline-variant bg-white/40 p-stack-lg">
+          <h3 className="flex items-center gap-2 font-jakarta text-headline-md text-primary">
+            <Icon name="receipt_long" className="text-[22px]" />
+            Peminjaman Terbaru
+          </h3>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="group gap-1 text-primary hover:bg-primary/10"
+            onClick={() => router.push(RUTE.adminPeminjaman)}
+          >
+            Lihat Semua
+            <Icon name="arrow_forward" className="text-[16px] transition-transform group-hover:translate-x-1" />
+          </Button>
+        </div>
+        <div className="p-stack-md">
+          {data.peminjamanTerbaru.length === 0 ? (
+            <EmptyState judul="Belum ada peminjaman" deskripsi="Pengajuan peminjaman akan tampil di sini." />
+          ) : (
+            <TabelPeminjaman
+              data={data.peminjamanTerbaru}
+              hrefDetail={RUTE.adminPeminjamanDetail}
+              tampilkanPeminjam
+            />
+          )}
+        </div>
+      </section>
     </div>
   );
 }

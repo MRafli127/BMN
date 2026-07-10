@@ -388,8 +388,8 @@ async function validateAccessTokenWithVersion(payload) {
   return { valid: true, user };
 }
 
-// Inactivity timeout dalam milidetik (15 menit)
-const INACTIVITY_TIMEOUT_MS = 15 * 60 * 1000;
+// Inactivity timeout dalam milidetik (60 menit — diselaraskan dengan access token)
+const INACTIVITY_TIMEOUT_MS = 60 * 60 * 1000;
 
 // --- Validasi sesi: cek apakah sesi valid (belum di-invalidate & masih aktif) ---
 // Dipanggil oleh auth middleware pada setiap request terproteksi
