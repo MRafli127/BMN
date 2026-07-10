@@ -241,51 +241,114 @@ function DialogKonfirmasiSatker({
   if (!terbuka) return null;
 
   const statusOptions = [
-    { label: 'Menunggu Persetujuan', ikon: 'pending_actions', warna: 'text-amber-600', bg: 'bg-amber-100', countKey: 'menunggu' as const },
-    { label: 'Disetujui', ikon: 'check_circle', warna: 'text-green-600', bg: 'bg-green-100', countKey: 'disetujui' as const },
-    { label: 'Sedang Dipinjam', ikon: 'sync_alt', warna: 'text-pink-600', bg: 'bg-pink-100', countKey: 'dipinjam' as const },
-    { label: 'Dikembalikan', ikon: 'assignment_return', warna: 'text-teal-600', bg: 'bg-teal-100', countKey: 'dikembalikan' as const },
-    { label: 'Terlambat', ikon: 'report', warna: 'text-orange-600', bg: 'bg-orange-100', countKey: 'terlambat' as const },
-    { label: 'Ditolak', ikon: 'cancel', warna: 'text-red-600', bg: 'bg-red-100', countKey: 'ditolak' as const },
+    {
+      label: 'Menunggu Persetujuan',
+      ikon: 'pending_actions',
+      gradient: 'from-amber-400 to-orange-500',
+      shadow: 'shadow-amber-500/30',
+      countKey: 'menunggu' as const,
+    },
+    {
+      label: 'Disetujui',
+      ikon: 'check_circle',
+      gradient: 'from-green-400 to-emerald-600',
+      shadow: 'shadow-green-500/30',
+      countKey: 'disetujui' as const,
+    },
+    {
+      label: 'Sedang Dipinjam',
+      ikon: 'sync_alt',
+      gradient: 'from-pink-400 to-rose-600',
+      shadow: 'shadow-pink-500/30',
+      countKey: 'dipinjam' as const,
+    },
+    {
+      label: 'Dikembalikan',
+      ikon: 'assignment_return',
+      gradient: 'from-teal-400 to-cyan-600',
+      shadow: 'shadow-teal-500/30',
+      countKey: 'dikembalikan' as const,
+    },
+    {
+      label: 'Terlambat',
+      ikon: 'report',
+      gradient: 'from-orange-400 to-red-600',
+      shadow: 'shadow-orange-500/30',
+      countKey: 'terlambat' as const,
+    },
+    {
+      label: 'Ditolak',
+      ikon: 'cancel',
+      gradient: 'from-red-400 to-red-700',
+      shadow: 'shadow-red-500/30',
+      countKey: 'ditolak' as const,
+    },
   ];
 
   const barangOptions = [
-    { label: 'Total Barang', ikon: 'inventory', warna: 'text-primary', bg: 'bg-primary/10', countKey: 'totalBarang' as const },
-    { label: 'Stok Tersedia', ikon: 'check_circle', warna: 'text-green-600', bg: 'bg-green-100', countKey: 'stokTersedia' as const },
-    { label: 'Stok Habis', ikon: 'error', warna: 'text-red-600', bg: 'bg-red-100', countKey: 'stokHabis' as const },
+    {
+      label: 'Total Barang',
+      ikon: 'inventory',
+      gradient: 'from-primary to-indigo-600',
+      shadow: 'shadow-primary/30',
+      countKey: 'totalBarang' as const,
+    },
+    {
+      label: 'Stok Tersedia',
+      ikon: 'check_circle',
+      gradient: 'from-green-400 to-emerald-600',
+      shadow: 'shadow-green-500/30',
+      countKey: 'stokTersedia' as const,
+    },
+    {
+      label: 'Stok Habis',
+      ikon: 'error',
+      gradient: 'from-red-400 to-red-700',
+      shadow: 'shadow-red-500/30',
+      countKey: 'stokHabis' as const,
+    },
   ];
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-      <div className="max-h-[90vh] w-full max-w-6xl overflow-y-auto rounded-3xl bg-white p-8 shadow-2xl">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
+      <div className="relative max-h-[95vh] w-full max-w-6xl overflow-hidden rounded-3xl bg-gradient-to-br from-white via-white to-slate-50 p-6 shadow-2xl">
         {/* Header */}
-        <div className="mb-8 flex items-center justify-between">
+        <div className="mb-6 flex items-center justify-between">
           <div className="flex items-center gap-4">
-            <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-primary/10">
-              <Icon name="location_city" className="h-8 w-8 text-primary" />
+            <div className="relative">
+              <div className="absolute inset-0 animate-ping rounded-xl bg-primary/30 blur-xl" />
+              <div className="relative flex h-14 w-14 items-center justify-center rounded-xl bg-gradient-to-br from-primary to-indigo-600 shadow-lg shadow-primary/30">
+                <Icon name="location_city" className="h-7 w-7 text-white" />
+              </div>
             </div>
             <div>
-              <h2 className="font-jakarta text-2xl font-bold text-primary">{label}</h2>
-              <p className="text-base text-muted-foreground">
-                Kode Satker: <code className="rounded bg-muted px-2 py-0.5 font-mono text-sm">{kodeSatker}</code>
+              <h2 className="font-jakarta text-2xl font-bold bg-gradient-to-r from-primary to-indigo-600 bg-clip-text text-transparent">
+                {label}
+              </h2>
+              <p className="mt-1 text-sm text-muted-foreground">
+                Kode Satker: <span className="rounded-lg bg-slate-100 px-2 py-0.5 font-mono text-xs font-medium text-primary">{kodeSatker}</span>
               </p>
             </div>
           </div>
           <button
             onClick={() => onUbahTerbuka(false)}
-            className="rounded-xl p-3 hover:bg-muted transition-colors"
+            className="rounded-xl p-3 text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-600"
           >
             <X className="h-6 w-6" />
           </button>
         </div>
 
         {/* Manajemen Peminjaman */}
-        <div className="mb-10">
-          <h3 className="mb-6 flex items-center gap-3 font-jakarta text-lg font-semibold text-on-surface">
-            <Icon name="swap_horiz" className="text-[24px] text-primary" />
-            Manajemen Peminjaman
-          </h3>
-          <div className="grid grid-cols-2 gap-5 sm:grid-cols-3 lg:grid-cols-6">
+        <div className="mb-6">
+          <div className="mb-4 flex items-center gap-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-primary to-indigo-600 shadow-md shadow-primary/30">
+              <Icon name="swap_horiz" className="h-5 w-5 text-white" />
+            </div>
+            <h3 className="font-jakarta text-lg font-bold text-slate-800">
+              Manajemen Peminjaman
+            </h3>
+          </div>
+          <div className="grid grid-cols-3 gap-4 lg:grid-cols-6">
             {statusOptions.map((opt) => (
               <button
                 key={opt.countKey}
@@ -293,20 +356,41 @@ function DialogKonfirmasiSatker({
                   onUbahTerbuka(false);
                   onPilih(`peminjaman:${opt.countKey.toUpperCase()}`);
                 }}
-                className="group relative flex flex-col items-center gap-4 rounded-3xl border-2 border-outline-variant bg-white p-6 text-center transition-all hover:border-primary/50 hover:shadow-xl hover:-translate-y-2 active:scale-[0.98]"
+                className="group relative"
               >
-                {/* Count Badge */}
-                <div className="absolute -top-3 -right-3 flex h-10 w-10 items-center justify-center rounded-full bg-primary text-sm font-bold text-white shadow-lg">
-                  {memuat ? (
-                    <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
-                  ) : (
-                    counts?.[opt.countKey] ?? 0
-                  )}
+                {/* Glow effect */}
+                <div className={cn(
+                  'absolute inset-0 rounded-2xl bg-gradient-to-br opacity-0 blur-lg transition-opacity duration-300 group-hover:opacity-50',
+                  opt.gradient
+                )} />
+
+                {/* Card */}
+                <div className="relative flex flex-col items-center gap-3 rounded-2xl border border-slate-200/50 bg-white p-4 shadow transition-all duration-300 hover:shadow-lg hover:-translate-y-1">
+                  {/* Icon */}
+                  <div className={cn(
+                    'flex h-16 w-16 items-center justify-center rounded-xl bg-gradient-to-br shadow-md transition-transform duration-300 group-hover:scale-105',
+                    opt.gradient
+                  )}>
+                    <Icon name={opt.ikon} className="h-8 w-8 text-white" />
+                  </div>
+
+                  {/* Label */}
+                  <span className="text-center text-xs font-semibold text-slate-600">{opt.label}</span>
+
+                  {/* Count Badge - Circle */}
+                  <div className={cn(
+                    'flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-br shadow-md transition-transform duration-300 group-hover:scale-110',
+                    opt.gradient
+                  )}>
+                    {memuat ? (
+                      <div className="h-4 w-4 animate-spin rounded-full border-[2px] border-white border-t-transparent" />
+                    ) : (
+                      <span className="text-sm font-bold text-white">
+                        {counts?.[opt.countKey] ?? 0}
+                      </span>
+                    )}
+                  </div>
                 </div>
-                <div className={cn('flex h-16 w-16 items-center justify-center rounded-2xl transition-transform duration-300 group-hover:scale-110', opt.bg)}>
-                  <Icon name={opt.ikon} className={cn('text-[32px]', opt.warna)} />
-                </div>
-                <span className="text-sm font-semibold leading-tight">{opt.label}</span>
               </button>
             ))}
           </div>
@@ -314,11 +398,15 @@ function DialogKonfirmasiSatker({
 
         {/* Manajemen Barang */}
         <div>
-          <h3 className="mb-6 flex items-center gap-3 font-jakarta text-lg font-semibold text-on-surface">
-            <Icon name="inventory_2" className="text-[24px] text-primary" />
-            Manajemen Barang
-          </h3>
-          <div className="grid grid-cols-2 gap-5 sm:grid-cols-3 lg:grid-cols-3">
+          <div className="mb-4 flex items-center gap-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 shadow-md shadow-indigo-500/30">
+              <Icon name="inventory_2" className="h-5 w-5 text-white" />
+            </div>
+            <h3 className="font-jakarta text-lg font-bold text-slate-800">
+              Manajemen Barang
+            </h3>
+          </div>
+          <div className="grid grid-cols-3 gap-4">
             {barangOptions.map((opt) => (
               <button
                 key={opt.countKey}
@@ -331,20 +419,41 @@ function DialogKonfirmasiSatker({
                   };
                   onPilih(routeMap[opt.countKey] || `barang:${opt.countKey}`);
                 }}
-                className="group relative flex flex-col items-center gap-4 rounded-3xl border-2 border-outline-variant bg-white p-6 text-center transition-all hover:border-primary/50 hover:shadow-xl hover:-translate-y-2 active:scale-[0.98]"
+                className="group relative"
               >
-                {/* Count Badge */}
-                <div className="absolute -top-3 -right-3 flex h-10 w-10 items-center justify-center rounded-full bg-primary text-sm font-bold text-white shadow-lg">
-                  {memuat ? (
-                    <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
-                  ) : (
-                    counts?.[opt.countKey] ?? 0
-                  )}
+                {/* Glow effect */}
+                <div className={cn(
+                  'absolute inset-0 rounded-2xl bg-gradient-to-br opacity-0 blur-lg transition-opacity duration-300 group-hover:opacity-50',
+                  opt.gradient
+                )} />
+
+                {/* Card */}
+                <div className="relative flex flex-col items-center gap-3 rounded-2xl border border-slate-200/50 bg-white p-4 shadow transition-all duration-300 hover:shadow-lg hover:-translate-y-1">
+                  {/* Icon */}
+                  <div className={cn(
+                    'flex h-16 w-16 items-center justify-center rounded-xl bg-gradient-to-br shadow-md transition-transform duration-300 group-hover:scale-105',
+                    opt.gradient
+                  )}>
+                    <Icon name={opt.ikon} className="h-8 w-8 text-white" />
+                  </div>
+
+                  {/* Label */}
+                  <span className="text-center text-xs font-semibold text-slate-600">{opt.label}</span>
+
+                  {/* Count Badge - Circle */}
+                  <div className={cn(
+                    'flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-br shadow-md transition-transform duration-300 group-hover:scale-110',
+                    opt.gradient
+                  )}>
+                    {memuat ? (
+                      <div className="h-4 w-4 animate-spin rounded-full border-[2px] border-white border-t-transparent" />
+                    ) : (
+                      <span className="text-sm font-bold text-white">
+                        {counts?.[opt.countKey] ?? 0}
+                      </span>
+                    )}
+                  </div>
                 </div>
-                <div className={cn('flex h-16 w-16 items-center justify-center rounded-2xl transition-transform duration-300 group-hover:scale-110', opt.bg)}>
-                  <Icon name={opt.ikon} className={cn('text-[32px]', opt.warna)} />
-                </div>
-                <span className="text-sm font-semibold leading-tight">{opt.label}</span>
               </button>
             ))}
           </div>
@@ -541,17 +650,19 @@ export default function AdminDashboardPage() {
       </section>
 
       {/* Kartu Kode Satker */}
-      <section className="glass-card rounded-2xl p-stack-lg">
-        <div className="mb-6">
-          <h3 className="flex items-center gap-2 font-jakarta text-headline-md text-primary">
-            <Icon name="location_city" className="text-[22px]" />
-            Pilih Kode Satker
-          </h3>
-          <p className="text-on-surface-variant">Klik kartu untuk memilih kode satker yang akan diakses</p>
+      <section className="rounded-3xl border-2 border-slate-200/50 bg-gradient-to-br from-white to-slate-50 p-8 shadow-lg">
+        <div className="mb-6 flex items-center gap-3">
+          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-primary to-indigo-600 shadow-lg shadow-primary/30">
+            <Icon name="location_city" className="h-5 w-5 text-white" />
+          </div>
+          <div>
+            <h3 className="font-jakarta text-xl font-bold text-slate-800">Pilih Kode Satker</h3>
+            <p className="text-sm text-muted-foreground">Klik kartu untuk memilih kode satker yang akan diakses</p>
+          </div>
         </div>
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           {KODE_SATKER.map((satker, indeks) => (
-            <div
+            <button
               key={satker.kode}
               onClick={async () => {
                 setSatkerTerpilih(satker);
@@ -564,20 +675,33 @@ export default function AdminDashboardPage() {
                 setCountsMemuat(false);
               }}
               style={{ animationDelay: `${indeks * 60}ms` }}
-              className="group relative cursor-pointer overflow-hidden rounded-xl border border-outline-variant bg-gradient-to-br from-white via-white to-primary/5 p-4 transition-all duration-300 hover:-translate-y-1 hover:shadow-elevated hover:border-primary/30 active:scale-[0.98] animate-page-in"
+              className="group relative animate-page-in"
             >
-              <div className="absolute -right-4 -top-4 h-20 w-20 rounded-full bg-primary/10 blur-2xl opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
-              <div className="relative flex items-center gap-4">
-                <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary transition-transform duration-300 group-hover:scale-110">
-                  <Icon name="badge" className="text-[24px]" />
+              {/* Glow effect */}
+              <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-primary/20 to-indigo-600/20 opacity-0 blur-lg transition-opacity duration-500 group-hover:opacity-100" />
+
+              {/* Card */}
+              <div className="relative flex items-center gap-4 rounded-2xl border-2 border-slate-200/50 bg-white p-5 shadow-md transition-all duration-300 hover:border-primary/30 hover:shadow-xl hover:-translate-y-2 active:scale-[0.98]">
+                {/* Gradient top border on hover */}
+                <div className="absolute inset-x-0 top-0 h-1 rounded-t-xl bg-gradient-to-r from-primary to-indigo-600 opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
+
+                {/* Icon */}
+                <div className="relative flex h-14 w-14 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-primary to-indigo-600 shadow-lg shadow-primary/30 transition-transform duration-300 group-hover:scale-110 group-hover:shadow-xl">
+                  <Icon name="badge" className="h-7 w-7 text-white" />
                 </div>
-                <div className="min-w-0 flex-1">
-                  <p className="font-label-md text-on-surface-variant">{satker.label}</p>
-                  <p className="mt-1 break-all font-mono text-sm font-medium text-primary">{satker.kode}</p>
+
+                {/* Text */}
+                <div className="min-w-0 flex-1 text-left">
+                  <p className="font-semibold text-slate-700 transition-colors group-hover:text-primary">{satker.label}</p>
+                  <p className="mt-1 break-all font-mono text-xs font-medium text-slate-500">{satker.kode}</p>
                 </div>
-                <Icon name="chevron_right" className="h-5 w-5 shrink-0 text-on-surface-variant transition-all duration-300 group-hover:translate-x-1 group-hover:text-primary" />
+
+                {/* Arrow - only visible on hover */}
+                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-slate-100 transition-all duration-300 group-hover:translate-x-1 group-hover:bg-primary/10 opacity-0 group-hover:opacity-100">
+                  <Icon name="chevron_right" className="h-5 w-5 text-slate-400 transition-colors group-hover:text-primary" />
+                </div>
               </div>
-            </div>
+            </button>
           ))}
         </div>
       </section>

@@ -1,7 +1,7 @@
 // ============================================================
 //  Hook useSessionSecurity — keamanan sesi berbasis aktivitas.
 //   - Mendeteksi tab close / browser close → invalidate session
-//   - Auto logout setelah 15 menit tidak aktif
+//   - Auto logout setelah 1 jam tidak aktif
 //   - Kirim heartbeat aktivitas ke server secara periodik
 // ============================================================
 
@@ -15,8 +15,8 @@ import toast from 'react-hot-toast';
 // Interval heartbeat aktivitas (1 menit)
 const HEARTBEAT_INTERVAL_MS = 60 * 1000;
 
-// Inactivity timeout (15 menit) — harus sama dengan backend
-const INACTIVITY_TIMEOUT_MS = 15 * 60 * 1000;
+// Inactivity timeout (1 jam) — harus sama dengan backend
+const INACTIVITY_TIMEOUT_MS = 60 * 60 * 1000;
 
 export function useSessionSecurity() {
   const { user, logout } = useAuth();
@@ -65,7 +65,7 @@ export function useSessionSecurity() {
       const inactiveTime = now - lastActivity;
 
       if (inactiveTime > INACTIVITY_TIMEOUT_MS && user) {
-        // Sudah inactive lebih dari 15 menit — logout
+        // Sudah inactive lebih dari 1 jam — logout
         toast.error('Sesi Anda telah berakhir karena tidak aktif. Silakan login kembali.');
         bersihkanSesi();
         window.location.href = '/login';
@@ -109,7 +109,7 @@ export function useSessionSecurity() {
     const inactiveTime = now - lastActivity;
 
     if (inactiveTime >= INACTIVITY_TIMEOUT_MS) {
-      toast.error('Sesi Anda telah berakhir karena tidak aktif selama 15 menit. Silakan login kembali.');
+      toast.error('Sesi Anda telah berakhir karena tidak aktif selama 1 jam. Silakan login kembali.');
       bersihkanSesi();
       window.location.href = '/login';
     }
