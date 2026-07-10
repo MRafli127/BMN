@@ -1,4 +1,4 @@
-// ============================================================
+﻿// ============================================================
 //  Dashboard Admin - ringkasan statistik & grafik.
 // ============================================================
 
@@ -595,11 +595,13 @@ export default function AdminDashboardPage() {
         <div className="grid grid-cols-1 gap-8 lg:grid-cols-2">
           {/* Kolom Kiri: Ringkasan General */}
           <div className="space-y-4">
-            <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-gradient-to-br from-amber-400 to-orange-500 shadow-md shadow-amber-500/30">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-gradient-to-br from-amber-400 to-orange-500 shadow-md shadow-amber-500/30">
                 <Icon name="swap_horiz" className="h-5 w-5 text-white" />
               </div>
-              <h3 className="font-jakarta text-base font-bold text-slate-800">Ringkasan General</h3>
+              <div>
+                <h3 className="font-jakarta font-bold text-slate-800">Ringkasan General</h3>
+              </div>
             </div>
 
             <div className="grid grid-cols-2 gap-4">
@@ -614,8 +616,8 @@ export default function AdminDashboardPage() {
                   <div className="flex h-14 w-14 items-center justify-center rounded-xl bg-gradient-to-br from-amber-400 to-orange-500 shadow-lg shadow-amber-500/30 transition-transform duration-300 group-hover:scale-110 group-hover:shadow-xl">
                     <Icon name="pending_actions" className="h-7 w-7 text-white" />
                   </div>
-                  <span className="font-jakarta text-3xl font-bold text-amber-600">{s.pengajuanMenunggu}</span>
-                  <span className="text-center text-sm font-semibold text-slate-600">Pengajuan Menunggu</span>
+                  <span className="font-jakarta text-2xl font-bold text-amber-600">{s.pengajuanMenunggu}</span>
+                  <span className="text-center text-xs font-medium text-slate-600">Pengajuan Menunggu</span>
                   <div className="flex h-7 w-7 items-center justify-center rounded-full bg-slate-100 transition-all duration-300 group-hover:translate-x-1 group-hover:bg-amber-100 opacity-0 group-hover:opacity-100">
                     <Icon name="chevron_right" className="h-4 w-4 text-amber-500" />
                   </div>
@@ -633,10 +635,10 @@ export default function AdminDashboardPage() {
                   <div className="flex h-14 w-14 items-center justify-center rounded-xl bg-gradient-to-br from-emerald-400 to-teal-600 shadow-lg shadow-emerald-500/30 transition-transform duration-300 group-hover:scale-110 group-hover:shadow-xl">
                     <Icon name="verified" className="h-7 w-7 text-white" />
                   </div>
-                  <span className="font-jakarta text-3xl font-bold text-emerald-600">
+                  <span className="font-jakarta text-2xl font-bold text-emerald-600">
                     {data.grafikStatus.find(g => g.status === 'DISETUJUI')?.jumlah ?? 0}
                   </span>
-                  <span className="text-center text-sm font-semibold text-slate-600">Penyetujuan Pinjaman</span>
+                  <span className="text-center text-xs font-medium text-slate-600">Penyetujuan Pinjaman</span>
                   <div className="flex h-7 w-7 items-center justify-center rounded-full bg-slate-100 transition-all duration-300 group-hover:translate-x-1 group-hover:bg-emerald-100 opacity-0 group-hover:opacity-100">
                     <Icon name="chevron_right" className="h-4 w-4 text-emerald-500" />
                   </div>
@@ -654,8 +656,8 @@ export default function AdminDashboardPage() {
                   <div className="flex h-14 w-14 items-center justify-center rounded-xl bg-gradient-to-br from-pink-400 to-rose-600 shadow-lg shadow-pink-500/30 transition-transform duration-300 group-hover:scale-110 group-hover:shadow-xl">
                     <Icon name="sync_alt" className="h-7 w-7 text-white" />
                   </div>
-                  <span className="font-jakarta text-3xl font-bold text-pink-600">{s.peminjamanAktif}</span>
-                  <span className="text-center text-sm font-semibold text-slate-600">Peminjaman Aktif</span>
+                  <span className="font-jakarta text-2xl font-bold text-pink-600">{s.peminjamanAktif}</span>
+                  <span className="text-center text-xs font-medium text-slate-600">Peminjaman Aktif</span>
                   <div className="flex h-7 w-7 items-center justify-center rounded-full bg-slate-100 transition-all duration-300 group-hover:translate-x-1 group-hover:bg-pink-100 opacity-0 group-hover:opacity-100">
                     <Icon name="chevron_right" className="h-4 w-4 text-pink-500" />
                   </div>
@@ -673,10 +675,10 @@ export default function AdminDashboardPage() {
                   <div className="flex h-14 w-14 items-center justify-center rounded-xl bg-gradient-to-br from-cyan-400 to-blue-600 shadow-lg shadow-cyan-500/30 transition-transform duration-300 group-hover:scale-110 group-hover:shadow-xl">
                     <Icon name="assignment_return" className="h-7 w-7 text-white" />
                   </div>
-                  <span className="font-jakarta text-3xl font-bold text-blue-600">
+                  <span className="font-jakarta text-2xl font-bold text-blue-600">
                     {data.grafikStatus.find(g => g.status === 'DIKEMBALIKAN')?.jumlah ?? 0}
                   </span>
-                  <span className="text-center text-sm font-semibold text-slate-600">Barang Dikembalikan</span>
+                  <span className="text-center text-xs font-medium text-slate-600">Barang Dikembalikan</span>
                   <div className="flex h-7 w-7 items-center justify-center rounded-full bg-slate-100 transition-all duration-300 group-hover:translate-x-1 group-hover:bg-cyan-100 opacity-0 group-hover:opacity-100">
                     <Icon name="chevron_right" className="h-4 w-4 text-cyan-500" />
                   </div>
@@ -710,11 +712,13 @@ export default function AdminDashboardPage() {
 
           {/* Kolom Kanan: Inventaris Barang */}
           <div className="space-y-4">
-            <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-gradient-to-br from-indigo-500 to-purple-600 shadow-md shadow-indigo-500/30">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-gradient-to-br from-indigo-500 to-purple-600 shadow-md shadow-indigo-500/30">
                 <Icon name="inventory_2" className="h-5 w-5 text-white" />
               </div>
-              <h3 className="font-jakarta text-base font-bold text-slate-800">Inventaris Barang</h3>
+              <div>
+                <h3 className="font-jakarta font-bold text-slate-800">Inventaris Barang</h3>
+              </div>
             </div>
 
             <div className="space-y-4">
@@ -731,8 +735,8 @@ export default function AdminDashboardPage() {
                       <Icon name="inventory" className="h-6 w-6 text-white" />
                     </div>
                     <div className="text-left">
-                      <span className="text-sm font-semibold text-slate-500">Total Barang</span>
-                      <p className="font-jakarta text-2xl font-bold text-primary">{s.totalBarang}</p>
+                      <span className="text-xs font-medium text-slate-500">Total Barang</span>
+                      <p className="font-jakarta text-xl font-bold text-primary">{s.totalBarang}</p>
                     </div>
                   </div>
                   <div className="flex h-8 w-8 items-center justify-center rounded-full bg-slate-100 transition-all duration-300 group-hover:translate-x-1 group-hover:bg-primary/10 opacity-0 group-hover:opacity-100">
@@ -754,8 +758,8 @@ export default function AdminDashboardPage() {
                       <Icon name="check_circle" className="h-6 w-6 text-white" />
                     </div>
                     <div className="text-left">
-                      <span className="text-sm font-semibold text-slate-500">Stok Tersedia</span>
-                      <p className="font-jakarta text-2xl font-bold text-secondary">{s.stokTersedia}</p>
+                      <span className="text-xs font-medium text-slate-500">Stok Tersedia</span>
+                      <p className="font-jakarta text-xl font-bold text-secondary">{s.stokTersedia}</p>
                     </div>
                   </div>
                   <div className="flex h-8 w-8 items-center justify-center rounded-full bg-slate-100 transition-all duration-300 group-hover:translate-x-1 group-hover:bg-green-100 opacity-0 group-hover:opacity-100">
@@ -777,8 +781,8 @@ export default function AdminDashboardPage() {
                       <Icon name="error" className="h-6 w-6 text-white" />
                     </div>
                     <div className="text-left">
-                      <span className="text-sm font-semibold text-slate-500">Stok Habis</span>
-                      <p className="font-jakarta text-2xl font-bold text-error">{s.stokHabis}</p>
+                      <span className="text-xs font-medium text-slate-500">Stok Habis</span>
+                      <p className="font-jakarta text-xl font-bold text-error">{s.stokHabis}</p>
                     </div>
                   </div>
                   <div className="flex h-8 w-8 items-center justify-center rounded-full bg-slate-100 transition-all duration-300 group-hover:translate-x-1 group-hover:bg-red-100 opacity-0 group-hover:opacity-100">
@@ -903,36 +907,36 @@ export default function AdminDashboardPage() {
           </div>
         </section>
 
-        {/* Peminjaman Terbaru */}
-        <section className="glass-card overflow-hidden rounded-2xl">
-          <div className="flex items-center justify-between border-b border-outline-variant bg-white/40 p-stack-lg">
-            <h3 className="flex items-center gap-2 font-jakarta text-headline-md text-primary">
-              <Icon name="receipt_long" className="text-[22px]" />
-              Peminjaman Terbaru
-            </h3>
-            <Button
-              variant="ghost"
-              size="sm"
-              className="group gap-1 text-primary hover:bg-primary/10"
-              onClick={() => router.push(RUTE.adminPeminjaman)}
-            >
-              Lihat Semua
-              <Icon name="arrow_forward" className="text-[16px] transition-transform group-hover:translate-x-1" />
-            </Button>
-          </div>
-          <div className="p-stack-md">
-            {data.peminjamanTerbaru.length === 0 ? (
-              <EmptyState judul="Belum ada peminjaman" deskripsi="Pengajuan peminjaman akan tampil di sini." />
-            ) : (
-              <TabelPeminjaman
-                data={data.peminjamanTerbaru}
-                hrefDetail={RUTE.adminPeminjamanDetail}
-                tampilkanPeminjam
-              />
-            )}
-          </div>
-        </section>
-      </div>
+      {/* Grafik & info */}
+      <section className="glass-card overflow-hidden rounded-2xl">
+        <div className="flex items-center justify-between border-b border-outline-variant bg-white/40 p-stack-lg">
+          <h3 className="flex items-center gap-2 font-jakarta text-headline-md text-primary">
+            <Icon name="receipt_long" className="text-[22px]" />
+            Peminjaman Terbaru
+          </h3>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="group gap-1 text-primary hover:bg-primary/10"
+            onClick={() => router.push(RUTE.adminPeminjaman)}
+          >
+            Lihat Semua
+            <Icon name="arrow_forward" className="text-[16px] transition-transform group-hover:translate-x-1" />
+          </Button>
+        </div>
+        <div className="p-stack-md">
+          {data.peminjamanTerbaru.length === 0 ? (
+            <EmptyState judul="Belum ada peminjaman" deskripsi="Pengajuan peminjaman akan tampil di sini." />
+          ) : (
+            <TabelPeminjaman
+              data={data.peminjamanTerbaru}
+              hrefDetail={RUTE.adminPeminjamanDetail}
+              tampilkanPeminjam
+            />
+          )}
+        </div>
+      </section>
     </div>
   );
 }
+
