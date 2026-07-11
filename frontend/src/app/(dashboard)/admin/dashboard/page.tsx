@@ -93,15 +93,16 @@ interface GayaBar {
   bar: string;
   teks: string;
   titik: string;
+  ikon: string;
 }
 const WARNA_BAR: Record<string, GayaBar> = {
-  DRAFT: { bar: 'from-slate-400 to-slate-500', teks: 'text-slate-600', titik: 'bg-slate-400' },
-  MENUNGGU: { bar: 'from-amber-400 to-amber-500', teks: 'text-amber-700', titik: 'bg-amber-400' },
-  DISETUJUI: { bar: 'from-green-400 to-green-600', teks: 'text-green-700', titik: 'bg-green-500' },
-  DITOLAK: { bar: 'from-red-400 to-red-600', teks: 'text-red-700', titik: 'bg-red-500' },
-  DIPINJAM: { bar: 'from-pink-400 to-pink-600', teks: 'text-pink-700', titik: 'bg-pink-500' },
-  DIKEMBALIKAN: { bar: 'from-teal-400 to-teal-600', teks: 'text-teal-700', titik: 'bg-teal-500' },
-  TERLAMBAT: { bar: 'from-orange-400 to-orange-600', teks: 'text-orange-700', titik: 'bg-orange-500' },
+  DRAFT: { bar: 'from-slate-400 to-slate-500', teks: 'text-slate-600', titik: 'bg-slate-400', ikon: 'edit' },
+  MENUNGGU: { bar: 'from-amber-400 to-amber-500', teks: 'text-amber-700', titik: 'bg-amber-400', ikon: 'pending_actions' },
+  DISETUJUI: { bar: 'from-green-400 to-green-600', teks: 'text-green-700', titik: 'bg-green-500', ikon: 'check_circle' },
+  DITOLAK: { bar: 'from-red-400 to-red-600', teks: 'text-red-700', titik: 'bg-red-500', ikon: 'cancel' },
+  DIPINJAM: { bar: 'from-pink-400 to-pink-600', teks: 'text-pink-700', titik: 'bg-pink-500', ikon: 'sync_alt' },
+  DIKEMBALIKAN: { bar: 'from-teal-400 to-teal-600', teks: 'text-teal-700', titik: 'bg-teal-500', ikon: 'assignment_return' },
+  TERLAMBAT: { bar: 'from-orange-400 to-orange-600', teks: 'text-orange-700', titik: 'bg-orange-500', ikon: 'report' },
 };
 
 function DialogRentangWaktu({
@@ -457,9 +458,25 @@ export default function AdminDashboardPage() {
     stokHabis: number;
   } | null>(null);
 
+  // State untuk filter satker di Ringkasan Aktivitas
+  const [satkerAktivitasTerpilih, setSatkerAktivitasTerpilih] = useState<string>('');
+  const [dialogPilihSatkerAktivitasTerbuka, setDialogPilihSatkerAktivitasTerbuka] = useState(false);
+
+  // Ambil label satker berdasarkan kode
+  const getLabelSatker = (kode: string) => {
+    if (!kode) return 'Semua Satker';
+    const satker = KODE_SATKER.find(s => s.kode === kode);
+    return satker?.label || kode;
+  };
+
   // Cache key berdasarkan filter agar data berubah saat filter berubah
-  const cacheKey = `dashboard-admin:${JSON.stringify(filterTanggal)}`;
-  const { data, sedangMemuat } = useQuery(cacheKey, () => dashboardService.admin(filterTanggal));
+  const cacheKey = `dashboard-admin:${JSON.stringify(filterTanggal)}:${satkerAktivitasTerpilih}`;
+  const { data, sedangMemuat } = useQuery(cacheKey, () =>
+    dashboardService.admin({
+      ...filterTanggal,
+      kodeSatker: satkerAktivitasTerpilih || undefined
+    })
+  );
 
   // Animasi "tumbuh" batang grafik: mulai dari 0, lalu melebar ke nilai sebenarnya.
   const [barTampil, setBarTampil] = useState(false);
@@ -849,14 +866,131 @@ export default function AdminDashboardPage() {
       </section>
 
       {/* Ringkasan Aktivitas */}
-      <section className="glass-card flex flex-col gap-6 rounded-2xl p-stack-lg">
-        <div>
-          <h3 className="flex items-center gap-2 font-jakarta text-headline-md text-primary">
-            <Icon name="bar_chart" className="text-[22px]" />
-            Ringkasan Aktivitas
-          </h3>
-          <p className="text-on-surface-variant">Distribusi peminjaman berdasarkan status</p>
+      <section className="rounded-3xl border-2 border-slate-200/50 bg-gradient-to-br from-white to-slate-50 p-8 shadow-lg">
+        {/* Header */}
+        <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-center gap-4">
+            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-primary to-indigo-600 shadow-lg shadow-primary/30">
+              <Icon name="bar_chart" className="h-6 w-6 text-white" />
+            </div>
+            <div>
+              <h3 className="font-jakarta text-xl font-bold text-slate-800">Ringkasan Aktivitas</h3>
+              <p className="text-sm text-muted-foreground">Distribusi peminjaman berdasarkan status</p>
+            </div>
+          </div>
+
+          {/* Dropdown Pilih Satker */}
+          <div className="relative">
+            <button
+              onClick={() => setDialogPilihSatkerAktivitasTerbuka(!dialogPilihSatkerAktivitasTerbuka)}
+              className={cn(
+                'flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 shadow-sm transition-all duration-200 hover:border-primary/30 hover:bg-primary/5 hover:text-primary',
+                satkerAktivitasTerpilih && 'border-primary/30 bg-primary/5 text-primary'
+              )}
+            >
+              <Icon name="filter_list" className="h-4 w-4 text-primary" />
+              <span>{getLabelSatker(satkerAktivitasTerpilih)}</span>
+              <Icon
+                name={dialogPilihSatkerAktivitasTerbuka ? 'expand_less' : 'expand_more'}
+                className="h-4 w-4 text-slate-400"
+              />
+            </button>
+
+            {/* Dropdown Menu */}
+            {dialogPilihSatkerAktivitasTerbuka && (
+              <>
+                {/* Backdrop */}
+                <div
+                  className="fixed inset-0 z-40"
+                  onClick={() => setDialogPilihSatkerAktivitasTerbuka(false)}
+                />
+
+                {/* Menu */}
+                <div className="absolute right-0 top-full z-50 mt-2 w-72 rounded-2xl border border-slate-200/50 bg-white shadow-xl">
+                  {/* Header */}
+                  <div className="flex items-center gap-3 border-b border-slate-100 bg-gradient-to-r from-primary/5 to-indigo-500/5 px-4 py-3">
+                    <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-primary to-indigo-600 shadow-md">
+                      <Icon name="location_city" className="h-4 w-4 text-white" />
+                    </div>
+                    <span className="text-sm font-semibold text-slate-700">Filter Satker</span>
+                  </div>
+
+                  {/* Semua Satker */}
+                  <div className="p-2">
+                    <button
+                      onClick={() => {
+                        setSatkerAktivitasTerpilih('');
+                        setDialogPilihSatkerAktivitasTerbuka(false);
+                      }}
+                      className={cn(
+                        'flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm font-medium transition-all duration-200',
+                        !satkerAktivitasTerpilih
+                          ? 'bg-primary/10 text-primary'
+                          : 'text-slate-600 hover:bg-slate-50'
+                      )}
+                    >
+                      <Icon name="globe" className="h-5 w-5 shrink-0" />
+                      <span>Semua Satker</span>
+                      {!satkerAktivitasTerpilih && (
+                        <Icon name="check" className="ml-auto h-4 w-4 shrink-0 text-primary" />
+                      )}
+                    </button>
+                  </div>
+
+                  <div className="mx-3 h-px bg-slate-100" />
+
+                  {/* Label */}
+                  <div className="px-4 py-2">
+                    <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">
+                      Atau pilih satker tertentu
+                    </span>
+                  </div>
+
+                  {/* Daftar Satker */}
+                  <div className="max-h-64 overflow-y-auto p-2 pt-0">
+                    {KODE_SATKER.map((satker, indeks) => (
+                      <button
+                        key={satker.kode}
+                        onClick={() => {
+                          setSatkerAktivitasTerpilih(satker.kode);
+                          setDialogPilihSatkerAktivitasTerbuka(false);
+                        }}
+                        className={cn(
+                          'flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm font-medium transition-all duration-200',
+                          satkerAktivitasTerpilih === satker.kode
+                            ? 'bg-primary/10 text-primary'
+                            : 'text-slate-600 hover:bg-slate-50'
+                        )}
+                      >
+                        {/* Number badge */}
+                        <div className={cn(
+                          'flex h-6 w-6 shrink-0 items-center justify-center rounded-lg text-xs font-bold',
+                          satkerAktivitasTerpilih === satker.kode
+                            ? 'bg-primary text-white'
+                            : 'bg-slate-100 text-slate-500'
+                        )}>
+                          {indeks}
+                        </div>
+
+                        <div className="min-w-0 flex-1">
+                          <span className="block truncate font-semibold">{satker.label}</span>
+                          <span className="block truncate font-mono text-[10px] text-slate-400">
+                            {satker.kode.slice(-3)}
+                          </span>
+                        </div>
+
+                        {satkerAktivitasTerpilih === satker.kode && (
+                          <Icon name="check" className="h-4 w-4 shrink-0 text-primary" />
+                        )}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </>
+            )}
+          </div>
         </div>
+
         <div className="flex flex-1 flex-col justify-end gap-3 pt-4">
           {data.grafikStatus.map((g) => {
             const info = STATUS_PEMINJAMAN[g.status];
@@ -875,14 +1009,22 @@ export default function AdminDashboardPage() {
                   }
                 }}
                 title={`Lihat peminjaman berstatus ${info.label}`}
-                className="group flex cursor-pointer items-center gap-3 rounded-lg px-2 py-1.5 transition-colors hover:bg-surface-container/50 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+                className="group relative flex cursor-pointer items-center gap-3 rounded-xl border-2 border-slate-200/50 bg-white px-4 py-3 shadow-sm transition-all duration-300 hover:border-slate-300/70 hover:shadow-md hover:-translate-y-0.5"
               >
-                <span className="flex w-20 shrink-0 items-center gap-2 font-label-md text-on-surface-variant sm:w-40">
-                  <span className={cn('h-2.5 w-2.5 shrink-0 rounded-full ring-2 ring-white transition-transform group-hover:scale-125', w.titik)} />
-                  <span className="hidden text-xs sm:inline">{info.label}</span>
-                  <span className="text-xs sm:hidden">{info.label.split(' ')[0]}</span>
+                {/* Gradient top border on hover */}
+                <div className={cn(
+                  'absolute inset-x-0 top-0 h-1 rounded-t-xl bg-gradient-to-r opacity-0 transition-opacity duration-300 group-hover:opacity-100',
+                  w.bar
+                )} />
+
+                <span className="flex w-32 shrink-0 items-center gap-2 sm:w-40">
+                  <div className={cn('flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br shadow-md transition-transform duration-300 group-hover:scale-110', w.bar)}>
+                    <Icon name={info.icon} className="h-5 w-5 text-white" />
+                  </div>
+                  <span className="hidden text-sm font-semibold text-slate-600 sm:inline">{info.label}</span>
+                  <span className="text-xs font-medium text-slate-500 sm:hidden">{info.label.split(' ')[0]}</span>
                 </span>
-                <div className="h-6 flex-1 overflow-hidden rounded-full bg-surface-container/70">
+                <div className="h-6 flex-1 overflow-hidden rounded-full bg-slate-100">
                   <div
                     className={cn(
                       'flex h-full items-center justify-end rounded-full bg-gradient-to-r px-2 text-xs font-bold text-white shadow-sm transition-[width,filter] duration-700 ease-out group-hover:brightness-110',
@@ -894,7 +1036,9 @@ export default function AdminDashboardPage() {
                   </div>
                 </div>
                 <span className={cn('w-10 text-right text-sm font-bold tabular-nums', w.teks)}>{g.jumlah}</span>
-                <Icon name="chevron_right" className="h-4 w-4 shrink-0 text-on-surface-variant opacity-0 transition-opacity group-hover:opacity-100" />
+                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-slate-100 transition-all duration-300 group-hover:translate-x-1 group-hover:bg-slate-200">
+                  <Icon name="chevron_right" className="h-5 w-5 text-slate-400" />
+                </div>
               </div>
             );
           })}

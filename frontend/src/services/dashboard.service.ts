@@ -65,6 +65,7 @@ interface UserList {
 export interface DashboardFilter {
   dari?: string;
   sampai?: string;
+  kodeSatker?: string;
 }
 
 export const dashboardService = {
@@ -72,6 +73,7 @@ export const dashboardService = {
     const params = new URLSearchParams();
     if (filter?.dari) params.append('dari', filter.dari);
     if (filter?.sampai) params.append('sampai', filter.sampai);
+    if (filter?.kodeSatker) params.append('kodeSatker', filter.kodeSatker);
     const query = params.toString();
     const res = await api.get(`/dashboard/admin${query ? `?${query}` : ''}`);
     return res.data.data;
