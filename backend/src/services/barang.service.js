@@ -12,14 +12,11 @@ const { AppError } = require('../middleware/error.middleware');
 
 // Include lengkap untuk relasi peminjam
 // Mengambil data peminjam aktif (barang yang sedang dipinjam)
+// Catatan: filtering status dilakukan di JavaScript oleh ekstrakPeminjam()
 const includePeminjam = {
   detailPeminjaman: {
-    where: { statusItem: 'DIPINJAM' },
     include: {
       peminjaman: {
-        where: {
-          status: { in: ['DISETUJUI', 'DIPINJAM', 'TERLAMBAT'] },
-        },
         include: {
           peminjam: {
             select: {
@@ -37,11 +34,14 @@ const includePeminjam = {
 };
 
 // Ekstrak data peminjam dari relasi
-// Mengambil peminjam pertama yang aktif (jika ada)
+// Mengambil peminjam aktif: statusItem = 'DIPINJAM' dan status peminjaman aktif
 function ekstrakPeminjam(barang) {
   if (!barang?.detailPeminjaman?.length) return null;
   const aktif = barang.detailPeminjaman.find(
-    (dp) => dp.peminjaman?.status && ['DISETUJUI', 'DIPINJAM', 'TERLAMBAT'].includes(dp.peminjaman.status)
+    (dp) =>
+      dp.statusItem === 'DIPINJAM' &&
+      dp.peminjaman?.status &&
+      ['DISETUJUI', 'DIPINJAM', 'TERLAMBAT'].includes(dp.peminjaman.status)
   );
   return aktif?.peminjaman?.peminjam || null;
 }
