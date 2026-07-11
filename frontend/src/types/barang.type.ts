@@ -6,6 +6,15 @@ export type JenisBarang = 'ELEKTRONIK' | 'FURNITUR' | 'KENDARAAN' | 'ATK' | 'LAI
 export type KondisiBarang = 'BAIK' | 'RUSAK_RINGAN' | 'RUSAK_BERAT';
 export type SumberBarang = 'MANUAL' | 'IMPORT';
 
+// Data peminjam yang sedang meminjam barang
+export interface Peminjam {
+  id: string;
+  nama: string;
+  nip?: string | null;
+  jabatan?: string | null;
+  unitKerja?: string | null;
+}
+
 export interface Barang {
   id: string;
   kodeBarang: string;
@@ -26,6 +35,8 @@ export interface Barang {
   nup?: string | null;
   createdAt?: string;
   updatedAt?: string;
+  // Data peminjam aktif (null jika barang tersedia/tidak dipinjam)
+  peminjam?: Peminjam | null;
 }
 
 export interface MetaPagination {

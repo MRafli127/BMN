@@ -10,6 +10,42 @@ const { urlPublik } = require('../utils/apiResponse');
 const { parsePagination } = require('../utils/pagination');
 const { AppError } = require('../middleware/error.middleware');
 
+// Include lengkap untuk relasi peminjam
+// Mengambil data peminjam aktif (barang yang sedang dipinjam)
+const includePeminjam = {
+  detailPeminjaman: {
+    where: { statusItem: 'DIPINJAM' },
+    include: {
+      peminjaman: {
+        where: {
+          status: { in: ['DISETUJUI', 'DIPINJAM', 'TERLAMBAT'] },
+        },
+        include: {
+          peminjam: {
+            select: {
+              id: true,
+              nama: true,
+              nip: true,
+              jabatan: true,
+              unitKerja: true,
+            },
+          },
+        },
+      },
+    },
+  },
+};
+
+// Ekstrak data peminjam dari relasi
+// Mengambil peminjam pertama yang aktif (jika ada)
+function ekstrakPeminjam(barang) {
+  if (!barang?.detailPeminjaman?.length) return null;
+  const aktif = barang.detailPeminjaman.find(
+    (dp) => dp.peminjaman?.status && ['DISETUJUI', 'DIPINJAM', 'TERLAMBAT'].includes(dp.peminjaman.status)
+  );
+  return aktif?.peminjaman?.peminjam || null;
+}
+
 // Ubah fotoUrl relatif menjadi absolut untuk client
 function serialisasi(barang) {
   if (!barang) return barang;
@@ -39,6 +75,7 @@ async function getSemua({ q, jenis, kondisi, ketersediaan, kodeSatker, page = 1,
   const [data, total] = await Promise.all([
     prisma.barang.findMany({
       where,
+      include: includePeminjam,
       orderBy: { createdAt: 'desc' },
       skip: (halaman - 1) * perHalaman,
       take: perHalaman,
@@ -47,7 +84,11 @@ async function getSemua({ q, jenis, kondisi, ketersediaan, kodeSatker, page = 1,
   ]);
 
   return {
-    data: data.map(serialisasi),
+    data: data.map((b) => {
+      const serialized = serialisasi(b);
+      serialized.peminjam = ekstrakPeminjam(b);
+      return serialized;
+    }),
     meta: {
       total,
       page: halaman,
@@ -59,9 +100,14 @@ async function getSemua({ q, jenis, kondisi, ketersediaan, kodeSatker, page = 1,
 
 // --- Ambil satu barang ---
 async function getById(id) {
-  const barang = await prisma.barang.findUnique({ where: { id } });
+  const barang = await prisma.barang.findUnique({
+    where: { id },
+    include: includePeminjam,
+  });
   if (!barang) throw new AppError('Barang tidak ditemukan.', 404);
-  return serialisasi(barang);
+  const serialized = serialisasi(barang);
+  serialized.peminjam = ekstrakPeminjam(barang);
+  return serialized;
 }
 
 // --- Tambah barang baru ---
@@ -191,4 +237,4 @@ async function checkStokTersedia(barangIds) {
   }));
 }
 
-module.exports = { getSemua, getById, create, update, remove, serialisasi, checkStokTersedia };
+module.exports = { getSemua, getById, create, update, remove, serialisasi, checkStokTersedia, includePeminjam, ekstrakPeminjam };
