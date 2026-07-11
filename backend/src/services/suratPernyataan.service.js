@@ -128,42 +128,44 @@ async function generate(peminjaman) {
   };
 
   // Gambar checkbox dengan border dan centang ✓
-  // Style: 15x15px border 1px solid #000, checkmark di tengah
+  // Style: 18x18px border 1.5px solid #000, checkmark di tengah
   const gambarCheckbox = (selX, selY, selW, selH) => {
-    const boxSize = 15;
+    const boxSize = 18;
     const cx = selX + selW / 2; // center x sel
-    const cy = selY + selH / 2; // center y sel (pdf-lib: Y+ ke atas)
+    const cy = selY + selH / 2; // center y sel
     const boxX = cx - boxSize / 2;
     const boxY = cy - boxSize / 2;
 
-    // Kotak checkbox dengan border 1px
+    // Kotak checkbox dengan border 1.5px
     page.drawRectangle({
       x: boxX,
       y: boxY,
       width: boxSize,
       height: boxSize,
       borderColor: rgb(0, 0, 0),
-      borderWidth: 1,
+      borderWidth: 1.5,
       color: rgb(1, 1, 1),
     });
 
-    // Checkmark ✓ di tengah kotak
-    const ckL = 4; // offset kiri dalam kotak
-    const ckR = 11; // offset kanan dalam kotak
-    const ckTop = 10; // offset atas (dari bawah kotak)
-    const ckBot = 4; // offset bawah (dari bawah kotak)
-    const ckMid = 6; // titik tengah-y (dari bawah kotak)
+    // Checkmark ✓ di tengah kotak (diagonal line 1: bottom-left ke top-right)
+    const ckL = 4;  // offset kiri
+    const ckR = 14; // offset kanan
+    const ckBot = 5; // offset bawah
+    const ckTop = 13; // offset atas
+    const ckMid = 8; // titik tengah-y
 
+    // Garis 1: dari kiri-bawah ke tengah
     page.drawLine({
-      start: { x: boxX + ckL, y: boxY + ckMid },
-      end: { x: boxX + ckMid, y: boxY + ckBot },
-      thickness: 1.2,
+      start: { x: boxX + ckL, y: boxY + ckBot },
+      end: { x: boxX + ckMid, y: boxY + ckTop },
+      thickness: 1.8,
       color: rgb(0, 0, 0),
     });
+    // Garis 2: dari tengah ke kanan-atas
     page.drawLine({
-      start: { x: boxX + ckMid, y: boxY + ckBot },
-      end: { x: boxX + ckR, y: boxY + ckTop },
-      thickness: 1.2,
+      start: { x: boxX + ckMid, y: boxY + ckTop },
+      end: { x: boxX + ckR, y: boxY + ckBot },
+      thickness: 1.8,
       color: rgb(0, 0, 0),
     });
   };
