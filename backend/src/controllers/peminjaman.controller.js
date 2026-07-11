@@ -143,7 +143,7 @@ const mintaPengembalian = asyncHandler(async (req, res) => {
 });
 
 const kembalikan = asyncHandler(async (req, res) => {
-  const peminjaman = await peminjamanService.kembalikan(req.params.id, req.body.catatan, getRequestInfo(req));
+  const peminjaman = await peminjamanService.kembalikan(req.params.id, req.user.id, req.body.catatan, getRequestInfo(req));
   return responsSukses(res, {
     pesan: 'Pengembalian dikonfirmasi. Stok telah dikembalikan.',
     data: peminjaman,
@@ -189,7 +189,7 @@ const serahkanMassal = asyncHandler(async (req, res) => {
 });
 
 const kembalikanMassal = asyncHandler(async (req, res) => {
-  const hasil = await peminjamanService.kembalikanBanyak(req.body.ids, getRequestInfo(req));
+  const hasil = await peminjamanService.kembalikanBanyak(req.body.ids, req.user.id, getRequestInfo(req));
   const pesan =
     hasil.dilewati > 0
       ? `${hasil.berhasil} pengembalian dikonfirmasi, ${hasil.dilewati} dilewati.`
