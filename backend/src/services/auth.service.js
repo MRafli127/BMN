@@ -352,8 +352,6 @@ async function refresh(refreshToken) {
 
   // VALIDASI TOKEN VERSION
   // Jika password berubah setelah token ini dibuat, token ditolak.
-  // Normalisasi kedua sisi ke 1 bila kosong (token lama tanpa klaim "v" atau
-  // user.tokenVersion null) agar tidak terjadi mismatch palsu (1 !== undefined).
   const tokenVersion = payload.v || 1;
   const userVersion = user.tokenVersion || 1;
   if (tokenVersion !== userVersion) {
@@ -408,13 +406,11 @@ async function validateSession(userId, jti) {
   }
 
   // Jika sesi di-invalidate (tab ditutup / logout paksa), tolak
-  // Bandingkan dengan timestamp token jika ada (jti timestamp)
   if (user.sessionInvalidatedAt) {
     return { valid: false, reason: 'SESSION_INVALIDATED' };
   }
 
-  // Cek apakah user sudah tidak aktif lebih dari 15 menit
-  // Jika lastActivityAt null, berarti user login baru dan belum ada aktivitas tercatat
+  // Cek apakah user sudah tidak aktif lebih dari 1 jam
   if (user.lastActivityAt) {
     const lastActivityMs = new Date(user.lastActivityAt).getTime();
     const nowMs = Date.now();
