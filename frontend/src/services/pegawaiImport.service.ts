@@ -5,6 +5,7 @@
 // ============================================================
 
 import api from '@/lib/api';
+import { downloadBlob } from '@/lib/download';
 
 export interface HasilImportPegawai {
   ditambahkan: number; // akun peminjam baru yang dibuat
@@ -29,13 +30,6 @@ export const pegawaiImportService = {
 
   async unduhTemplate(): Promise<void> {
     const res = await api.get('/import-pegawai/template', { responseType: 'blob' });
-    const url = URL.createObjectURL(res.data as Blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = 'template-import-pegawai.xlsx';
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-    URL.revokeObjectURL(url);
+    downloadBlob(res.data, 'template-import-pegawai.xlsx');
   },
 };

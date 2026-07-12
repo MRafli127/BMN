@@ -7,7 +7,7 @@
 const jwt = require('jsonwebtoken');
 const env = require('../config/env');
 const { responsGagal } = require('../utils/apiResponse');
-const { validateAccessTokenWithVersion, validateSession, updateLastActivity } = require('../services/auth.service');
+const { validateAccessTokenWithVersion, validateSession, updateLastActivity, pilihActiveRole } = require('../services/auth.service');
 
 // Inactivity timeout dalam milidetik (15 menit)
 const INACTIVITY_TIMEOUT_MS = 15 * 60 * 1000;
@@ -109,19 +109,6 @@ async function authMiddleware(req, res, next) {
       status: 401,
     });
   }
-}
-
-// Helper: pilih active role
-function pilihActiveRole(roles = [], diminta = null) {
-  const ROLE_VALID = ['ADMIN', 'PEMINJAM'];
-  const dimiliki = Array.isArray(roles) ? roles : [];
-  const dimilikiSet = new Set(dimiliki);
-  if (dimilikiSet.has('ADMIN')) dimilikiSet.add('PEMINJAM');
-  const efektif = ROLE_VALID.filter((r) => dimilikiSet.has(r));
-  if (diminta && efektif.includes(diminta)) return diminta;
-  if (dimiliki.length === 1) return dimiliki[0];
-  if (dimiliki.includes('PEMINJAM')) return 'PEMINJAM';
-  return dimiliki[0] || 'PEMINJAM';
 }
 
 module.exports = authMiddleware;

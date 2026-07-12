@@ -40,10 +40,9 @@ function formatDateTime(date) {
   return d.toLocaleDateString('id-ID', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
 }
 
-// Buat workbook dari data
-function buatWorkbook(data) {
-  const wb = XLSX.utils.book_new();
-  return wb;
+// Buat workbook kosong
+function buatWorkbook() {
+  return XLSX.utils.book_new();
 }
 
 // Convert array of objects to worksheet

@@ -49,19 +49,11 @@ async function blacklistToken(token, userId = null) {
   }
 }
 
-// Helper: blacklist semua token user berdasarkan tokenVersion lama
+// Helper: blacklist semua token user
 // Dipanggil saat password berubah untuk invalidate semua sesi sebelumnya
-async function invalidateAllUserTokens(userId, oldTokenVersion) {
-  // Catat versi lama untuk tracking
-  const oldVersion = oldTokenVersion || 1;
-
-  // Cleanup expired tokens + tokens versi lama
-  // Catatan: kita tidak bisa invalidate access token yang sudah expire
-  // tapi refresh token akan gagal karena tokenVersion tidak cocok
+async function invalidateAllUserTokens(userId) {
   // Access token dengan masa 15 menit akan expire sendiri
-
-  // Tandai di DB bahwa versi token berubah (untuk validasi)
-  // Ini ditangani dengan increment tokenVersion di user record
+  // Refresh token akan gagal karena tokenVersion tidak cocok
   logger.info(`[AUTH] Invalidated all tokens for user ${userId}`);
 }
 

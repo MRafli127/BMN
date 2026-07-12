@@ -118,8 +118,7 @@ function petaKondisi(nilai) {
   const s = normalHeader(nilai);
   if (s.startsWith('rusak berat')) return 'RUSAK_BERAT';
   if (s.startsWith('rusak ringan') || s === 'rusak') return 'RUSAK_RINGAN';
-  if (s === 'baik' || s === '') return 'BAIK';
-  return 'BAIK';
+  return 'BAIK'; // default: 'baik', '', atau kondisi lain
 }
 
 function petaJenis(jenisBmn, nama) {

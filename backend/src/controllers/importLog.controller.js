@@ -44,7 +44,7 @@ const ambilLogById = asyncHandler(async (req, res) => {
   });
 
   if (!log) {
-    return responsSukses(res, { pesan: 'Log tidak ditemukan', data: null });
+    return res.status(404).json({ sukses: false, pesan: 'Log tidak ditemukan.' });
   }
 
   return responsSukses(res, { data: log });

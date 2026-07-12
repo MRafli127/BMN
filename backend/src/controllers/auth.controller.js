@@ -70,16 +70,8 @@ const gantiPassword = asyncHandler(async (req, res) => {
   await authService.gantiPassword(req.user.id, req.body);
 
   // Hapus cookie refresh token dan CSRF
-  res.clearCookie('refreshToken', {
-    httpOnly: true,
-    secure: env.cookie.secure,
-    sameSite: env.cookie.sameSite,
-  });
-  res.clearCookie('csrf_token', {
-    httpOnly: false,
-    secure: env.cookie.secure,
-    sameSite: 'strict',
-  });
+  res.clearCookie('refreshToken', opsiCookie);
+  res.clearCookie('csrf_token', { ...opsiCookie, sameSite: 'strict', httpOnly: false });
 
   return responsSukses(res, {
     pesan: 'Kata sandi berhasil diperbarui. Anda telah keluar dari semua sesi.',
@@ -106,16 +98,8 @@ const logout = asyncHandler(async (req, res) => {
     await authService.invalidateUserSessions(req.user.id);
   }
 
-  res.clearCookie('refreshToken', {
-    httpOnly: true,
-    secure: env.cookie.secure,
-    sameSite: env.cookie.sameSite,
-  });
-  res.clearCookie('csrf_token', {
-    httpOnly: false,
-    secure: env.cookie.secure,
-    sameSite: 'strict',
-  });
+  res.clearCookie('refreshToken', opsiCookie);
+  res.clearCookie('csrf_token', { ...opsiCookie, sameSite: 'strict', httpOnly: false });
   return responsSukses(res, { pesan: 'Anda telah keluar.' });
 });
 
