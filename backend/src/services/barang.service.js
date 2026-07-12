@@ -209,26 +209,27 @@ async function bulkCreate(data, fotoPath) {
   const kodeSatkerTrim = kodeSatker.trim();
   const kodeBarangBmnTrim = kodeBarangBmn.trim();
 
-  // Cek NUP terakhir untuk Kode Satker + Kode Barang (merk TIDAK diperhitungkan)
-  const existingBarang = await prisma.barang.findFirst({
+  // Ambil semua NUP dan cari yang terbesar sebagai number
+  const barangList = await prisma.barang.findMany({
     where: {
       kodeSatker: kodeSatkerTrim,
       kodeBarangBmn: kodeBarangBmnTrim,
     },
-    orderBy: { nup: 'desc' },
     select: { nup: true },
   });
 
-  // Tentukan NUP awal berdasarkan Kode Satker + Kode Barang
+  // Sorting sebagai number
+  const sortedNup = barangList
+    .map((b) => parseInt(b.nup, 10))
+    .filter((n) => !isNaN(n))
+    .sort((a, b) => b - a);
+
   let nupSekarang = 1;
-  if (existingBarang && existingBarang.nup) {
-    const nupTerakhir = parseInt(existingBarang.nup, 10);
-    if (!isNaN(nupTerakhir)) {
-      nupSekarang = nupTerakhir + 1;
-    }
+  if (sortedNup.length > 0) {
+    nupSekarang = sortedNup[0] + 1;
   }
 
-  // Generate NUP (langsung dari nupSekarang, tidak perlu skip karena sudah berdasarkan Kode Satker + Kode Barang)
+  // Generate NUP (langsung dari nupSekarang)
   const daftarNup = [];
   for (let i = 0; i < jumlah; i++) {
     daftarNup.push(String(nupSekarang + i));
@@ -284,18 +285,26 @@ async function getDaftarMerk(search = '') {
 
 // --- Ambil NUP terakhir untuk kombinasi kodeSatker + kodeBarang (merk TIDAK diperhitungkan) ---
 async function getNupTerakhir(kodeSatker, kodeBarangBmn) {
-  const barang = await prisma.barang.findFirst({
+  // Ambil semua NUP dan sorting sebagai number (karena nup adalah string)
+  const barangList = await prisma.barang.findMany({
     where: {
       kodeSatker: kodeSatker.trim(),
       kodeBarangBmn: kodeBarangBmn.trim(),
     },
-    orderBy: { nup: 'desc' },
     select: { nup: true },
   });
 
+  // Sorting sebagai number
+  const sortedNup = barangList
+    .map((b) => parseInt(b.nup, 10))
+    .filter((n) => !isNaN(n))
+    .sort((a, b) => b - a);
+
+  const nupTerakhir = sortedNup.length > 0 ? String(sortedNup[0]) : null;
+
   return {
-    nupTerakhir: barang?.nup || null,
-    adaBarang: barang !== null,
+    nupTerakhir,
+    adaBarang: sortedNup.length > 0,
   };
 }
 
@@ -309,22 +318,24 @@ async function getPreviewNup(kodeSatker, kodeBarangBmn, jumlah) {
     return { nupAwal: null, nupAkhir: null, tersedia: 0 };
   }
 
-  // Cek NUP terakhir untuk Kode Satker + Kode Barang
-  const existingBarang = await prisma.barang.findFirst({
+  // Ambil semua NUP dan cari yang terbesar sebagai number
+  const barangList = await prisma.barang.findMany({
     where: {
       kodeSatker: kodeSatkerTrim,
       kodeBarangBmn: kodeBarangBmnTrim,
     },
-    orderBy: { nup: 'desc' },
     select: { nup: true },
   });
 
+  // Sorting sebagai number
+  const sortedNup = barangList
+    .map((b) => parseInt(b.nup, 10))
+    .filter((n) => !isNaN(n))
+    .sort((a, b) => b - a);
+
   let nupSekarang = 1;
-  if (existingBarang && existingBarang.nup) {
-    const nupTerakhir = parseInt(existingBarang.nup, 10);
-    if (!isNaN(nupTerakhir)) {
-      nupSekarang = nupTerakhir + 1;
-    }
+  if (sortedNup.length > 0) {
+    nupSekarang = sortedNup[0] + 1;
   }
 
   const nupAwal = String(nupSekarang);

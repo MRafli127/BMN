@@ -284,7 +284,7 @@ export function FormBarangBulk({ onSimpan, teksTombol = 'Simpan' }: Props) {
           className="mt-1"
         />
         <p className="mt-1 text-xs text-muted-foreground">
-          NUP akan di-generate otomatis: 1-{watchedJumlahBarang || 1}
+          NUP akan di-generate otomatis: 1-{Number(watchedJumlahBarang) || 1}
         </p>
         {errors.jumlahBarang && <p className="mt-1 text-xs text-red-600">{errors.jumlahBarang.message}</p>}
       </div>
@@ -296,7 +296,7 @@ export function FormBarangBulk({ onSimpan, teksTombol = 'Simpan' }: Props) {
           kodeSatker={watchedKodeSatker}
           kodeBarangBmn={watchedKodeBarangBmn}
           merk={watchedMerk}
-          jumlahBarang={watchedJumlahBarang || 1}
+          jumlahBarang={Number(watchedJumlahBarang) || 1}
         />
       </div>
 
@@ -383,14 +383,19 @@ function NupPreview({ kodeSatker, kodeBarangBmn, merk, jumlahBarang }: NupPrevie
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    if (!kodeSatker || !kodeBarangBmn || !jumlahBarang) {
+    // Validasi: kodeSatker, kodeBarangBmn, dan jumlahBarang harus terisi
+    const kodeSatkerVal = typeof kodeSatker === 'string' ? kodeSatker.trim() : '';
+    const kodeBarangBmnVal = typeof kodeBarangBmn === 'string' ? kodeBarangBmn.trim() : '';
+    const jumlahVal = typeof jumlahBarang === 'number' ? jumlahBarang : parseInt(String(jumlahBarang), 10);
+
+    if (!kodeSatkerVal || !kodeBarangBmnVal || isNaN(jumlahVal) || jumlahVal < 1) {
       setPreview(null);
       return;
     }
 
     setLoading(true);
     api.get('/barang/preview-nup', {
-      params: { kodeSatker, kodeBarangBmn, jumlah: jumlahBarang },
+      params: { kodeSatker: kodeSatkerVal, kodeBarangBmn: kodeBarangBmnVal, jumlah: jumlahVal },
     })
       .then((res) => {
         if (res.data?.data) {
