@@ -191,4 +191,150 @@ async function checkStokTersedia(barangIds) {
   }));
 }
 
-module.exports = { getSemua, getById, create, update, remove, serialisasi, checkStokTersedia };
+// --- Bulk Insert barang ---
+// Bulk insert banyak barang sekaligus dengan NUP auto-generate.
+// NUP berdasarkan Kode Satker + Kode Barang SAJA (merk TIDAK mempengaruhi sequence).
+async function bulkCreate(data, fotoPath) {
+  const { nama, merk, jenis, kondisi, lokasiPenyimpanan, deskripsi, kodeSatker, kodeBarangBmn, jumlahBarang } = data;
+
+  // Normalize merk: uppercase, trim
+  const merkNormalized = merk.trim().toUpperCase();
+
+  // Parse jumlahBarang ke number
+  const jumlah = parseInt(jumlahBarang, 10);
+  if (isNaN(jumlah) || jumlah < 1) {
+    throw new AppError('Jumlah barang harus angka positif.', 400);
+  }
+
+  const kodeSatkerTrim = kodeSatker.trim();
+  const kodeBarangBmnTrim = kodeBarangBmn.trim();
+
+  // Cek NUP terakhir untuk Kode Satker + Kode Barang (merk TIDAK diperhitungkan)
+  const existingBarang = await prisma.barang.findFirst({
+    where: {
+      kodeSatker: kodeSatkerTrim,
+      kodeBarangBmn: kodeBarangBmnTrim,
+    },
+    orderBy: { nup: 'desc' },
+    select: { nup: true },
+  });
+
+  // Tentukan NUP awal berdasarkan Kode Satker + Kode Barang
+  let nupSekarang = 1;
+  if (existingBarang && existingBarang.nup) {
+    const nupTerakhir = parseInt(existingBarang.nup, 10);
+    if (!isNaN(nupTerakhir)) {
+      nupSekarang = nupTerakhir + 1;
+    }
+  }
+
+  // Generate NUP (langsung dari nupSekarang, tidak perlu skip karena sudah berdasarkan Kode Satker + Kode Barang)
+  const daftarNup = [];
+  for (let i = 0; i < jumlah; i++) {
+    daftarNup.push(String(nupSekarang + i));
+  }
+
+  // Bangun data untuk bulk insert
+  const dataBulk = daftarNup.map((nup) => ({
+    kodeBarang: `${kodeSatkerTrim}-${kodeBarangBmnTrim}-${nup}`,
+    nama: nama,
+    merk: merkNormalized,
+    jenis: jenis,
+    jumlahTotal: 1,
+    jumlahTersedia: 1,
+    kondisi: kondisi || 'BAIK',
+    lokasiPenyimpanan: lokasiPenyimpanan || null,
+    deskripsi: deskripsi || null,
+    fotoUrl: fotoPath || null,
+    sumber: 'MANUAL',
+    kodeSatker: kodeSatkerTrim,
+    kodeBarangBmn: kodeBarangBmnTrim,
+    nup: nup,
+  }));
+
+  // Bulk insert
+  const hasil = await prisma.barang.createMany({
+    data: dataBulk,
+  });
+
+  return {
+    berhasil: hasil.count,
+    nupAwal: daftarNup[0],
+    nupAkhir: daftarNup[daftarNup.length - 1],
+    merkNormalized,
+  };
+}
+
+// --- Ambil daftar merk unik untuk autocomplete ---
+async function getDaftarMerk(search = '') {
+  const where = {};
+  if (search) {
+    where.merk = { mode: 'insensitive', contains: search };
+  }
+  const hasil = await prisma.barang.findMany({
+    where,
+    select: { merk: true },
+    distinct: ['merk'],
+    orderBy: { merk: 'asc' },
+  });
+  return hasil
+    .map((r) => r.merk)
+    .filter((m) => m !== null && m !== '');
+}
+
+// --- Ambil NUP terakhir untuk kombinasi kodeSatker + kodeBarang (merk TIDAK diperhitungkan) ---
+async function getNupTerakhir(kodeSatker, kodeBarangBmn) {
+  const barang = await prisma.barang.findFirst({
+    where: {
+      kodeSatker: kodeSatker.trim(),
+      kodeBarangBmn: kodeBarangBmn.trim(),
+    },
+    orderBy: { nup: 'desc' },
+    select: { nup: true },
+  });
+
+  return {
+    nupTerakhir: barang?.nup || null,
+    adaBarang: barang !== null,
+  };
+}
+
+// --- Ambil preview NUP yang akan digunakan (berdasarkan Kode Satker + Kode Barang) ---
+async function getPreviewNup(kodeSatker, kodeBarangBmn, jumlah) {
+  const kodeSatkerTrim = kodeSatker.trim();
+  const kodeBarangBmnTrim = kodeBarangBmn.trim();
+  const jumlahInt = parseInt(jumlah, 10);
+
+  if (isNaN(jumlahInt) || jumlahInt < 1) {
+    return { nupAwal: null, nupAkhir: null, tersedia: 0 };
+  }
+
+  // Cek NUP terakhir untuk Kode Satker + Kode Barang
+  const existingBarang = await prisma.barang.findFirst({
+    where: {
+      kodeSatker: kodeSatkerTrim,
+      kodeBarangBmn: kodeBarangBmnTrim,
+    },
+    orderBy: { nup: 'desc' },
+    select: { nup: true },
+  });
+
+  let nupSekarang = 1;
+  if (existingBarang && existingBarang.nup) {
+    const nupTerakhir = parseInt(existingBarang.nup, 10);
+    if (!isNaN(nupTerakhir)) {
+      nupSekarang = nupTerakhir + 1;
+    }
+  }
+
+  const nupAwal = String(nupSekarang);
+  const nupAkhir = String(nupSekarang + jumlahInt - 1);
+
+  return {
+    nupAwal,
+    nupAkhir,
+    tersedia: jumlahInt,
+  };
+}
+
+module.exports = { getSemua, getById, create, update, remove, serialisasi, checkStokTersedia, bulkCreate, getDaftarMerk, getNupTerakhir, getPreviewNup };
