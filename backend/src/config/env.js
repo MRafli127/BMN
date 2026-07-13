@@ -100,7 +100,7 @@ const env = {
   jwt: {
     accessSecret: validateSecret(process.env.JWT_ACCESS_SECRET, 'JWT_ACCESS_SECRET'),
     refreshSecret: validateSecret(process.env.JWT_REFRESH_SECRET, 'JWT_REFRESH_SECRET'),
-    accessExpiresIn: process.env.JWT_ACCESS_EXPIRES_IN || '15m',
+    accessExpiresIn: process.env.JWT_ACCESS_EXPIRES_IN || '60m',
     refreshExpiresIn: process.env.JWT_REFRESH_EXPIRES_IN || '7d',
   },
 

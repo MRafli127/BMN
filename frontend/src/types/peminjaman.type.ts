@@ -45,10 +45,12 @@ export interface Peminjaman {
   catatanAdmin?: string | null;
   catatanPengembalian?: string | null; // Catatan admin saat konfirmasi pengembalian — hanya untuk admin
   disetujuiOleh?: string | null;
+  dikembalikanOleh?: string | null;
   createdAt?: string;
   updatedAt?: string;
   peminjam?: Partial<User>;
   admin?: Partial<User> | null;
+  pengembalianAdmin?: Partial<User> | null;
   detail?: DetailPeminjaman[];
   /** Flag: apakah ada surat pernyataan yang diunggah (false/null = hasil import) */
   adaDokumen?: boolean;

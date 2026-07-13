@@ -58,6 +58,15 @@ const includeLengkap = {
       eselon4: true,
     },
   },
+  pengembalianAdmin: {
+    select: {
+      id: true,
+      nama: true,
+      nip: true,
+      jabatan: true,
+      unitKerja: true,
+    },
+  },
   detail: { include: { barang: true } },
 };
 
@@ -442,7 +451,7 @@ async function generateSuratPernyataan(id, { userId, role } = {}) {
 }
 
 // --- Ambil daftar peminjaman (role-aware) ---
-async function getSemua({ status, q, userId, role, page = 1, limit = 10, importMode } = {}) {
+async function getSemua({ status, q, userId, role, page = 1, limit = 10, importMode, kodeSatker } = {}) {
   const { halaman, perHalaman, skip } = parsePagination({ page, limit });
 
   const where = {};
@@ -475,6 +484,10 @@ async function getSemua({ status, q, userId, role, page = 1, limit = 10, importM
     where.dokumenUrl = null;
   } else if (importMode === 'manual') {
     where.dokumenUrl = { not: null };
+  }
+  // Filter berdasarkan kode satker barang
+  if (kodeSatker) {
+    where.detail = { some: { barang: { kodeSatker: kodeSatker } } };
   }
 
   const [data, total] = await Promise.all([
@@ -874,12 +887,15 @@ async function mintaPengembalian(id, { userId, role } = {}, dokumenPengembalianD
 // --- Konfirmasi pengembalian: stok dikembalikan otomatis ---
 // catatan (opsional) disimpan sebagai catatanPengembalian: HANYA untuk admin,
 // tidak pernah dikirim ke peminjam (dibuang di getById/getSemua untuk PEMINJAM).
-async function kembalikan(id, catatan, requestInfo = {}) {
+async function kembalikan(id, adminId, catatan, requestInfo = {}) {
   // Ambil data untuk audit log
   const pLama = await prisma.peminjaman.findUnique({ where: { id }, include: { peminjam: true, detail: true } });
   if (!pLama) throw new AppError('Data peminjaman tidak ditemukan.', 404);
 
   const statusLama = pLama.status;
+
+  // Ambil data admin untuk audit log
+  const admin = adminId ? await prisma.user.findUnique({ where: { id: adminId } }) : null;
 
   await prisma.$transaction(async (tx) => {
     const p = await tx.peminjaman.findUnique({ where: { id }, include: { detail: true } });
@@ -908,22 +924,23 @@ async function kembalikan(id, catatan, requestInfo = {}) {
         status: 'DIKEMBALIKAN',
         tanggalKembaliAktual: new Date(),
         catatanPengembalian: (typeof catatan === 'string' && catatan.trim()) ? catatan.trim() : null,
+        dikembalikanOleh: adminId || null,
       },
     });
   }, { timeout: 20000, maxWait: 10000 });
 
   const updated = await getRawById(id);
 
-  // Audit log: catat pengembalian
+  // Audit log: catat pengembalian dengan info admin
   auditLogService.log({
-    userId: null, // Sistem
-    userEmail: null,
-    userNama: 'Sistem',
+    userId: adminId || null,
+    userEmail: admin?.email || null,
+    userNama: admin?.nama || 'Sistem',
     aksi: auditLogService.AKSI.PEMINJAMAN_STATUS_CHANGE,
     entitas: auditLogService.ENTITAS.PEMINJAMAN,
     entitasId: id,
     dataLama: { status: statusLama },
-    dataBaru: { status: 'DIKEMBALIKAN', tanggalKembaliAktual: updated.tanggalKembaliAktual },
+    dataBaru: { status: 'DIKEMBALIKAN', tanggalKembaliAktual: updated.tanggalKembaliAktual, dikembalikanOleh: admin?.nama || 'Sistem' },
     requestInfo,
   }).catch(() => {});
 
@@ -956,7 +973,7 @@ async function kembalikan(id, catatan, requestInfo = {}) {
 // --- Konfirmasi pengembalian banyak peminjaman sekaligus (khusus admin) ---
 // Memakai ulang kembalikan() per item (stok dikembalikan otomatis). Peminjaman
 // yang tidak sedang dipinjam dilewati tanpa menggagalkan yang lain.
-async function kembalikanBanyak(ids, requestInfo = {}) {
+async function kembalikanBanyak(ids, adminId, requestInfo = {}) {
   const daftarId = Array.isArray(ids) ? [...new Set(ids.filter((v) => typeof v === 'string' && v))] : [];
   if (daftarId.length === 0) throw new AppError('Tidak ada peminjaman yang dipilih.', 400);
 
@@ -964,7 +981,7 @@ async function kembalikanBanyak(ids, requestInfo = {}) {
   const dilewati = [];
   for (const id of daftarId) {
     try {
-      await kembalikan(id, undefined, requestInfo);
+      await kembalikan(id, adminId, undefined, requestInfo);
       berhasil += 1;
     } catch (e) {
       dilewati.push({ id, pesan: e.message || 'Gagal dikembalikan.' });

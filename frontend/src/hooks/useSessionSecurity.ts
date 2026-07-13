@@ -1,17 +1,18 @@
 // ============================================================
 //  Hook useSessionSecurity — keamanan sesi berbasis aktivitas.
-//   - Mendeteksi tab close / browser close → invalidate session
-//   - Auto logout setelah 30 menit tidak aktif
+//   - Auto logout setelah 1 jam tidak aktif
 //   - Kirim heartbeat aktivitas ke server secara periodik
+//   - Auto logout saat tab/browser ditutup (bukan saat switch tab/refresh)
 // ============================================================
 
 'use client';
 
 import { useEffect, useRef, useCallback } from 'react';
-import { useAuth } from './useAuth';
+import { useAuth } from '@/hooks/useAuth';
 import { bersihkanSesi } from '@/lib/auth';
 import { INACTIVITY_TIMEOUT_MS, HEARTBEAT_INTERVAL_MS, INACTIVITY_CHECK_INTERVAL_MS } from '@/constants/session';
 import toast from 'react-hot-toast';
+import api from '@/lib/api';
 
 export function useSessionSecurity() {
   const { user } = useAuth();
@@ -19,6 +20,58 @@ export function useSessionSecurity() {
   const heartbeatIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const inactivityCheckRef = useRef<NodeJS.Timeout | null>(null);
   const isActiveRef = useRef<boolean>(false);
+
+  // Update timestamp aktivitas terakhir
+  const updateActivity = useCallback(() => {
+    if (typeof window !== 'undefined') {
+      lastActivityRef.current = Date.now();
+    }
+  }, []);
+
+  // Handle visibility change (tab tersembunyi / muncul)
+  const handleVisibilityChange = useCallback(() => {
+    if (document.visibilityState === 'visible') {
+      // Tab muncul kembali — cek inactivity
+      if (user) {
+        const lastActivity = lastActivityRef.current;
+        const now = Date.now();
+        const inactiveTime = now - lastActivity;
+
+        if (inactiveTime > INACTIVITY_TIMEOUT_MS) {
+          toast.error('Sesi Anda telah berakhir karena tidak aktif. Silakan login kembali.');
+          bersihkanSesi();
+          window.location.href = '/login';
+          return;
+        }
+      }
+      updateActivity();
+    } else {
+      // Tab tersembunyi (switch tab/minimize) — simpan flag
+      sessionStorage.setItem('sipp_tab_hidden', '1');
+      updateActivity();
+    }
+  }, [user, updateActivity]);
+
+  // Handle tab/browser close
+  const handleBeforeUnload = useCallback(() => {
+    if (!user) return;
+
+    const wasHidden = sessionStorage.getItem('sipp_tab_hidden');
+
+    // Hanya logout jika tab pernah tersembunyi (close tab/minimize lama)
+    if (wasHidden === '1') {
+      // Kirim invalidate session ke server
+      const token = localStorage.getItem('sipp_access_token');
+      if (token && navigator.sendBeacon) {
+        const data = JSON.stringify({ action: 'invalidate_session' });
+        navigator.sendBeacon(
+          'http://localhost:5000/api/auth/invalidate-session',
+          new Blob([data], { type: 'application/json' })
+        );
+      }
+      bersihkanSesi();
+    }
+  }, [user]);
 
   // Cleanup sesi saat benar-benar menutup tab/browser
   const handleTabClose = useCallback(() => {
@@ -51,7 +104,7 @@ export function useSessionSecurity() {
     const inactiveTime = now - lastActivity;
 
     if (inactiveTime >= INACTIVITY_TIMEOUT_MS) {
-      toast.error('Sesi Anda telah berakhir karena tidak aktif selama 30 menit. Silakan login kembali.');
+      toast.error('Sesi Anda telah berakhir karena tidak aktif selama 1 jam. Silakan login kembali.');
       bersihkanSesi();
       window.location.href = '/login';
     }
@@ -67,7 +120,10 @@ export function useSessionSecurity() {
     isActiveRef.current = true;
     lastActivityRef.current = Date.now();
 
-    // Activity events — update lastActivityRef langsung
+    // Hapus flag saat mount (fresh load, bukan reopen tab)
+    sessionStorage.removeItem('sipp_tab_hidden');
+
+    // Activity events
     const events = ['mousedown', 'mousemove', 'keydown', 'scroll', 'touchstart', 'click'];
     const handleUserActivity = () => {
       if (isActiveRef.current) {
@@ -80,50 +136,26 @@ export function useSessionSecurity() {
     });
 
     // Visibility change — update activity saat tab visible kembali
-    const handleVisibilityChange = () => {
+    const handleVisChange = () => {
       if (document.visibilityState === 'visible' && isActiveRef.current) {
         lastActivityRef.current = Date.now();
       }
     };
-    document.addEventListener('visibilitychange', handleVisibilityChange);
+    document.addEventListener('visibilitychange', handleVisChange);
 
-    // Handle beforeunload — langsung invalidate session
-    const handleBeforeUnload = () => {
-      if (!user) return;
-
-      const token = localStorage.getItem('sipp_access_token');
-      if (token && navigator.sendBeacon) {
-        const data = JSON.stringify({ token });
-        navigator.sendBeacon(
-          '/api/auth/invalidate-session',
-          new Blob([data], { type: 'application/json' })
-        );
-      }
-      bersihkanSesi();
-    };
+    // Beforeunload — logout hanya jika tab pernah tersembunyi
     window.addEventListener('beforeunload', handleBeforeUnload);
 
-    // Heartbeat interval — kirim aktivitas ke server + sinkronisasi serverTime
+    // Heartbeat interval
     heartbeatIntervalRef.current = setInterval(() => {
       if (user && document.visibilityState === 'visible') {
-        fetch('/api/auth/heartbeat', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          credentials: 'include',
-        })
-          .then(res => res.json())
-          .then(data => {
-            if (data.success && data.serverTime) {
-              syncActivityFromHeartbeat(data.serverTime);
-            }
-          })
-          .catch(() => {
-            // Silent fail — jangan update ref jika heartbeat gagal
-          });
+        api.post('/auth/heartbeat').catch(() => {
+          // Silent fail
+        });
       }
     }, HEARTBEAT_INTERVAL_MS);
 
-    // Inactivity check interval — cek setiap 30 detik
+    // Inactivity check interval
     inactivityCheckRef.current = setInterval(() => {
       handleInactivityLogout();
     }, INACTIVITY_CHECK_INTERVAL_MS);
@@ -134,7 +166,7 @@ export function useSessionSecurity() {
       events.forEach(event => {
         document.removeEventListener(event, handleUserActivity);
       });
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      document.removeEventListener('visibilitychange', handleVisChange);
       window.removeEventListener('beforeunload', handleBeforeUnload);
 
       if (heartbeatIntervalRef.current) {
@@ -146,5 +178,5 @@ export function useSessionSecurity() {
         inactivityCheckRef.current = null;
       }
     };
-  }, [user, handleInactivityLogout, syncActivityFromHeartbeat]);
+  }, [user, handleBeforeUnload, handleInactivityLogout, updateActivity]);
 }

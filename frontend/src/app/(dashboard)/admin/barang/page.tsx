@@ -9,7 +9,7 @@
 import { Suspense, useCallback, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { Search, Plus, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Search, Plus, ChevronLeft, ChevronRight, List } from 'lucide-react';
 import { Input, Select } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { FolderBarang, kelompokkanPerMerk } from '@/components/barang/FolderBarang';
@@ -36,11 +36,17 @@ function KontenBarang() {
   const stok = searchParams.get('stok');
   const ketersediaanUrl = stok === 'tersedia' || stok === 'habis' ? stok : undefined;
 
+  // Filter kode satker dari query URL (?kodeSatker=...), mis. saat datang dari popup dashboard.
+  const kodeSatkerUrl = searchParams.get('kodeSatker') || undefined;
+
   // Pakai nilai URL sebagai filter AWAL. Karena `template.tsx` me-mount ulang
   // konten tiap navigasi, halaman yang dibuka dari dashboard langsung memuat
-  // stok yang dimaksud tanpa menunggu effect.
+  // filter yang dimaksud tanpa menunggu effect.
   const { data, filter, ubahFilter, sedangMemuat, refetch } = useBarangFolder(
-    ketersediaanUrl ? { ketersediaan: ketersediaanUrl } : {}
+    {
+      ...(ketersediaanUrl ? { ketersediaan: ketersediaanUrl } : {}),
+      ...(kodeSatkerUrl ? { kodeSatker: kodeSatkerUrl } : {}),
+    }
   );
   const [cari, setCari] = useState('');
   const [halaman, setHalaman] = useState(1);
@@ -49,8 +55,8 @@ function KontenBarang() {
   // Cadangan bila konten TIDAK di-mount ulang (perubahan query pada rute yang
   // sama): selaraskan filter saat ?stok berubah agar tak balik ke "Semua Stok".
   useEffect(() => {
-    ubahFilter({ ketersediaan: ketersediaanUrl });
-  }, [ketersediaanUrl, ubahFilter]);
+    ubahFilter({ ketersediaan: ketersediaanUrl, kodeSatker: kodeSatkerUrl });
+  }, [ketersediaanUrl, kodeSatkerUrl, ubahFilter]);
 
   // Ubah filter ketersediaan dari dropdown: perbarui filter + URL sekaligus,
   // sehingga konsisten dan bertahan saat refresh.
@@ -105,6 +111,11 @@ function KontenBarang() {
         <div className="flex flex-wrap gap-2">
           <ExportModal />
           <ImportBarangDialog onSelesai={refetch} />
+          <Button asChild variant="outline">
+            <Link href={RUTE.adminBarangBulk}>
+              <List className="h-4 w-4" /> Tambah Massal
+            </Link>
+          </Button>
           <Button asChild>
             <Link href={RUTE.adminBarangTambah}>
               <Plus className="h-4 w-4" /> Tambah Barang

@@ -62,31 +62,74 @@ const dashboardAdmin = asyncHandler(async (req, res) => {
   const dari = req.query.dari ? new Date(req.query.dari) : null;
   const sampai = req.query.sampai ? new Date(req.query.sampai + 'T23:59:59.999Z') : null;
 
+  // Filter kode satker opsional (kodeSatker ada di model Barang, filter melalui detail.barang)
+  const kodeSatker = req.query.kodeSatker || null;
+
   const filterTanggal = {};
   if (dari) filterTanggal.gte = dari;
   if (sampai) filterTanggal.lte = sampai;
 
   const whereTanggal = Object.keys(filterTanggal).length > 0 ? { createdAt: filterTanggal } : {};
+  const whereSatkerBarang = kodeSatker ? { detail: { some: { barang: { kodeSatker } } } } : {};
 
-  const [totalBarang, stokTersedia, stokHabis, pengajuanMenunggu, peminjamanAktif, barangTerlambat, totalPeminjam, grupStatus, terbaru] =
+  // Filter barang berdasarkan satker (untuk query barang)
+  const whereBarangSatker = kodeSatker ? { kodeSatker } : {};
+
+  // Untuk groupBy, perlu handle terpisah karena tidak support nested relation in where
+  // Ambil dulu ID peminjaman yang sesuai filter
+  let grupStatus;
+  if (kodeSatker) {
+    // Ambil peminjaman yang memiliki detail dengan kodeSatker yang sesuai
+    const peminjamanFiltered = await prisma.peminjaman.findMany({
+      where: { ...whereTanggal },
+      select: { id: true, status: true },
+    });
+
+    // Get peminjaman IDs yang sesuai satker
+    const detailBarang = await prisma.detailPeminjaman.findMany({
+      where: { barang: { kodeSatker } },
+      select: { peminjamanId: true },
+    });
+    const validPeminjamanIds = new Set(detailBarang.map(d => d.peminjamanId));
+
+    // Filter peminjaman berdasarkan satker
+    const filteredBySatker = peminjamanFiltered.filter(p => validPeminjamanIds.has(p.id));
+
+    // Group by status
+    const statusCounts = {};
+    filteredBySatker.forEach(p => {
+      statusCounts[p.status] = (statusCounts[p.status] || 0) + 1;
+    });
+    grupStatus = Object.entries(statusCounts).map(([status, _count]) => ({
+      status,
+      _count: { status: _count }
+    }));
+  } else {
+    grupStatus = await prisma.peminjaman.groupBy({
+      by: ['status'],
+      _count: { status: true },
+      where: whereTanggal
+    });
+  }
+
+  const [totalBarang, stokTersedia, stokHabis, pengajuanMenunggu, peminjamanAktif, barangTerlambat, totalPeminjam, terbaru] =
     await Promise.all([
-      prisma.barang.count(),
+      prisma.barang.count({ where: whereBarangSatker }),
       // Stok tersedia: barang yang masih punya unit (>0); habis: nol/terpinjam penuh.
       // Sejajar dengan filter ketersediaan di Manajemen Barang.
-      prisma.barang.count({ where: { jumlahTersedia: { gt: 0 } } }),
-      prisma.barang.count({ where: { jumlahTersedia: { lte: 0 } } }),
-      prisma.peminjaman.count({ where: { ...whereTanggal, status: 'MENUNGGU' } }),
-      prisma.peminjaman.count({ where: { ...whereTanggal, status: { in: STATUS_AKTIF } } }),
-      prisma.peminjaman.count({ where: { ...whereTanggal, status: 'TERLAMBAT' } }),
+      prisma.barang.count({ where: { ...whereBarangSatker, jumlahTersedia: { gt: 0 } } }),
+      prisma.barang.count({ where: { ...whereBarangSatker, jumlahTersedia: { lte: 0 } } }),
+      prisma.peminjaman.count({ where: { ...whereTanggal, ...whereSatkerBarang, status: 'MENUNGGU' } }),
+      prisma.peminjaman.count({ where: { ...whereTanggal, ...whereSatkerBarang, status: { in: STATUS_AKTIF } } }),
+      prisma.peminjaman.count({ where: { ...whereTanggal, ...whereSatkerBarang, status: 'TERLAMBAT' } }),
       prisma.user.count({ where: { roles: { has: 'PEMINJAM' } } }),
-      prisma.peminjaman.groupBy({ by: ['status'], _count: { status: true }, where: whereTanggal }),
       prisma.peminjaman.findMany({
-        where: whereTanggal,
+        where: { ...whereTanggal, ...whereSatkerBarang },
         take: 5,
         orderBy: { createdAt: 'desc' },
         include: {
           peminjam: { select: { nama: true, nip: true } },
-          detail: { include: { barang: { select: { nama: true, kodeBarang: true } } } },
+          detail: { include: { barang: { select: { nama: true, kodeBarang: true, kodeSatker: true } } } },
         },
       }),
     ]);

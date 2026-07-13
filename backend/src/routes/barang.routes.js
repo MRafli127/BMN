@@ -10,7 +10,7 @@ const authMiddleware = require('../middleware/auth.middleware');
 const roleMiddleware = require('../middleware/role.middleware');
 const validate = require('../middleware/validate.middleware');
 const { uploadFotoBarangSingle, uploadExcelSingle } = require('../middleware/upload.middleware');
-const { createBarangSchema, updateBarangSchema } = require('../validators/barang.validator');
+const { createBarangSchema, updateBarangSchema, bulkBarangSchema } = require('../validators/barang.validator');
 
 const router = express.Router();
 
@@ -18,16 +18,30 @@ const router = express.Router();
 router.use(authMiddleware);
 
 // --- Import Excel (khusus admin) ---
-// Didefinisikan sebelum '/:id' agar '/template' & '/import' tidak
-// tertangkap sebagai parameter id.
+// Didefinisikan sebelum '/:id' agar '/template' & '/import' tidak tertangkap sebagai parameter id.
 router.get('/template', roleMiddleware('ADMIN'), barangController.unduhTemplate);
 router.post('/import', roleMiddleware('ADMIN'), uploadExcelSingle, barangController.importExcel);
 
-router.get('/', barangController.getSemua);
-router.get('/:id', barangController.getById);
-
 // Cek stok barang untuk polling cart (peminjam)
 router.post('/check-stok', barangController.checkStokTersedia);
+
+// Ambil daftar merk untuk autocomplete — DIDEfinisikan SEBELUM /:id agar tidak tertangkap
+router.get('/merk', barangController.getDaftarMerk);
+
+// Ambil NUP terakhir untuk preview — DIDEfinisikan SEBELUM /:id agar tidak tertangkap
+router.get('/nup-terakhir', barangController.getNupTerakhir);
+
+// Ambil preview NUP yang akan dipakai (dengan auto-skip) — DIDEfinisikan SEBELUM /:id
+router.get('/preview-nup', barangController.getPreviewNup);
+
+// Bulk insert barang sekaligus (NUP auto-generate) — khusus admin
+router.post('/bulk', roleMiddleware('ADMIN'), uploadFotoBarangSingle, validate(bulkBarangSchema), barangController.bulkCreate);
+
+// Rute umum
+router.get('/', barangController.getSemua);
+
+// --- Rute dinamis (/:id) harus di BAWAH route spesifik ---
+router.get('/:id', barangController.getById);
 
 // Khusus admin
 router.post('/', roleMiddleware('ADMIN'), uploadFotoBarangSingle, validate(createBarangSchema), barangController.create);

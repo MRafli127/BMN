@@ -9,8 +9,8 @@ const env = require('../config/env');
 const { responsGagal } = require('../utils/apiResponse');
 const { validateAccessTokenWithVersion, validateSession, updateLastActivity, pilihActiveRole } = require('../services/auth.service');
 
-// Inactivity timeout dalam milidetik (15 menit)
-const INACTIVITY_TIMEOUT_MS = 15 * 60 * 1000;
+// Inactivity timeout dalam milidetik (60 menit — diselaraskan dengan access token)
+const INACTIVITY_TIMEOUT_MS = 60 * 60 * 1000;
 
 async function authMiddleware(req, res, next) {
   try {
@@ -67,7 +67,7 @@ async function authMiddleware(req, res, next) {
       }
       if (sessionValidation.reason === 'INACTIVITY_TIMEOUT') {
         return responsGagal(res, {
-          pesan: 'Sesi Anda telah berakhir karena tidak aktif selama 15 menit. Silakan login kembali.',
+          pesan: 'Sesi Anda telah berakhir karena tidak aktif selama 60 menit. Silakan login kembali.',
           status: 401,
         });
       }

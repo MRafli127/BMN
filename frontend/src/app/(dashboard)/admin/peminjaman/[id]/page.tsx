@@ -285,12 +285,38 @@ export default function DetailPeminjamanAdminPage() {
                 </div>
               )}
 
+              {data.admin && (
+                <div className="flex items-start gap-3 rounded-xl border border-blue-200 bg-blue-50 p-3.5 dark:bg-blue-950/20">
+                  <Icon name="admin_panel_settings" fill className="mt-0.5 shrink-0 text-[18px] text-blue-600" />
+                  <div className="min-w-0">
+                    <p className="text-sm font-semibold text-blue-900">Disetujui/Ditolak Oleh</p>
+                    <p className="mt-0.5 text-sm text-blue-800">
+                      {data.admin.nama}
+                      {data.admin.jabatan && <span className="text-blue-600"> — {data.admin.jabatan}</span>}
+                    </p>
+                  </div>
+                </div>
+              )}
+
               {data.catatanPengembalian && (
                 <div className="flex items-start gap-3 rounded-xl border border-amber-200 bg-amber-50 p-3.5 dark:bg-amber-950/20">
                   <Icon name="visibility_off" fill className="mt-0.5 shrink-0 text-[18px] text-amber-600" />
                   <div className="min-w-0">
                     <p className="text-sm font-semibold text-amber-900">Catatan Pengembalian (internal)</p>
                     <p className="mt-0.5 text-sm text-amber-800">{data.catatanPengembalian}</p>
+                  </div>
+                </div>
+              )}
+
+              {data.status === 'DIKEMBALIKAN' && data.pengembalianAdmin && (
+                <div className="flex items-start gap-3 rounded-xl border border-emerald-200 bg-emerald-50 p-3.5 dark:bg-emerald-950/20">
+                  <Icon name="how_to_reg" fill className="mt-0.5 shrink-0 text-[18px] text-emerald-600" />
+                  <div className="min-w-0">
+                    <p className="text-sm font-semibold text-emerald-900">Dikembalikan Oleh</p>
+                    <p className="mt-0.5 text-sm text-emerald-800">
+                      {data.pengembalianAdmin.nama}
+                      {data.pengembalianAdmin.jabatan && <span className="text-emerald-600"> — {data.pengembalianAdmin.jabatan}</span>}
+                    </p>
                   </div>
                 </div>
               )}

@@ -19,19 +19,32 @@ import { STATUS_PEMINJAMAN, FILTER_STATUS_AKTIF } from '@/constants/status';
 import { RUTE } from '@/constants/routes';
 import { useAuth } from '@/hooks/useAuth';
 
+// Palet gradasi per kategori
 interface GayaWarna {
-  orb: string;
-  ikonBox: string;
+  gradient: string;
+  iconGradient: string;
   nilai: string;
-  gradasi: string;
-  garis: string;
+  hoverBorder: string;
 }
-
-// Kelas literal per warna (agar terdeteksi JIT Tailwind)
 const GAYA: Record<string, GayaWarna> = {
-  primary: { orb: 'bg-primary/10 group-hover:bg-primary/20', ikonBox: 'bg-primary/10 text-primary', nilai: 'text-primary', gradasi: 'bg-gradient-to-br from-white via-white to-primary/10 hover:to-primary/20', garis: 'border-primary/20 hover:border-primary/30' },
-  tertiary: { orb: 'bg-tertiary/10 group-hover:bg-tertiary/20', ikonBox: 'bg-tertiary/10 text-tertiary', nilai: 'text-tertiary', gradasi: 'bg-gradient-to-br from-white via-white to-tertiary/10 hover:to-tertiary/20', garis: 'border-tertiary/20 hover:border-tertiary/30' },
-  secondary: { orb: 'bg-secondary/10 group-hover:bg-secondary/20', ikonBox: 'bg-secondary/10 text-secondary', nilai: 'text-secondary', gradasi: 'bg-gradient-to-br from-white via-white to-secondary/10 hover:to-secondary/20', garis: 'border-secondary/20 hover:border-secondary/30' },
+  secondary: {
+    gradient: 'from-green-400/20 to-emerald-600/20',
+    iconGradient: 'from-green-400 to-emerald-600',
+    nilai: 'text-green-600',
+    hoverBorder: 'hover:border-green-300/50',
+  },
+  tertiary: {
+    gradient: 'from-amber-400/20 to-orange-500/20',
+    iconGradient: 'from-amber-400 to-orange-500',
+    nilai: 'text-amber-600',
+    hoverBorder: 'hover:border-amber-300/50',
+  },
+  primary: {
+    gradient: 'from-violet-500/20 to-purple-600/20',
+    iconGradient: 'from-violet-500 to-purple-600',
+    nilai: 'text-violet-600',
+    hoverBorder: 'hover:border-violet-300/50',
+  },
 };
 
 // Ikon Material per status untuk kartu "Pengajuan terakhir".
@@ -89,38 +102,73 @@ export default function PeminjamDashboardPage() {
         </div>
       </section>
 
-      {/* Statistik */}
-      <div className="grid grid-cols-1 gap-gutter sm:grid-cols-2 lg:grid-cols-4">
-        {kartu.map((k, indeks) => {
-          const g = GAYA[k.warna];
-          return (
-            <Link
-              key={k.label}
-              href={RUTE.peminjamRiwayatStatus(k.filter)}
-              aria-label={`Lihat Riwayat Peminjaman: ${k.label}`}
-              // Muncul berurutan saat halaman dimuat (stagger).
-              style={{ animationDelay: `${indeks * 60}ms` }}
-              className={cn(
-                'group relative block overflow-hidden rounded-2xl border p-stack-lg transition-all duration-300 animate-page-in hover:-translate-y-1 hover:shadow-elevated active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50',
-                g.gradasi,
-                g.garis,
-              )}
-            >
-              <div className={cn('absolute -right-4 -top-4 h-24 w-24 rounded-full blur-2xl transition-colors', g.orb)} />
-              <div className={cn('mb-4 flex h-12 w-12 items-center justify-center rounded-xl', g.ikonBox)}>
-                <Icon name={k.ikon} fill />
-              </div>
-              <p className="font-label-md uppercase tracking-wider text-on-surface-variant">{k.label}</p>
-              <h3 className={cn('mt-1 font-jakarta text-headline-lg', g.nilai)}>{k.nilai}</h3>
-              <p className="mt-2 font-label-sm text-on-surface-variant">{k.keterangan}</p>
-              <Icon
-                name="arrow_forward"
-                className="absolute bottom-4 right-4 text-[18px] text-on-surface-variant opacity-0 transition-opacity group-hover:opacity-100"
-              />
-            </Link>
-          );
-        })}
-      </div>
+      {/* Statistik - gaya Dashboard Overview admin */}
+      <section className="rounded-3xl border-2 border-slate-200/50 bg-gradient-to-br from-white to-slate-50 p-8 shadow-lg">
+        {/* Header */}
+        <div className="mb-6 flex items-center gap-4">
+          <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-primary to-indigo-600 shadow-lg shadow-primary/30">
+            <Icon name="space_dashboard" className="h-6 w-6 text-white" />
+          </div>
+          <div>
+            <h2 className="font-jakarta text-xl font-bold text-slate-800">Ringkasan Aktivitas</h2>
+            <p className="text-sm text-muted-foreground">Statistik peminjaman Anda</p>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          {kartu.map((k, indeks) => {
+            const g = GAYA[k.warna];
+            return (
+              <Link
+                key={k.label}
+                href={RUTE.peminjamRiwayatStatus(k.filter)}
+                aria-label={`Lihat Riwayat Peminjaman: ${k.label}`}
+                style={{ animationDelay: `${indeks * 60}ms` }}
+                className={cn(
+                  'group relative animate-page-in',
+                )}
+              >
+                {/* Glow effect */}
+                <div className={cn(
+                  'absolute inset-0 rounded-2xl bg-gradient-to-br opacity-0 blur-lg transition-opacity duration-500 group-hover:opacity-100',
+                  g.gradient
+                )} />
+
+                {/* Card */}
+                <div className={cn(
+                  'relative flex flex-col items-center gap-3 rounded-2xl border-2 border-slate-200/50 bg-white p-5 shadow-md transition-all duration-300 hover:shadow-xl hover:-translate-y-1 active:scale-[0.98]',
+                  g.hoverBorder
+                )}>
+                  {/* Gradient top border on hover */}
+                  <div className={cn(
+                    'absolute inset-x-0 top-0 h-1 rounded-t-xl bg-gradient-to-r opacity-0 transition-opacity duration-300 group-hover:opacity-100',
+                    g.iconGradient
+                  )} />
+
+                  {/* Icon */}
+                  <div className={cn(
+                    'flex h-14 w-14 items-center justify-center rounded-xl bg-gradient-to-br shadow-lg transition-transform duration-300 group-hover:scale-110',
+                    g.iconGradient
+                  )}>
+                    <Icon name={k.ikon} className="h-7 w-7 text-white" />
+                  </div>
+
+                  {/* Number */}
+                  <span className={cn('font-jakarta text-3xl font-bold', g.nilai)}>{k.nilai}</span>
+
+                  {/* Label */}
+                  <span className="text-center text-sm font-semibold text-slate-600">{k.label}</span>
+
+                  {/* Arrow */}
+                  <div className="flex h-7 w-7 items-center justify-center rounded-full bg-slate-100 transition-all duration-300 group-hover:translate-x-1 group-hover:bg-slate-200 opacity-0 group-hover:opacity-100">
+                    <Icon name="chevron_right" className="h-4 w-4 text-slate-400" />
+                  </div>
+                </div>
+              </Link>
+            );
+          })}
+        </div>
+      </section>
 
       {/* Status terkini */}
       {data.statusTerkini && (
