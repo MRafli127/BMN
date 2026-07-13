@@ -1,20 +1,19 @@
 {
-  "name": "sipp-bmn-backend",
+  "name": "backend",
   "version": "1.0.0",
-  "description": "Backend REST API Sistem Informasi Peminjaman & Pengembalian Barang Milik Negara (SIPP-BMN)",
+  "description": "Backend REST API SIPP-BMN",
   "main": "src/server.js",
   "type": "commonjs",
   "scripts": {
     "dev": "nodemon src/server.js",
     "start": "node src/server.js",
     "postinstall": "prisma generate",
-    "setup": "node scripts/setup-env.js",
-    "setup:win": "setup-env.bat",
-    "verify-env": "node scripts/verify-env.js",
+
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev",
     "prisma:studio": "prisma studio",
     "seed": "node prisma/seed.js",
+
     "backup": "node scripts/backup.js",
     "backup:list": "node scripts/backup.js list",
     "backup:schedule": "node scripts/scheduler.js start",
@@ -26,15 +25,6 @@
   "prisma": {
     "seed": "node prisma/seed.js"
   },
-  "keywords": [
-    "bmn",
-    "peminjaman",
-    "express",
-    "prisma",
-    "postgresql"
-  ],
-  "author": "SIPP-BMN",
-  "license": "MIT",
   "dependencies": {
     "@pdf-lib/fontkit": "^1.1.1",
     "@pdf-lib/standard-fonts": "^1.0.0",

@@ -1,5 +1,36 @@
 {
-  "devDependencies": {
-    "prisma": "^7.8.0"
-  }
+  "name": "sipp-bmn",
+  "version": "1.0.0",
+  "description": "Sistem Informasi Peminjaman & Pengembalian Barang Milik Negara (SIPP-BMN)",
+  "private": true,
+  "workspaces": [
+    "backend",
+    "frontend"
+  ],
+  "scripts": {
+    "dev": "npm run dev --workspace=backend & npm run dev --workspace=frontend",
+    "dev:backend": "npm run dev --workspace=backend",
+    "dev:frontend": "npm run dev --workspace=frontend",
+    "build": "npm run build --workspace=frontend",
+    "start": "npm run start --workspace=backend",
+    "start:frontend": "npm run start --workspace=frontend",
+
+    "prisma:generate": "npm run prisma:generate --workspace=backend",
+    "prisma:migrate": "npm run prisma:migrate --workspace=backend",
+    "prisma:studio": "npm run prisma:studio --workspace=backend",
+    "seed": "npm run seed --workspace=backend",
+
+    "backup": "npm run backup --workspace=backend",
+    "backup:list": "npm run backup:list --workspace=backend",
+    "backup:run": "npm run backup:run --workspace=backend",
+    "restore": "npm run restore --workspace=backend"
+  },
+  "keywords": [
+    "bmn",
+    "peminjaman",
+    "prisma",
+    "postgresql"
+  ],
+  "author": "SIPP-BMN",
+  "license": "MIT"
 }
