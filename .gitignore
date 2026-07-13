@@ -1,37 +1,70 @@
+# ============================================================
+# SIPP-BMN — .gitignore
+# Monorepo dengan npm workspaces
+# ============================================================
+
 # Claude Code
 .claude/
 
+# Generated Prisma Client
 /generated/prisma
 
 # ============================================================
-# Keamanan - Jangan pernah commit
+# Environment — Jangan pernah commit
 # ============================================================
 .env
 .env.*
 !.env.example
 
-# Backup data migrasi
+# ============================================================
+# Dependencies (npm workspaces)
+# ============================================================
+# Root workspace dependencies
+node_modules/
+
+# Individual workspace dependencies
+backend/node_modules/
+frontend/node_modules/
+
+# Package lock files (workspaces pakai satu lock di root)
+/package-lock.json
+/backend/package-lock.json
+/frontend/package-lock.json
+
+# ============================================================
+# Build outputs
+# ============================================================
+/frontend/.next/
+/frontend/out/
+/frontend/build/
+/frontend/.turbo/
+
+# ============================================================
+# Backup data migrasi (sensitive)
+# ============================================================
 backup_data/
+backend/backup_data/
 *.dump
 *.sql.backup
 
-# Node.js
-node_modules/
+# ============================================================
+# Logs & Debug
+# ============================================================
+logs/
+*.log
 npm-debug.log*
 yarn-debug.log*
-yarn-error.log*
-.pnpm-store/
 
+# ============================================================
 # OS
+# ============================================================
 .DS_Store
 Thumbs.db
 
+# ============================================================
 # IDE
+# ============================================================
 .idea/
 .vscode/
 *.swp
 *.swo
-
-# Logs
-logs/
-*.log

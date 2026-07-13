@@ -1,7 +1,7 @@
 {
-  "name": "sipp-bmn-frontend",
+  "name": "frontend",
   "version": "1.0.0",
-  "description": "Frontend Next.js SIPP-BMN — Sistem Informasi Peminjaman & Pengembalian Barang Milik Negara",
+  "description": "Frontend Next.js SIPP-BMN",
   "private": true,
   "scripts": {
     "dev": "next dev -p 3000",
