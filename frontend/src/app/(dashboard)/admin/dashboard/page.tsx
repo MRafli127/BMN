@@ -25,13 +25,13 @@ import { barangService } from '@/services/barang.service';
 
 // Data kartu kode satker
 const KODE_SATKER = [
-  { kode: '015110199411868000KP', label: 'Kode Satker 000' },
-  { kode: '015110199411868001KP', label: 'Kode Satker 001' },
-  { kode: '015110199411868002KP', label: 'Kode Satker 002' },
-  { kode: '015110199411868003KP', label: 'Kode Satker 003' },
-  { kode: '015110199411868004KP', label: 'Kode Satker 004' },
-  { kode: '015110199411868005KP', label: 'Kode Satker 005' },
-  { kode: '015110199411868006KP', label: 'Kode Satker 006' },
+  { kode: '015110199411868000KP', label: 'Sekretariat Badan Pendidikan dan Pelatihan Keuangan' },
+  { kode: '015110199411868001KP', label: 'Pusat Pembinaan Jabatan Fungsional dan Peminjaman Mutu' },
+  { kode: '015110199411868002KP', label: 'Pusat Pendidikan dan Pelatihan Anggaran dan Pembendaharaan' },
+  { kode: '015110199411868003KP', label: 'Pusat Pendidikan dan Pelatihan Pajak' },
+  { kode: '015110199411868004KP', label: 'Pusat Pendidikan dan Pelatihan Bea dan Cukai' },
+  { kode: '015110199411868005KP', label: 'Pusat Pendidikan dan Pelatihan Keuangan Publik' },
+  { kode: '015110199411868006KP', label: 'Pusat Pendidikan dan Pelatihan Kepemimpinan dan Manajemen' },
 ];
 
 // Fungsi untuk mengambil jumlah data berdasarkan kode satker
