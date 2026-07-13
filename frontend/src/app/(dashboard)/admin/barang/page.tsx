@@ -124,33 +124,40 @@ function KontenBarang() {
         </div>
       </div>
 
-      {/* Filter */}
-      <div className="grid grid-cols-1 gap-3 rounded-xl border bg-card p-4 sm:grid-cols-2 lg:grid-cols-4">
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-          <Input value={cari} onChange={(e) => setCari(e.target.value)} placeholder="Cari kode / nama / merk / lokasi..." className="pl-9" />
+      {/* Panel search + filter */}
+      <div className="overflow-hidden rounded-xl border bg-card">
+        {/* Search — lebar penuh, baris sendiri */}
+        <div className="border-b border-outline-variant p-4">
+          <div className="relative w-full">
+            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <Input value={cari} onChange={(e) => setCari(e.target.value)} placeholder="Cari kode / nama barang / merk / nama peminjam..." className="pl-9" />
+          </div>
         </div>
-        <Select value={filter.kodeSatker || ''} onChange={(e) => ubahFilter({ kodeSatker: (e.target.value || undefined) as never })}>
-          <option value="">Semua Kode Satker</option>
-          {OPSI_FILTER_BARANG.map((o) => (
-            <option key={o.value} value={o.value}>
-              {o.label}
-            </option>
-          ))}
-        </Select>
-        <Select value={filter.kondisi || ''} onChange={(e) => ubahFilter({ kondisi: (e.target.value || undefined) as never })}>
-          <option value="">Semua Kondisi</option>
-          {OPSI_KONDISI.map((o) => (
-            <option key={o.value} value={o.value}>
-              {o.label}
-            </option>
-          ))}
-        </Select>
-        <Select value={filter.ketersediaan || ''} onChange={(e) => ubahKetersediaan(e.target.value)}>
-          <option value="">Semua Stok</option>
-          <option value="tersedia">Tersedia (mis. 1/1)</option>
-          <option value="habis">Stok Habis (mis. 0/1)</option>
-        </Select>
+
+        {/* Filter */}
+        <div className="flex flex-wrap items-center gap-3 bg-muted/20 p-4">
+          <Select value={filter.kodeSatker || ''} onChange={(e) => ubahFilter({ kodeSatker: (e.target.value || undefined) as never })} className="w-52">
+            <option value="">Semua Kode Satker</option>
+            {OPSI_FILTER_BARANG.map((o) => (
+              <option key={o.value} value={o.value}>
+                {o.label}
+              </option>
+            ))}
+          </Select>
+          <Select value={filter.kondisi || ''} onChange={(e) => ubahFilter({ kondisi: (e.target.value || undefined) as never })} className="w-40">
+            <option value="">Semua Kondisi</option>
+            {OPSI_KONDISI.map((o) => (
+              <option key={o.value} value={o.value}>
+                {o.label}
+              </option>
+            ))}
+          </Select>
+          <Select value={filter.ketersediaan || ''} onChange={(e) => ubahKetersediaan(e.target.value)} className="w-40">
+            <option value="">Semua Stok</option>
+            <option value="tersedia">Tersedia</option>
+            <option value="habis">Habis</option>
+          </Select>
+        </div>
       </div>
 
       {/* Folder per merk */}

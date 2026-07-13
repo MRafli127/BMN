@@ -114,8 +114,8 @@ interface FilterBarangProps {
 
 function FilterBarang({ filter, onChange }: FilterBarangProps) {
   const opsiFilterBarang = [
-    { value: '015110199411868000KP', label: 'Sekretariat Badan Pendidikan dan Pelatihan Keuangan' },
-    { value: '015110199411868001KP', label: 'Pusat Pembinaan Jabatan Fungsional dan Peminjaman Mutu' },
+    { value: '015110199411868000KP', label: '015110199411868000KP' },
+    { value: '015110199411868001KP', label: '015110199411868001KP' },
     { value: '015110199411868002KP', label: '015110199411868002KP' },
     { value: '015110199411868003KP', label: '015110199411868003KP' },
     { value: '015110199411868004KP', label: '015110199411868004KP' },

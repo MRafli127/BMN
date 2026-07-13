@@ -85,13 +85,13 @@ export const OPSI_KONDISI = Object.entries(KONDISI_BARANG).map(([value, info]) =
 }));
 // Opsi untuk dropdown filter - berdasarkan kode barang
 export const OPSI_FILTER_BARANG = [
-  { value: '015110199411868000KP', label: '015110199411868000KP' },
-  { value: '015110199411868001KP', label: '015110199411868001KP' },
-  { value: '015110199411868002KP', label: '015110199411868002KP' },
-  { value: '015110199411868003KP', label: '015110199411868003KP' },
-  { value: '015110199411868004KP', label: '015110199411868004KP' },
-  { value: '015110199411868005KP', label: '015110199411868005KP' },
-  { value: '015110199411868006KP', label: '015110199411868006KP' },
+  { value: '015110199411868000KP', label: 'Sekretariat Badan Pendidikan dan Pelatihan Keuangan' },
+  { value: '015110199411868001KP', label: 'Pusat Pembinaan Jabatan Fungsional dan Peminjaman Mutu' },
+  { value: '015110199411868002KP', label: 'Pusat Pendidikan dan Pelatihan Anggaran dan Pembendaharaan' },
+  { value: '015110199411868003KP', label: 'Pusat Pendidikan dan Pelatihan Pajak' },
+  { value: '015110199411868004KP', label: 'Pusat Pendidikan dan Pelatihan Bea dan Cukai' },
+  { value: '015110199411868005KP', label: 'Pusat Pendidikan dan Pelatihan Keuangan Publik' },
+  { value: '015110199411868006KP', label: 'Pusat Pendidikan dan Pelatihan Kepemimpinan dan Manajemen' },
 ];
 
 // DRAFT dikecualikan dari opsi filter: hanya dipakai internal peminjam dan tidak
