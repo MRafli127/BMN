@@ -23,6 +23,25 @@ export interface DataQrcode {
   isi: string;
 }
 
+/** Detail peminjaman aktif yang dikembalikan saat error validasi */
+export interface DetailPeminjamanError {
+  id: string;
+  kodeTransaksi: string;
+  status: string;
+  statusLabel: string;
+  statusIcon: string;
+  barangList: string;
+  tanggalKirim: string | null;
+  tanggalPinjamRencana: string | null;
+  tanggalKembaliRencana: string | null;
+}
+
+/** Error dari backend dengan kode error spesifik */
+export interface AppErrorDetail {
+  kodeError?: string;
+  detailPeminjaman?: DetailPeminjamanError | DetailPeminjamanError[];
+}
+
 export const peminjamanService = {
   async getSemua(filter: FilterPeminjaman = {}): Promise<{ data: Peminjaman[]; meta: MetaPagination }> {
     const res = await api.get('/peminjaman', { params: filter });
