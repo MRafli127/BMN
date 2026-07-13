@@ -77,4 +77,4 @@ async function kodeTransaksiUnik(tanggal = new Date()) {
   return `${prefix}${timestamp}${random}`;
 }
 
-module.exports = { kodeNaturalBarang, kodeTransaksi, kodeTransaksiUnik };
+module.exports = { kodeNaturalBarang, kodeTransaksiUnik };

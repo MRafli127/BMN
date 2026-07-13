@@ -7,7 +7,7 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
-import { ArrowLeft, Pencil, Trash2, Package, MapPin, Boxes, X } from 'lucide-react';
+import { ArrowLeft, Pencil, Trash2, Package, MapPin, Boxes, X, User } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -144,6 +144,15 @@ export default function DetailBarangPage() {
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
               <Info ikon={Boxes} label="Stok Tersedia" nilai={`${barang.jumlahTersedia} / ${barang.jumlahTotal}`} />
               <Info ikon={MapPin} label="Lokasi" nilai={barang.lokasiPenyimpanan || '-'} />
+              {barang.peminjam ? (
+                <Info
+                  ikon={User}
+                  label="Sedang Dipinjam Oleh"
+                  nilai={`${barang.peminjam.nama}${barang.peminjam.nip ? ` (${barang.peminjam.nip})` : ''}`}
+                />
+              ) : (
+                <Info ikon={User} label="Peminjam" nilai="-" />
+              )}
             </div>
 
             {spesifikasi.length > 0 && (

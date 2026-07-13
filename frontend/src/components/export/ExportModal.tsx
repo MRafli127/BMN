@@ -20,7 +20,8 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog';
-import { exportService, downloadBlob, generateExportFilename } from '@/services/export.service';
+import { exportService, generateExportFilename } from '@/services/export.service';
+import { downloadBlob } from '@/lib/download';
 import type { FilterExport } from '@/services/export.service';
 
 interface ExportOption {

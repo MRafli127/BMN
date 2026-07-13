@@ -3,6 +3,7 @@
 // ============================================================
 
 import api from '@/lib/api';
+import { downloadBlob } from '@/lib/download';
 
 export interface HasilImportPeminjam {
   akunDitambahkan: number;
@@ -32,13 +33,6 @@ export const peminjamImportService = {
 
   async unduhTemplate(): Promise<void> {
     const res = await api.get('/import-peminjam/template', { responseType: 'blob' });
-    const url = URL.createObjectURL(res.data as Blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = 'template-import-peminjam.xlsx';
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-    URL.revokeObjectURL(url);
+    downloadBlob(res.data, 'template-import-peminjam.xlsx');
   },
 };

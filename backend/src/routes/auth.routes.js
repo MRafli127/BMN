@@ -44,11 +44,11 @@ router.get('/me', authMiddleware, authController.me);
 router.patch('/me', authMiddleware, validateCsrfTokenMiddleware, validate(updateProfilSchema), authController.updateMe);
 router.patch('/me/password', passwordLimiter, authMiddleware, validateCsrfTokenMiddleware, validate(gantiPasswordSchema), authController.gantiPassword);
 
-// Endpoint heartbeat — update last activity (tanpa CSRF karena sering dipanggil)
+// Endpoint heartbeat — update last activity + return serverTime untuk sinkronisasi client
 router.post('/heartbeat', authMiddleware, async (req, res) => {
   try {
     await updateLastActivity(req.user.id, req.user.jti);
-    res.json({ success: true });
+    res.json({ success: true, serverTime: Date.now() });
   } catch (error) {
     res.status(500).json({ success: false });
   }

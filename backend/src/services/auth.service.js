@@ -49,19 +49,11 @@ async function blacklistToken(token, userId = null) {
   }
 }
 
-// Helper: blacklist semua token user berdasarkan tokenVersion lama
+// Helper: blacklist semua token user
 // Dipanggil saat password berubah untuk invalidate semua sesi sebelumnya
-async function invalidateAllUserTokens(userId, oldTokenVersion) {
-  // Catat versi lama untuk tracking
-  const oldVersion = oldTokenVersion || 1;
-
-  // Cleanup expired tokens + tokens versi lama
-  // Catatan: kita tidak bisa invalidate access token yang sudah expire
-  // tapi refresh token akan gagal karena tokenVersion tidak cocok
+async function invalidateAllUserTokens(userId) {
   // Access token dengan masa 15 menit akan expire sendiri
-
-  // Tandai di DB bahwa versi token berubah (untuk validasi)
-  // Ini ditangani dengan increment tokenVersion di user record
+  // Refresh token akan gagal karena tokenVersion tidak cocok
   logger.info(`[AUTH] Invalidated all tokens for user ${userId}`);
 }
 
@@ -352,8 +344,6 @@ async function refresh(refreshToken) {
 
   // VALIDASI TOKEN VERSION
   // Jika password berubah setelah token ini dibuat, token ditolak.
-  // Normalisasi kedua sisi ke 1 bila kosong (token lama tanpa klaim "v" atau
-  // user.tokenVersion null) agar tidak terjadi mismatch palsu (1 !== undefined).
   const tokenVersion = payload.v || 1;
   const userVersion = user.tokenVersion || 1;
   if (tokenVersion !== userVersion) {
@@ -388,8 +378,8 @@ async function validateAccessTokenWithVersion(payload) {
   return { valid: true, user };
 }
 
-// Inactivity timeout dalam milidetik (15 menit)
-const INACTIVITY_TIMEOUT_MS = 15 * 60 * 1000;
+// Inactivity timeout dalam milidetik (60 menit — diselaraskan dengan access token)
+const INACTIVITY_TIMEOUT_MS = 60 * 60 * 1000;
 
 // --- Validasi sesi: cek apakah sesi valid (belum di-invalidate & masih aktif) ---
 // Dipanggil oleh auth middleware pada setiap request terproteksi
@@ -408,13 +398,11 @@ async function validateSession(userId, jti) {
   }
 
   // Jika sesi di-invalidate (tab ditutup / logout paksa), tolak
-  // Bandingkan dengan timestamp token jika ada (jti timestamp)
   if (user.sessionInvalidatedAt) {
     return { valid: false, reason: 'SESSION_INVALIDATED' };
   }
 
-  // Cek apakah user sudah tidak aktif lebih dari 15 menit
-  // Jika lastActivityAt null, berarti user login baru dan belum ada aktivitas tercatat
+  // Cek apakah user sudah tidak aktif lebih dari 1 jam
   if (user.lastActivityAt) {
     const lastActivityMs = new Date(user.lastActivityAt).getTime();
     const nowMs = Date.now();

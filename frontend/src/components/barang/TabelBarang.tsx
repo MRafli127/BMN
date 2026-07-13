@@ -92,6 +92,11 @@ export function TabelBarang({ data, onHapus }: Props) {
                   <div className="min-w-0 flex-1">
                     <p className="truncate text-[12px] font-medium text-gray-900">{barang.nama}</p>
                     <p className="text-[10px] text-gray-400">{barang.kodeBarang}</p>
+                    {barang.peminjam && (
+                      <p className="text-[10px] text-orange-500 truncate" title={`NIP: ${barang.peminjam.nip || '-'}`}>
+                        → {barang.peminjam.nama}
+                      </p>
+                    )}
                   </div>
 
                   {/* Stock */}
@@ -152,6 +157,7 @@ export function TabelBarang({ data, onHapus }: Props) {
               <TableHead>Jenis</TableHead>
               <TableHead>Kondisi</TableHead>
               <TableHead className="text-center">Stok</TableHead>
+              <TableHead>Peminjam</TableHead>
               <TableHead>Lokasi</TableHead>
               <TableHead className="text-right">Aksi</TableHead>
             </TableRow>
@@ -192,6 +198,15 @@ export function TabelBarang({ data, onHapus }: Props) {
                       {barang.jumlahTersedia}
                     </span>
                     <span className="text-muted-foreground"> / {barang.jumlahTotal}</span>
+                  </TableCell>
+                  <TableCell className="text-sm">
+                    {barang.peminjam ? (
+                      <span className="font-medium text-orange-600" title={`NIP: ${barang.peminjam.nip || '-'}`}>
+                        {barang.peminjam.nama}
+                      </span>
+                    ) : (
+                      <span className="text-muted-foreground">*</span>
+                    )}
                   </TableCell>
                   <TableCell className="text-sm text-muted-foreground">{barang.lokasiPenyimpanan || '-'}</TableCell>
                   <TableCell>

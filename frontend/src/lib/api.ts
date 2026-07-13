@@ -68,15 +68,21 @@ function prosesAntrian(token: string | null) {
 }
 
 function redirectKeLogin(pesan?: string) {
+  // Jangan redirect jika sedang di halaman login
+  if (typeof window !== 'undefined' && window.location.pathname.startsWith('/login')) {
+    return;
+  }
+
+  // Bersihkan sesi
   bersihkanSesi();
-  if (typeof window !== 'undefined' && !window.location.pathname.startsWith('/login')) {
-    if (pesan) {
+
+  if (typeof window !== 'undefined') {
+    if (pesan && !pesan.toLowerCase().includes('csrf')) {
+      // Hanya tampilkan toast jika bukan error CSRF
       toast.error(pesan);
     }
-    // Delay sedikit agar toast terlihat
-    setTimeout(() => {
-      window.location.href = '/login';
-    }, 500);
+    // Redirect ke login
+    window.location.href = '/login';
   }
 }
 
@@ -112,9 +118,12 @@ api.interceptors.response.use(
 
     if (error.response?.status === 401 && !original._retry && !endpointAuth) {
       const pesanError = (error.response?.data as { pesan?: string } | undefined)?.pesan || '';
+      const isMeEndpoint = url.includes('/auth/me');
 
       // Jika sesi invalid karena inactivity atau tab close, langsung redirect
-      if (adalahPesanSesiInvalid(pesanError)) {
+      // TIDAK redirect jika endpoint adalah /auth/me (dipanggil saat refresh halaman)
+      // karena kita masih punya data user dari localStorage
+      if (adalahPesanSesiInvalid(pesanError) && !isMeEndpoint) {
         redirectKeLogin(pesanError);
         return Promise.reject(error);
       }

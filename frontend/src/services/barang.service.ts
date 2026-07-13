@@ -16,6 +16,21 @@ export interface HasilImport {
   detailDilindungi: { nama: string; nup: string | null; kodeBarangBmn: string | null }[];
 }
 
+// Data untuk bulk insert barang
+export interface DataBarangBulkForm {
+  nama: string;
+  merk: string;
+  jenis: string;
+  kondisi: string;
+  lokasiPenyimpanan?: string;
+  deskripsi?: string;
+  kodeSatker: string;
+  kodeBarangBmn: string;
+  jumlahBarang: number | string;
+  foto?: File | null;
+}
+
+// Data form single barang
 export interface DataBarangForm {
   nama: string;
   merk?: string;
@@ -31,20 +46,26 @@ export interface DataBarangForm {
   foto?: File | null;
 }
 
+// Hasil bulk insert
+export interface HasilBulkCreate {
+  berhasil: number;
+  nupAwal: string;
+  nupAkhir: string;
+  merkNormalized: string;
+}
+
 // Bangun FormData dari objek barang (mendukung upload foto)
-function buatFormData(data: DataBarangForm): FormData {
+function buatFormData(data: Record<string, unknown> | DataBarangForm | DataBarangBulkForm): FormData {
   const fd = new FormData();
-  fd.append('nama', data.nama);
-  if (data.merk) fd.append('merk', data.merk);
-  fd.append('jenis', data.jenis);
-  fd.append('jumlahTotal', String(data.jumlahTotal));
-  fd.append('kondisi', data.kondisi);
-  if (data.lokasiPenyimpanan) fd.append('lokasiPenyimpanan', data.lokasiPenyimpanan);
-  if (data.deskripsi) fd.append('deskripsi', data.deskripsi);
-  fd.append('kodeSatker', data.kodeSatker);
-  fd.append('kodeBarangBmn', data.kodeBarangBmn);
-  fd.append('nup', data.nup);
-  if (data.foto) fd.append('foto', data.foto);
+  for (const [key, value] of Object.entries(data)) {
+    if (value !== undefined && value !== null) {
+      if (value instanceof File) {
+        fd.append(key, value);
+      } else {
+        fd.append(key, String(value));
+      }
+    }
+  }
   return fd;
 }
 
@@ -96,6 +117,14 @@ export const barangService = {
 
   async remove(id: string): Promise<void> {
     await api.delete(`/barang/${id}`);
+  },
+
+  // Bulk insert barang sekaligus (NUP auto-generate)
+  async bulkCreate(data: DataBarangBulkForm): Promise<HasilBulkCreate> {
+    const res = await api.post('/barang/bulk', buatFormData(data), {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+    return res.data.data;
   },
 
   // Import file Excel/CSV. Backend menyinkronkan database dengan isi file.

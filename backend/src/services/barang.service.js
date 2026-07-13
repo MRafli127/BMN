@@ -10,6 +10,42 @@ const { urlPublik } = require('../utils/apiResponse');
 const { parsePagination } = require('../utils/pagination');
 const { AppError } = require('../middleware/error.middleware');
 
+// Include lengkap untuk relasi peminjam
+// Mengambil data peminjam aktif (barang yang sedang dipinjam)
+// Catatan: filtering status dilakukan di JavaScript oleh ekstrakPeminjam()
+const includePeminjam = {
+  detailPeminjaman: {
+    include: {
+      peminjaman: {
+        include: {
+          peminjam: {
+            select: {
+              id: true,
+              nama: true,
+              nip: true,
+              jabatan: true,
+              unitKerja: true,
+            },
+          },
+        },
+      },
+    },
+  },
+};
+
+// Ekstrak data peminjam dari relasi
+// Mengambil peminjam aktif: statusItem = 'DIPINJAM' dan status peminjaman aktif
+function ekstrakPeminjam(barang) {
+  if (!barang?.detailPeminjaman?.length) return null;
+  const aktif = barang.detailPeminjaman.find(
+    (dp) =>
+      dp.statusItem === 'DIPINJAM' &&
+      dp.peminjaman?.status &&
+      ['DISETUJUI', 'DIPINJAM', 'TERLAMBAT'].includes(dp.peminjaman.status)
+  );
+  return aktif?.peminjaman?.peminjam || null;
+}
+
 // Ubah fotoUrl relatif menjadi absolut untuk client
 function serialisasi(barang) {
   if (!barang) return barang;
@@ -39,6 +75,7 @@ async function getSemua({ q, jenis, kondisi, ketersediaan, kodeSatker, page = 1,
   const [data, total] = await Promise.all([
     prisma.barang.findMany({
       where,
+      include: includePeminjam,
       orderBy: { createdAt: 'desc' },
       skip: (halaman - 1) * perHalaman,
       take: perHalaman,
@@ -47,7 +84,11 @@ async function getSemua({ q, jenis, kondisi, ketersediaan, kodeSatker, page = 1,
   ]);
 
   return {
-    data: data.map(serialisasi),
+    data: data.map((b) => {
+      const serialized = serialisasi(b);
+      serialized.peminjam = ekstrakPeminjam(b);
+      return serialized;
+    }),
     meta: {
       total,
       page: halaman,
@@ -59,9 +100,14 @@ async function getSemua({ q, jenis, kondisi, ketersediaan, kodeSatker, page = 1,
 
 // --- Ambil satu barang ---
 async function getById(id) {
-  const barang = await prisma.barang.findUnique({ where: { id } });
+  const barang = await prisma.barang.findUnique({
+    where: { id },
+    include: includePeminjam,
+  });
   if (!barang) throw new AppError('Barang tidak ditemukan.', 404);
-  return serialisasi(barang);
+  const serialized = serialisasi(barang);
+  serialized.peminjam = ekstrakPeminjam(barang);
+  return serialized;
 }
 
 // --- Tambah barang baru ---
@@ -191,4 +237,161 @@ async function checkStokTersedia(barangIds) {
   }));
 }
 
-module.exports = { getSemua, getById, create, update, remove, serialisasi, checkStokTersedia };
+// --- Bulk Insert barang ---
+// Bulk insert banyak barang sekaligus dengan NUP auto-generate.
+// NUP berdasarkan Kode Satker + Kode Barang SAJA (merk TIDAK mempengaruhi sequence).
+async function bulkCreate(data, fotoPath) {
+  const { nama, merk, jenis, kondisi, lokasiPenyimpanan, deskripsi, kodeSatker, kodeBarangBmn, jumlahBarang } = data;
+
+  // Normalize merk: uppercase, trim
+  const merkNormalized = merk.trim().toUpperCase();
+
+  // Parse jumlahBarang ke number
+  const jumlah = parseInt(jumlahBarang, 10);
+  if (isNaN(jumlah) || jumlah < 1) {
+    throw new AppError('Jumlah barang harus angka positif.', 400);
+  }
+
+  const kodeSatkerTrim = kodeSatker.trim();
+  const kodeBarangBmnTrim = kodeBarangBmn.trim();
+
+  // Ambil semua NUP dan cari yang terbesar sebagai number
+  const barangList = await prisma.barang.findMany({
+    where: {
+      kodeSatker: kodeSatkerTrim,
+      kodeBarangBmn: kodeBarangBmnTrim,
+    },
+    select: { nup: true },
+  });
+
+  // Sorting sebagai number
+  const sortedNup = barangList
+    .map((b) => parseInt(b.nup, 10))
+    .filter((n) => !isNaN(n))
+    .sort((a, b) => b - a);
+
+  let nupSekarang = 1;
+  if (sortedNup.length > 0) {
+    nupSekarang = sortedNup[0] + 1;
+  }
+
+  // Generate NUP (langsung dari nupSekarang)
+  const daftarNup = [];
+  for (let i = 0; i < jumlah; i++) {
+    daftarNup.push(String(nupSekarang + i));
+  }
+
+  // Bangun data untuk bulk insert
+  const dataBulk = daftarNup.map((nup) => ({
+    kodeBarang: `${kodeSatkerTrim}-${kodeBarangBmnTrim}-${nup}`,
+    nama: nama,
+    merk: merkNormalized,
+    jenis: jenis,
+    jumlahTotal: 1,
+    jumlahTersedia: 1,
+    kondisi: kondisi || 'BAIK',
+    lokasiPenyimpanan: lokasiPenyimpanan || null,
+    deskripsi: deskripsi || null,
+    fotoUrl: fotoPath || null,
+    sumber: 'MANUAL',
+    kodeSatker: kodeSatkerTrim,
+    kodeBarangBmn: kodeBarangBmnTrim,
+    nup: nup,
+  }));
+
+  // Bulk insert
+  const hasil = await prisma.barang.createMany({
+    data: dataBulk,
+  });
+
+  return {
+    berhasil: hasil.count,
+    nupAwal: daftarNup[0],
+    nupAkhir: daftarNup[daftarNup.length - 1],
+    merkNormalized,
+  };
+}
+
+// --- Ambil daftar merk unik untuk autocomplete ---
+async function getDaftarMerk(search = '') {
+  const where = {};
+  if (search) {
+    where.merk = { mode: 'insensitive', contains: search };
+  }
+  const hasil = await prisma.barang.findMany({
+    where,
+    select: { merk: true },
+    distinct: ['merk'],
+    orderBy: { merk: 'asc' },
+  });
+  return hasil
+    .map((r) => r.merk)
+    .filter((m) => m !== null && m !== '');
+}
+
+// --- Ambil NUP terakhir untuk kombinasi kodeSatker + kodeBarang (merk TIDAK diperhitungkan) ---
+async function getNupTerakhir(kodeSatker, kodeBarangBmn) {
+  // Ambil semua NUP dan sorting sebagai number (karena nup adalah string)
+  const barangList = await prisma.barang.findMany({
+    where: {
+      kodeSatker: kodeSatker.trim(),
+      kodeBarangBmn: kodeBarangBmn.trim(),
+    },
+    select: { nup: true },
+  });
+
+  // Sorting sebagai number
+  const sortedNup = barangList
+    .map((b) => parseInt(b.nup, 10))
+    .filter((n) => !isNaN(n))
+    .sort((a, b) => b - a);
+
+  const nupTerakhir = sortedNup.length > 0 ? String(sortedNup[0]) : null;
+
+  return {
+    nupTerakhir,
+    adaBarang: sortedNup.length > 0,
+  };
+}
+
+// --- Ambil preview NUP yang akan digunakan (berdasarkan Kode Satker + Kode Barang) ---
+async function getPreviewNup(kodeSatker, kodeBarangBmn, jumlah) {
+  const kodeSatkerTrim = kodeSatker.trim();
+  const kodeBarangBmnTrim = kodeBarangBmn.trim();
+  const jumlahInt = parseInt(jumlah, 10);
+
+  if (isNaN(jumlahInt) || jumlahInt < 1) {
+    return { nupAwal: null, nupAkhir: null, tersedia: 0 };
+  }
+
+  // Ambil semua NUP dan cari yang terbesar sebagai number
+  const barangList = await prisma.barang.findMany({
+    where: {
+      kodeSatker: kodeSatkerTrim,
+      kodeBarangBmn: kodeBarangBmnTrim,
+    },
+    select: { nup: true },
+  });
+
+  // Sorting sebagai number
+  const sortedNup = barangList
+    .map((b) => parseInt(b.nup, 10))
+    .filter((n) => !isNaN(n))
+    .sort((a, b) => b - a);
+
+  let nupSekarang = 1;
+  if (sortedNup.length > 0) {
+    nupSekarang = sortedNup[0] + 1;
+  }
+
+  const nupAwal = String(nupSekarang);
+  const nupAkhir = String(nupSekarang + jumlahInt - 1);
+
+  return {
+    nupAwal,
+    nupAkhir,
+    tersedia: jumlahInt,
+  };
+}
+
+module.exports = { getSemua, getById, create, update, remove, serialisasi, checkStokTersedia, bulkCreate, getDaftarMerk, getNupTerakhir, getPreviewNup };

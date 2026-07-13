@@ -23,7 +23,7 @@ const path = require('path');
 const fs = require('fs');
 const { bufferKeDataUrl } = require('../utils/fileData');
 const { formatTanggalSaja } = require('../utils/formatTanggal');
-const { wrapText } = require('../utils/pdfHelper');
+const { wrapText, adalahCheckmark, gambarCheckbox } = require('../utils/pdfHelper');
 const { LABEL_KONDISI } = require('../constants');
 const nomorSuratService = require('./nomorSurat.service');
 
@@ -49,11 +49,6 @@ const POIN_PERNYATAAN = [
   'mengganti jika BMN yang dipinjam hilang selama jangka waktu peminjaman; dan',
   'mengembalikan BMN yang dipinjam sesuai dengan kondisi semula apabila ditugaskan ke unit kerja lain (mutasi)/jangka waktu peminjaman BMN berakhir.',
 ];
-
-// Helper: cek apakah teks adalah checkmark
-function adalahCheckmark(str) {
-  return str === '✓' || str === 'V';
-}
 
 // Nomor surat: pakai nomor tersimpan (nomorSurat/tahunSurat) bila ada;
 // saat pratinjau nilai tersebut diisi hasil "intip" di peminjaman.service.
@@ -125,47 +120,6 @@ async function generate(peminjaman) {
     const kiri = opt.kiri ?? 0;
     const kanan = opt.kanan ?? PAGE_W;
     teks(str, kiri + (kanan - kiri - w) / 2, opt);
-  };
-
-  // Gambar checkbox dengan border dan centang ✓
-  // Style: 15x15px border 1px solid #000, checkmark di tengah
-  const gambarCheckbox = (selX, selY, selW, selH) => {
-    const boxSize = 15;
-    const cx = selX + selW / 2; // center x sel
-    const cy = selY + selH / 2; // center y sel (pdf-lib: Y+ ke atas)
-    const boxX = cx - boxSize / 2;
-    const boxY = cy - boxSize / 2;
-
-    // Kotak checkbox dengan border 1px
-    page.drawRectangle({
-      x: boxX,
-      y: boxY,
-      width: boxSize,
-      height: boxSize,
-      borderColor: rgb(0, 0, 0),
-      borderWidth: 1,
-      color: rgb(1, 1, 1),
-    });
-
-    // Checkmark ✓ di tengah kotak
-    const ckL = 4; // offset kiri dalam kotak
-    const ckR = 11; // offset kanan dalam kotak
-    const ckTop = 10; // offset atas (dari bawah kotak)
-    const ckBot = 4; // offset bawah (dari bawah kotak)
-    const ckMid = 6; // titik tengah-y (dari bawah kotak)
-
-    page.drawLine({
-      start: { x: boxX + ckL, y: boxY + ckMid },
-      end: { x: boxX + ckMid, y: boxY + ckBot },
-      thickness: 1.2,
-      color: rgb(0, 0, 0),
-    });
-    page.drawLine({
-      start: { x: boxX + ckMid, y: boxY + ckBot },
-      end: { x: boxX + ckR, y: boxY + ckTop },
-      thickness: 1.2,
-      color: rgb(0, 0, 0),
-    });
   };
 
   // ---------- Kop surat ----------
@@ -296,7 +250,7 @@ async function generate(peminjaman) {
       lines.forEach((ln, li) => {
         // Jika checkmark, gambar checkbox dengan border dan centang
         if (c.key === 'join' && ln === '✓') {
-          gambarCheckbox(x, yAtas - tinggi, c.w, tinggi);
+          gambarCheckbox(page, x, yAtas - tinggi, c.w, tinggi);
         } else {
           const tw = f.widthOfTextAtSize(ln, sizeTabel);
           let tx = x + padX;

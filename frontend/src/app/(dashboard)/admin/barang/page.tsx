@@ -9,7 +9,7 @@
 import { Suspense, useCallback, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { Search, Plus, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Search, Plus, ChevronLeft, ChevronRight, List } from 'lucide-react';
 import { Input, Select } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { FolderBarang, kelompokkanPerMerk } from '@/components/barang/FolderBarang';
@@ -36,11 +36,17 @@ function KontenBarang() {
   const stok = searchParams.get('stok');
   const ketersediaanUrl = stok === 'tersedia' || stok === 'habis' ? stok : undefined;
 
+  // Filter kode satker dari query URL (?kodeSatker=...), mis. saat datang dari popup dashboard.
+  const kodeSatkerUrl = searchParams.get('kodeSatker') || undefined;
+
   // Pakai nilai URL sebagai filter AWAL. Karena `template.tsx` me-mount ulang
   // konten tiap navigasi, halaman yang dibuka dari dashboard langsung memuat
-  // stok yang dimaksud tanpa menunggu effect.
+  // filter yang dimaksud tanpa menunggu effect.
   const { data, filter, ubahFilter, sedangMemuat, refetch } = useBarangFolder(
-    ketersediaanUrl ? { ketersediaan: ketersediaanUrl } : {}
+    {
+      ...(ketersediaanUrl ? { ketersediaan: ketersediaanUrl } : {}),
+      ...(kodeSatkerUrl ? { kodeSatker: kodeSatkerUrl } : {}),
+    }
   );
   const [cari, setCari] = useState('');
   const [halaman, setHalaman] = useState(1);
@@ -49,8 +55,8 @@ function KontenBarang() {
   // Cadangan bila konten TIDAK di-mount ulang (perubahan query pada rute yang
   // sama): selaraskan filter saat ?stok berubah agar tak balik ke "Semua Stok".
   useEffect(() => {
-    ubahFilter({ ketersediaan: ketersediaanUrl });
-  }, [ketersediaanUrl, ubahFilter]);
+    ubahFilter({ ketersediaan: ketersediaanUrl, kodeSatker: kodeSatkerUrl });
+  }, [ketersediaanUrl, kodeSatkerUrl, ubahFilter]);
 
   // Ubah filter ketersediaan dari dropdown: perbarui filter + URL sekaligus,
   // sehingga konsisten dan bertahan saat refresh.
@@ -105,6 +111,11 @@ function KontenBarang() {
         <div className="flex flex-wrap gap-2">
           <ExportModal />
           <ImportBarangDialog onSelesai={refetch} />
+          <Button asChild variant="outline">
+            <Link href={RUTE.adminBarangBulk}>
+              <List className="h-4 w-4" /> Tambah Massal
+            </Link>
+          </Button>
           <Button asChild>
             <Link href={RUTE.adminBarangTambah}>
               <Plus className="h-4 w-4" /> Tambah Barang
@@ -113,33 +124,40 @@ function KontenBarang() {
         </div>
       </div>
 
-      {/* Filter */}
-      <div className="grid grid-cols-1 gap-3 rounded-xl border bg-card p-4 sm:grid-cols-2 lg:grid-cols-4">
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-          <Input value={cari} onChange={(e) => setCari(e.target.value)} placeholder="Cari kode / nama / merk / lokasi..." className="pl-9" />
+      {/* Panel search + filter */}
+      <div className="overflow-hidden rounded-xl border bg-card">
+        {/* Search — lebar penuh, baris sendiri */}
+        <div className="border-b border-outline-variant p-4">
+          <div className="relative w-full">
+            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <Input value={cari} onChange={(e) => setCari(e.target.value)} placeholder="Cari kode / nama barang / merk / nama peminjam..." className="pl-9" />
+          </div>
         </div>
-        <Select value={filter.kodeSatker || ''} onChange={(e) => ubahFilter({ kodeSatker: (e.target.value || undefined) as never })}>
-          <option value="">Semua Kode Satker</option>
-          {OPSI_FILTER_BARANG.map((o) => (
-            <option key={o.value} value={o.value}>
-              {o.label}
-            </option>
-          ))}
-        </Select>
-        <Select value={filter.kondisi || ''} onChange={(e) => ubahFilter({ kondisi: (e.target.value || undefined) as never })}>
-          <option value="">Semua Kondisi</option>
-          {OPSI_KONDISI.map((o) => (
-            <option key={o.value} value={o.value}>
-              {o.label}
-            </option>
-          ))}
-        </Select>
-        <Select value={filter.ketersediaan || ''} onChange={(e) => ubahKetersediaan(e.target.value)}>
-          <option value="">Semua Stok</option>
-          <option value="tersedia">Tersedia (mis. 1/1)</option>
-          <option value="habis">Stok Habis (mis. 0/1)</option>
-        </Select>
+
+        {/* Filter */}
+        <div className="flex flex-wrap items-center gap-3 bg-muted/20 p-4">
+          <Select value={filter.kodeSatker || ''} onChange={(e) => ubahFilter({ kodeSatker: (e.target.value || undefined) as never })} className="w-52">
+            <option value="">Semua Kode Satker</option>
+            {OPSI_FILTER_BARANG.map((o) => (
+              <option key={o.value} value={o.value}>
+                {o.label}
+              </option>
+            ))}
+          </Select>
+          <Select value={filter.kondisi || ''} onChange={(e) => ubahFilter({ kondisi: (e.target.value || undefined) as never })} className="w-40">
+            <option value="">Semua Kondisi</option>
+            {OPSI_KONDISI.map((o) => (
+              <option key={o.value} value={o.value}>
+                {o.label}
+              </option>
+            ))}
+          </Select>
+          <Select value={filter.ketersediaan || ''} onChange={(e) => ubahKetersediaan(e.target.value)} className="w-40">
+            <option value="">Semua Stok</option>
+            <option value="tersedia">Tersedia</option>
+            <option value="habis">Habis</option>
+          </Select>
+        </div>
       </div>
 
       {/* Folder per merk */}

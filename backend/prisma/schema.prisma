@@ -119,6 +119,8 @@ model User {
   peminjaman  Peminjaman[] @relation("PeminjamanOlehPeminjam")
   // Relasi: peminjaman yang disetujui oleh user ini (sebagai admin)
   persetujuan Peminjaman[] @relation("PeminjamanDisetujuiAdmin")
+  // Relasi: peminjaman yang pengembaliannya dikonfirmasi oleh user ini (sebagai admin)
+  pengembalian Peminjaman[] @relation("PeminjamanDikembalikanAdmin")
   // Relasi: notifikasi yang diterima user ini
   notifikasi  Notifikasi[]
 
@@ -182,6 +184,7 @@ model Peminjaman {
   catatanAdmin          String? // Catatan admin (wajib saat menolak). Terlihat oleh peminjam.
   catatanPengembalian   String? // Catatan admin saat konfirmasi pengembalian. HANYA untuk admin, tidak terlihat oleh peminjam.
   disetujuiOleh         String? // userId admin yang menyetujui
+  dikembalikanOleh      String? // userId admin yang mengkonfirmasi pengembalian
   nomorSurat            Int? // Nomor urut surat pernyataan (PRN-<nomorSurat>/BMN/PP.1/<tahunSurat>). Diberikan otomatis & berurut per tahun saat pengajuan dibuat, reset ke 1 tiap ganti tahun.
   tahunSurat            Int? // Tahun penomoran surat (dipakai bersama nomorSurat). Surat pengembalian memakai nomor & tahun yang sama.
   createdAt             DateTime         @default(now())
@@ -190,6 +193,7 @@ model Peminjaman {
   // Relasi
   peminjam User               @relation("PeminjamanOlehPeminjam", fields: [userId], references: [id])
   admin    User?              @relation("PeminjamanDisetujuiAdmin", fields: [disetujuiOleh], references: [id])
+  pengembalianAdmin User?     @relation("PeminjamanDikembalikanAdmin", fields: [dikembalikanOleh], references: [id])
   detail   DetailPeminjaman[]
 
   @@index([userId])
