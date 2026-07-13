@@ -200,6 +200,18 @@ function beritahuPengajuanMasuk(peminjaman, user) {
   }).catch(() => {});
 }
 
+// Mapping status ke label dan icon (sama dengan emailTemplates.js)
+const STATUS_LABEL = {
+  DRAFT: { label: 'Draft', icon: '📝' },
+  MENUNGGU: { label: 'Menunggu Persetujuan', icon: '⏳' },
+  DISETUJUI: { label: 'Disetujui', icon: '✅' },
+  DITOLAK: { label: 'Ditolak', icon: '❌' },
+  DIPINJAM: { label: 'Sedang Dipinjam', icon: '📦' },
+  DIKEMBALIKAN: { label: 'Dikembalikan', icon: '🏁' },
+  TERLAMBAT: { label: 'Terlambat', icon: '⚠️' },
+  DIBATALKAN: { label: 'Dibatalkan', icon: '🚫' },
+};
+
 async function create(userId, data, dokumenDataUrl, requestInfo = {}) {
   // Mode DRAFT: pengajuan disimpan ke Riwayat tanpa surat pernyataan (peminjam
   // mengunggahnya menyusul dari halaman Riwayat). Barang tetap dikunci.
@@ -214,9 +226,29 @@ async function create(userId, data, dokumenDataUrl, requestInfo = {}) {
   });
   const maxAktif = env.peminjaman?.maxAktif || 3;
   if (peminjamanAktif >= maxAktif) {
+    // Ambil daftar peminjaman aktif untuk ditampilkan di error
+    const daftarAktif = await prisma.peminjaman.findMany({
+      where: { userId, status: { in: STATUS_MENGUNCI } },
+      include: {
+        detail: { include: { barang: { select: { nama: true } } } },
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+    const detailPeminjaman = daftarAktif.map((p) => ({
+      id: p.id,
+      kodeTransaksi: p.kodeTransaksi,
+      status: p.status,
+      statusLabel: STATUS_LABEL[p.status]?.label || p.status,
+      statusIcon: STATUS_LABEL[p.status]?.icon || '',
+      barangList: p.detail.map((d) => d.barang?.nama || 'Barang').join(', '),
+      tanggalKirim: p.tanggalKirim,
+      tanggalPinjamRencana: p.tanggalPinjamRencana,
+      tanggalKembaliRencana: p.tanggalKembaliRencana,
+    }));
     throw new AppError(
       `Anda sudah memiliki ${peminjamanAktif} peminjaman aktif. Selesaikan atau batalkan yang ada sebelum membuat pengajuan baru. (Maksimum: ${maxAktif})`,
-      400
+      400,
+      { kodeError: 'MAX_PEMINJAMAN_AKTIF', detailPeminjaman }
     );
   }
 
@@ -233,15 +265,30 @@ async function create(userId, data, dokumenDataUrl, requestInfo = {}) {
         status: { in: STATUS_MENGUNCI },
         detail: { some: { barangId: { in: barangIds } } },
       },
-      include: { detail: { include: { barang: { select: { id: true, nama: true } } } } },
+      include: {
+        detail: { include: { barang: { select: { id: true, nama: true } } } },
+      },
     });
     if (sudahAktif) {
       const bentrok = sudahAktif.detail.find((d) => barangIds.includes(d.barangId));
       const namaBarang = bentrok?.barang?.nama || 'barang tersebut';
+      // Siapkan detail peminjaman aktif untuk ditampilkan di frontend
+      const detailPeminjaman = {
+        id: sudahAktif.id,
+        kodeTransaksi: sudahAktif.kodeTransaksi,
+        status: sudahAktif.status,
+        statusLabel: STATUS_LABEL[sudahAktif.status]?.label || sudahAktif.status,
+        statusIcon: STATUS_LABEL[sudahAktif.status]?.icon || '',
+        barangList: sudahAktif.detail.map((d) => d.barang?.nama || 'Barang').join(', '),
+        tanggalKirim: sudahAktif.tanggalKirim,
+        tanggalPinjamRencana: sudahAktif.tanggalPinjamRencana,
+        tanggalKembaliRencana: sudahAktif.tanggalKembaliRencana,
+      };
       throw new AppError(
         `Anda sudah memiliki pengajuan/peminjaman aktif untuk "${namaBarang}". ` +
           'Barang yang sama tidak dapat diajukan lebih dari sekali sampai peminjaman tersebut selesai.',
-        400
+        400,
+        { kodeError: 'BARANG_SUDAH_ADAKTIF', detailPeminjaman }
       );
     }
   }

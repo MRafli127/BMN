@@ -15,7 +15,8 @@ import { Icon } from '@/components/ui/icon';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { notify } from '@/components/ui/toast';
-import { peminjamanService } from '@/services/peminjaman.service';
+import { peminjamanService, type DetailPeminjamanError } from '@/services/peminjaman.service';
+import { DialogPeminjamanAktif } from '@/components/keranjang/DialogPeminjamanAktif';
 import { ambilPesanError, cn } from '@/lib/utils';
 import { useAuth } from '@/hooks/useAuth';
 import { useDebounceSubmit } from '@/hooks/useDebounceSubmit';
@@ -81,6 +82,12 @@ export function LangkahSuratPernyataan({
   // Flag untuk menandai sedang navigasi internal (bukan back button browser)
   const isNavigatingRef = useRef(false);
 
+  // State untuk dialog info peminjaman aktif
+  const [dialogAktifTerbuka, setDialogAktifTerbuka] = useState(false);
+  const [daftarPeminjamanAktif, setDaftarPeminjamanAktif] = useState<DetailPeminjamanError[]>([]);
+  const [kodeErrorAktif, setKodeErrorAktif] = useState<string>('');
+  const [pesanErrorAktif, setPesanErrorAktif] = useState<string>('');
+
   // Handler untuk tombol kembali
   const handleKembali = () => {
     // Flag untuk mencegah popstate listener menampilkan notification
@@ -113,6 +120,21 @@ export function LangkahSuratPernyataan({
         });
         onSelesai(p);
       } catch (error) {
+        // Cek apakah ini error peminjaman aktif (dengan detail)
+        const err = error as { response?: { data?: { pesan?: string; errors?: { kodeError?: string; detailPeminjaman?: DetailPeminjamanError[] } } }; message?: string };
+        const errorData = err?.response?.data;
+        const kodeError = errorData?.errors?.kodeError;
+        const detailPeminjaman = errorData?.errors?.detailPeminjaman;
+
+        if ((kodeError === 'MAX_PEMINJAMAN_AKTIF' || kodeError === 'BARANG_SUDAH_ADAKTIF') && detailPeminjaman) {
+          // Tampilkan dialog info peminjaman aktif
+          setKodeErrorAktif(kodeError);
+          setPesanErrorAktif(errorData.pesan || 'Tidak dapat membuat pengajuan.');
+          setDaftarPeminjamanAktif(Array.isArray(detailPeminjaman) ? detailPeminjaman : [detailPeminjaman]);
+          setDialogAktifTerbuka(true);
+          return;
+        }
+
         notify.gagal(ambilPesanError(error, 'Gagal mengirim pengajuan.'));
       } finally {
         setSedangKirim(false);
@@ -136,6 +158,21 @@ export function LangkahSuratPernyataan({
       });
       onSelesai(p);
     } catch (error) {
+      // Cek apakah ini error peminjaman aktif (dengan detail)
+      const err = error as { response?: { data?: { pesan?: string; errors?: { kodeError?: string; detailPeminjaman?: DetailPeminjamanError[] } } }; message?: string };
+      const errorData = err?.response?.data;
+      const kodeError = errorData?.errors?.kodeError;
+      const detailPeminjaman = errorData?.errors?.detailPeminjaman;
+
+      if ((kodeError === 'MAX_PEMINJAMAN_AKTIF' || kodeError === 'BARANG_SUDAH_ADAKTIF') && detailPeminjaman) {
+        // Tampilkan dialog info peminjaman aktif
+        setKodeErrorAktif(kodeError);
+        setPesanErrorAktif(errorData.pesan || 'Tidak dapat menyimpan draft.');
+        setDaftarPeminjamanAktif(Array.isArray(detailPeminjaman) ? detailPeminjaman : [detailPeminjaman]);
+        setDialogAktifTerbuka(true);
+        return;
+      }
+
       notify.gagal(ambilPesanError(error, 'Gagal menyimpan pengajuan.'));
     } finally {
       setSedangSimpanDraft(false);
@@ -558,6 +595,15 @@ export function LangkahSuratPernyataan({
           </Card>
         </aside>
       </div>
+
+      {/* Dialog info peminjaman aktif */}
+      <DialogPeminjamanAktif
+        terbuka={dialogAktifTerbuka}
+        onUbahTerbuka={setDialogAktifTerbuka}
+        daftarPeminjaman={daftarPeminjamanAktif}
+        kodeError={kodeErrorAktif}
+        pesanError={pesanErrorAktif}
+      />
     </div>
   );
 }
