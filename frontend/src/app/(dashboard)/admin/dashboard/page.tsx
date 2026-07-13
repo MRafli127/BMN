@@ -815,11 +815,11 @@ export default function AdminDashboardPage() {
             <Icon name="location_city" className="h-5 w-5 text-white" />
           </div>
           <div>
-            <h3 className="font-jakarta text-xl font-bold text-slate-800">Pilih Kode Satker</h3>
-            <p className="text-sm text-muted-foreground">Klik kartu untuk memilih kode satker yang akan diakses</p>
+            <h3 class="font-jakarta text-xl font-bold text-slate-800">Pilih Kode Satker</h3>
+            <p class="text-sm text-muted-foreground">Klik kartu untuk memilih kode satker yang akan diakses</p>
           </div>
         </div>
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+        <div className="grid auto-fit min-h-[120px] grid-cols-[repeat(auto-fit,minmax(260px,1fr))] gap-4">
           {KODE_SATKER.map((satker, indeks) => (
             <button
               key={satker.kode}
@@ -834,31 +834,25 @@ export default function AdminDashboardPage() {
                 setCountsMemuat(false);
               }}
               style={{ animationDelay: `${indeks * 60}ms` }}
-              className="group relative animate-page-in"
+              class="group relative flex min-h-[108px] animate-page-in items-center rounded-2xl border-2 border-slate-200/50 bg-white p-4 shadow-md transition-all duration-300 hover:border-primary/30 hover:shadow-xl hover:-translate-y-2 active:scale-[0.98]"
             >
-              {/* Glow effect */}
-              <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-primary/20 to-indigo-600/20 opacity-0 blur-lg transition-opacity duration-500 group-hover:opacity-100" />
+              {/* Gradient top border on hover */}
+              <div class="absolute inset-x-0 top-0 h-1 rounded-t-xl bg-gradient-to-r from-primary to-indigo-600 opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
 
-              {/* Card */}
-              <div className="relative flex items-center gap-4 rounded-2xl border-2 border-slate-200/50 bg-white p-5 shadow-md transition-all duration-300 hover:border-primary/30 hover:shadow-xl hover:-translate-y-2 active:scale-[0.98]">
-                {/* Gradient top border on hover */}
-                <div className="absolute inset-x-0 top-0 h-1 rounded-t-xl bg-gradient-to-r from-primary to-indigo-600 opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
+              {/* Icon */}
+              <div class="relative flex h-14 w-14 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-primary to-indigo-600 shadow-lg shadow-primary/30 transition-transform duration-300 group-hover:scale-110 group-hover:shadow-xl">
+                <Icon name="domain" className="h-7 w-7 text-white" />
+              </div>
 
-                {/* Icon */}
-                <div className="relative flex h-14 w-14 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-primary to-indigo-600 shadow-lg shadow-primary/30 transition-transform duration-300 group-hover:scale-110 group-hover:shadow-xl">
-                  <Icon name="badge" className="h-7 w-7 text-white" />
-                </div>
+              {/* Text */}
+              <div class="ml-4 min-w-0 flex-1 text-left">
+                <p class="break-words font-semibold leading-snug text-slate-700 transition-colors group-hover:text-primary">{satker.label}</p>
+                <p class="mt-1 font-mono text-xs font-medium text-slate-500">{satker.kode}</p>
+              </div>
 
-                {/* Text */}
-                <div className="min-w-0 flex-1 text-left">
-                  <p className="font-semibold text-slate-700 transition-colors group-hover:text-primary">{satker.label}</p>
-                  <p className="mt-1 break-all font-mono text-xs font-medium text-slate-500">{satker.kode}</p>
-                </div>
-
-                {/* Arrow - only visible on hover */}
-                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-slate-100 transition-all duration-300 group-hover:translate-x-1 group-hover:bg-primary/10 opacity-0 group-hover:opacity-100">
-                  <Icon name="chevron_right" className="h-5 w-5 text-slate-400 transition-colors group-hover:text-primary" />
-                </div>
+              {/* Arrow - only visible on hover */}
+              <div class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-slate-100 opacity-0 transition-all duration-300 group-hover:translate-x-1 group-hover:bg-primary/10 group-hover:opacity-100">
+                <Icon name="arrow_forward" className="h-5 w-5 text-slate-400 transition-colors group-hover:text-primary" />
               </div>
             </button>
           ))}
