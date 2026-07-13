@@ -1,2 +1,37 @@
 # Claude Code
 .claude/
+
+/generated/prisma
+
+# ============================================================
+# Keamanan - Jangan pernah commit
+# ============================================================
+.env
+.env.*
+!.env.example
+
+# Backup data migrasi
+backup_data/
+*.dump
+*.sql.backup
+
+# Node.js
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-store/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Logs
+logs/
+*.log
