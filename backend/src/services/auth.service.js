@@ -474,4 +474,5 @@ module.exports = {
   buatAccessToken,
   buatRefreshToken,
   pilihActiveRole,
+  rolesEfektif,
 };

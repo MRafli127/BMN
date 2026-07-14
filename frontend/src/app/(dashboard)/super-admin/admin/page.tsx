@@ -1,322 +1,281 @@
 // ============================================================
-//  Super Admin - Manajemen Admin
-//  CRUD admin dan atur satker akses
+//  Manajemen Admin — halaman Super Admin untuk kelola admin.
 // ============================================================
 
 'use client';
 
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useEffect, useState } from 'react';
 import { Icon } from '@/components/ui/icon';
 import { LoadingSpinner } from '@/components/shared/LoadingSpinner';
 import { EmptyState } from '@/components/shared/EmptyState';
+import { KonfirmasiDialog } from '@/components/shared/KonfirmasiDialog';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Badge } from '@/components/ui/badge';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
-import { userManagementService } from '@/services/userManagement.service';
-import { satkerService, type Satker } from '@/services/satker.service';
-import { useQuery, useMutation, useQueryClient } from '@/lib/cache';
+import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table';
 import { notify } from '@/components/ui/toast';
 import { ambilPesanError } from '@/lib/utils';
+import { userManagementService, type UserItem } from '@/services/userManagement.service';
+import { useQuery } from '@/lib/cache';
 
-export default function SuperAdminAdminPage() {
-  const router = useRouter();
-  const queryClient = useQueryClient();
-  const [search, setSearch] = useState('');
-  const [page, setPage] = useState(1);
-  const [selectedAdmin, setSelectedAdmin] = useState<any>(null);
-  const [dialogSatkerOpen, setDialogSatkerOpen] = useState(false);
-  const [dialogRoleOpen, setDialogRoleOpen] = useState(false);
-  const [selectedSatker, setSelectedSatker] = useState<string[]>([]);
-  const [targetRole, setTargetRole] = useState<'ADMIN' | 'PEMINJAM'>('ADMIN');
+export default function ManajemenAdminPage() {
+  const [halaman, setHalaman] = useState(1);
+  const [limit, setLimit] = useState(10);
+  const [cari, setCari] = useState('');
+  const [cariDebounced, setCariDebounced] = useState('');
 
-  // Ambil daftar admin
-  const { data: adminData, isLoading } = useQuery(
-    `admins:${search}:${page}`,
-    () => userManagementService.getSemua({ q: search, role: 'ADMIN', page, limit: 10 })
+  // Dialog konfirmasi
+  const [dialogKonfirmasi, setDialogKonfirmasi] = useState<{
+    terbuka: boolean;
+    judul: string;
+    pesan: string;
+    aksi: () => Promise<void>;
+  }>({ terbuka: false, judul: '', pesan: '', aksi: async () => {} });
+  const [sedangAksi, setSedangAksi] = useState(false);
+
+  // Debounce pencarian
+  useEffect(() => {
+    const t = setTimeout(() => setCariDebounced(cari), 350);
+    return () => clearTimeout(t);
+  }, [cari]);
+
+  // Reset halaman saat filter berubah
+  useEffect(() => {
+    setHalaman(1);
+  }, [cariDebounced, limit]);
+
+  const { data, sedangMemuat: memuat, refetch } = useQuery(
+    ['admin-list', halaman, limit, cariDebounced],
+    () => userManagementService.getSemua({ q: cariDebounced, role: 'ADMIN', page: halaman, limit })
   );
 
-  // Ambil daftar satker
-  const { data: satkerData } = useQuery('satker-list', () => satkerService.getSemua({ limit: 100 }));
+  const daftarAdmin: UserItem[] = data?.data || [];
+  const meta = data?.meta || { total: 0, page: 1, limit: 10, totalHalaman: 1 };
 
-  // Mutation: update satker akses
-  const updateSatkerMutation = useMutation(
-    (satkerList: string[]) => userManagementService.updateSatkerAkses(selectedAdmin!.id, satkerList),
-    {
-      onSuccess: () => {
-        notify.suksess('Satker akses berhasil diperbarui');
-        setDialogSatkerOpen(false);
-        queryClient.invalidateQueries('admins');
+  // Promote user jadi ADMIN
+  const promosikan = async (user: UserItem) => {
+    setDialogKonfirmasi({
+      terbuka: true,
+      judul: 'Promosikan ke Admin',
+      pesan: `Yakin ingin menjadikan ${user.nama} sebagai Admin?`,
+      aksi: async () => {
+        setSedangAksi(true);
+        try {
+          await userManagementService.tambahRole(user.id, 'ADMIN');
+          notify.suksess(`${user.nama} berhasil dipromosikan ke Admin.`);
+          refetch();
+        } catch (err) {
+          notify.gagal(ambilPesanError(err, 'Gagal mempromosikan.'));
+        } finally {
+          setSedangAksi(false);
+          setDialogKonfirmasi((d) => ({ ...d, terbuka: false }));
+        }
       },
-      onError: (error) => {
-        notify.gagal(ambilPesanError(error, 'Gagal memperbarui satker akses'));
-      },
-    }
-  );
-
-  // Mutation: promote/demote
-  const roleMutation = useMutation(
-    (action: 'promote' | 'demote') => {
-      if (action === 'promote') {
-        return userManagementService.tambahRole(selectedAdmin!.id, targetRole);
-      } else {
-        return userManagementService.hapusRole(selectedAdmin!.id, targetRole);
-      }
-    },
-    {
-      onSuccess: (_, action) => {
-        notify.suksess(action === 'promote' ? 'Role berhasil ditambahkan' : 'Role berhasil dicabut');
-        setDialogRoleOpen(false);
-        queryClient.invalidateQueries('admins');
-      },
-      onError: (error) => {
-        notify.gagal(ambilPesanError(error, 'Gagal mengubah role'));
-      },
-    }
-  );
-
-  const handleBukaSatker = (admin: any) => {
-    setSelectedAdmin(admin);
-    setSelectedSatker(admin.satkerAkses || []);
-    setDialogSatkerOpen(true);
+    });
   };
 
-  const handleSimpanSatker = () => {
-    updateSatkerMutation.mutate(selectedSatker);
+  // Demote admin jadi PEMINJAM
+  const demosikan = async (user: UserItem) => {
+    setDialogKonfirmasi({
+      terbuka: true,
+      judul: 'Cabut Akses Admin',
+      pesan: `Yakin ingin mencabut akses Admin dari ${user.nama}?`,
+      aksi: async () => {
+        setSedangAksi(true);
+        try {
+          await userManagementService.hapusRole(user.id, 'ADMIN');
+          notify.suksess(`Akses Admin ${user.nama} berhasil dicabut.`);
+          refetch();
+        } catch (err) {
+          notify.gagal(ambilPesanError(err, 'Gagal mencabut akses.'));
+        } finally {
+          setSedangAksi(false);
+          setDialogKonfirmasi((d) => ({ ...d, terbuka: false }));
+        }
+      },
+    });
   };
 
-  const handleBukaRole = (admin: any, action: 'promote' | 'demote') => {
-    setSelectedAdmin(admin);
-    setTargetRole('ADMIN');
-    setDialogRoleOpen(true);
+  // Reset password admin
+  const resetPassword = async (user: UserItem) => {
+    setDialogKonfirmasi({
+      terbuka: true,
+      judul: 'Reset Password',
+      pesan: `Reset password untuk ${user.nama}? Password baru akan ditampilkan setelah reset.`,
+      aksi: async () => {
+        setSedangAksi(true);
+        try {
+          const hasil = await userManagementService.resetPassword(user.id);
+          notify.suksess(`Password berhasil direset. Password baru: ${hasil.passwordBaru}`);
+          refetch();
+        } catch (err) {
+          notify.gagal(ambilPesanError(err, 'Gagal reset password.'));
+        } finally {
+          setSedangAksi(false);
+          setDialogKonfirmasi((d) => ({ ...d, terbuka: false }));
+        }
+      },
+    });
   };
-
-  if (isLoading) return <LoadingSpinner layarPenuh />;
-
-  const admins = adminData?.data || [];
-  const meta = adminData?.meta || { total: 0, page: 1, totalHalaman: 1 };
 
   return (
-    <div className="space-y-gutter">
+    <div className="space-y-6">
       {/* Header */}
-      <section className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-        <div>
-          <h1 className="font-jakarta text-headline-lg-mobile font-bold text-primary sm:text-headline-lg">
-            Manajemen Administrator
-          </h1>
-          <p className="mt-1 text-muted-foreground">
-            Kelola admin, atur akses satker, dan Promosi/Demosi peran
-          </p>
-        </div>
-      </section>
+      <div className="rounded-2xl bg-gradient-to-r from-blue-800 to-blue-600 p-6 text-white shadow-lg">
+        <h1 className="text-2xl font-bold">Manajemen Admin</h1>
+        <p className="mt-1 text-blue-100">Kelola akun Administrator dan Super Admin.</p>
+      </div>
 
-      {/* Search */}
-      <div className="flex flex-col gap-4 md:flex-row">
-        <div className="relative flex-1">
-          <Icon name="search" className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400" />
-          <Input
-            placeholder="Cari nama, NIP, atau email..."
-            value={search}
-            onChange={(e) => {
-              setSearch(e.target.value);
-              setPage(1);
-            }}
-            className="pl-10"
-          />
+      {/* Filter & Pencarian */}
+      <div className="rounded-2xl bg-white p-4 shadow-md">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
+          <div className="relative flex-1">
+            <Icon name="search" className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" style={{ fontSize: 20 }} />
+            <Input
+              placeholder="Cari nama, NIP, atau email..."
+              value={cari}
+              onChange={(e) => setCari(e.target.value)}
+              className="pl-10"
+            />
+          </div>
+          <div className="flex items-center gap-2">
+            <select
+              value={limit}
+              onChange={(e) => setLimit(Number(e.target.value))}
+              className="rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+            >
+              <option value={10}>10 / halaman</option>
+              <option value={25}>25 / halaman</option>
+              <option value={50}>50 / halaman</option>
+            </select>
+          </div>
         </div>
       </div>
 
-      {/* Table */}
-      <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-md">
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead className="border-b border-slate-200 bg-slate-50">
-              <tr>
-                <th className="px-4 py-3 text-left text-sm font-semibold text-slate-600">Nama</th>
-                <th className="px-4 py-3 text-left text-sm font-semibold text-slate-600">NIP</th>
-                <th className="px-4 py-3 text-left text-sm font-semibold text-slate-600">Email</th>
-                <th className="px-4 py-3 text-left text-sm font-semibold text-slate-600">Roles</th>
-                <th className="px-4 py-3 text-left text-sm font-semibold text-slate-600">Satker Akses</th>
-                <th className="px-4 py-3 text-right text-sm font-semibold text-slate-600">Aksi</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100">
-              {admins.length === 0 ? (
-                <tr>
-                  <td colSpan={6} className="px-4 py-12 text-center">
-                    <EmptyState judul="Tidak ada admin" deskripsi="Belum ada administrator yang ditemukan" />
-                  </td>
-                </tr>
-              ) : (
-                admins.map((admin: any) => (
-                  <tr key={admin.id} className="hover:bg-slate-50">
-                    <td className="px-4 py-3">
+      {/* Tabel Admin */}
+      <div className="rounded-2xl bg-white shadow-md">
+        {memuat ? (
+          <div className="flex h-64 items-center justify-center">
+            <LoadingSpinner />
+          </div>
+        ) : daftarAdmin.length === 0 ? (
+          <EmptyState
+            ikon="admin_panel_settings"
+            judul="Belum Ada Admin"
+            deskripsi="Belum ada administrator yang terdaftar."
+          />
+        ) : (
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow className="bg-gray-50">
+                  <TableHead>Nama</TableHead>
+                  <TableHead>NIP</TableHead>
+                  <TableHead>Email</TableHead>
+                  <TableHead>Role</TableHead>
+                  <TableHead>Aksi</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {daftarAdmin.map((admin) => (
+                  <TableRow key={admin.id} className="hover:bg-gray-50">
+                    <TableCell>
                       <div>
-                        <p className="font-medium text-slate-800">{admin.nama}</p>
-                        <p className="text-sm text-slate-500">{admin.jabatan || '-'}</p>
+                        <p className="font-medium text-gray-900">{admin.nama}</p>
+                        {admin.jabatan && <p className="text-xs text-gray-500">{admin.jabatan}</p>}
                       </div>
-                    </td>
-                    <td className="px-4 py-3 font-mono text-sm">{admin.nip}</td>
-                    <td className="px-4 py-3 text-sm">{admin.email}</td>
-                    <td className="px-4 py-3">
+                    </TableCell>
+                    <TableCell className="font-mono text-sm">{admin.nip}</TableCell>
+                    <TableCell className="text-sm">{admin.email}</TableCell>
+                    <TableCell>
                       <div className="flex flex-wrap gap-1">
-                        {admin.roles.map((role: string) => (
-                          <Badge key={role} variant={role === 'SUPER_ADMIN' ? 'default' : 'secondary'}>
-                            {role}
+                        {admin.roles?.map((role) => (
+                          <Badge
+                            key={role}
+                            variant={role === 'SUPER_ADMIN' ? 'default' : 'secondary'}
+                            className={role === 'SUPER_ADMIN' ? 'bg-purple-500 text-white' : ''}
+                          >
+                            {role === 'SUPER_ADMIN' ? 'Super Admin' : 'Admin'}
                           </Badge>
                         ))}
                       </div>
-                    </td>
-                    <td className="px-4 py-3">
-                      <div className="flex flex-wrap gap-1">
-                        {admin.satkerAkses?.length > 0 ? (
-                          admin.satkerAkses.slice(0, 2).map((s: string) => (
-                            <Badge key={s} variant="outline" className="text-xs">
-                              {s.slice(-6)}
-                            </Badge>
-                          ))
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-2">
+                        {admin.roles?.includes('SUPER_ADMIN') ? (
+                          <span className="text-xs text-gray-500">Super Admin</span>
                         ) : (
-                          <span className="text-sm text-emerald-600 font-medium">Semua Satker</span>
-                        )}
-                        {(admin.satkerAkses?.length || 0) > 2 && (
-                          <Badge variant="outline" className="text-xs">
-                            +{(admin.satkerAkses?.length || 0) - 2}
-                          </Badge>
-                        )}
-                      </div>
-                    </td>
-                    <td className="px-4 py-3 text-right">
-                      <div className="flex items-center justify-end gap-2">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleBukaSatker(admin)}
-                          title="Atur Satker"
-                        >
-                          <Icon name="location_city" className="h-4 w-4" />
-                        </Button>
-                        {admin.roles.includes('ADMIN') && !admin.roles.includes('SUPER_ADMIN') && (
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleBukaRole(admin, 'demote')}
-                            title="Cabut Admin"
-                            className="text-error hover:text-error"
-                          >
-                            <Icon name="person_remove" className="h-4 w-4" />
-                          </Button>
+                          <>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => resetPassword(admin)}
+                              className="text-xs"
+                            >
+                              <Icon name="key" style={{ fontSize: 14 }} />
+                              Reset
+                            </Button>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => demosikan(admin)}
+                              className="text-xs text-red-600 hover:bg-red-50"
+                            >
+                              <Icon name="person_remove" style={{ fontSize: 14 }} />
+                              Cabut
+                            </Button>
+                          </>
                         )}
                       </div>
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+        )}
 
         {/* Pagination */}
-        {meta.totalHalaman > 1 && (
-          <div className="flex items-center justify-between border-t border-slate-200 px-4 py-3">
-            <p className="text-sm text-slate-500">
-              Halaman {meta.page} dari {meta.totalHalaman} ({meta.total} data)
+        {!memuat && daftarAdmin.length > 0 && (
+          <div className="flex items-center justify-between border-t p-4">
+            <p className="text-sm text-gray-500">
+              Menampilkan {daftarAdmin.length} dari {meta.total} admin
             </p>
-            <div className="flex gap-2">
+            <div className="flex items-center gap-2">
               <Button
                 variant="outline"
                 size="sm"
-                disabled={page <= 1}
-                onClick={() => setPage((p) => p - 1)}
+                onClick={() => setHalaman((p) => Math.max(1, p - 1))}
+                disabled={halaman === 1}
               >
-                Sebelumnya
+                <Icon name="chevron_left" style={{ fontSize: 16 }} />
               </Button>
+              <span className="px-2 text-sm">
+                Halaman {halaman} / {meta.totalHalaman}
+              </span>
               <Button
                 variant="outline"
                 size="sm"
-                disabled={page >= meta.totalHalaman}
-                onClick={() => setPage((p) => p + 1)}
+                onClick={() => setHalaman((p) => Math.min(meta.totalHalaman, p + 1))}
+                disabled={halaman >= meta.totalHalaman}
               >
-                Selanjutnya
+                <Icon name="chevron_right" style={{ fontSize: 16 }} />
               </Button>
             </div>
           </div>
         )}
       </div>
 
-      {/* Dialog Atur Satker */}
-      <Dialog open={dialogSatkerOpen} onOpenChange={setDialogSatkerOpen}>
-        <DialogContent className="max-w-lg">
-          <DialogHeader>
-            <DialogTitle>Atur Satker Akses - {selectedAdmin?.nama}</DialogTitle>
-          </DialogHeader>
-          <div className="max-h-96 overflow-y-auto space-y-2 py-4">
-            <p className="text-sm text-slate-600">
-              Pilih satker yang boleh dikelola oleh admin ini. Kosongkan untuk memberikan akses ke semua satker.
-            </p>
-            {satkerData?.data?.map((satker: Satker) => (
-              <label
-                key={satker.id}
-                className="flex cursor-pointer items-center gap-3 rounded-lg border border-slate-200 bg-slate-50 p-3 hover:bg-slate-100"
-              >
-                <input
-                  type="checkbox"
-                  checked={selectedSatker.includes(satker.kode)}
-                  onChange={(e) => {
-                    if (e.target.checked) {
-                      setSelectedSatker([...selectedSatker, satker.kode]);
-                    } else {
-                      setSelectedSatker(selectedSatker.filter((s) => s !== satker.kode));
-                    }
-                  }}
-                  className="h-4 w-4 rounded border-slate-300 text-primary focus:ring-primary"
-                />
-                <div className="flex-1">
-                  <p className="font-medium text-slate-800">{satker.nama}</p>
-                  <p className="text-xs text-slate-500 font-mono">{satker.kode}</p>
-                </div>
-              </label>
-            ))}
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setDialogSatkerOpen(false)}>
-              Batal
-            </Button>
-            <Button onClick={handleSimpanSatker} loading={updateSatkerMutation.isPending}>
-              Simpan
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Dialog Konfirmasi Role */}
-      <Dialog open={dialogRoleOpen} onOpenChange={setDialogRoleOpen}>
-        <DialogContent className="max-w-sm">
-          <DialogHeader>
-            <DialogTitle>Konfirmasi Ubah Role</DialogTitle>
-          </DialogHeader>
-          <div className="py-4">
-            <p className="text-slate-600">
-              Apakah Anda yakin ingin mencabut role ADMIN dari <strong>{selectedAdmin?.nama}</strong>?
-            </p>
-            <p className="mt-2 text-sm text-slate-500">
-              Admin tidak akan bisa lagi mengakses area administrator. Sesi login-nya akan diinvalidasi.
-            </p>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setDialogRoleOpen(false)}>
-              Batal
-            </Button>
-            <Button
-              variant="destructive"
-              onClick={() => roleMutation.mutate('demote')}
-              loading={roleMutation.isPending}
-            >
-              Cabut Role Admin
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      {/* Dialog Konfirmasi */}
+      <KonfirmasiDialog
+        terbuka={dialogKonfirmasi.terbuka}
+        judul={dialogKonfirmasi.judul}
+        pesan={dialogKonfirmasi.pesan}
+        onBatal={() => setDialogKonfirmasi((d) => ({ ...d, terbuka: false }))}
+        onKonfirmasi={dialogKonfirmasi.aksi}
+        sedangMemuat={sedangAksi}
+        teksKonfirmasi="Ya, Lanjutkan"
+      />
     </div>
   );
 }

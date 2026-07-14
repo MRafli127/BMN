@@ -188,6 +188,62 @@ const dashboardPeminjam = asyncHandler(async (req, res) => {
   });
 });
 
+// --- Dashboard Super Admin (lebih lengkap, semua satker) ---
+const dashboardSuperAdmin = asyncHandler(async (req, res) => {
+  await tandaiTerlambat();
+
+  const [totalBarang, totalAdmin, totalPeminjam, peminjamanAktif, peminjamanPending, barangTerlambat, totalPeminjaman, semuaSatker] =
+    await Promise.all([
+      prisma.barang.count(),
+      prisma.user.count({ where: { roles: { has: 'ADMIN' } } }),
+      prisma.user.count({ where: { roles: { has: 'PEMINJAM' } } }),
+      prisma.peminjaman.count({ where: { status: { in: STATUS_AKTIF } } }),
+      prisma.peminjaman.count({ where: { status: 'MENUNGGU' } }),
+      prisma.peminjaman.count({ where: { status: 'TERLAMBAT' } }),
+      prisma.peminjaman.count(),
+      // Hitung satker unik dari barang
+      prisma.barang.groupBy({
+        by: ['kodeSatker'],
+        where: { kodeSatker: { not: null } },
+        _count: true,
+      }),
+    ]);
+
+  // Statistik per satker
+  const statistikSatker = await Promise.all(
+    semuaSatker.map(async (satker) => {
+      const [jumlahBarang, jumlahPeminjaman] = await Promise.all([
+        prisma.barang.count({ where: { kodeSatker: satker.kodeSatker } }),
+        prisma.peminjaman.count({
+          where: {
+            detail: { some: { barang: { kodeSatker: satker.kodeSatker } } },
+          },
+        }),
+      ]);
+      return {
+        kodeSatker: satker.kodeSatker,
+        jumlahBarang,
+        jumlahPeminjaman,
+      };
+    })
+  );
+
+  return responsSukses(res, {
+    pesan: 'Ringkasan dashboard super admin.',
+    data: {
+      totalBarang,
+      totalAdmin,
+      totalPeminjam,
+      peminjamanAktif,
+      peminjamanPending,
+      barangTerlambat,
+      totalPeminjaman,
+      jumlahSatker: semuaSatker.length,
+      statistikSatker,
+    },
+  });
+});
+
 // --- Ambil data berdasarkan kategori ---
 const ambilDataKategori = asyncHandler(async (req, res) => {
   await tandaiTerlambat();
@@ -309,4 +365,4 @@ const ambilDataKategori = asyncHandler(async (req, res) => {
   });
 });
 
-module.exports = { dashboardAdmin, dashboardPeminjam, ambilDataKategori };
+module.exports = { dashboardAdmin, dashboardPeminjam, ambilDataKategori, dashboardSuperAdmin };
