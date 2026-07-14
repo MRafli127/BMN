@@ -17,6 +17,11 @@ export const RUTE = {
   // Super Admin
   superAdminDashboard: '/super-admin/dashboard',
   superAdminAdmin: '/super-admin/admin',
+  superAdminBarang: '/super-admin/barang',
+  superAdminBarangDetail: (id: string) => `/super-admin/barang/${id}`,
+  superAdminPengguna: '/super-admin/pengguna',
+  superAdminPeminjaman: '/super-admin/peminjaman',
+  superAdminPeminjamanDetail: (id: string) => `/super-admin/peminjaman/${id}`,
   superAdminSatker: '/super-admin/satker',
   superAdminLogs: '/super-admin/logs',
 
