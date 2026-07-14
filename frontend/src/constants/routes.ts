@@ -14,6 +14,12 @@ export const RUTE = {
   pengaturan: '/pengaturan',
   notifikasi: '/notifikasi',
 
+  // Super Admin
+  superAdminDashboard: '/super-admin/dashboard',
+  superAdminAdmin: '/super-admin/admin',
+  superAdminSatker: '/super-admin/satker',
+  superAdminLogs: '/super-admin/logs',
+
   // Admin
   adminDashboard: '/admin/dashboard',
   adminBarang: '/admin/barang',
@@ -48,10 +54,11 @@ export const RUTE = {
 } as const;
 
 // Rute yang memerlukan login
-export const RUTE_TERPROTEKSI = ['/admin', '/peminjam'];
+export const RUTE_TERPROTEKSI = ['/admin', '/peminjam', '/super-admin'];
 
 // Tujuan default berdasarkan peran
 export const RUTE_DEFAULT = {
   ADMIN: RUTE.adminDashboard,
   PEMINJAM: RUTE.peminjamDashboard,
+  SUPER_ADMIN: RUTE.superAdminDashboard,
 };

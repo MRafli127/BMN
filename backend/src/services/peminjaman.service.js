@@ -634,6 +634,49 @@ async function getByKode(kodePeminjaman) {
   return serialisasi(p);
 }
 
+// --- Cek scope satker untuk admin ---
+// SUPER_ADMIN boleh lintas satker.
+// ADMIN hanya boleh memproses transaksi dari satker yang menjadi tanggungannya.
+// Throw 403 jika tidak memiliki akses.
+async function cekScopeSatker(peminjamanId, user) {
+  if (!user || user.role === 'PEMINJAM') return; // peminjam tidak punya scope
+
+  // SUPER_ADMIN punya akses penuh ke semua satker
+  if (user.role === 'SUPER_ADMIN') return;
+
+  // ADMIN: cek apakah satker transaksi termasuk dalam satkerAkses admin
+  const p = await prisma.peminjaman.findUnique({
+    where: { id: peminjamanId },
+    include: {
+      detail: {
+        include: {
+          barang: { select: { kodeSatker: true } },
+        },
+      },
+    },
+  });
+
+  if (!p) return; // biarkan caller tangani 404
+
+  // Kumpulkan semua kodeSatker unik dari barang
+  const satkerTransaksi = new Set(p.detail.map((d) => d.barang?.kodeSatker).filter(Boolean));
+
+  if (satkerTransaksi.size === 0) return; // tidak ada data satker, ijinkan
+
+  // ADMIN harus punya akses ke SEMUA satker dalam transaksi
+  const satkerAkses = user.satkerAkses || [];
+  if (satkerAkses.length > 0) {
+    for (const satker of satkerTransaksi) {
+      if (!satkerAkses.includes(satker)) {
+        throw new AppError(
+          `Anda tidak memiliki akses untuk mengelola transaksi di satker "${satker}". Hubungi Super Admin untuk permintaan akses.`,
+          403
+        );
+      }
+    }
+  }
+}
+
 // --- Setujui pengajuan: kurangi stok + generate QR ---
 async function setujui(id, adminId, catatan, requestInfo = {}) {
   // CEK: Admin tidak bisa menyetujui request milik sendiri
@@ -643,8 +686,9 @@ async function setujui(id, adminId, catatan, requestInfo = {}) {
     throw new AppError('Anda tidak dapat menyetujui pengajuan milik sendiri.', 403);
   }
 
-  // Ambil data admin untuk audit log
+  // CEK: Scope satker admin
   const admin = await prisma.user.findUnique({ where: { id: adminId } });
+  await cekScopeSatker(id, admin);
 
   // Tahap 1: validasi & ubah stok dalam transaksi.
   // Cek stok harus tetap di dalam transaksi agar atomik (anti race condition);
@@ -766,6 +810,9 @@ async function tolak(id, adminId, catatan, requestInfo = {}) {
   // Ambil data admin untuk audit log
   const admin = await prisma.user.findUnique({ where: { id: adminId } });
 
+  // CEK: Scope satker admin
+  await cekScopeSatker(id, admin);
+
   const updated = await prisma.peminjaman.update({
     where: { id },
     data: { status: 'DITOLAK', disetujuiOleh: adminId, catatanAdmin: catatan },
@@ -802,12 +849,16 @@ async function tolak(id, adminId, catatan, requestInfo = {}) {
 }
 
 // --- Tandai barang telah diserahkan/diambil (DISETUJUI -> DIPINJAM) ---
-async function serahkan(id) {
+async function serahkan(id, adminId) {
   const p = await prisma.peminjaman.findUnique({ where: { id }, include: includeLengkap });
   if (!p) throw new AppError('Data peminjaman tidak ditemukan.', 404);
   if (p.status !== 'DISETUJUI') {
     throw new AppError('Hanya peminjaman berstatus "Disetujui" yang dapat diserahkan.', 400);
   }
+
+  // CEK: Scope satker admin
+  const admin = await prisma.user.findUnique({ where: { id: adminId } });
+  await cekScopeSatker(id, admin);
 
   const updated = await prisma.peminjaman.update({
     where: { id },
@@ -838,7 +889,7 @@ async function serahkan(id) {
 // --- Tandai banyak peminjaman telah diserahkan sekaligus (khusus admin) ---
 // Memakai ulang serahkan() per item. Peminjaman yang bukan DISETUJUI dilewati
 // tanpa menggagalkan yang lain.
-async function serahkanBanyak(ids) {
+async function serahkanBanyak(ids, adminId) {
   const daftarId = Array.isArray(ids) ? [...new Set(ids.filter((v) => typeof v === 'string' && v))] : [];
   if (daftarId.length === 0) throw new AppError('Tidak ada peminjaman yang dipilih.', 400);
 
@@ -846,7 +897,7 @@ async function serahkanBanyak(ids) {
   const dilewati = [];
   for (const id of daftarId) {
     try {
-      await serahkan(id);
+      await serahkan(id, adminId);
       berhasil += 1;
     } catch (e) {
       dilewati.push({ id, pesan: e.message || 'Gagal diserahkan.' });
@@ -941,8 +992,11 @@ async function kembalikan(id, adminId, catatan, requestInfo = {}) {
 
   const statusLama = pLama.status;
 
-  // Ambil data admin untuk audit log
+  // Ambil data admin untuk audit log & scope check
   const admin = adminId ? await prisma.user.findUnique({ where: { id: adminId } }) : null;
+
+  // CEK: Scope satker admin
+  await cekScopeSatker(id, admin);
 
   await prisma.$transaction(async (tx) => {
     const p = await tx.peminjaman.findUnique({ where: { id }, include: { detail: true } });

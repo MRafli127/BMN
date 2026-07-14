@@ -2,7 +2,7 @@
 //  Tipe data Pengguna
 // ============================================================
 
-export type Role = 'ADMIN' | 'PEMINJAM';
+export type Role = 'ADMIN' | 'PEMINJAM' | 'SUPER_ADMIN';
 
 export type SumberUser = 'MANUAL' | 'IMPORT';
 
@@ -23,6 +23,7 @@ export interface User {
   eselon4?: string | null; //   Eselon IV
   roles: Role[]; //      Peran yang dimiliki akun (bisa >1)
   activeRole: Role; //   Peran yang sedang dipakai dalam sesi ini
+  satkerAkses?: string[]; // Satker yang boleh dikelola (ADMIN), kosong = semua (SUPER_ADMIN)
   retirementDate?: string | null; // Tanggal pensiun (dihitung otomatis dari NIP)
   sumber?: SumberUser | null; // Asal pembuatan akun (MANUAL/IMPORT)
   createdAt?: string;

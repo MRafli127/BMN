@@ -72,15 +72,18 @@ async function cleanupExpiredTokens() {
 }
 
 // Daftar role valid dalam sistem
-const ROLE_VALID = ['ADMIN', 'PEMINJAM'];
+const ROLE_VALID = ['ADMIN', 'PEMINJAM', 'SUPER_ADMIN'];
 
-// Peran EFEKTIF: setiap ADMIN otomatis juga berkapasitas sebagai PEMINJAM
-// (admin pun bisa meminjam & WAJIB dapat beralih ke mode Peminjam). Aturan ini
-// hanya dipakai untuk sesi/token & validasi peralihan peran — kolom `roles` di
-// DB tidak diubah. Tidak pernah menambahkan ADMIN, jadi tanpa eskalasi hak.
+// Peran EFEKTIF: setiap ADMIN/SUPER_ADMIN otomatis juga berkapasitas sebagai PEMINJAM
+// (admin pun bisa meminjam & WAJIB dapat beralih ke mode Peminjam). SUPER_ADMIN juga
+// mendapat akses ADMIN (dapat mengelola barang, peminjaman, pengguna).
 function rolesEfektif(roles = []) {
   const dimiliki = new Set(Array.isArray(roles) ? roles : []);
   if (dimiliki.has('ADMIN')) dimiliki.add('PEMINJAM');
+  if (dimiliki.has('SUPER_ADMIN')) {
+    dimiliki.add('ADMIN');
+    dimiliki.add('PEMINJAM');
+  }
   // Urutan stabil mengikuti ROLE_VALID.
   return ROLE_VALID.filter((r) => dimiliki.has(r));
 }

@@ -114,7 +114,7 @@ const tolak = asyncHandler(async (req, res) => {
 });
 
 const serahkan = asyncHandler(async (req, res) => {
-  const peminjaman = await peminjamanService.serahkan(req.params.id);
+  const peminjaman = await peminjamanService.serahKan(req.params.id, req.user.id);
   return responsSukses(res, {
     pesan: 'Barang ditandai telah diserahkan kepada peminjam.',
     data: peminjaman,
@@ -180,7 +180,7 @@ const setujuiMassal = asyncHandler(async (req, res) => {
 });
 
 const serahkanMassal = asyncHandler(async (req, res) => {
-  const hasil = await peminjamanService.serahkanBanyak(req.body.ids);
+  const hasil = await peminjamanService.serahKanBanyak(req.body.ids, req.user.id);
   const pesan =
     hasil.dilewati > 0
       ? `${hasil.berhasil} barang ditandai diserahkan, ${hasil.dilewati} dilewati.`

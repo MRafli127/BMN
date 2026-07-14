@@ -20,13 +20,20 @@ import { useJumlahKeranjang } from '@/store/keranjangStore';
 import type { Role } from '@/types/user.type';
 
 // Label peran untuk tampilan tombol beralih.
-const LABEL_PERAN: Record<Role, string> = { ADMIN: 'Administrator', PEMINJAM: 'Peminjam' };
+const LABEL_PERAN: Record<Role, string> = { ADMIN: 'Administrator', PEMINJAM: 'Peminjam', SUPER_ADMIN: 'Super Admin' };
 
 interface ItemMenu {
   label: string;
   href: string;
   ikon: string;
 }
+
+const menuSuperAdmin: ItemMenu[] = [
+  { label: 'Dashboard', href: RUTE.superAdminDashboard, ikon: 'dashboard' },
+  { label: 'Manajemen Admin', href: RUTE.superAdminAdmin, ikon: 'admin_panel_settings' },
+  { label: 'Manajemen Satker', href: RUTE.superAdminSatker, ikon: 'location_city' },
+  { label: 'Log Aktivitas', href: RUTE.superAdminLogs, ikon: 'history' },
+];
 
 const menuAdmin: ItemMenu[] = [
   { label: 'Dashboard', href: RUTE.adminDashboard, ikon: 'dashboard' },
@@ -47,16 +54,19 @@ const menuPeminjam: ItemMenu[] = [
 export function Sidebar() {
   const pathname = usePathname();
   const router = useRouter();
-  const { isAdmin, logout, user, roles, bisaGantiRole, gantiRole } = useAuth();
+  const { isSuperAdmin, isAdmin, logout, user, roles, bisaGantiRole, gantiRole } = useAuth();
   const { sidebarTerbuka, tutupSidebar } = useUIStore();
   const jumlahKeranjang = useJumlahKeranjang();
 
-  const menu = isAdmin ? menuAdmin : menuPeminjam;
+  // Tentukan menu berdasarkan role aktif
+  const menu = isSuperAdmin ? menuSuperAdmin : isAdmin ? menuAdmin : menuPeminjam;
+  // Label untuk badge role
+  const labelRole = isSuperAdmin ? 'Super Admin' : isAdmin ? 'Administrator' : 'Peminjam';
   // Panduan selalu tampil untuk semua peran → digabung agar satu pemetaan.
   const semuaMenu: ItemMenu[] = [...menu, { label: 'Panduan Penggunaan', href: RUTE.bantuan, ikon: 'menu_book' }];
 
   // Logo mengarah ke dashboard sesuai peran (bukan landing page)
-  const berandaHref = isAdmin ? RUTE.adminDashboard : RUTE.peminjamDashboard;
+  const berandaHref = isSuperAdmin ? RUTE.superAdminDashboard : isAdmin ? RUTE.adminDashboard : RUTE.peminjamDashboard;
 
   // Keluar lalu arahkan ke halaman login
   const tanganiKeluar = async () => {
@@ -158,13 +168,14 @@ export function Sidebar() {
             <div className="min-w-0">
               <p className="truncate text-sm font-bold leading-tight">{user?.nama || 'Pengguna'}</p>
               <span className="mt-1 inline-flex max-w-full items-center truncate rounded-full bg-white/15 px-2 py-0.5 text-[11px] font-bold text-white/90 ring-1 ring-white/20">
-                {isAdmin ? 'Administrator' : 'Peminjam'}
+                {labelRole}
               </span>
             </div>
           </div>
 
           {/* Beralih peran (akun multi-role) — tepat di bawah logo & identitas */}
-          {bisaGantiRole && (
+          {/* SUPER_ADMIN tidak bisa beralih ke role lain */}
+          {bisaGantiRole && !isSuperAdmin && (
             <div className="mx-3 mb-3 animate-page-in" style={{ animationDelay: '60ms' }}>
               {roles
                 .filter((r) => r !== user?.activeRole)

@@ -1,6 +1,6 @@
 // ============================================================
 //  Rute Audit Log — /api/audit-logs
-//  Semua rute ini khusus ADMIN
+//  Semua rute ini khusus ADMIN dan SUPER_ADMIN
 // ============================================================
 
 const express = require('express');
@@ -10,9 +10,9 @@ const roleMiddleware = require('../middleware/role.middleware');
 
 const router = express.Router();
 
-// Semua rute memerlukan login + role ADMIN
+// Semua rute memerlukan login + role ADMIN atau SUPER_ADMIN
 router.use(authMiddleware);
-router.use(roleMiddleware('ADMIN'));
+router.use(roleMiddleware('ADMIN', 'SUPER_ADMIN'));
 
 // List audit log (dengan filter & pagination)
 router.get('/', auditLogController.getSemua);

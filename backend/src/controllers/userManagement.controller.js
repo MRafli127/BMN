@@ -82,6 +82,12 @@ const hapusMassalPeminjam = asyncHandler(async (req, res) => {
   return responsSukses(res, { pesan, data: hasil });
 });
 
+// Update satker akses (khusus SUPER_ADMIN)
+const updateSatkerAccess = asyncHandler(async (req, res) => {
+  const user = await userManagementService.updateSatkerAccess(req.params.id, req.body.satkerAkses || []);
+  return responsSukses(res, { pesan: 'Satker akses berhasil diperbarui.', data: user });
+});
+
 module.exports = {
   getSemua,
   getById,
@@ -93,4 +99,5 @@ module.exports = {
   resetPassword,
   remove,
   hapusMassalPeminjam,
+  updateSatkerAccess,
 };
