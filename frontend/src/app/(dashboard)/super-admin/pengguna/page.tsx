@@ -73,12 +73,12 @@ export default function PenggunaPage() {
     setDialogKonfirmasi({
       terbuka: true,
       judul: 'Promosikan ke Admin',
-      pesan: Yakin ingin menjadikan  sebagai Admin?,
+      pesan: `Yakin ingin menjadikan ${user.nama} sebagai Admin?`,
       aksi: async () => {
         setSedangAksi(true);
         try {
           await userManagementService.tambahRole(user.id, 'ADMIN');
-          notify.suksess(${user.nama} berhasil dipromosikan.);
+          notify.suksess(`${user.nama} berhasil dipromosikan.`);
           setPengguna((prev) => prev.map((u) => u.id === user.id ? { ...u, roles: [...(u.roles || []), 'ADMIN'] } : u));
         } catch (err) {
           notify.gagal(ambilPesanError(err, 'Gagal promosi.'));
@@ -95,12 +95,12 @@ export default function PenggunaPage() {
     setDialogKonfirmasi({
       terbuka: true,
       judul: 'Cabut Akses Admin',
-      pesan: Yakin ingin mencabut akses Admin dari ?,
+      pesan: `Yakin ingin mencabut akses Admin dari ${user.nama}?`,
       aksi: async () => {
         setSedangAksi(true);
         try {
           await userManagementService.hapusRole(user.id, 'ADMIN');
-          notify.suksess(Akses Admin  dicabut.);
+          notify.suksess(`Akses Admin ${user.nama} dicabut.`);
           setPengguna((prev) => prev.map((u) => u.id === user.id ? { ...u, roles: (u.roles || []).filter((r) => r !== 'ADMIN') } : u));
         } catch (err) {
           notify.gagal(ambilPesanError(err, 'Gagal mencabut.'));
@@ -117,12 +117,12 @@ export default function PenggunaPage() {
     setDialogKonfirmasi({
       terbuka: true,
       judul: 'Hapus Pengguna',
-      pesan: Yakin ingin menghapus ? Tindakan ini tidak dapat dibatalkan.,
+      pesan: `Yakin ingin menghapus ${user.nama}? Tindakan ini tidak dapat dibatalkan.`,
       aksi: async () => {
         setSedangAksi(true);
         try {
           await userManagementService.remove(user.id);
-          notify.suksess(${user.nama} berhasil dihapus.);
+          notify.suksess(`${user.nama} berhasil dihapus.`);
           setPengguna((prev) => prev.filter((u) => u.id !== user.id));
         } catch (err) {
           notify.gagal(ambilPesanError(err, 'Gagal menghapus.'));

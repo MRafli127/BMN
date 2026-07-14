@@ -31,6 +31,9 @@ interface ItemMenu {
 const menuSuperAdmin: ItemMenu[] = [
   { label: 'Dashboard', href: RUTE.superAdminDashboard, ikon: 'dashboard' },
   { label: 'Manajemen Admin', href: RUTE.superAdminAdmin, ikon: 'admin_panel_settings' },
+  { label: 'Manajemen Barang', href: RUTE.superAdminBarang, ikon: 'inventory_2' },
+  { label: 'Pengguna Terdaftar', href: RUTE.superAdminPengguna, ikon: 'group' },
+  { label: 'Manajemen Peminjaman', href: RUTE.superAdminPeminjaman, ikon: 'sync_alt' },
   { label: 'Manajemen Satker', href: RUTE.superAdminSatker, ikon: 'location_city' },
   { label: 'Log Aktivitas', href: RUTE.superAdminLogs, ikon: 'history' },
 ];

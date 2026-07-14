@@ -190,7 +190,7 @@ export default function SuperAdminPeminjamanPage() {
                     <TableCell className="max-w-[150px] truncate text-sm">{item.namaSatker || '-'}</TableCell>
                     <TableCell>{badgeStatus(item.status)}</TableCell>
                     <TableCell>
-                      <Link href={\/super-admin/peminjaman/\\}>
+                      <Link href={`/super-admin/peminjaman/${item.id}`}>
                         <Button variant="outline" size="sm">
                           <Icon name="visibility" style={{ fontSize: 16 }} />
                         </Button>
