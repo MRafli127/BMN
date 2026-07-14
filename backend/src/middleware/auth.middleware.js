@@ -7,7 +7,7 @@
 const jwt = require('jsonwebtoken');
 const env = require('../config/env');
 const { responsGagal } = require('../utils/apiResponse');
-const { validateAccessTokenWithVersion, validateSession, updateLastActivity, pilihActiveRole } = require('../services/auth.service');
+const { validateAccessTokenWithVersion, validateSession, updateLastActivity, pilihActiveRole, rolesEfektif } = require('../services/auth.service');
 
 // Inactivity timeout dalam milidetik (60 menit — diselaraskan dengan access token)
 const INACTIVITY_TIMEOUT_MS = 60 * 60 * 1000;
@@ -94,6 +94,7 @@ async function authMiddleware(req, res, next) {
       nama: payload.nama,
       email: payload.email,
       jti: payload.jti, // session identifier untuk tracking
+      satkerAkses: validation.user.satkerAkses || [], // satker yang boleh dikelola admin
     };
 
     next();

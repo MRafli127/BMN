@@ -20,18 +20,27 @@ const AKSI = {
   BARANG_UPDATE: 'BARANG_UPDATE',
   BARANG_DELETE: 'BARANG_DELETE',
   BARANG_STOK_CHANGE: 'BARANG_STOK_CHANGE',
+  BARANG_IMPORT: 'BARANG_IMPORT',
 
   // User
   USER_CREATE: 'USER_CREATE',
   USER_UPDATE: 'USER_UPDATE',
   USER_DELETE: 'USER_DELETE',
   USER_PASSWORD_RESET: 'USER_PASSWORD_RESET',
+  USER_ROLE_PROMOTE: 'USER_ROLE_PROMOTE',
+  USER_ROLE_DEMOTE: 'USER_ROLE_DEMOTE',
+
+  // Satker (khusus SUPER_ADMIN)
+  SATKER_CREATE: 'SATKER_CREATE',
+  SATKER_UPDATE: 'SATKER_UPDATE',
+  SATKER_DELETE: 'SATKER_DELETE',
 
   // Auth
   LOGIN: 'LOGIN',
   LOGOUT: 'LOGOUT',
   LOGIN_FAILED: 'LOGIN_FAILED',
   REGISTER: 'REGISTER',
+  ROLE_SWITCH: 'ROLE_SWITCH',
 };
 
 // --- Entitas yang didukung ---
@@ -40,6 +49,7 @@ const ENTITAS = {
   BARANG: 'barang',
   USER: 'user',
   AUTH: 'auth',
+  SATKER: 'satker',
 };
 
 // --- Mapping aksi ke label manusia ---
@@ -51,14 +61,21 @@ const LABEL_AKSI = {
   [AKSI.BARANG_UPDATE]: 'Memperbarui Barang',
   [AKSI.BARANG_DELETE]: 'Menghapus Barang',
   [AKSI.BARANG_STOK_CHANGE]: 'Mengubah Stok Barang',
+  [AKSI.BARANG_IMPORT]: 'Import Barang',
   [AKSI.USER_CREATE]: 'Membuat User Baru',
   [AKSI.USER_UPDATE]: 'Memperbarui User',
   [AKSI.USER_DELETE]: 'Menghapus User',
   [AKSI.USER_PASSWORD_RESET]: 'Mereset Password User',
+  [AKSI.USER_ROLE_PROMOTE]: 'Mempromosi User',
+  [AKSI.USER_ROLE_DEMOTE]: 'Mendemosi User',
+  [AKSI.SATKER_CREATE]: 'Membuat Satker Baru',
+  [AKSI.SATKER_UPDATE]: 'Memperbarui Satker',
+  [AKSI.SATKER_DELETE]: 'Menghapus Satker',
   [AKSI.LOGIN]: 'Login',
   [AKSI.LOGOUT]: 'Logout',
   [AKSI.LOGIN_FAILED]: 'Login Gagal',
   [AKSI.REGISTER]: 'Registrasi',
+  [AKSI.ROLE_SWITCH]: 'Berganti Role',
 };
 
 // --- Label manusia untuk entitas ---

@@ -36,19 +36,66 @@ export interface DataEditPeminjam {
   eselon4?: string;
 }
 
+// Response paginated list
+export interface PaginatedResponse<T> {
+  data: T[];
+  meta: {
+    total: number;
+    page: number;
+    limit: number;
+    totalHalaman: number;
+  };
+}
+
+// User item dari list
+export interface UserItem {
+  id: string;
+  nama: string;
+  nip: string;
+  email: string;
+  jabatan?: string | null;
+  unitKerja?: string | null;
+  eselon2?: string | null;
+  eselon3?: string | null;
+  eselon4?: string | null;
+  roles: string[];
+  sumber?: string;
+  satkerAkses?: string[];
+  createdAt?: string;
+  updatedAt?: string;
+  totalPeminjaman?: number;
+}
+
 export const userManagementService = {
-  // Tambah peminjam baru secara manual (role PEMINJAM, sumber MANUAL).
-  async create(data: DataTambahPeminjam): Promise<{ id: string; nama: string; nip: string; email: string }> {
-    const res = await api.post('/users', data);
-    return res.data.data?.user ?? res.data.data;
+  // Ambil daftar user dengan filter (untuk Super Admin)
+  async getSemua(params?: {
+    q?: string;
+    role?: string;
+    page?: number;
+    limit?: number;
+  }): Promise<PaginatedResponse<UserItem>> {
+    const res = await api.get('/users', { params });
+    return res.data.data;
   },
 
-  // Update profil peminjam (Nama, NIP, Email, Jabatan, Unit Kerja, Eselon II/III/IV).
+  // Ambil satu user
+  async getById(id: string): Promise<UserItem> {
+    const res = await api.get(`/users/${id}`);
+    return res.data.data;
+  },
+
+  // Tambah user baru (untuk Super Admin)
+  async create(data: DataTambahPeminjam & { roles?: string[] }): Promise<{ user: UserItem; passwordDefault?: string }> {
+    const res = await api.post('/users', data);
+    return res.data.data;
+  },
+
+  // Update user
   async update(id: string, data: DataEditPeminjam): Promise<void> {
     await api.patch(`/users/${id}`, data);
   },
 
-  // Hapus satu user (peminjam) berdasarkan id.
+  // Hapus satu user
   async remove(id: string): Promise<void> {
     await api.delete(`/users/${id}`);
   },
@@ -60,6 +107,33 @@ export const userManagementService = {
       dihapus: res.data.data?.dihapus ?? 0,
       dilewati: res.data.data?.dilewati ?? 0,
     };
+  },
+
+  // Tambah role ke user (promote)
+  async tambahRole(id: string, role: string): Promise<void> {
+    await api.post(`/users/${id}/roles`, { role });
+  },
+
+  // Hapus role dari user (demote)
+  async hapusRole(id: string, role: string): Promise<void> {
+    await api.delete(`/users/${id}/roles/${role}`);
+  },
+
+  // Update satker akses (khusus Super Admin)
+  async updateSatkerAkses(id: string, satkerList: string[]): Promise<void> {
+    await api.patch(`/users/${id}/satker-access`, { satkerAkses: satkerList });
+  },
+
+  // Reset password user
+  async resetPassword(id: string): Promise<{ passwordBaru: string }> {
+    const res = await api.post(`/users/${id}/reset-password`);
+    return res.data.data;
+  },
+
+  // Statistik user (total, admin, peminjam)
+  async getStatistik(): Promise<{ totalUser: number; totalAdmin: number; totalPeminjam: number }> {
+    const res = await api.get('/users/statistik');
+    return res.data.data;
   },
 
   // Jadikan admin (promote): tambahkan peran ADMIN ke akun.

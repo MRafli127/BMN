@@ -27,9 +27,13 @@ interface AuthState {
   gantiPassword: (data: DataGantiPassword) => Promise<void>;
   gantiRole: (role: Role) => Promise<User>;
   setUser: (user: User) => void;
+  // Helper role
+  isSuperAdmin: () => boolean;
+  isAdmin: () => boolean;
+  isPeminjam: () => boolean;
 }
 
-export const useAuthStore = create<AuthState>((set) => ({
+export const useAuthStore = create<AuthState>((set, get) => ({
   user: null,
   sedangMemuat: true,
 
@@ -99,4 +103,16 @@ export const useAuthStore = create<AuthState>((set) => ({
   },
 
   setUser: (user) => set({ user }),
+
+  // Helper: cek apakah SUPER_ADMIN
+  isSuperAdmin: () => get().user?.activeRole === 'SUPER_ADMIN',
+
+  // Helper: cek apakah ADMIN atau SUPER_ADMIN
+  isAdmin: () => {
+    const role = get().user?.activeRole;
+    return role === 'ADMIN' || role === 'SUPER_ADMIN';
+  },
+
+  // Helper: cek apakah PEMINJAM
+  isPeminjam: () => get().user?.activeRole === 'PEMINJAM',
 }));

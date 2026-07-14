@@ -15,6 +15,7 @@ const auditLogRoutes = require('./auditLog.routes');
 const exportRoutes = require('./export.routes');
 const notificationRoutes = require('./notification.routes');
 const importLogRoutes = require('./importLog.routes');
+const satkerRoutes = require('./satker.routes');
 
 const router = express.Router();
 
@@ -45,5 +46,6 @@ router.use('/audit-logs', auditLogRoutes);
 router.use('/export', exportRoutes);
 router.use('/notifications', notificationRoutes);
 router.use('/import-logs', importLogRoutes);
+router.use('/satker', satkerRoutes);
 
 module.exports = router;

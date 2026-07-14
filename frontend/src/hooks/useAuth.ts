@@ -22,8 +22,9 @@ export function useAuth() {
     muatDariSesi: store.muatDariSesi,
     sudahLogin: !!store.user,
     // Gating berbasis ACTIVE role (bukan seluruh role yang dimiliki).
-    isAdmin: store.user?.activeRole === 'ADMIN',
-    isPeminjam: store.user?.activeRole === 'PEMINJAM',
+    isSuperAdmin: store.isSuperAdmin(),
+    isAdmin: store.isAdmin(),
+    isPeminjam: store.isPeminjam(),
     roles: store.user?.roles ?? [],
     bisaGantiRole: (store.user?.roles?.length ?? 0) > 1,
   };

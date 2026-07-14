@@ -1,6 +1,6 @@
 // ============================================================
 //  Rute Manajemen User — /api/users
-//  Semua rute ini khusus ADMIN
+//  Semua rute ini khusus ADMIN dan SUPER_ADMIN
 // ============================================================
 
 const express = require('express');
@@ -13,9 +13,9 @@ const { createUserSchema, updateUserSchema, tambahRoleSchema } = require('../val
 
 const router = express.Router();
 
-// Semua rute memerlukan login + role ADMIN
+// Semua rute memerlukan login + role ADMIN atau SUPER_ADMIN
 router.use(authMiddleware);
-router.use(roleMiddleware('ADMIN'));
+router.use(roleMiddleware('ADMIN', 'SUPER_ADMIN'));
 
 // List user (dengan filter & pagination)
 router.get('/', userManagementController.getSemua);
@@ -41,6 +41,9 @@ router.post('/:id/roles', validateCsrfTokenMiddleware, validate(tambahRoleSchema
 
 // Hapus role dari user (demote)
 router.delete('/:id/roles/:role', validateCsrfTokenMiddleware, userManagementController.hapusRole);
+
+// Update satker akses (khusus SUPER_ADMIN)
+router.patch('/:id/satker-access', validateCsrfTokenMiddleware, roleMiddleware('SUPER_ADMIN'), userManagementController.updateSatkerAccess);
 
 // Reset password user
 router.post('/:id/reset-password', validateCsrfTokenMiddleware, userManagementController.resetPassword);

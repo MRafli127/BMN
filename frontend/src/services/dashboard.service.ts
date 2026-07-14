@@ -91,4 +91,27 @@ export const dashboardService = {
     const res = await api.get(`/dashboard/kategori/${kategori}`, { params });
     return res.data.data;
   },
+
+  // Super Admin: Statistik user
+  async getStatistikAdmin(): Promise<{ totalUser: number; totalAdmin: number; totalPeminjam: number; totalLog: number }> {
+    const res = await api.get('/users/statistik');
+    const stats = res.data.data;
+    // Ambil total log dari audit-logs
+    let totalLog = 0;
+    try {
+      const logRes = await api.get('/audit-logs', { params: { limit: 1 } });
+      totalLog = logRes.data.data?.meta?.total || 0;
+    } catch {
+      // ignore
+    }
+    return { ...stats, totalLog };
+  },
+
+  // Super Admin: Statistik satker
+  async getStatistikSatker(): Promise<{ total: number; aktif: number; nonAktif: number }> {
+    const res = await api.get('/satker', { params: { limit: 1 } });
+    const meta = res.data.data?.meta || { total: 0 };
+    // Asumsikan semua aktif untuk saat ini (filter bisa ditambahkan nanti)
+    return { total: meta.total, aktif: meta.total, nonAktif: 0 };
+  },
 };

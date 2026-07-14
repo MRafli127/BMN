@@ -8,12 +8,10 @@
     "dev": "nodemon src/server.js",
     "start": "node src/server.js",
     "postinstall": "prisma generate",
-
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev",
     "prisma:studio": "prisma studio",
     "seed": "node prisma/seed.js",
-
     "backup": "node scripts/backup.js",
     "backup:list": "node scripts/backup.js list",
     "backup:schedule": "node scripts/scheduler.js start",
@@ -37,6 +35,7 @@
     "dotenv": "^16.4.5",
     "express": "^4.21.1",
     "express-rate-limit": "^8.5.2",
+    "express-validator": "^7.3.2",
     "helmet": "^8.0.0",
     "jsonwebtoken": "^9.0.2",
     "morgan": "^1.10.0",

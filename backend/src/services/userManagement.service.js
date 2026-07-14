@@ -15,7 +15,7 @@ const { hitungRetirementDateDariNip, validasiNip } = require('../utils/nipHelper
 const PASSWORD_DEFAULT_RESET = 'BMN@Reset123';
 
 // Daftar role valid dalam sistem
-const ROLE_VALID = ['ADMIN', 'PEMINJAM'];
+const ROLE_VALID = ['ADMIN', 'PEMINJAM', 'SUPER_ADMIN'];
 
 // --- List semua user dengan pagination & filter ---
 async function getSemua({ q, role, page = 1, limit = 10 } = {}) {
@@ -49,6 +49,7 @@ async function getSemua({ q, role, page = 1, limit = 10 } = {}) {
         eselon4: true,
         roles: true,
         sumber: true,
+        satkerAkses: true,
         createdAt: true,
         updatedAt: true,
         _count: {
@@ -89,6 +90,7 @@ async function getById(id) {
       eselon4: true,
       roles: true,
       sumber: true,
+      satkerAkses: true,
       createdAt: true,
       updatedAt: true,
       _count: {
@@ -385,6 +387,27 @@ async function getStatistik() {
   return { totalUser, totalAdmin, totalPeminjam };
 }
 
+// --- Update satker akses (khusus SUPER_ADMIN) ---
+async function updateSatkerAccess(id, satkerAkses) {
+  const user = await prisma.user.findUnique({ where: { id } });
+  if (!user) throw new AppError('User tidak ditemukan.', 404);
+
+  // Validasi: jika user punya role ADMIN, harus punya minimal 1 satker
+  if (user.roles.includes('ADMIN') && satkerAkses.length === 0) {
+    // SUPER_ADMIN boleh kosong (akses semua satker)
+    // Tapi ADMIN biasa harus punya satker
+    if (!user.roles.includes('SUPER_ADMIN')) {
+      throw new AppError('Admin harus memiliki akses ke minimal satu satker.', 400);
+    }
+  }
+
+  const updated = await prisma.user.update({
+    where: { id },
+    data: { satkerAkses },
+  });
+  return tanpaPassword(updated);
+}
+
 module.exports = {
   getSemua,
   getById,
@@ -396,6 +419,7 @@ module.exports = {
   remove,
   hapusBanyakPeminjam,
   getStatistik,
+  updateSatkerAccess,
   tanpaPassword,
   PASSWORD_DEFAULT_RESET,
 };
