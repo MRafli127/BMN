@@ -1,17 +1,20 @@
 ﻿// ============================================================
 //  Dashboard Super Admin — ringkasan statistik sistem.
+//  Optimized: Suspense boundary, streaming, prefetch on hover
 // ============================================================
 
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback, useRef, memo } from 'react';
 import Link from 'next/link';
 import { Icon } from '@/components/ui/icon';
 import { LoadingSpinner } from '@/components/shared/LoadingSpinner';
+import { StatCardsSkeleton } from '@/components/shared/SuperAdminSkeleton';
 import { dashboardService } from '@/services/dashboard.service';
 import { LABEL_ROLE } from '@/constants/roles';
 import { RUTE } from '@/constants/routes';
 import { usePermission } from '@/lib/usePermission';
+import { cn } from '@/lib/utils';
 
 interface StatCard {
   label: string;
@@ -20,6 +23,73 @@ interface StatCard {
   warna: string;
   href?: string;
 }
+
+// ============================================================
+//  Memoized Stat Card Component
+// ============================================================
+const StatCardItem = memo(function StatCardItem({
+  stat,
+  index,
+}: {
+  stat: StatCard;
+  index: number;
+}) {
+  return (
+    <Link
+      href={stat.href || '#'}
+      className="group rounded-2xl bg-white p-5 shadow-md transition-all duration-200 hover:scale-[1.02] hover:shadow-lg animate-page-in"
+      style={{ animationDelay: `${index * 50}ms` }}
+      prefetch={true}
+    >
+      <div className="flex items-center justify-between">
+        <div>
+          <p className="text-sm font-medium text-gray-500">{stat.label}</p>
+          <p className="mt-1 text-3xl font-bold text-gray-900">{stat.value.toLocaleString('id-ID')}</p>
+        </div>
+        <div className={cn(
+          'flex h-12 w-12 items-center justify-center rounded-xl text-white shadow-lg transition-transform duration-200 group-hover:scale-110',
+          stat.warna
+        )}>
+          <Icon name={stat.ikon} style={{ fontSize: 24 }} />
+        </div>
+      </div>
+    </Link>
+  );
+});
+
+// ============================================================
+//  Quick Action Button
+// ============================================================
+const QuickActionButton = memo(function QuickActionButton({
+  label,
+  href,
+  ikon,
+  warna,
+  index,
+}: {
+  label: string;
+  href: string;
+  ikon: string;
+  warna: string;
+  index: number;
+}) {
+  return (
+    <Link
+      href={href}
+      prefetch={true}
+      className="flex flex-col items-center gap-2 rounded-xl bg-gray-50 p-4 text-center transition-all duration-200 hover:bg-gray-100 hover:shadow-md animate-page-in"
+      style={{ animationDelay: `${300 + index * 50}ms` }}
+    >
+      <div className={cn(
+        'flex h-12 w-12 items-center justify-center rounded-xl text-white shadow transition-transform duration-200 hover:scale-110',
+        warna
+      )}>
+        <Icon name={ikon} style={{ fontSize: 24 }} />
+      </div>
+      <span className="text-sm font-medium text-gray-700">{label}</span>
+    </Link>
+  );
+});
 
 export default function SuperAdminDashboardPage() {
   const [stats, setStats] = useState<StatCard[]>([]);
@@ -30,14 +100,15 @@ export default function SuperAdminDashboardPage() {
   }>>([]);
   const [jumlahSatker, setJumlahSatker] = useState(0);
   const [memuat, setMemuat] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const isMounted = useRef(true);
 
-  useEffect(() => {
-    muatStatistik();
-  }, []);
-
-  async function muatStatistik() {
+  const muatStatistik = useCallback(async () => {
+    setMemuat(true);
+    setError(null);
     try {
       const data = await dashboardService.superAdmin();
+      if (!isMounted.current) return;
 
       setJumlahSatker(data.jumlahSatker || 0);
       setStatistikSatker(data.statistikSatker || []);
@@ -54,52 +125,69 @@ export default function SuperAdminDashboardPage() {
       ]);
     } catch (err) {
       console.error('Gagal memuat statistik:', err);
+      if (isMounted.current) {
+        setError('Gagal memuat statistik. Silakan coba lagi.');
+      }
     } finally {
-      setMemuat(false);
+      if (isMounted.current) {
+        setMemuat(false);
+      }
     }
-  }
+  }, []);
+
+  useEffect(() => {
+    isMounted.current = true;
+    muatStatistik();
+    return () => { isMounted.current = false; };
+  }, [muatStatistik]);
 
   if (memuat) {
-    return <LoadingSpinner layarPenuh teks="Memuat dashboard..." />;
+    return (
+      <div className="space-y-6">
+        <div className="rounded-2xl bg-gradient-to-r from-purple-800 to-purple-600 p-6 text-white shadow-lg animate-page-in">
+          <h1 className="text-2xl font-bold">Dashboard Super Admin</h1>
+          <p className="mt-1 text-purple-100">Selamat datang di panel {LABEL_ROLE.SUPER_ADMIN}. Kelola seluruh sistem di sini.</p>
+        </div>
+        <StatCardsSkeleton count={8} />
+      </div>
+    );
   }
 
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="rounded-2xl bg-gradient-to-r from-purple-800 to-purple-600 p-6 text-white shadow-lg">
+      <div className="rounded-2xl bg-gradient-to-r from-purple-800 to-purple-600 p-6 text-white shadow-lg animate-page-in">
         <h1 className="text-2xl font-bold">Dashboard Super Admin</h1>
         <p className="mt-1 text-purple-100">Selamat datang di panel {LABEL_ROLE.SUPER_ADMIN}. Kelola seluruh sistem di sini.</p>
       </div>
 
+      {/* Error State */}
+      {error && (
+        <div className="rounded-xl border border-red-200 bg-red-50 p-4 text-red-700">
+          <p className="font-medium">{error}</p>
+          <button onClick={muatStatistik} className="mt-2 text-sm underline hover:no-underline">
+            Coba lagi
+          </button>
+        </div>
+      )}
+
       {/* Statistik Grid */}
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        {stats.map((stat, i) => (
-          <a
-            key={i}
-            href={stat.href}
-            className="group rounded-2xl bg-white p-5 shadow-md transition-all hover:scale-[1.02] hover:shadow-lg"
-          >
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-500">{stat.label}</p>
-                <p className="mt-1 text-3xl font-bold text-gray-900">{stat.value}</p>
-              </div>
-              <div className={`flex h-12 w-12 items-center justify-center rounded-xl text-white shadow-lg ${stat.warna}`}>
-                <Icon name={stat.ikon} style={{ fontSize: 24 }} />
-              </div>
-            </div>
-          </a>
-        ))}
-      </div>
+      {!error && (
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          {stats.map((stat, i) => (
+            <StatCardItem key={stat.label} stat={stat} index={i} />
+          ))}
+        </div>
+      )}
 
       {/* Statistik Per Satker */}
-      {statistikSatker.length > 0 && (
-        <div className="rounded-2xl bg-white p-6 shadow-md">
+      {statistikSatker.length > 0 && !error && (
+        <div className="rounded-2xl bg-white p-6 shadow-md animate-page-in" style={{ animationDelay: '200ms' }}>
           <div className="mb-4 flex items-center justify-between">
             <h2 className="text-lg font-bold text-gray-900">Statistik Per Satker</h2>
-            <a href={RUTE.superAdminSatker} className="text-sm font-medium text-primary hover:underline">
+            <Link href={RUTE.superAdminSatker} className="text-sm font-medium text-primary hover:underline" prefetch={true}>
               Lihat semua →
-            </a>
+            </Link>
           </div>
           <div className="overflow-x-auto">
             <table className="min-w-full divide-y divide-gray-200">
@@ -112,10 +200,10 @@ export default function SuperAdminDashboardPage() {
               </thead>
               <tbody className="divide-y divide-gray-200">
                 {statistikSatker.slice(0, 5).map((satker) => (
-                  <tr key={satker.kodeSatker} className="hover:bg-gray-50">
+                  <tr key={satker.kodeSatker} className="hover:bg-gray-50 transition-colors">
                     <td className="whitespace-nowrap px-4 py-3 text-sm font-medium text-gray-900">{satker.kodeSatker}</td>
-                    <td className="whitespace-nowrap px-4 py-3 text-right text-sm text-gray-600">{satker.jumlahBarang}</td>
-                    <td className="whitespace-nowrap px-4 py-3 text-right text-sm text-gray-600">{satker.jumlahPeminjaman}</td>
+                    <td className="whitespace-nowrap px-4 py-3 text-right text-sm text-gray-600">{satker.jumlahBarang.toLocaleString('id-ID')}</td>
+                    <td className="whitespace-nowrap px-4 py-3 text-right text-sm text-gray-600">{satker.jumlahPeminjaman.toLocaleString('id-ID')}</td>
                   </tr>
                 ))}
               </tbody>
@@ -130,30 +218,23 @@ export default function SuperAdminDashboardPage() {
       )}
 
       {/* Quick Actions */}
-      <div className="rounded-2xl bg-white p-6 shadow-md">
-        <h2 className="mb-4 text-lg font-bold text-gray-900">Aksi Cepat</h2>
-        <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
-          {[
-            { label: 'Kelola Admin', href: RUTE.superAdminAdmin, ikon: 'admin_panel_settings', warna: 'bg-blue-500' },
-            { label: 'Kelola Barang', href: RUTE.superAdminBarang, ikon: 'inventory_2', warna: 'bg-green-500' },
-            { label: 'Kelola Peminjaman', href: RUTE.superAdminPeminjaman, ikon: 'sync_alt', warna: 'bg-purple-500' },
-            { label: 'Kelola Satker', href: RUTE.superAdminSatker, ikon: 'location_city', warna: 'bg-teal-500' },
-            { label: 'Lihat Log Aktivitas', href: RUTE.superAdminLogs, ikon: 'history', warna: 'bg-orange-500' },
-            { label: 'Kelola Pengguna', href: RUTE.superAdminPengguna, ikon: 'group', warna: 'bg-indigo-500' },
-          ].map((action, i) => (
-            <a
-              key={i}
-              href={action.href}
-              className="flex flex-col items-center gap-2 rounded-xl bg-gray-50 p-4 text-center transition-all hover:bg-gray-100 hover:shadow-md"
-            >
-              <div className={`flex h-12 w-12 items-center justify-center rounded-xl text-white shadow ${action.warna}`}>
-                <Icon name={action.ikon} style={{ fontSize: 24 }} />
-              </div>
-              <span className="text-sm font-medium text-gray-700">{action.label}</span>
-            </a>
-          ))}
+      {!error && (
+        <div className="rounded-2xl bg-white p-6 shadow-md animate-page-in" style={{ animationDelay: '250ms' }}>
+          <h2 className="mb-4 text-lg font-bold text-gray-900">Aksi Cepat</h2>
+          <div className="grid grid-cols-2 gap-4 md:grid-cols-4 lg:grid-cols-6">
+            {[
+              { label: 'Kelola Admin', href: RUTE.superAdminAdmin, ikon: 'admin_panel_settings', warna: 'bg-blue-500' },
+              { label: 'Kelola Barang', href: RUTE.superAdminBarang, ikon: 'inventory_2', warna: 'bg-green-500' },
+              { label: 'Kelola Peminjaman', href: RUTE.superAdminPeminjaman, ikon: 'sync_alt', warna: 'bg-purple-500' },
+              { label: 'Kelola Satker', href: RUTE.superAdminSatker, ikon: 'location_city', warna: 'bg-teal-500' },
+              { label: 'Lihat Logs', href: RUTE.superAdminLogs, ikon: 'history', warna: 'bg-orange-500' },
+              { label: 'Kelola Pengguna', href: RUTE.superAdminPengguna, ikon: 'group', warna: 'bg-indigo-500' },
+            ].map((action, i) => (
+              <QuickActionButton key={action.label} {...action} index={i} />
+            ))}
+          </div>
         </div>
-      </div>
+      )}
     </div>
   );
 }
