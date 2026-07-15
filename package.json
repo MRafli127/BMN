@@ -14,12 +14,10 @@
     "build": "npm run build --workspace=frontend",
     "start": "npm run start --workspace=backend",
     "start:frontend": "npm run start --workspace=frontend",
-
     "prisma:generate": "npm run prisma:generate --workspace=backend",
     "prisma:migrate": "npm run prisma:migrate --workspace=backend",
     "prisma:studio": "npm run prisma:studio --workspace=backend",
     "seed": "npm run seed --workspace=backend",
-
     "backup": "npm run backup --workspace=backend",
     "backup:list": "npm run backup:list --workspace=backend",
     "backup:run": "npm run backup:run --workspace=backend",
@@ -32,5 +30,8 @@
     "postgresql"
   ],
   "author": "SIPP-BMN",
-  "license": "MIT"
+  "license": "MIT",
+  "devDependencies": {
+    "playwright": "^1.61.1"
+  }
 }
