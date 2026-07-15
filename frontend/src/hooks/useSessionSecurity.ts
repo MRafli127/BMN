@@ -57,13 +57,14 @@ export function useSessionSecurity() {
   const handlePageHide = useCallback(() => {
     if (!user || pendingLogoutRef.current) return;
 
-    // Ini fired saat:
-    // - Tab/browser ditutup
-    // - Refresh (hanya Safari yang membedakan)
-    // - Navigasi ke page lain
+    // CRITICAL: Jangan bersihkan sesi di sini!
+    // pagehide fire saat BOTH close DAN refresh.
+    // Jika kita bersihkan sesi di refresh, user akan logout.
+    // Solusi: Biarkan server-side invalidation yang handle logout.
+    // Pada close, invalidate session via sendBeacon.
+    // Pada reload, cookies dari Set-Cookie header akan restore session.
 
     // Kirim invalidate session ke server via sendBeacon
-    // sendBeacon adalah background request yang lebih reliable
     const token = localStorage.getItem('sipp_access_token');
     if (token && navigator.sendBeacon) {
       const data = JSON.stringify({ action: 'invalidate_session', token });
@@ -72,10 +73,9 @@ export function useSessionSecurity() {
         new Blob([data], { type: 'application/json' })
       );
     }
-
-    // Cleanup session storage
-    bersihkanSesi();
-    pendingLogoutRef.current = true;
+    // NOTE: Tidak memanggil bersihkanSesi() di sini!
+    // Cookies dari backend (Set-Cookie header) akan di-set saat reload
+    // dan session akan tetap valid.
   }, [user]);
 
   // Setup event listeners
@@ -117,23 +117,9 @@ export function useSessionSecurity() {
     }, HEARTBEAT_INTERVAL_MS);
 
     // Pagehide - reliable tab close detection
-    // fired saat tab/browser ditutup
+    // fired saat tab/browser ditutup ATAU refresh
+    // Refresh sudah di-handle di dalam handlePageHide
     window.addEventListener('pagehide', handlePageHide);
-
-    // Fallback: beforeunload (untuk browser yang tidak support pagehide)
-    window.addEventListener('beforeunload', (e) => {
-      if (!user || pendingLogoutRef.current) return;
-
-      // Di Chrome/Edge, beforeunload fired di refresh juga
-      // Kita tidak mau logout di refresh - jadi skip jika ada flag
-      // Gunakan sessionStorage untuk deteksi refresh vs close
-      const isRefresh = performance.getEntriesByType('navigation')
-        .some((entry) => (entry as PerformanceNavigationTiming).type === 'reload');
-
-      if (!isRefresh) {
-        handlePageHide();
-      }
-    });
 
     // Cleanup
     return () => {

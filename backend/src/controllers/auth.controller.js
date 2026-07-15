@@ -31,6 +31,20 @@ const login = asyncHandler(async (req, res) => {
   const hasil = await authService.login(req.body);
   res.cookie('refreshToken', hasil.refreshToken, opsiCookie);
 
+  // Set cookies untuk middleware Next.js (server-side readable)
+  // accessToken dan activeRole diset sebagai cookie agar middleware
+  // Next.js (berjalan di server) bisa membacanya setelah page reload
+  res.cookie('sipp_token', hasil.accessToken, {
+    ...env.cookie,
+    httpOnly: false, // middleware Next.js perlu baca cookie ini
+    maxAge: 7 * 24 * 60 * 60 * 1000, // 7 hari dalam ms
+  });
+  res.cookie('sipp_role', hasil.user.activeRole, {
+    ...env.cookie,
+    httpOnly: false,
+    maxAge: 7 * 24 * 60 * 60 * 1000,
+  });
+
   // Generate CSRF token untuk sesi baru
   const csrfToken = getCsrfToken(req, res);
 
@@ -53,6 +67,19 @@ const updateMe = asyncHandler(async (req, res) => {
 // Ganti active role untuk akun multi-role. Menerbitkan token baru.
 const switchRole = asyncHandler(async (req, res) => {
   const hasil = await authService.switchRole(req.user.id, req.body.role);
+
+  // Update cookies untuk middleware Next.js dengan role baru
+  res.cookie('sipp_token', hasil.accessToken, {
+    ...env.cookie,
+    httpOnly: false,
+    maxAge: 7 * 24 * 60 * 60 * 1000,
+  });
+  res.cookie('sipp_role', hasil.user.activeRole, {
+    ...env.cookie,
+    httpOnly: false,
+    maxAge: 7 * 24 * 60 * 60 * 1000,
+  });
+
   res.cookie('refreshToken', hasil.refreshToken, opsiCookie);
   return responsSukses(res, { pesan: 'Peran aktif diperbarui.', data: hasil });
 });
@@ -82,6 +109,19 @@ const refresh = asyncHandler(async (req, res) => {
   // Ambil refresh token dari cookie atau body
   const token = req.cookies?.refreshToken || req.body?.refreshToken;
   const hasil = await authService.refresh(token);
+
+  // Update cookies untuk middleware Next.js
+  res.cookie('sipp_token', hasil.accessToken, {
+    ...env.cookie,
+    httpOnly: false,
+    maxAge: 7 * 24 * 60 * 60 * 1000,
+  });
+  res.cookie('sipp_role', hasil.user.activeRole, {
+    ...env.cookie,
+    httpOnly: false,
+    maxAge: 7 * 24 * 60 * 60 * 1000,
+  });
+
   res.cookie('refreshToken', hasil.refreshToken, opsiCookie);
   return responsSukses(res, { pesan: 'Token diperbarui.', data: hasil });
 });
@@ -99,7 +139,10 @@ const logout = asyncHandler(async (req, res) => {
   }
 
   res.clearCookie('refreshToken', opsiCookie);
-  res.clearCookie('csrf_token', { ...opsiCookie, sameSite: 'strict', httpOnly: false });
+  res.clearCookie('csrf_token', { ...env.cookie, sameSite: 'strict', httpOnly: false });
+  // Clear cookies untuk middleware Next.js
+  res.clearCookie('sipp_token', { ...env.cookie, httpOnly: false });
+  res.clearCookie('sipp_role', { ...env.cookie, httpOnly: false });
   return responsSukses(res, { pesan: 'Anda telah keluar.' });
 });
 

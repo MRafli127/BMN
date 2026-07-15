@@ -225,12 +225,12 @@ const dashboardSuperAdmin = asyncHandler(async (req, res) => {
 
   // OPTIMASI: Hitung jumlahPeminjaman per satker dalam SATU query dengan groupBy
   // Menggunakan raw query untuk join detailPeminjaman -> barang -> kodeSatker
-  // Catatan: nama tabel mengikuti @@map di schema.prisma (lowercase)
+  // Catatan: nama kolom follow migration SQL (camelCase dengan huruf besar I)
   const satkerPeminjamanCountRaw = await prisma.$queryRaw`
     SELECT b."kodeSatker", COUNT(DISTINCT p.id) as "jumlahPeminjaman"
     FROM peminjaman p
-    INNER JOIN detail_peminjaman dp ON dp.peminjamanid = p.id
-    INNER JOIN barang b ON b.id = dp.barangid
+    INNER JOIN detail_peminjaman dp ON dp."peminjamanId" = p.id
+    INNER JOIN barang b ON b.id = dp."barangId"
     WHERE b."kodeSatker" IS NOT NULL
     GROUP BY b."kodeSatker"
   `;
