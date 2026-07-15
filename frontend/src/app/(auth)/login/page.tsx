@@ -231,8 +231,9 @@ export default function LoginPage() {
 
           <div className="mt-6 rounded-xl border border-outline-variant bg-surface-container-low p-3 text-xs text-on-surface-variant">
             <p className="font-bold text-on-surface">Akun demo (setelah seeder dijalankan):</p>
-            <p className="mt-1">Admin: admin@bmn.go.id / Admin123!</p>
-            <p>Peminjam: budi@bmn.go.id / Peminjam123!</p>
+            <p className="mt-1">Admin: admin@bmn.go.id / Bmn@2026</p>
+            <p>Super admin: superadmin@bmn.go.id / SuperAdmin123!</p>
+            <p>Peminjam: budi@bmn.go.id / Bmn@2026</p>
           </div>
           </>
           )}
