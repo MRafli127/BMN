@@ -52,10 +52,10 @@ export default function SuperAdminBarangPage() {
       try {
         const params: any = { page: halaman, limit };
         if (cariDebounced) params.q = cariDebounced;
-        if (filterSatker) params.satker = filterSatker;
+        if (filterSatker) params.kodeSatker = filterSatker;
         const res = await api.get('/barang', { params });
-        setBarang(res.data.data?.data || []);
-        setMeta(res.data.data?.meta || meta);
+        setBarang(res.data.data || []);
+        setMeta(res.data.meta || meta);
       } catch (err) {
         console.error('Gagal memuat barang:', err);
       } finally {

@@ -7,7 +7,7 @@
 import { useEffect, useState } from 'react';
 import { Icon } from '@/components/ui/icon';
 import { LoadingSpinner } from '@/components/shared/LoadingSpinner';
-import api from '@/lib/api';
+import { dashboardService } from '@/services/dashboard.service';
 
 interface StatCard {
   label: string;
@@ -26,8 +26,7 @@ export default function SuperAdminDashboardPage() {
 
   async function muatStatistik() {
     try {
-      const res = await api.get('/dashboard/admin');
-      const data = res.data.data;
+      const data = await dashboardService.superAdmin();
 
       setStats([
         { label: 'Total Admin', value: data.totalAdmin || 0, ikon: 'admin_panel_settings', warna: 'bg-blue-500' },

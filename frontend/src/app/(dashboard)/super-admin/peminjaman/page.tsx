@@ -59,11 +59,11 @@ export default function SuperAdminPeminjamanPage() {
         const params: any = { page: halaman, limit };
         if (cariDebounced) params.q = cariDebounced;
         if (filterStatus) params.status = filterStatus;
-        if (filterSatker) params.satker = filterSatker;
+        if (filterSatker) params.kodeSatker = filterSatker;
 
         const res = await api.get('/peminjaman', { params });
-        setPeminjaman(res.data.data?.data || []);
-        setMeta(res.data.data?.meta || meta);
+        setPeminjaman(res.data.data || []);
+        setMeta(res.data.meta || meta);
       } catch (err) {
         console.error('Gagal memuat peminjaman:', err);
       } finally {

@@ -16,13 +16,15 @@ import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@
 import { notify } from '@/components/ui/toast';
 import { ambilPesanError } from '@/lib/utils';
 import { userManagementService, type UserItem } from '@/services/userManagement.service';
-import { useQuery } from '@/lib/cache';
 
 export default function ManajemenAdminPage() {
   const [halaman, setHalaman] = useState(1);
   const [limit, setLimit] = useState(10);
   const [cari, setCari] = useState('');
   const [cariDebounced, setCariDebounced] = useState('');
+  const [daftarAdmin, setDaftarAdmin] = useState<UserItem[]>([]);
+  const [meta, setMeta] = useState({ total: 0, page: 1, limit: 10, totalHalaman: 1 });
+  const [memuat, setMemuat] = useState(true);
 
   // Dialog konfirmasi
   const [dialogKonfirmasi, setDialogKonfirmasi] = useState<{
@@ -44,13 +46,28 @@ export default function ManajemenAdminPage() {
     setHalaman(1);
   }, [cariDebounced, limit]);
 
-  const { data, sedangMemuat: memuat, refetch } = useQuery(
-    ['admin-list', halaman, limit, cariDebounced],
-    () => userManagementService.getSemua({ q: cariDebounced, role: 'ADMIN', page: halaman, limit })
-  );
-
-  const daftarAdmin: UserItem[] = data?.data || [];
-  const meta = data?.meta || { total: 0, page: 1, limit: 10, totalHalaman: 1 };
+  // Ambil data admin
+  useEffect(() => {
+    async function muatAdmin() {
+      setMemuat(true);
+      try {
+        const hasil = await userManagementService.getSemua({
+          q: cariDebounced,
+          role: 'ADMIN',
+          page: halaman,
+          limit,
+        });
+        setDaftarAdmin(hasil.data || []);
+        setMeta(hasil.meta);
+      } catch (err) {
+        console.error('Gagal memuat admin:', err);
+        notify.gagal(ambilPesanError(err, 'Gagal memuat data.'));
+      } finally {
+        setMemuat(false);
+      }
+    }
+    muatAdmin();
+  }, [halaman, limit, cariDebounced]);
 
   // Promote user jadi ADMIN
   const promosikan = async (user: UserItem) => {
@@ -63,7 +80,15 @@ export default function ManajemenAdminPage() {
         try {
           await userManagementService.tambahRole(user.id, 'ADMIN');
           notify.suksess(`${user.nama} berhasil dipromosikan ke Admin.`);
-          refetch();
+          // Refresh data
+          const hasil = await userManagementService.getSemua({
+            q: cariDebounced,
+            role: 'ADMIN',
+            page: halaman,
+            limit,
+          });
+          setDaftarAdmin(hasil.data || []);
+          setMeta(hasil.meta);
         } catch (err) {
           notify.gagal(ambilPesanError(err, 'Gagal mempromosikan.'));
         } finally {
@@ -85,7 +110,15 @@ export default function ManajemenAdminPage() {
         try {
           await userManagementService.hapusRole(user.id, 'ADMIN');
           notify.suksess(`Akses Admin ${user.nama} berhasil dicabut.`);
-          refetch();
+          // Refresh data
+          const hasil = await userManagementService.getSemua({
+            q: cariDebounced,
+            role: 'ADMIN',
+            page: halaman,
+            limit,
+          });
+          setDaftarAdmin(hasil.data || []);
+          setMeta(hasil.meta);
         } catch (err) {
           notify.gagal(ambilPesanError(err, 'Gagal mencabut akses.'));
         } finally {
@@ -107,7 +140,6 @@ export default function ManajemenAdminPage() {
         try {
           const hasil = await userManagementService.resetPassword(user.id);
           notify.suksess(`Password berhasil direset. Password baru: ${hasil.passwordBaru}`);
-          refetch();
         } catch (err) {
           notify.gagal(ambilPesanError(err, 'Gagal reset password.'));
         } finally {

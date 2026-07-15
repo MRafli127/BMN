@@ -3,7 +3,7 @@
 // ============================================================
 
 const satkerService = require('../services/satker.service');
-const { responsBerhasil, responsGagal } = require('../utils/apiResponse');
+const { responsSukses, responsGagal } = require('../utils/apiResponse');
 
 async function getSemua(req, res) {
   try {
@@ -14,7 +14,7 @@ async function getSemua(req, res) {
       q,
       aktif,
     });
-    return responsBerhasil(res, hasil);
+    return responsSukses(res, { data: hasil });
   } catch (error) {
     const status = error.statusCode || 500;
     return responsGagal(res, { pesan: error.message || 'Terjadi kesalahan.', status });
@@ -24,7 +24,7 @@ async function getSemua(req, res) {
 async function getById(req, res) {
   try {
     const hasil = await satkerService.getById(req.params.id);
-    return responsBerhasil(res, hasil);
+    return responsSukses(res, { data: hasil });
   } catch (error) {
     const status = error.statusCode || 500;
     return responsGagal(res, { pesan: error.message || 'Terjadi kesalahan.', status });
@@ -34,7 +34,7 @@ async function getById(req, res) {
 async function create(req, res) {
   try {
     const hasil = await satkerService.create(req.body);
-    return responsBerhasil(res, hasil, 201);
+    return responsSukses(res, { data: hasil }, 201);
   } catch (error) {
     const status = error.statusCode || 500;
     return responsGagal(res, { pesan: error.message || 'Terjadi kesalahan.', status });
@@ -44,7 +44,7 @@ async function create(req, res) {
 async function update(req, res) {
   try {
     const hasil = await satkerService.update(req.params.id, req.body);
-    return responsBerhasil(res, hasil);
+    return responsSukses(res, { data: hasil });
   } catch (error) {
     const status = error.statusCode || 500;
     return responsGagal(res, { pesan: error.message || 'Terjadi kesalahan.', status });
@@ -54,7 +54,7 @@ async function update(req, res) {
 async function remove(req, res) {
   try {
     const hasil = await satkerService.remove(req.params.id);
-    return responsBerhasil(res, hasil);
+    return responsSukses(res, { data: hasil });
   } catch (error) {
     const status = error.statusCode || 500;
     return responsGagal(res, { pesan: error.message || 'Terjadi kesalahan.', status });
@@ -64,7 +64,7 @@ async function remove(req, res) {
 async function sync(req, res) {
   try {
     const hasil = await satkerService.syncDariBarang();
-    return responsBerhasil(res, hasil);
+    return responsSukses(res, { data: hasil });
   } catch (error) {
     const status = error.statusCode || 500;
     return responsGagal(res, { pesan: error.message || 'Terjadi kesalahan.', status });
