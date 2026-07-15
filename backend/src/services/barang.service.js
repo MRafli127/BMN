@@ -10,8 +10,7 @@ const { urlPublik } = require('../utils/apiResponse');
 const { parsePagination } = require('../utils/pagination');
 const { AppError } = require('../middleware/error.middleware');
 
-// Include lengkap untuk relasi peminjam
-// Mengambil data peminjam aktif (barang yang sedang dipinjam)
+// Include untuk detail halaman (relasi peminjam untuk melihat siapa yang pinjam)
 // Catatan: filtering status dilakukan di JavaScript oleh ekstrakPeminjam()
 const includePeminjam = {
   detailPeminjaman: {
@@ -53,7 +52,7 @@ function serialisasi(barang) {
 }
 
 // --- Ambil daftar barang dengan pencarian/filter/pagination ---
-async function getSemua({ q, jenis, kondisi, ketersediaan, kodeSatker, page = 1, limit = 10 } = {}) {
+async function getSemua({ q, jenis, kondisi, ketersediaan, kodeSatker, page = 1, limit = 10, includeDetail = false } = {}) {
   const { halaman, perHalaman, skip } = parsePagination({ page, limit });
 
   const where = {};
@@ -75,7 +74,7 @@ async function getSemua({ q, jenis, kondisi, ketersediaan, kodeSatker, page = 1,
   const [data, total] = await Promise.all([
     prisma.barang.findMany({
       where,
-      include: includePeminjam,
+      include: includeDetail ? includePeminjam : undefined,
       orderBy: { createdAt: 'desc' },
       skip: (halaman - 1) * perHalaman,
       take: perHalaman,
@@ -86,6 +85,11 @@ async function getSemua({ q, jenis, kondisi, ketersediaan, kodeSatker, page = 1,
   return {
     data: data.map((b) => {
       const serialized = serialisasi(b);
+      // Jika tidak include detail, hapus field yang tidak perlu
+      if (!includeDetail) {
+        serialized.peminjam = null;
+        return serialized;
+      }
       serialized.peminjam = ekstrakPeminjam(b);
       return serialized;
     }),
@@ -196,14 +200,31 @@ async function update(id, data, fotoPath) {
 
 // --- Hapus barang ---
 async function remove(id) {
+  // Cek barang ada atau tidak
   const barang = await prisma.barang.findUnique({
     where: { id },
-    include: { detailPeminjaman: { where: { statusItem: 'DIPINJAM' } } },
   });
   if (!barang) throw new AppError('Barang tidak ditemukan.', 404);
 
-  if (barang.detailPeminjaman.length > 0) {
+  // Cek apakah ada detail peminjaman aktif (DIPINJAM)
+  const detailAktif = await prisma.detailPeminjaman.findFirst({
+    where: { barangId: id, statusItem: 'DIPINJAM' },
+  });
+  if (detailAktif) {
     throw new AppError('Barang tidak dapat dihapus karena sedang dipinjam.', 400);
+  }
+
+  // Cek apakah ada relasi detail_peminjaman APAPUN (termasuk DIKEMBALIKAN)
+  // Jika ada, hapus relasi tersebut lebih dulu agar tidak violation foreign key
+  const detailPeminjaman = await prisma.detailPeminjaman.findMany({
+    where: { barangId: id },
+  });
+
+  if (detailPeminjaman.length > 0) {
+    // Hapus detail peminjaman terkait lebih dulu
+    await prisma.detailPeminjaman.deleteMany({
+      where: { barangId: id },
+    });
   }
 
   await prisma.barang.delete({ where: { id } });

@@ -78,13 +78,21 @@ export const barangService = {
   // Ambil SELURUH barang yang cocok dengan filter (menelusuri semua halaman).
   // Dipakai oleh tampilan folder agar tiap merk memuat semua unitnya, bukan
   // hanya yang kebetulan berada di satu halaman.
-  async getSemuaLengkap(filter: Omit<FilterBarang, 'page' | 'limit'> = {}): Promise<Barang[]> {
-    const limit = 200; // batas maksimum per halaman di backend
-    const pertama = await barangService.getSemua({ ...filter, page: 1, limit });
+  // OPTIMASI: tanpa include peminjam (lebih cepat untuk katalog)
+  async getSemuaLengkap(filter: Omit<FilterBarang, 'page' | 'limit'> = {}, options: { includePeminjam?: boolean } = {}): Promise<Barang[]> {
+    const limit = 500; // batas maksimum per halaman di backend (dinaikkan untuk mengurangi request)
+    const pertama = await barangService.getSemua({ ...filter, page: 1, limit, includePeminjam: options.includePeminjam });
     const semua = [...pertama.data];
-    for (let page = 2; page <= pertama.meta.totalHalaman; page++) {
-      const res = await barangService.getSemua({ ...filter, page, limit });
-      semua.push(...res.data);
+    // Fetch halaman lain secara paralel untuk speed
+    if (pertama.meta.totalHalaman > 1) {
+      const halamanReqs = [];
+      for (let page = 2; page <= pertama.meta.totalHalaman; page++) {
+        halamanReqs.push(barangService.getSemua({ ...filter, page, limit, includePeminjam: options.includePeminjam }));
+      }
+      const hasil = await Promise.all(halamanReqs);
+      for (const res of hasil) {
+        semua.push(...res.data);
+      }
     }
     return semua;
   },

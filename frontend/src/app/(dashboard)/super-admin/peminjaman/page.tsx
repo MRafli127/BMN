@@ -1,4 +1,4 @@
-﻿// ============================================================
+// ============================================================
 //  Manajemen Peminjaman — halaman Super Admin untuk lihat semua peminjaman.
 // ============================================================
 
@@ -14,19 +14,28 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table';
 import api from '@/lib/api';
-import { STATUS_PEMINJAMAN } from '@/constants/status';
 
 interface Peminjaman {
   id: string;
   kodeTransaksi?: string;
   kodePeminjaman: string;
   tanggalPengajuan: string;
+  tanggalRencanaPinjam?: string;
   tanggalKembaliRencana?: string;
   status: string;
-  namaPeminjam?: string;
- nipPeminjam?: string;
-  namaSatker?: string;
+  namaPeminjam: string;
+  nipPeminjam?: string;
+  merkBarang?: string;
   jumlahItem?: number;
+  peminjam?: {
+    nama: string;
+    nip?: string;
+  };
+  detail?: Array<{
+    barang?: {
+      merk?: string;
+    };
+  }>;
 }
 
 export default function SuperAdminPeminjamanPage() {
@@ -98,6 +107,23 @@ export default function SuperAdminPeminjamanPage() {
     });
   };
 
+  // Ambil merk dari data
+  const ambilMerk = (item: Peminjaman) => {
+    // Coba dari field merkBarang
+    if (item.merkBarang) return item.merkBarang;
+    // Coba dari detail
+    if (item.detail?.[0]?.barang?.merk) return item.detail[0].barang.merk;
+    // Fallback
+    return '-';
+  };
+
+  // Ambil nama peminjam
+  const ambilNamaPeminjam = (item: Peminjaman) => {
+    if (item.namaPeminjam && item.namaPeminjam !== '-') return item.namaPeminjam;
+    if (item.peminjam?.nama) return item.peminjam.nama;
+    return '-';
+  };
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -112,7 +138,7 @@ export default function SuperAdminPeminjamanPage() {
           <div className="relative flex-1">
             <Icon name="search" className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" style={{ fontSize: 20 }} />
             <Input
-              placeholder="Cari kode atau nama peminjam..."
+              placeholder="Cari kode / nama barang / merk / nama peminjam..."
               value={cari}
               onChange={(e) => setCari(e.target.value)}
               className="pl-10"
@@ -132,7 +158,7 @@ export default function SuperAdminPeminjamanPage() {
             <option value="TERLAMBAT">Terlambat</option>
           </select>
           <Input
-            placeholder="Filter Satker..."
+            placeholder="Filter Kode Satker..."
             value={filterSatker}
             onChange={(e) => setFilterSatker(e.target.value)}
             className="w-full lg:w-48"
@@ -168,9 +194,8 @@ export default function SuperAdminPeminjamanPage() {
                 <TableRow className="bg-gray-50">
                   <TableHead>Kode</TableHead>
                   <TableHead>Peminjam</TableHead>
-                  <TableHead>Tanggal Ajuan</TableHead>
-                  <TableHead>Rencana Kembali</TableHead>
-                  <TableHead>Satker</TableHead>
+                  <TableHead>Merk</TableHead>
+                  <TableHead>Rencana Pinjam</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead>Aksi</TableHead>
                 </TableRow>
@@ -178,16 +203,18 @@ export default function SuperAdminPeminjamanPage() {
               <TableBody>
                 {peminjaman.map((item) => (
                   <TableRow key={item.id} className="hover:bg-gray-50">
-                    <TableCell className="font-mono text-xs">{item.kodeTransaksi || item.kodePeminjaman}</TableCell>
-                    <TableCell>
-                      <div>
-                        <p className="font-medium">{item.namaPeminjam || '-'}</p>
-                        <p className="text-xs text-gray-500">{item.nipPeminjam}</p>
-                      </div>
+                    <TableCell className="font-mono text-xs">
+                      {item.kodeTransaksi || item.kodePeminjaman}
                     </TableCell>
-                    <TableCell className="whitespace-nowrap text-sm">{formatTanggal(item.tanggalPengajuan)}</TableCell>
-                    <TableCell className="whitespace-nowrap text-sm">{formatTanggal(item.tanggalKembaliRencana)}</TableCell>
-                    <TableCell className="max-w-[150px] truncate text-sm">{item.namaSatker || '-'}</TableCell>
+                    <TableCell className="font-medium">
+                      {ambilNamaPeminjam(item)}
+                    </TableCell>
+                    <TableCell className="text-sm text-gray-600">
+                      {ambilMerk(item)}
+                    </TableCell>
+                    <TableCell className="whitespace-nowrap text-sm text-gray-600">
+                      {formatTanggal(item.tanggalRencanaPinjam)}
+                    </TableCell>
                     <TableCell>{badgeStatus(item.status)}</TableCell>
                     <TableCell>
                       <Link href={`/super-admin/peminjaman/${item.id}`}>
