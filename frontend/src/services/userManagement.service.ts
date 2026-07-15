@@ -75,7 +75,7 @@ export const userManagementService = {
     limit?: number;
   }): Promise<PaginatedResponse<UserItem>> {
     const res = await api.get('/users', { params });
-    return res.data.data;
+    return res.data;  // { data, meta }
   },
 
   // Ambil satu user
