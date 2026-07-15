@@ -19,11 +19,16 @@ import { useIsMobile } from '@/hooks/useIsMobile';
 import { inisial, ambilPesanError } from '@/lib/utils';
 import { notify } from '@/components/ui/toast';
 import { RUTE, RUTE_DEFAULT } from '@/constants/routes';
+import { LABEL_ROLE } from '@/constants/roles';
 import { searchService } from '@/services/search.service';
 import type { Role } from '@/types/user.type';
 
 // Label peran untuk tampilan.
-const LABEL_PERAN: Record<Role, string> = { ADMIN: 'Administrator', PEMINJAM: 'Peminjam' };
+const LABEL_PERAN: Record<Role, string> = {
+  ADMIN: LABEL_ROLE.ADMIN,
+  PEMINJAM: LABEL_ROLE.PEMINJAM,
+  SUPER_ADMIN: LABEL_ROLE.SUPER_ADMIN,
+};
 
 export function Header() {
   const bukaSidebar = useUIStore((s) => s.bukaSidebar);
@@ -211,7 +216,7 @@ export function Header() {
           >
             <div className="hidden text-right sm:block">
               <p className="text-sm font-bold leading-tight text-on-surface">{user?.nama || 'Pengguna'}</p>
-              <p className="text-xs text-on-surface-variant">{isAdmin ? 'Administrator' : 'Peminjam'}</p>
+              <p className="text-xs text-on-surface-variant">{LABEL_PERAN[user.activeRole]}</p>
             </div>
             <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary text-sm font-bold text-white shadow-sm ring-2 ring-primary/20">
               {inisial(user?.nama)}
@@ -243,7 +248,7 @@ export function Header() {
               {bisaGantiRole && (
                 <div className="border-b border-outline-variant/60 px-3 py-2.5">
                   <p className="mb-1.5 px-1 text-[11px] font-medium uppercase tracking-wide text-on-surface-variant">
-                    Peran aktif: {isAdmin ? 'Administrator' : 'Peminjam'}
+                    Peran aktif: {LABEL_PERAN[user.activeRole]}
                   </p>
                   {roles
                     .filter((r) => r !== user?.activeRole)

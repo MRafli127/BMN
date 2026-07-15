@@ -32,8 +32,8 @@ export const satkerService = {
     q?: string;
     aktif?: boolean;
   }): Promise<SatkerListResponse> {
-    const { data } = await api.get<SatkerListResponse>('/satker', { params });
-    return data;
+    const res = await api.get('/satker', { params });
+    return res.data.data;
   },
 
   async getById(id: string): Promise<Satker> {

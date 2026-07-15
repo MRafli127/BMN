@@ -244,42 +244,62 @@ async function tambahRole(id, role) {
 }
 
 // --- Hapus role dari user (demote) ---
-// Menegakkan: (1) admin terakhir tidak boleh dicabut, (2) user harus tetap
-// punya minimal 1 role. Saat mencabut ADMIN, tokenVersion di-increment agar
-// sesi admin yang berjalan langsung berakhir.
+// Menegakkan: (1) super admin terakhir tidak boleh dicabut, (2) admin terakhir
+// tidak boleh dicabut, (3) user harus tetap punya minimal 1 role.
+// Saat mencabut ADMIN/SUPER_ADMIN, tokenVersion di-increment agar sesi
+// yang berjalan langsung berakhir.
+// Menggunakan transaksi untuk mencegah race condition.
 async function hapusRole(id, role) {
   if (!ROLE_VALID.includes(role)) throw new AppError('Role tidak valid.', 400);
 
-  const user = await prisma.user.findUnique({ where: { id } });
-  if (!user) throw new AppError('User tidak ditemukan.', 404);
+  // Gunakan transaksi untuk mencegah race condition:
+  // antara cek guard dan update harus atomic.
+  return await prisma.$transaction(async (tx) => {
+    const user = await tx.user.findUnique({ where: { id } });
+    if (!user) throw new AppError('User tidak ditemukan.', 404);
 
-  if (!user.roles.includes(role)) {
-    return tanpaPassword(user); // tidak punya → no-op
-  }
-
-  // Jaga: user harus tetap punya minimal 1 role.
-  if (user.roles.length <= 1) {
-    throw new AppError('User harus memiliki minimal satu peran.', 400);
-  }
-
-  // Guard: jangan cabut admin terakhir.
-  if (role === 'ADMIN') {
-    const jumlahAdmin = await prisma.user.count({ where: { roles: { has: 'ADMIN' } } });
-    if (jumlahAdmin <= 1) {
-      throw new AppError('Tidak dapat mencabut admin terakhir.', 400);
+    if (!user.roles.includes(role)) {
+      return tanpaPassword(user); // tidak punya → no-op
     }
-  }
 
-  const rolesBaru = user.roles.filter((r) => r !== role);
-  const updated = await prisma.user.update({
-    where: { id },
-    data: {
-      roles: { set: rolesBaru },
-      // Cabut ADMIN = sensitif → akhiri semua sesi berjalan.
-      ...(role === 'ADMIN' ? { tokenVersion: { increment: 1 } } : {}),
-    },
+    // Jaga: user harus tetap punya minimal 1 role.
+    if (user.roles.length <= 1) {
+      throw new AppError('User harus memiliki minimal satu peran.', 400);
+    }
+
+    // Guard: jangan cabut super admin terakhir.
+    if (role === 'SUPER_ADMIN') {
+      const jumlahSuperAdmin = await tx.user.count({
+        where: { roles: { has: 'SUPER_ADMIN' } },
+      });
+      if (jumlahSuperAdmin <= 1) {
+        throw new AppError('Tidak dapat mencabut super admin terakhir.', 400);
+      }
+    }
+
+    // Guard: jangan cabut admin terakhir.
+    if (role === 'ADMIN') {
+      const jumlahAdmin = await tx.user.count({ where: { roles: { has: 'ADMIN' } } });
+      if (jumlahAdmin <= 1) {
+        throw new AppError('Tidak dapat mencabut admin terakhir.', 400);
+      }
+    }
+
+    const rolesBaru = user.roles.filter((r) => r !== role);
+    const updated = await tx.user.update({
+      where: { id },
+      data: {
+        roles: { set: rolesBaru },
+        // Cabut ADMIN/SUPER_ADMIN = sensitif → akhiri semua sesi berjalan.
+        ...(role === 'ADMIN' || role === 'SUPER_ADMIN'
+          ? { tokenVersion: { increment: 1 } }
+          : {}),
+      },
+    });
+    return tanpaPassword(updated);
+  }, {
+    isolationLevel: 'Serializable', // Level tertinggi untuk prevent race
   });
-  return tanpaPassword(updated);
 }
 
 // --- Reset password user ---
@@ -304,40 +324,54 @@ async function resetPassword(id) {
 }
 
 // --- Hapus user ---
+// Melindungi: (1) super admin terakhir, (2) admin terakhir.
+// Semua pengecekan dan penghapusan dalam transaksi untuk mencegah race condition.
 async function remove(id) {
-  const user = await prisma.user.findUnique({
-    where: { id },
-    include: {
-      _count: { select: { peminjaman: true } },
-    },
-  });
-  if (!user) throw new AppError('User tidak ditemukan.', 404);
+  // Gunakan transaksi untuk atomicity + race condition prevention
+  return await prisma.$transaction(async (tx) => {
+    const user = await tx.user.findUnique({
+      where: { id },
+      include: {
+        _count: { select: { peminjaman: true } },
+      },
+    });
+    if (!user) throw new AppError('User tidak ditemukan.', 404);
 
-  // Cek: jangan hapus admin terakhir
-  if (user.roles.includes('ADMIN')) {
-    const jumlahAdmin = await prisma.user.count({ where: { roles: { has: 'ADMIN' } } });
-    if (jumlahAdmin <= 1) {
-      throw new AppError('Tidak dapat menghapus admin terakhir.', 400);
+    // Cek: jangan hapus super admin terakhir.
+    if (user.roles.includes('SUPER_ADMIN')) {
+      const jumlahSuperAdmin = await tx.user.count({
+        where: { roles: { has: 'SUPER_ADMIN' } },
+      });
+      if (jumlahSuperAdmin <= 1) {
+        throw new AppError('Tidak dapat menghapus super admin terakhir.', 400);
+      }
     }
-  }
 
-  // Cek: user punya peminjaman aktif?
-  const peminjamanAktif = await prisma.peminjaman.count({
-    where: { userId: id, status: { in: STATUS_AKTIF } },
+    // Cek: jangan hapus admin terakhir.
+    if (user.roles.includes('ADMIN')) {
+      const jumlahAdmin = await tx.user.count({ where: { roles: { has: 'ADMIN' } } });
+      if (jumlahAdmin <= 1) {
+        throw new AppError('Tidak dapat menghapus admin terakhir.', 400);
+      }
+    }
+
+    // Cek: user punya peminjaman aktif?
+    const peminjamanAktif = await tx.peminjaman.count({
+      where: { userId: id, status: { in: STATUS_AKTIF } },
+    });
+    if (peminjamanAktif > 0) {
+      throw new AppError(`User memiliki ${peminjamanAktif} peminjaman aktif. Selesaikan dulu sebelum menghapus.`, 400);
+    }
+
+    // Hapus riwayat peminjaman lalu user.
+    // Detail peminjaman ikut terhapus otomatis (onDelete: Cascade).
+    await tx.peminjaman.deleteMany({ where: { userId: id } });
+    await tx.user.delete({ where: { id } });
+
+    return { id, nama: user.nama };
+  }, {
+    isolationLevel: 'Serializable',
   });
-  if (peminjamanAktif > 0) {
-    throw new AppError(`User memiliki ${peminjamanAktif} peminjaman aktif. Selesaikan dulu sebelum menghapus.`, 400);
-  }
-
-  // Hapus riwayat peminjaman (semua tinggal status non-aktif) lalu user-nya,
-  // dalam satu transaksi. Tanpa ini, relasi Peminjaman→User memblokir delete.
-  // Detail peminjaman ikut terhapus otomatis (onDelete: Cascade).
-  await prisma.$transaction([
-    prisma.peminjaman.deleteMany({ where: { userId: id } }),
-    prisma.user.delete({ where: { id } }),
-  ]);
-
-  return { id, nama: user.nama };
 }
 
 // --- Hapus banyak peminjam sekaligus (berdasarkan ID terpilih) ---
