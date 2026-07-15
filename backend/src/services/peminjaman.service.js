@@ -106,8 +106,29 @@ function serialisasiRingkas(p) {
   const s = serialisasi(p);
   if (!s) return s;
   const buangDataUrl = (v) => (typeof v === 'string' && v.startsWith('data:') ? null : v);
+
+  // Ekstrak data peminjam dan barang untuk tampilan daftar
+  const peminjam = s.peminjam;
+  const detail = s.detail || [];
+
+  // Ambil merk barang pertama (untuk tampilan daftar)
+  const barangPertama = detail.find((d) => d.barang)?.barang;
+  const merkBarang = barangPertama?.merk || null;
+
+  // Ambil tanggal rencana pinjam dari detail barang
+  const tanggalRencanaPinjam = barangPertama?.tanggalRencanaPinjam || null;
+
   return {
     ...s,
+    // Data peminjam selalu ada untuk tampilan daftar
+    namaPeminjam: peminjam?.nama || '-',
+    nipPeminjam: peminjam?.nip || '-',
+    emailPeminjam: peminjam?.email || null,
+    // Merk barang
+    merkBarang,
+    // Tanggal rencana pinjam
+    tanggalRencanaPinjam,
+    // Flag dokumen
     adaDokumen: Boolean(s.dokumenUrl),
     adaDokumenStempel: Boolean(s.dokumenStempelUrl),
     adaDokumenPengembalian: Boolean(s.dokumenPengembalianUrl),
@@ -141,18 +162,29 @@ function statusBerdasarTanggal(p) {
 // hanya membangun objek peminjaman semu (dari barang & identitas peminjam
 // terkini) untuk dirender menjadi PDF. Hasil = data URL (application/pdf).
 async function previewSurat(userId, data) {
+  console.log('[previewSurat] Starting with userId:', userId, 'items count:', data.items?.length);
+
   const user = await prisma.user.findUnique({ where: { id: userId } });
-  if (!user) throw new AppError('Data peminjam tidak ditemukan.', 404);
+  if (!user) {
+    console.error('[previewSurat] User not found:', userId);
+    throw new AppError('Data peminjam tidak ditemukan.', 404);
+  }
 
   // Ambil semua barang sekaligus (hindari N+1)
   const barangIds = data.items.map((i) => i.barangId);
+  console.log('[previewSurat] barangIds:', barangIds);
+
   const barangMap = new Map(
     (await prisma.barang.findMany({ where: { id: { in: barangIds } } })).map((b) => [b.id, b])
   );
+  console.log('[previewSurat] Found barang:', barangMap.size, 'of', barangIds.length);
 
   const detailItems = data.items.map((item) => {
     const barang = barangMap.get(item.barangId);
-    if (!barang) throw new AppError('Barang yang dipilih tidak ditemukan.', 404);
+    if (!barang) {
+      console.error('[previewSurat] Barang not found:', item.barangId);
+      throw new AppError('Barang yang dipilih tidak ditemukan.', 404);
+    }
     return { barang, jumlahPinjam: item.jumlahPinjam };
   });
 
@@ -175,7 +207,10 @@ async function previewSurat(userId, data) {
     tahunSurat,
   };
 
-  return suratPernyataanService.generate(peminjamanSemu);
+  console.log('[previewSurat] Generating PDF...');
+  const result = await suratPernyataanService.generate(peminjamanSemu);
+  console.log('[previewSurat] PDF generated, length:', result?.length);
+  return result;
 }
 
 // --- Buat pengajuan peminjaman baru ---
@@ -302,9 +337,6 @@ async function create(userId, data, dokumenDataUrl, requestInfo = {}) {
     );
   }
 
-  // Generate kode transaksi unik untuk QR code dan referensi
-  const kodeTransaksi = await kodeTransaksiUnik();
-
   // Ambil semua barang sekaligus (hindari N+1 di dalam transaction).
   // Reuse barangIds yang sudah dedup + non-null dari cek di atas.
   const barangList = await prisma.barang.findMany({ where: { id: { in: barangIds } } });
@@ -313,6 +345,7 @@ async function create(userId, data, dokumenDataUrl, requestInfo = {}) {
   // Validasi dan bangun detail
   const detailItems = [];
   let kodeSnapshot = null;
+  let barangUtama = null;
   for (const item of data.items) {
     const barang = barangMap.get(item.barangId);
     if (!barang) throw new AppError(`Barang dengan id ${item.barangId} tidak ditemukan.`, 404);
@@ -322,9 +355,20 @@ async function create(userId, data, dokumenDataUrl, requestInfo = {}) {
         400
       );
     }
-    if (!kodeSnapshot) kodeSnapshot = barang.kodeBarang;
+    if (!kodeSnapshot) {
+      kodeSnapshot = barang.kodeBarang;
+      barangUtama = barang;
+    }
     detailItems.push({ barangId: item.barangId, jumlahPinjam: item.jumlahPinjam });
   }
+
+  // Generate kode transaksi unik untuk QR code dan referensi
+  // Format: kodeSatker-kodeBarangBmn-NUP (natural code dari barang utama)
+  const kodeTransaksi = await kodeTransaksiUnik({
+    kodeSatker: barangUtama?.kodeSatker,
+    kodeBarangBmn: barangUtama?.kodeBarangBmn,
+    nup: barangUtama?.nup,
+  });
 
   const tahunSurat = new Date().getFullYear();
 

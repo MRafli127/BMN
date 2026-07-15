@@ -42,11 +42,13 @@ function KontenBarang() {
   // Pakai nilai URL sebagai filter AWAL. Karena `template.tsx` me-mount ulang
   // konten tiap navigasi, halaman yang dibuka dari dashboard langsung memuat
   // filter yang dimaksud tanpa menunggu effect.
+  // OPTIMASI: includePeminjam=true agar data siapa yang meminjam ikut dimuat
   const { data, filter, ubahFilter, sedangMemuat, refetch } = useBarangFolder(
     {
       ...(ketersediaanUrl ? { ketersediaan: ketersediaanUrl } : {}),
       ...(kodeSatkerUrl ? { kodeSatker: kodeSatkerUrl } : {}),
-    }
+    },
+    { includePeminjam: true }
   );
   const [cari, setCari] = useState('');
   const [halaman, setHalaman] = useState(1);
@@ -113,12 +115,7 @@ function KontenBarang() {
           <ImportBarangDialog onSelesai={refetch} />
           <Button asChild variant="outline">
             <Link href={RUTE.adminBarangBulk}>
-              <List className="h-4 w-4" /> Tambah Massal
-            </Link>
-          </Button>
-          <Button asChild>
-            <Link href={RUTE.adminBarangTambah}>
-              <Plus className="h-4 w-4" /> Tambah Barang
+              <List className="h-4 w-4" /> Tambah Barang Massal
             </Link>
           </Button>
         </div>

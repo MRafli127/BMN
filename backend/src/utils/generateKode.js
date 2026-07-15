@@ -1,14 +1,13 @@
 // ============================================================
-//  Pembentuk kode/identitas Barang.
+//  Pembentuk kode/identitas Barang & Transaksi.
 //
-//  Kode barang = KUNCI NATURAL aset BMN:
+//  Kode barang & transaksi = KUNCI NATURAL aset BMN:
 //      Kode Satker - Kode Barang - NUP
 //  contoh: 015110199411868000KP-3100102002-1180
 //
-//  Menggantikan format lama BMN-<tahun>-NNNN (auto-increment)
-//  yang sudah dihapus dari seluruh sistem. Dipakai bersama oleh
-//  barang.service.js (input manual) & barangImport.service.js
-//  (import Excel) agar kode konsisten dari mana pun barang dibuat.
+//  Dipakai oleh:
+//  - barang.service.js: membentuk kodeBarang saat barang dibuat/di-import
+//  - peminjaman.service.js: membentuk kodeTransaksi saat peminjaman dibuat
 // ============================================================
 
 const { prisma } = require('../config/database');
@@ -35,46 +34,53 @@ function generateRandomString(panjang = PANJANG_RANDOM) {
   return result;
 }
 
-// Bentuk kode transaksi unik untuk peminjaman.
-// Format: BMN-YYYYMMDD-XXXXX (5 karakter acak yang mudah dibaca)
+// Generate kode transaksi unik untuk peminjaman.
+// Format: kodeSatker-kodeBarangBmn-NUP (natural code dari barang)
 // Menggunakan retry mechanism untuk menjamin uniqueness di database.
-function kodeTransaksi(tanggal = new Date()) {
-  const tahun = tanggal.getFullYear();
-  const bulan = String(tanggal.getMonth() + 1).padStart(2, '0');
-  const hari = String(tanggal.getDate()).padStart(2, '0');
-  const random = generateRandomString(PANJANG_RANDOM);
-  return `BMN-${tahun}${bulan}${hari}-${random}`;
-}
+async function kodeTransaksiUnik(barangData = {}) {
+  const { kodeSatker, kodeBarangBmn, nup } = barangData;
 
-// Generate kode transaksi dengan retry hingga unik.
-// Memakai COUNT query untuk cek eksistensi (lebih ringan dari unique constraint violation).
-// Maksimum 5 retry sebelum melempar error.
-async function kodeTransaksiUnik(tanggal = new Date()) {
-  const tahun = tanggal.getFullYear();
-  const bulan = String(tanggal.getMonth() + 1).padStart(2, '0');
-  const hari = String(tanggal.getDate()).padStart(2, '0');
-  const prefix = `BMN-${tahun}${bulan}${hari}-`;
-  const MAX_RETRY = 5;
+  // Bangun kode dari komponen natural
+  const kodeNatural = kodeNaturalBarang({ kodeSatker, kodeBarangBmn, nup });
 
-  for (let i = 0; i < MAX_RETRY; i++) {
-    const random = generateRandomString(PANJANG_RANDOM);
-    const kode = `${prefix}${random}`;
+  // Jika komponen tidak lengkap, fallback ke format timestamp-based
+  if (!kodeNatural || !kodeSatker || !kodeBarangBmn || !nup) {
+    return kodeTransaksiFallback();
+  }
 
-    // Cek apakah kode sudah ada di database
-    const count = await prisma.peminjaman.count({
-      where: { kodeTransaksi: kode },
+  // Cek apakah kode sudah ada (uniqueness)
+  const count = await prisma.peminjaman.count({
+    where: { kodeTransaksi: kodeNatural },
+  });
+
+  if (count === 0) {
+    return kodeNatural;
+  }
+
+  // Jika sudah ada, tambahkan suffix nomor urut
+  // Cari berapa kali kode ini sudah dipakai
+  const MAX_RETRY = 10;
+  for (let i = 1; i <= MAX_RETRY; i++) {
+    const kodeDenganSuffix = `${kodeNatural}-${i}`;
+    const existing = await prisma.peminjaman.count({
+      where: { kodeTransaksi: kodeDenganSuffix },
     });
-
-    if (count === 0) {
-      return kode;
+    if (existing === 0) {
+      return kodeDenganSuffix;
     }
   }
 
-  // Jika semua retry gagal, gunakan timestamp + random sebagai fallback
-  // Ini sangat kecil kemungkinannya terjadi (~1 dalam 60 juta)
-  const timestamp = Date.now().toString(36).toUpperCase();
-  const random = generateRandomString(3);
-  return `${prefix}${timestamp}${random}`;
+  // Fallback jika semua retry gagal
+  return kodeTransaksiFallback();
+}
+
+// Fallback: format timestamp-based jika komponen tidak tersedia
+function kodeTransaksiFallback() {
+  const tahun = new Date().getFullYear();
+  const bulan = String(new Date().getMonth() + 1).padStart(2, '0');
+  const hari = String(new Date().getDate()).padStart(2, '0');
+  const random = generateRandomString(PANJANG_RANDOM);
+  return `${tahun}${bulan}${hari}-${random}`;
 }
 
 module.exports = { kodeNaturalBarang, kodeTransaksiUnik };
