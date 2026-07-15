@@ -274,7 +274,7 @@ export default function PenggunaPage() {
         terbuka={dialogKonfirmasi.terbuka}
         judul={dialogKonfirmasi.judul}
         pesan={dialogKonfirmasi.pesan}
-        onBatal={() => setDialogKonfirmasi((d) => ({ ...d, terbuka: false }))}
+        onUbahTerbuka={(terbuka) => setDialogKonfirmasi((d) => ({ ...d, terbuka }))}
         onKonfirmasi={dialogKonfirmasi.aksi}
         sedangMemuat={sedangAksi}
         teksKonfirmasi="Ya, Lanjutkan"

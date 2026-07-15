@@ -180,19 +180,30 @@ export function LangkahSuratPernyataan({
   };
 
   // Generate surat preview (dengan debounce agar tidak spam saat props berubah)
+  // OPTIMASI: retry dengan backoff eksponensial, logging error detail
   const buatSurat = useCallback(() => {
     if (items.length === 0) return;
     setMemuatSurat(true);
     setGagalSurat(false);
     setErrorTanggal(null);
 
+    console.log('[Surat] Generating preview for items:', items.length);
+
     peminjamanService
       .previewSurat({ items, pangkatGolongan, tanggalPinjamRencana, tanggalKembaliRencana })
       .then((url) => {
+        console.log('[Surat] Preview generated successfully');
         setSuratUrl(url);
         retryCountRef.current = 0; // Reset retry counter on success
       })
       .catch((err) => {
+        // Log full error untuk debugging
+        console.error('[Surat] Preview failed:', {
+          status: err?.response?.status,
+          message: err?.response?.data?.message || err?.message,
+          data: err?.response?.data,
+        });
+
         const msg = err?.response?.data?.message || err?.message || '';
         // Tangkap error tanggal dari backend
         if (msg.toLowerCase().includes('tanggal')) {
@@ -206,8 +217,19 @@ export function LangkahSuratPernyataan({
           setGagalSurat(true);
           notify.gagal(msg);
           retryCountRef.current = 999; // Stop retry for data errors
+        } else if (err?.response?.status === 401) {
+          // Sesi berakhir - redirect ke login
+          notify.gagal('Sesi Anda telah berakhir. Mengalihkan ke halaman login...');
+          setTimeout(() => {
+            window.location.href = '/login';
+          }, 1500);
+        } else if (err?.response?.status === 404) {
+          // 404 bisa berarti barang tidak ditemukan atau user tidak valid
+          setErrorTanggal('Data tidak ditemukan. Silakan刷新 halaman dan coba lagi.');
+          setGagalSurat(true);
+          notify.gagal('Data tidak ditemukan. Silakan pilih barang ulang.');
         } else {
-          console.warn('[Surat] Preview gagal:', msg);
+          console.warn('[Surat] Preview gagal dengan error tidak terduga:', msg);
           setGagalSurat(true);
           // Biarkan retry ber chance untuk coba lagi
         }
@@ -217,14 +239,16 @@ export function LangkahSuratPernyataan({
       });
   }, [items, pangkatGolongan, tanggalPinjamRencana, tanggalKembaliRencana]);
 
-  // Retry on failure after a short delay (max 2 retries)
+  // Retry on failure after a short delay (max 3 retries dengan backoff)
   useEffect(() => {
-    if (gagalSurat && !errorTanggal && !memuatSurat && retryCountRef.current < 2) {
+    if (gagalSurat && !errorTanggal && !memuatSurat && retryCountRef.current < 3) {
       retryCountRef.current += 1;
       console.log(`[Surat] Retrying preview... (attempt ${retryCountRef.current})`);
+      // Backoff: 2 detik, 4 detik, 8 detik
+      const delay = Math.min(2000 * Math.pow(2, retryCountRef.current - 1), 8000);
       const timer = setTimeout(() => {
         buatSurat();
-      }, 1500);
+      }, delay);
       return () => clearTimeout(timer);
     }
   }, [gagalSurat, errorTanggal, memuatSurat, buatSurat]);

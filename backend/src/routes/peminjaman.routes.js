@@ -8,7 +8,7 @@ const stempelController = require('../controllers/stempel.controller');
 const authMiddleware = require('../middleware/auth.middleware');
 const roleMiddleware = require('../middleware/role.middleware');
 const validate = require('../middleware/validate.middleware');
-const { validateCsrfTokenMiddleware } = require('../middleware/csrf.middleware');
+const { validateCsrfTokenMiddleware, generateCsrfTokenMiddleware } = require('../middleware/csrf.middleware');
 const { uploadDokumenPeminjaman } = require('../middleware/upload.middleware');
 const { createPeminjamanSchema, tolakSchema, setujuiSchema, previewSuratSchema } = require('../validators/peminjaman.validator');
 
@@ -17,10 +17,15 @@ const router = express.Router();
 // Semua rute peminjaman memerlukan login
 router.use(authMiddleware);
 
+// Generate CSRF token untuk session (bila belum ada)
+router.use(generateCsrfTokenMiddleware);
+
+// Pratinjau Surat Pernyataan Peminjaman (PDF) sebelum pengajuan dibuat.
+// Menggunakan POST karena memerlukan body dengan data barang.
+router.post('/preview-surat', validate(previewSuratSchema), peminjamanController.previewSurat);
+
 // Daftar & pengajuan
 router.get('/', peminjamanController.getSemua);
-// Pratinjau Surat Pernyataan Peminjaman (PDF) sebelum pengajuan dibuat.
-router.post('/preview-surat', validateCsrfTokenMiddleware, validate(previewSuratSchema), peminjamanController.previewSurat);
 router.post('/', validateCsrfTokenMiddleware, uploadDokumenPeminjaman, validate(createPeminjamanSchema), peminjamanController.create);
 
 // Aksi massal (khusus admin) — didefinisikan sebelum '/:id' agar tidak

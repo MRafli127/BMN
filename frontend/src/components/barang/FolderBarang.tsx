@@ -201,10 +201,13 @@ export function FolderBarang({ grup, onHapus }: Props) {
                             <div className="min-w-0 flex-1">
                               <p className="truncate text-[11px] font-medium text-gray-900">{barang.nama}</p>
                               <p className="text-[10px] text-gray-400">{barang.kodeBarang}</p>
-                              {barang.peminjam && (
-                                <p className="text-[10px] text-orange-500 truncate" title={`NIP: ${barang.peminjam.nip || '-'}`}>
-                                  → {barang.peminjam.nama}
+                              {barang.peminjam ? (
+                                <p className="flex items-center gap-1 text-[10px] text-orange-500 truncate" title={`NIP: ${barang.peminjam.nip || '-'}`}>
+                                  <span className="text-orange-400">→</span>
+                                  <span className="truncate">{barang.peminjam.nama}</span>
                                 </p>
+                              ) : barang.jumlahTersedia === 0 && (
+                                <p className="text-[10px] font-medium text-red-500">Stok habis</p>
                               )}
                             </div>
                             <div className="flex items-center gap-1.5">
@@ -348,11 +351,16 @@ export function FolderBarang({ grup, onHapus }: Props) {
                             </TableCell>
                             <TableCell className="text-sm">
                               {barang.peminjam ? (
-                                <span className="font-medium text-orange-600" title={`NIP: ${barang.peminjam.nip || '-'}`}>
-                                  {barang.peminjam.nama}
-                                </span>
+                                <div className="flex flex-col gap-0.5">
+                                  <span className="font-medium text-orange-600" title={`NIP: ${barang.peminjam.nip || '-'}`}>
+                                    {barang.peminjam.nama}
+                                  </span>
+                                  {barang.peminjam.nip && (
+                                    <span className="text-xs text-muted-foreground">{barang.peminjam.nip}</span>
+                                  )}
+                                </div>
                               ) : (
-                                <span className="text-muted-foreground">*</span>
+                                <span className="text-muted-foreground">-</span>
                               )}
                             </TableCell>
                             <TableCell className="text-sm text-muted-foreground">{barang.lokasiPenyimpanan || '-'}</TableCell>

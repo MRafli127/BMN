@@ -183,7 +183,7 @@ model Barang {
 // 3) Peminjaman (transaksi pengajuan peminjaman)
 model Peminjaman {
   id                    String           @id @default(uuid())
-  kodeTransaksi         String?          @unique // Kode unik per transaksi (untuk QR scan & referensi). Format: BMN-YYYYMMDD-XXXXX. Nullable untuk kompatibilitas data lama.
+  kodeTransaksi         String?          @unique // Kode unik per transaksi (untuk QR scan & referensi). Format: kodeSatker-kodeBarangBmn-NUP. Nullable untuk kompatibilitas data lama.
   kodePeminjaman        String // Snapshot kode aset barang saat dipinjam. Saat dibaca, kode di-resync dari kodeBarang barang terkait (kunci natural kodeSatker-kodeBarangBmn-NUP).
   userId                String
   tanggalPengajuan      DateTime         @default(now()) // Saat record dibuat (draft atau pengajuan langsung) = "Draft Pengajuan"

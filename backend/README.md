@@ -65,7 +65,7 @@ backend/
 ## Catatan Teknis
 
 - **Transaksi stok:** persetujuan & pengembalian peminjaman memakai `prisma.$transaction` agar stok tidak pernah minus.
-- **Kode otomatis:** Barang `BMN-<tahun>-0001`. Peminjaman memakai kode aset barang yang dipinjam (`kodeSatker-kodeBarangBmn-NUP`), bukan generator sendiri — satu pengajuan dibatasi 1 barang.
+- **Kode otomatis:** Barang & transaksi menggunakan format natural (`kodeSatker-kodeBarangBmn-NUP`). Contoh: `015110199411868000KP-3100102002-1180`.
 - **Stempel digital:** `pdf-lib` membubuhkan cap "DISETUJUI" + tanda tangan. Jika ada file `assets/stempel.png`, gambar tersebut ikut ditempel; jika tidak, stempel digambar secara vektor.
 - **QR Code:** disimpan sebagai PNG di `uploads/qrcode`, berisi `kodePeminjaman`, peminjam, barang, status, tanggal.
 - **File statis:** diakses di `http://localhost:5000/uploads/...`.
