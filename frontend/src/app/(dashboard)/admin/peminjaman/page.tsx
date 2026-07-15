@@ -11,6 +11,7 @@ import { Input, Select, Textarea, Label } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { TabelPeminjaman } from '@/components/peminjaman/TabelPeminjaman';
 import { FolderPeminjaman } from '@/components/peminjaman/FolderPeminjaman';
+import { FolderSatkerPeminjaman } from '@/components/peminjaman/FolderSatkerPeminjaman';
 import { ImportPeminjamDialog } from '@/components/peminjaman/ImportPeminjamDialog';
 import { ExportModal } from '@/components/export/ExportModal';
 import { KonfirmasiDialog } from '@/components/shared/KonfirmasiDialog';
@@ -22,6 +23,7 @@ import { useQuery } from '@/lib/cache';
 import { ambilPesanError, cn } from '@/lib/utils';
 import { OPSI_STATUS, FILTER_STATUS_AKTIF, OPSI_FILTER_BARANG } from '@/constants/status';
 import { RUTE } from '@/constants/routes';
+import { invalidasiCache } from '@/lib/cache';
 import type { Peminjaman } from '@/types/peminjaman.type';
 import type { MetaPagination } from '@/types/barang.type';
 
@@ -43,6 +45,16 @@ export default function AdminPeminjamanPage() {
   const [dialogKembalikan, setDialogKembalikan] = useState(false);
   const [sedangKembalikan, setSedangKembalikan] = useState(false);
 
+  // Filter untuk query - saat mode folder, ambil semua data (limit besar)
+  // Mode folder langsung pakai limit 10000, tidak terpengaruh filter.limit yang mungkin 12
+  const filterQuery = useMemo(() => {
+    if (mode === 'folder') {
+      // Mode folder: ambil semua data tanpa pagination
+      return { ...filter, limit: 10000, page: 1 };
+    }
+    return { ...filter };
+  }, [filter, mode]);
+
   // Terapkan filter status dan kode satker dari query saat halaman dibuka — mis. ketika
   // datang dari kartu dashboard. Mendukung gabungan dipisah koma (Sedang Aktif).
   // Dibaca di useEffect agar render server & klien identik (aman dari hydration mismatch).
@@ -54,12 +66,23 @@ export default function AdminPeminjamanPage() {
     if (kodeSatker) setFilter((f) => ({ ...f, kodeSatker: kodeSatker as never }));
   }, []);
 
-  const key = useMemo(() => `peminjaman:${JSON.stringify(filter)}`, [filter]);
+  const key = useMemo(() => {
+    // Gunakan prefix berbeda untuk folder agar cache terpisah dari list
+    const prefix = mode === 'folder' ? 'folder-peminjaman' : 'peminjaman';
+    return `${prefix}:${JSON.stringify(filterQuery)}`;
+  }, [filterQuery, mode]);
 
   // muat (refetch) memaksa pemuatan ulang sambil tetap menampilkan data lama.
+  // Untuk mode folder, langsung gunakan limit 10000 tanpa bergantung pada filter state
   const { data: hasil, sedangMemuat: memuat, refetch: muat } = useQuery<{ data: Peminjaman[]; meta: MetaPagination | null }>(
     key,
-    () => peminjamanService.getSemua(filter),
+    async () => {
+      // Untuk mode folder, pastikan limit besar
+      const queryFilter = mode === 'folder'
+        ? { ...filterQuery, limit: 10000, page: 1 }
+        : filterQuery;
+      return peminjamanService.getSemua(queryFilter);
+    },
     { tampilkanCache: true } // tampilkan data lama saat navigasi pagination
   );
   const data = hasil?.data ?? [];
@@ -69,6 +92,18 @@ export default function AdminPeminjamanPage() {
   useEffect(() => {
     setTerpilih([]);
   }, [hasil]);
+
+  // Fetch ulang saat mode berubah ke folder untuk ambil semua data
+  useEffect(() => {
+    if (mode === 'folder') {
+      // Reset pagination dan invalidasi cache folder
+      setFilter((f) => ({ ...f, page: 1 }));
+      invalidasiCache('folder-peminjaman');
+      // Trigger refetch dengan delay kecil untuk memastikan state sudah update
+      const timer = setTimeout(() => muat(), 100);
+      return () => clearTimeout(timer);
+    }
+  }, [mode, muat]);
 
   // Jumlah pengajuan berstatus MENUNGGU di antara yang dipilih (yang bisa di-ACC).
   const jumlahBisaSetujui = data.filter(
@@ -346,40 +381,48 @@ export default function AdminPeminjamanPage() {
                 onUbahTerpilih={setTerpilih}
               />
             ) : (
-              <FolderPeminjaman data={data} hrefDetail={RUTE.adminPeminjamanDetail} onHapus={hapus} />
+              <FolderSatkerPeminjaman
+                data={data}
+                hrefDetail={RUTE.adminPeminjamanDetail}
+                onHapus={hapus}
+                terpilih={terpilih}
+                onUbahTerpilih={setTerpilih}
+              />
             )}
-            <div className="mt-4 flex flex-col items-center justify-between gap-3 sm:flex-row">
-              <div className="flex items-center gap-2 text-sm text-on-surface-variant">
-                <span>Tampilkan</span>
-                <Select
-                  value={String(filter.limit ?? 12)}
-                  onChange={(e) => setFilter((f) => ({ ...f, limit: Number(e.target.value), page: 1 }))}
-                  className="h-9 w-[4.5rem]"
-                  aria-label="Jumlah peminjaman per halaman"
-                >
-                  {OPSI_LIMIT.map((n) => (
-                    <option key={n} value={n}>
-                      {n}
-                    </option>
-                  ))}
-                </Select>
-                <span>per halaman{meta ? ` • ${meta.total} data` : ''}</span>
-              </div>
-
-              {meta && meta.totalHalaman > 1 && (
-                <div className="flex items-center gap-2">
-                  <span className="text-sm text-on-surface-variant">
-                    Halaman {meta.page} dari {meta.totalHalaman}
-                  </span>
-                  <Button variant="outline" size="sm" disabled={meta.page <= 1} onClick={() => setFilter((f) => ({ ...f, page: (f.page || 1) - 1 }))}>
-                    <ChevronLeft className="h-4 w-4" /> Sebelumnya
-                  </Button>
-                  <Button variant="outline" size="sm" disabled={meta.page >= meta.totalHalaman} onClick={() => setFilter((f) => ({ ...f, page: (f.page || 1) + 1 }))}>
-                    Berikutnya <ChevronRight className="h-4 w-4" />
-                  </Button>
+            {mode === 'list' && (
+              <div className="mt-4 flex flex-col items-center justify-between gap-3 sm:flex-row">
+                <div className="flex items-center gap-2 text-sm text-on-surface-variant">
+                  <span>Tampilkan</span>
+                  <Select
+                    value={String(filter.limit ?? 12)}
+                    onChange={(e) => setFilter((f) => ({ ...f, limit: Number(e.target.value), page: 1 }))}
+                    className="h-9 w-[4.5rem]"
+                    aria-label="Jumlah peminjaman per halaman"
+                  >
+                    {OPSI_LIMIT.map((n) => (
+                      <option key={n} value={n}>
+                        {n}
+                      </option>
+                    ))}
+                  </Select>
+                  <span>per halaman{meta ? ` • ${meta.total} data` : ''}</span>
                 </div>
-              )}
-            </div>
+
+                {meta && meta.totalHalaman > 1 && (
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm text-on-surface-variant">
+                      Halaman {meta.page} dari {meta.totalHalaman}
+                    </span>
+                    <Button variant="outline" size="sm" disabled={meta.page <= 1} onClick={() => setFilter((f) => ({ ...f, page: (f.page || 1) - 1 }))}>
+                      <ChevronLeft className="h-4 w-4" /> Sebelumnya
+                    </Button>
+                    <Button variant="outline" size="sm" disabled={meta.page >= meta.totalHalaman} onClick={() => setFilter((f) => ({ ...f, page: (f.page || 1) + 1 }))}>
+                      Berikutnya <ChevronRight className="h-4 w-4" />
+                    </Button>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         )}
       </div>
