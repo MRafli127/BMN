@@ -15,12 +15,12 @@ import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog';
 import { satkerService, type Satker } from '@/services/satker.service';
-import { useQuery, useMutation, useQueryClient } from '@/lib/cache';
+import { useQuery } from '@/lib/cache';
+import { invalidasiCache } from '@/lib/cache';
 import { notify } from '@/components/ui/toast';
 import { ambilPesanError } from '@/lib/utils';
 
 export default function SuperAdminSatkerPage() {
-  const queryClient = useQueryClient();
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(1);
   const [showAktif, setShowAktif] = useState(true);
@@ -31,72 +31,84 @@ export default function SuperAdminSatkerPage() {
 
   // Form state
   const [formData, setFormData] = useState({ kode: '', nama: '', singkat: '', aktif: true });
+  const [sedangMenyimpan, setSedangMenyimpan] = useState(false);
+  const [sedangMenghapus, setSedangMenghapus] = useState(false);
+  const [sedangSinkron, setSedangSinkron] = useState(false);
+
+  // Query key
+  const queryKey = `satker:${search}:${page}:${showAktif}`;
 
   // Query: daftar satker
-  const { data: satkerData, isLoading } = useQuery(
-    `satker:${search}:${page}:${showAktif}`,
+  const { data: satkerData, isLoading, refetch } = useQuery(
+    queryKey,
     () => satkerService.getSemua({ q: search, page, limit: 10, aktif: showAktif })
   );
 
-  // Mutation: tambah satker
-  const tambahMutation = useMutation(
-    () => satkerService.create(formData),
-    {
-      onSuccess: () => {
-        notify.suksess('Satker berhasil ditambahkan');
-        setDialogTambahOpen(false);
-        setFormData({ kode: '', nama: '', singkat: '', aktif: true });
-        queryClient.invalidateQueries('satker');
-      },
-      onError: (error) => {
-        notify.gagal(ambilPesanError(error, 'Gagal menambahkan satker'));
-      },
+  // Tambah satker
+  const handleTambah = async () => {
+    setSedangMenyimpan(true);
+    try {
+      await satkerService.create(formData);
+      notify.suksess('Satker berhasil ditambahkan');
+      setDialogTambahOpen(false);
+      setFormData({ kode: '', nama: '', singkat: '', aktif: true });
+      invalidasiCache('satker');
+      refetch();
+    } catch (error) {
+      notify.gagal(ambilPesanError(error, 'Gagal menambahkan satker'));
+    } finally {
+      setSedangMenyimpan(false);
     }
-  );
+  };
 
-  // Mutation: update satker
-  const updateMutation = useMutation(
-    () => satkerService.update(selectedSatker!.id, formData),
-    {
-      onSuccess: () => {
-        notify.suksess('Satker berhasil diperbarui');
-        setDialogEditOpen(false);
-        queryClient.invalidateQueries('satker');
-      },
-      onError: (error) => {
-        notify.gagal(ambilPesanError(error, 'Gagal memperbarui satker'));
-      },
+  // Update satker
+  const handleUpdate = async () => {
+    if (!selectedSatker) return;
+    setSedangMenyimpan(true);
+    try {
+      await satkerService.update(selectedSatker.id, formData);
+      notify.suksess('Satker berhasil diperbarui');
+      setDialogEditOpen(false);
+      invalidasiCache('satker');
+      refetch();
+    } catch (error) {
+      notify.gagal(ambilPesanError(error, 'Gagal memperbarui satker'));
+    } finally {
+      setSedangMenyimpan(false);
     }
-  );
+  };
 
-  // Mutation: hapus satker
-  const hapusMutation = useMutation(
-    () => satkerService.remove(selectedSatker!.id),
-    {
-      onSuccess: () => {
-        notify.suksess('Satker berhasil dihapus');
-        setDialogHapusOpen(false);
-        queryClient.invalidateQueries('satker');
-      },
-      onError: (error) => {
-        notify.gagal(ambilPesanError(error, 'Gagal menghapus satker'));
-      },
+  // Hapus satker
+  const handleHapus = async () => {
+    if (!selectedSatker) return;
+    setSedangMenghapus(true);
+    try {
+      await satkerService.remove(selectedSatker.id);
+      notify.suksess('Satker berhasil dihapus');
+      setDialogHapusOpen(false);
+      invalidasiCache('satker');
+      refetch();
+    } catch (error) {
+      notify.gagal(ambilPesanError(error, 'Gagal menghapus satker'));
+    } finally {
+      setSedangMenghapus(false);
     }
-  );
+  };
 
-  // Mutation: sync dari barang
-  const syncMutation = useMutation(
-    () => satkerService.sync(),
-    {
-      onSuccess: (result) => {
-        notify.suksess(`Sinkronisasi selesai: ${result.dibuat} dibuat, ${result.dilewati} dilewati`);
-        queryClient.invalidateQueries('satker');
-      },
-      onError: (error) => {
-        notify.gagal(ambilPesanError(error, 'Gagal sinkronisasi'));
-      },
+  // Sinkron dari barang
+  const handleSync = async () => {
+    setSedangSinkron(true);
+    try {
+      const result = await satkerService.sync();
+      notify.suksess(`Sinkronisasi selesai: ${result.dibuat} dibuat, ${result.dilewati} dilewati`);
+      invalidasiCache('satker');
+      refetch();
+    } catch (error) {
+      notify.gagal(ambilPesanError(error, 'Gagal sinkronisasi'));
+    } finally {
+      setSedangSinkron(false);
     }
-  );
+  };
 
   const handleBukaEdit = (satker: Satker) => {
     setSelectedSatker(satker);
@@ -116,7 +128,7 @@ export default function SuperAdminSatkerPage() {
 
   if (isLoading) return <LoadingSpinner layarPenuh />;
 
-  const satkers = satkerData?.data || [];
+  const satkers: Satker[] = satkerData?.data || [];
   const meta = satkerData?.meta || { total: 0, page: 1, totalHalaman: 1 };
 
   return (
@@ -134,8 +146,8 @@ export default function SuperAdminSatkerPage() {
         <div className="flex flex-wrap gap-2">
           <Button
             variant="outline"
-            onClick={() => syncMutation.mutate()}
-            loading={syncMutation.isPending}
+            onClick={handleSync}
+            loading={sedangSinkron}
           >
             <Icon name="sync" className="mr-2 h-4 w-4" />
             Sync dari Barang
@@ -326,8 +338,8 @@ export default function SuperAdminSatkerPage() {
               Batal
             </Button>
             <Button
-              onClick={() => tambahMutation.mutate()}
-              loading={tambahMutation.isPending}
+              onClick={handleTambah}
+              loading={sedangMenyimpan}
               disabled={!formData.kode || !formData.nama}
             >
               Simpan
@@ -369,7 +381,7 @@ export default function SuperAdminSatkerPage() {
             <Button variant="outline" onClick={() => setDialogEditOpen(false)}>
               Batal
             </Button>
-            <Button onClick={() => updateMutation.mutate()} loading={updateMutation.isPending} disabled={!formData.nama}>
+            <Button onClick={handleUpdate} loading={sedangMenyimpan} disabled={!formData.nama}>
               Simpan
             </Button>
           </DialogFooter>
@@ -398,8 +410,8 @@ export default function SuperAdminSatkerPage() {
             </Button>
             <Button
               variant="destructive"
-              onClick={() => hapusMutation.mutate()}
-              loading={hapusMutation.isPending}
+              onClick={handleHapus}
+              loading={sedangMenghapus}
             >
               Hapus
             </Button>

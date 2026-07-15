@@ -68,6 +68,22 @@ export interface DashboardFilter {
   kodeSatker?: string;
 }
 
+export interface DashboardSuperAdmin {
+  totalBarang: number;
+  totalAdmin: number;
+  totalPeminjam: number;
+  peminjamanAktif: number;
+  peminjamanPending: number;
+  barangTerlambat: number;
+  totalPeminjaman: number;
+  jumlahSatker: number;
+  statistikSatker: Array<{
+    kodeSatker: string;
+    jumlahBarang: number;
+    jumlahPeminjaman: number;
+  }>;
+}
+
 export const dashboardService = {
   async admin(filter?: DashboardFilter): Promise<DashboardAdmin> {
     const params = new URLSearchParams();
@@ -76,6 +92,11 @@ export const dashboardService = {
     if (filter?.kodeSatker) params.append('kodeSatker', filter.kodeSatker);
     const query = params.toString();
     const res = await api.get(`/dashboard/admin${query ? `?${query}` : ''}`);
+    return res.data.data;
+  },
+
+  async superAdmin(): Promise<DashboardSuperAdmin> {
+    const res = await api.get('/dashboard/super-admin');
     return res.data.data;
   },
 
