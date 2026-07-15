@@ -39,7 +39,7 @@ export default function SuperAdminSatkerPage() {
   const queryKey = `satker:${search}:${page}:${showAktif}`;
 
   // Query: daftar satker
-  const { data: satkerData, isLoading, refetch } = useQuery(
+  const { data: satkerResponse, sedangMemuat: isLoading, refetch } = useQuery(
     queryKey,
     () => satkerService.getSemua({ q: search, page, limit: 10, aktif: showAktif })
   );
@@ -128,8 +128,8 @@ export default function SuperAdminSatkerPage() {
 
   if (isLoading) return <LoadingSpinner layarPenuh />;
 
-  const satkers: Satker[] = satkerData?.data || [];
-  const meta = satkerData?.meta || { total: 0, page: 1, totalHalaman: 1 };
+  const satkers: Satker[] = satkerResponse?.data || [];
+  const meta = satkerResponse?.meta || { total: 0, page: 1, totalHalaman: 1 };
 
   return (
     <div className="space-y-gutter">

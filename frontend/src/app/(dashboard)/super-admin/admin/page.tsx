@@ -14,6 +14,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table';
 import { notify } from '@/components/ui/toast';
+import { LABEL_ROLE } from '@/constants/roles';
 import { ambilPesanError } from '@/lib/utils';
 import { userManagementService, type UserItem } from '@/services/userManagement.service';
 
@@ -224,10 +225,9 @@ export default function ManajemenAdminPage() {
                         {admin.roles?.map((role) => (
                           <Badge
                             key={role}
-                            variant={role === 'SUPER_ADMIN' ? 'default' : 'secondary'}
-                            className={role === 'SUPER_ADMIN' ? 'bg-purple-500 text-white' : ''}
+                            className={role === 'SUPER_ADMIN' ? 'bg-purple-500 text-white' : 'bg-gray-100 text-gray-700'}
                           >
-                            {role === 'SUPER_ADMIN' ? 'Super Admin' : 'Admin'}
+                            {LABEL_ROLE[role]}
                           </Badge>
                         ))}
                       </div>

@@ -14,13 +14,18 @@ import { cn, ambilPesanError, inisial } from '@/lib/utils';
 import { buatRipple } from '@/lib/ripple';
 import { notify } from '@/components/ui/toast';
 import { RUTE, RUTE_DEFAULT } from '@/constants/routes';
+import { LABEL_ROLE } from '@/constants/roles';
 import { useAuth } from '@/hooks/useAuth';
 import { useUIStore } from '@/store/uiStore';
 import { useJumlahKeranjang } from '@/store/keranjangStore';
 import type { Role } from '@/types/user.type';
 
 // Label peran untuk tampilan tombol beralih.
-const LABEL_PERAN: Record<Role, string> = { ADMIN: 'Administrator', PEMINJAM: 'Peminjam', SUPER_ADMIN: 'Super Admin' };
+const LABEL_PERAN: Record<Role, string> = {
+  ADMIN: LABEL_ROLE.ADMIN,
+  PEMINJAM: LABEL_ROLE.PEMINJAM,
+  SUPER_ADMIN: LABEL_ROLE.SUPER_ADMIN,
+};
 
 interface ItemMenu {
   label: string;
@@ -64,7 +69,7 @@ export function Sidebar() {
   // Tentukan menu berdasarkan role aktif
   const menu = isSuperAdmin ? menuSuperAdmin : isAdmin ? menuAdmin : menuPeminjam;
   // Label untuk badge role
-  const labelRole = isSuperAdmin ? 'Super Admin' : isAdmin ? 'Administrator' : 'Peminjam';
+  const labelRole = LABEL_PERAN[user.activeRole];
   // Panduan selalu tampil untuk semua peran → digabung agar satu pemetaan.
   const semuaMenu: ItemMenu[] = [...menu, { label: 'Panduan Penggunaan', href: RUTE.bantuan, ikon: 'menu_book' }];
 

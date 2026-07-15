@@ -29,6 +29,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/hooks/useAuth';
+import { LABEL_ROLE } from '@/constants/roles';
 import { RUTE } from '@/constants/routes';
 
 type Langkah = { ikon: typeof Boxes; judul: string; teks: string };
@@ -83,7 +84,7 @@ export default function BantuanPage() {
             <Lightbulb className="h-3.5 w-3.5" /> Pusat Panduan
           </span>
           <h1 className="mt-3 font-jakarta text-2xl font-bold md:text-3xl">
-            Panduan {isAdmin ? 'Administrator' : 'Peminjam'} SIPP-BMN
+            Panduan {LABEL_ROLE[user.activeRole]} SIPP-BMN
           </h1>
           <p className="mt-2 max-w-2xl text-white/85">
             Halo {user?.nama?.split(' ')[0] || 'Pengguna'}, berikut langkah-langkah penggunaan aplikasi sesuai peran Anda.

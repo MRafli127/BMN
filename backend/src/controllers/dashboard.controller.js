@@ -192,41 +192,59 @@ const dashboardPeminjam = asyncHandler(async (req, res) => {
 const dashboardSuperAdmin = asyncHandler(async (req, res) => {
   await tandaiTerlambat();
 
-  const [totalBarang, totalAdmin, totalPeminjam, peminjamanAktif, peminjamanPending, barangTerlambat, totalPeminjaman, semuaSatker] =
-    await Promise.all([
-      prisma.barang.count(),
-      prisma.user.count({ where: { roles: { has: 'ADMIN' } } }),
-      prisma.user.count({ where: { roles: { has: 'PEMINJAM' } } }),
-      prisma.peminjaman.count({ where: { status: { in: STATUS_AKTIF } } }),
-      prisma.peminjaman.count({ where: { status: 'MENUNGGU' } }),
-      prisma.peminjaman.count({ where: { status: 'TERLAMBAT' } }),
-      prisma.peminjaman.count(),
-      // Hitung satker unik dari barang
-      prisma.barang.groupBy({
-        by: ['kodeSatker'],
-        where: { kodeSatker: { not: null } },
-        _count: true,
-      }),
-    ]);
+  // Jalankan semua count queries secara paralel dulu
+  const [
+    totalBarang,
+    totalAdmin,
+    totalPeminjam,
+    peminjamanAktif,
+    peminjamanPending,
+    barangTerlambat,
+    totalPeminjaman,
+    semuaSatker,
+  ] = await Promise.all([
+    prisma.barang.count(),
+    prisma.user.count({ where: { roles: { has: 'ADMIN' } } }),
+    prisma.user.count({ where: { roles: { has: 'PEMINJAM' } } }),
+    prisma.peminjaman.count({ where: { status: { in: STATUS_AKTIF } } }),
+    prisma.peminjaman.count({ where: { status: 'MENUNGGU' } }),
+    prisma.peminjaman.count({ where: { status: 'TERLAMBAT' } }),
+    prisma.peminjaman.count(),
+    // Ambil kode satker unik + aggregate counts dalam satu query
+    prisma.barang.groupBy({
+      by: ['kodeSatker'],
+      where: { kodeSatker: { not: null } },
+      _count: { id: true },
+    }),
+  ]);
 
-  // Statistik per satker
-  const statistikSatker = await Promise.all(
-    semuaSatker.map(async (satker) => {
-      const [jumlahBarang, jumlahPeminjaman] = await Promise.all([
-        prisma.barang.count({ where: { kodeSatker: satker.kodeSatker } }),
-        prisma.peminjaman.count({
-          where: {
-            detail: { some: { barang: { kodeSatker: satker.kodeSatker } } },
-          },
-        }),
-      ]);
-      return {
-        kodeSatker: satker.kodeSatker,
-        jumlahBarang,
-        jumlahPeminjaman,
-      };
-    })
+  // OPTIMASI: Hitung jumlahBarang langsung dari hasil groupBy (tidak perlu query ulang)
+  const satkerBarangCount = Object.fromEntries(
+    semuaSatker.map((s) => [s.kodeSatker, s._count.id])
   );
+
+  // OPTIMASI: Hitung jumlahPeminjaman per satker dalam SATU query dengan groupBy
+  // Menggunakan raw query untuk join detailPeminjaman -> barang -> kodeSatker
+  // Catatan: nama tabel mengikuti @@map di schema.prisma (lowercase)
+  const satkerPeminjamanCountRaw = await prisma.$queryRaw`
+    SELECT b."kodeSatker", COUNT(DISTINCT p.id) as "jumlahPeminjaman"
+    FROM peminjaman p
+    INNER JOIN detail_peminjaman dp ON dp.peminjamanid = p.id
+    INNER JOIN barang b ON b.id = dp.barangid
+    WHERE b."kodeSatker" IS NOT NULL
+    GROUP BY b."kodeSatker"
+  `;
+
+  const satkerPeminjamanCount = Object.fromEntries(
+    satkerPeminjamanCountRaw.map((r) => [r.kodeSatker, Number(r.jumlahPeminjaman)])
+  );
+
+  // Gabungkan statistik per satker (tanpa N+1!)
+  const statistikSatker = semuaSatker.map((satker) => ({
+    kodeSatker: satker.kodeSatker,
+    jumlahBarang: satkerBarangCount[satker.kodeSatker] || 0,
+    jumlahPeminjaman: satkerPeminjamanCount[satker.kodeSatker] || 0,
+  }));
 
   return responsSukses(res, {
     pesan: 'Ringkasan dashboard super admin.',

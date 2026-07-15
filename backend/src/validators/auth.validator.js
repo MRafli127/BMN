@@ -59,9 +59,9 @@ const loginSchema = z.object({
   activeRole: z.enum(['ADMIN', 'PEMINJAM']).optional(),
 });
 
-// Validasi ganti active role
+// Validasi ganti active role (support SUPER_ADMIN untuk akun multi-role)
 const switchRoleSchema = z.object({
-  role: z.enum(['ADMIN', 'PEMINJAM'], { required_error: 'Peran wajib dipilih.' }),
+  role: z.enum(['ADMIN', 'PEMINJAM', 'SUPER_ADMIN'], { required_error: 'Peran wajib dipilih.' }),
 });
 
 // Validasi pembaruan profil (data diri, tanpa password)

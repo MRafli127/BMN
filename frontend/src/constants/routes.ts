@@ -2,6 +2,15 @@
 //  Konstanta path rute aplikasi (frontend).
 // ============================================================
 
+import type { Role } from '@/types/user.type';
+import { RUTE_DEFAULT_PER_ROLE } from './roles';
+
+// Rute yang memerlukan login
+export const RUTE_TERPROTEKSI = ['/admin', '/peminjam', '/super-admin'] as const;
+
+// Tujuan default berdasarkan peran
+export const RUTE_DEFAULT: Record<Role, string> = RUTE_DEFAULT_PER_ROLE;
+
 export const RUTE = {
   // Publik
   beranda: '/',
@@ -57,13 +66,3 @@ export const RUTE = {
   peminjamRiwayatDetail: (id: string) => `/peminjam/riwayat/${id}`,
   peminjamRiwayatReview: (id: string) => `/peminjam/riwayat/${id}/review`,
 } as const;
-
-// Rute yang memerlukan login
-export const RUTE_TERPROTEKSI = ['/admin', '/peminjam', '/super-admin'];
-
-// Tujuan default berdasarkan peran
-export const RUTE_DEFAULT = {
-  ADMIN: RUTE.adminDashboard,
-  PEMINJAM: RUTE.peminjamDashboard,
-  SUPER_ADMIN: RUTE.superAdminDashboard,
-};

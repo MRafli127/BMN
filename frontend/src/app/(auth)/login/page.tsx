@@ -16,6 +16,7 @@ import { notify } from '@/components/ui/toast';
 import { useAuth } from '@/hooks/useAuth';
 import { ambilPesanError } from '@/lib/utils';
 import { RUTE, RUTE_DEFAULT } from '@/constants/routes';
+import { LABEL_ROLE, IKON_ROLE } from '@/constants/roles';
 import type { Role } from '@/types/user.type';
 
 const schema = z.object({
@@ -26,8 +27,9 @@ type FormValues = z.infer<typeof schema>;
 
 // Info tampilan tiap peran untuk layar pemilihan role.
 const INFO_PERAN: Record<Role, { label: string; deskripsi: string; ikon: string }> = {
-  ADMIN: { label: 'Administrator', deskripsi: 'Kelola barang, peminjaman & pengguna', ikon: 'admin_panel_settings' },
-  PEMINJAM: { label: 'Peminjam', deskripsi: 'Ajukan & pantau peminjaman barang', ikon: 'person' },
+  ADMIN: { label: LABEL_ROLE.ADMIN, deskripsi: 'Kelola barang, peminjaman & pengguna', ikon: IKON_ROLE.ADMIN },
+  PEMINJAM: { label: LABEL_ROLE.PEMINJAM, deskripsi: 'Ajukan & pantau peminjaman barang', ikon: IKON_ROLE.PEMINJAM },
+  SUPER_ADMIN: { label: LABEL_ROLE.SUPER_ADMIN, deskripsi: 'Kelola seluruh sistem & administrator', ikon: IKON_ROLE.SUPER_ADMIN },
 };
 
 export default function LoginPage() {
