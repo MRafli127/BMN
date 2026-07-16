@@ -102,6 +102,18 @@ async function generate(peminjaman) {
     const size = opt.size || SIZE;
     page.drawText(String(str ?? ''), { x, y: y - size, size, font: f, color: opt.color || hitam });
   };
+
+  // Helper: gambar blok identitas (label: value, satu baris per item)
+  const blokIdentitas = (items) => {
+    const indent = MARGIN_L + 15;
+    const colLabel = 70;
+    const colValue = indent + colLabel + 5;
+    items.forEach(([label, value]) => {
+      page.drawText(`${label}:`, { x: indent, y: y - SIZE, size: SIZE, font, color: hitam });
+      page.drawText(String(value ?? '-'), { x: colValue, y: y - SIZE, size: SIZE, font, color: hitam });
+      y -= LINE;
+    });
+  };
   // Rata tengah pada rentang [opt.kiri, opt.kanan] (default: seluruh lebar halaman).
   const teksTengah = (str, opt = {}) => {
     const f = opt.font || font;

@@ -1257,6 +1257,7 @@ module.exports = {
   tolak,
   serahkan,
   serahkanBanyak,
+  serahKanBanyak: serahkanBanyak, // alias untuk backward compat
   mintaPengembalian,
   generateSuratPengembalian,
   kembalikan,
