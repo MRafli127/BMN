@@ -27,6 +27,7 @@ export interface DetailPeminjaman {
 
 export interface Peminjaman {
   id: string;
+  kodeTransaksi?: string | null;
   kodePeminjaman: string;
   userId: string;
   tanggalPengajuan: string;
@@ -48,6 +49,11 @@ export interface Peminjaman {
   dikembalikanOleh?: string | null;
   createdAt?: string;
   updatedAt?: string;
+  // Field dari serialisasiRingkas (backend)
+  namaPeminjam?: string;
+  nipPeminjam?: string;
+  merkBarang?: string | null;
+  tanggalRencanaPinjam?: string | null; // Alias untuk tanggalPinjamRencana
   peminjam?: Partial<User>;
   admin?: Partial<User> | null;
   pengembalianAdmin?: Partial<User> | null;
