@@ -1,8 +1,3 @@
-// ============================================================
-//  SKEMA DATABASE PRISMA — SIPP-BMN
-//  Sistem Informasi Peminjaman & Pengembalian Barang Milik Negara
-// ============================================================
-
 generator client {
   provider      = "prisma-client-js"
   binaryTargets = ["native", "rhel-openssl-1.0.x", "rhel-openssl-3.0.x"]
@@ -13,93 +8,23 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// ------------------------------------------------------------
-//  ENUM
-// ------------------------------------------------------------
-
-// Peran pengguna dalam sistem
-enum Role {
-  ADMIN
-  PEMINJAM
-  SUPER_ADMIN
-}
-
-// Jenis/kategori barang milik negara
-enum JenisBarang {
-  ELEKTRONIK
-  FURNITUR
-  KENDARAAN
-  ATK
-  LAINNYA
-}
-
-// Kondisi fisik barang
-enum KondisiBarang {
-  BAIK
-  RUSAK_RINGAN
-  RUSAK_BERAT
-}
-
-// Status alur peminjaman
-enum StatusPeminjaman {
-  MENUNGGU // Pengajuan baru, menunggu persetujuan admin
-  DISETUJUI // Disetujui admin, barang siap diambil
-  DITOLAK // Ditolak admin
-  DIPINJAM // Barang sedang dipinjam
-  DIKEMBALIKAN // Barang sudah dikembalikan
-  TERLAMBAT // Melewati tanggal rencana kembali
-  DRAFT // Pengajuan tersimpan ke Riwayat, surat pernyataan belum diunggah (belum terlihat admin). Barang tetap dikunci.
-}
-
-// Status tiap item barang pada satu peminjaman
-enum StatusItem {
-  DIPINJAM
-  DIKEMBALIKAN
-}
-
-// Asal data barang: input manual oleh admin atau hasil import Excel
-enum SumberBarang {
-  MANUAL
-  IMPORT
-}
-
-// Asal akun peminjam: dibuat manual (admin/registrasi) atau hasil import Excel.
-// Hanya akun ber-sumber IMPORT yang ikut disinkronkan (perbarui/hapus) saat re-import.
-enum SumberAkun {
-  MANUAL
-  IMPORT
-}
-
-// Prioritas notifikasi
-enum PrioritasNotifikasi {
-  TINGGI
-  SEDANG
-  RENDAH
-}
-
-// ------------------------------------------------------------
-//  MODEL
-// ------------------------------------------------------------
-
-// 0a) Satker (Satuan Kerja) — referensi untuk membatasi akses admin
 model Satker {
   id        String   @id @default(uuid())
-  kode      String   @unique // Kode satker, mis. "015110199411868000KP"
-  nama      String   // Nama satker, mis. "Kantor Pusat DJPb"
-  singkat   String?  // Nama singkat, mis. "KP DJPb"
-  aktif     Boolean  @default(true) // Apakah satker masih aktif
+  kode      String   @unique
+  nama      String
+  singkat   String?
+  aktif     Boolean  @default(true)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   @@map("satker")
 }
 
-// 0) Token Blacklist — untuk invalidate refresh token saat logout
 model BlacklistedToken {
   id        String   @id @default(uuid())
-  token     String   @unique // Token yang di-blacklist
-  expiresAt DateTime // kapan token ini expire (untuk auto-cleanup)
-  userId    String?  // User yang logout (opsional, untuk tracking)
+  token     String   @unique
+  expiresAt DateTime
+  userId    String?
   createdAt DateTime @default(now())
 
   @@index([token])
@@ -107,112 +32,89 @@ model BlacklistedToken {
   @@map("blacklisted_tokens")
 }
 
-// 1) Pengguna sistem (admin & peminjam)
 model User {
-  id        String     @id @default(uuid())
-  nama      String
-  nip       String     @unique // Nomor Induk Pegawai (unik)
-  email     String     @unique
-  password  String // Disimpan dalam bentuk hash bcrypt
-  jabatan   String? // "Jabatan" pegawai / fungsional (diisi manual/import)
-  unitKerja String? // "Unit Kerja" pegawai (diisi manual/import)
-  eselon2   String? // "Eselon II" (diisi manual/import)
-  eselon3   String? // "Eselon III" (diisi manual/import)
-  eselon4   String? // "Eselon IV" (diisi manual/import)
-  roles     Role[]     @default([PEMINJAM]) // Peran yang DIMILIKI akun (bisa >1). Active role hidup di JWT, bukan di DB.
-  sumber    SumberAkun @default(MANUAL) // MANUAL (admin/registrasi) atau IMPORT (sinkron Excel)
-  // SUPER_ADMIN: satker yang dikelolanya (null = semua satker)
-  // ADMIN: satker yang menjadi tanggungannya (minimal 1)
-  // PEMINJAM: null (tidak terikat satker)
-  satkerAkses String[]  @default([]) // Array kode satker, kosong = akses penuh (SUPER_ADMIN) atau belum ditentukan
-  tokenVersion Int      @default(1) // Increment saat password diubah untuk invalidate semua token
-  retirementDate DateTime? // Tanggal pensiun (dihitung otomatis dari NIP: tanggal lahir + 58 tahun)
-  // Session security: tracking aktivitas untuk invalidate sesi saat tab ditutup
-  lastActivityAt      DateTime? // Timestamp aktivitas terakhir user
-  sessionInvalidatedAt DateTime? // Timestamp ketika sesi di-invalidate (tab ditutup / logout paksa)
-  createdAt DateTime   @default(now())
-  updatedAt DateTime   @updatedAt
-
-  // Relasi: peminjaman yang diajukan oleh user ini
-  peminjaman  Peminjaman[] @relation("PeminjamanOlehPeminjam")
-  // Relasi: peminjaman yang disetujui oleh user ini (sebagai admin)
-  persetujuan Peminjaman[] @relation("PeminjamanDisetujuiAdmin")
-  // Relasi: peminjaman yang pengembaliannya dikonfirmasi oleh user ini (sebagai admin)
-  pengembalian Peminjaman[] @relation("PeminjamanDikembalikanAdmin")
-  // Relasi: notifikasi yang diterima user ini
-  notifikasi  Notifikasi[]
+  id                   String       @id @default(uuid())
+  nama                 String
+  nip                  String       @unique
+  email                String       @unique
+  password             String
+  jabatan              String?
+  unitKerja            String?
+  eselon2              String?
+  eselon3              String?
+  eselon4              String?
+  roles                Role[]       @default([PEMINJAM])
+  sumber               SumberAkun   @default(MANUAL)
+  tokenVersion         Int          @default(1)
+  retirementDate       DateTime?
+  lastActivityAt       DateTime?
+  sessionInvalidatedAt DateTime?
+  createdAt            DateTime     @default(now())
+  updatedAt            DateTime     @updatedAt
+  satkerAkses          String[]     @default([])
+  notifikasi           Notifikasi[]
+  pengembalian         Peminjaman[] @relation("PeminjamanDikembalikanAdmin")
+  persetujuan          Peminjaman[] @relation("PeminjamanDisetujuiAdmin")
+  peminjaman           Peminjaman[] @relation("PeminjamanOlehPeminjam")
 
   @@map("users")
 }
 
-// 2) Barang Milik Negara
 model Barang {
-  id                String        @id @default(uuid())
-  kodeBarang        String        @unique // Kode unik = kunci natural aset: Kode Satker-Kode Barang-NUP (mis. 015110199411868000KP-3100102002-1180)
+  id                String             @id @default(uuid())
+  kodeBarang        String             @unique
   nama              String
-  merk              String? // Merk/model barang (mis. Asus Notebook ROG)
-  jenis             JenisBarang   @default(LAINNYA)
-  jumlahTotal       Int           @default(0)
-  jumlahTersedia    Int           @default(0)
-  kondisi           KondisiBarang @default(BAIK)
+  merk              String?
+  jenis             JenisBarang        @default(LAINNYA)
+  jumlahTotal       Int                @default(0)
+  jumlahTersedia    Int                @default(0)
+  kondisi           KondisiBarang      @default(BAIK)
   lokasiPenyimpanan String?
   deskripsi         String?
   fotoUrl           String?
-  sumber            SumberBarang  @default(MANUAL) // Asal data: input MANUAL atau hasil IMPORT
+  sumber            SumberBarang       @default(MANUAL)
+  kodeSatker        String?
+  namaSatker        String?
+  kodeBarangBmn     String?
+  nup               String?
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
+  detailPeminjaman  DetailPeminjaman[]
 
-  // --- Identitas aset register BMN (terisi untuk barang hasil import) ---
-  // Kombinasi (kodeSatker, kodeBarangBmn, nup) menjadi kunci natural untuk
-  // mencocokkan baris saat re-import (sinkronisasi tambah/perbarui/hapus).
-  kodeSatker    String? // Kode Satker pada file BMN
-  namaSatker    String? // Nama Satker pada file BMN
-  kodeBarangBmn String? // "Kode Barang" asli pada file BMN (mis. 3100102002)
-  nup           String? // Nomor Urut Pendaftaran (unik per satker+kode)
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  // Relasi: detail peminjaman yang memuat barang ini
-  detailPeminjaman DetailPeminjaman[]
-
-  // Kunci natural aset BMN. Row manual (semua null) tidak saling bentrok
-  // karena NULL dianggap distinct oleh PostgreSQL.
   @@unique([kodeSatker, kodeBarangBmn, nup], name: "identitasAset")
   @@map("barang")
 }
 
-// 3) Peminjaman (transaksi pengajuan peminjaman)
 model Peminjaman {
-  id                    String           @id @default(uuid())
-  kodeTransaksi         String?          @unique // Kode unik per transaksi (untuk QR scan & referensi). Format: kodeSatker-kodeBarangBmn-NUP. Nullable untuk kompatibilitas data lama.
-  kodePeminjaman        String // Snapshot kode aset barang saat dipinjam. Saat dibaca, kode di-resync dari kodeBarang barang terkait (kunci natural kodeSatker-kodeBarangBmn-NUP).
-  userId                String
-  tanggalPengajuan      DateTime         @default(now()) // Saat record dibuat (draft atau pengajuan langsung) = "Draft Pengajuan"
-  tanggalKirim          DateTime? // Saat pengajuan resmi dikirim ke admin (status mencapai MENUNGGU) = "Menunggu Persetujuan". Null selama masih DRAFT.
-  tanggalPinjamRencana  DateTime?
-  tanggalKembaliRencana DateTime?
-  tanggalKembaliAktual  DateTime?
-  tanggalPermintaanKembali DateTime? // Saat peminjam mengajukan pengembalian; menunggu konfirmasi admin
-  status                StatusPeminjaman @default(MENUNGGU)
-  alasanPeminjaman      String?
-  pangkatGolongan       String? // Pangkat/Gol. peminjam saat pengajuan (tercantum pada Surat Pernyataan). Disimpan agar surat draft bisa diunduh menyusul.
-  dokumenUrl            String? // Dokumen yang diunggah peminjam
-  dokumenStempelUrl     String? // Dokumen yang sudah distempel admin
-  dokumenPengembalianUrl String? // Surat Pernyataan Pengembalian (PDF) yang sudah ditandatangani fisik & diunggah peminjam
-  qrCodeUrl             String? // Gambar QR Code peminjaman
-  catatanAdmin          String? // Catatan admin (wajib saat menolak). Terlihat oleh peminjam.
-  catatanPengembalian   String? // Catatan admin saat konfirmasi pengembalian. HANYA untuk admin, tidak terlihat oleh peminjam.
-  disetujuiOleh         String? // userId admin yang menyetujui
-  dikembalikanOleh      String? // userId admin yang mengkonfirmasi pengembalian
-  nomorSurat            Int? // Nomor urut surat pernyataan (PRN-<nomorSurat>/BMN/PP.1/<tahunSurat>). Diberikan otomatis & berurut per tahun saat pengajuan dibuat, reset ke 1 tiap ganti tahun.
-  tahunSurat            Int? // Tahun penomoran surat (dipakai bersama nomorSurat). Surat pengembalian memakai nomor & tahun yang sama.
-  createdAt             DateTime         @default(now())
-  updatedAt             DateTime         @updatedAt
-
-  // Relasi
-  peminjam User               @relation("PeminjamanOlehPeminjam", fields: [userId], references: [id])
-  admin    User?              @relation("PeminjamanDisetujuiAdmin", fields: [disetujuiOleh], references: [id])
-  pengembalianAdmin User?     @relation("PeminjamanDikembalikanAdmin", fields: [dikembalikanOleh], references: [id])
-  detail   DetailPeminjaman[]
+  id                       String             @id @default(uuid())
+  kodeTransaksi            String?            @unique
+  kodePeminjaman           String
+  userId                   String
+  tanggalPengajuan         DateTime           @default(now())
+  tanggalKirim             DateTime?
+  tanggalPinjamRencana     DateTime?
+  tanggalKembaliRencana    DateTime?
+  tanggalKembaliAktual     DateTime?
+  tanggalPermintaanKembali DateTime?
+  status                   StatusPeminjaman   @default(MENUNGGU)
+  alasanPeminjaman         String?
+  pangkatGolongan          String?
+  dokumenUrl               String?
+  dokumenStempelUrl        String?
+  dokumenPengembalianUrl   String?
+  qrCodeUrl                String?
+  catatanAdmin             String?
+  catatanPengembalian      String?
+  disetujuiOleh            String?
+  dikembalikanOleh         String?
+  nomorSurat               Int?
+  tahunSurat               Int?
+  createdAt                DateTime           @default(now())
+  updatedAt                DateTime           @updatedAt
+  detail                   DetailPeminjaman[]
+  pengembalianAdmin        User?              @relation("PeminjamanDikembalikanAdmin", fields: [dikembalikanOleh], references: [id])
+  admin                    User?              @relation("PeminjamanDisetujuiAdmin", fields: [disetujuiOleh], references: [id])
+  peminjam                 User               @relation("PeminjamanOlehPeminjam", fields: [userId], references: [id])
 
   @@index([userId])
   @@index([status])
@@ -220,50 +122,42 @@ model Peminjaman {
   @@map("peminjaman")
 }
 
-// 4) Detail peminjaman — relasi banyak-ke-banyak Barang <-> Peminjaman
 model DetailPeminjaman {
   id           String     @id @default(uuid())
   peminjamanId String
   barangId     String
   jumlahPinjam Int        @default(1)
   statusItem   StatusItem @default(DIPINJAM)
-
-  peminjaman Peminjaman @relation(fields: [peminjamanId], references: [id], onDelete: Cascade)
-  barang     Barang     @relation(fields: [barangId], references: [id])
+  barang       Barang     @relation(fields: [barangId], references: [id])
+  peminjaman   Peminjaman @relation(fields: [peminjamanId], references: [id], onDelete: Cascade)
 
   @@index([peminjamanId])
   @@index([barangId])
   @@map("detail_peminjaman")
 }
 
-// 4b) Penomoran surat — pencacah berurut per (jenis, tahun).
-// Dipakai untuk menghasilkan nomor surat pernyataan yang berurut & unik
-// (PRN-1, PRN-2, dst.) dan otomatis RESET ke 1 setiap ganti tahun (baris
-// baru per tahun). Increment dilakukan atomik (INSERT ... ON CONFLICT)
-// agar aman dari race condition saat banyak pengajuan bersamaan.
 model NomorSuratCounter {
   id     String @id @default(uuid())
-  jenis  String // Jenis surat, mis. "PEMINJAMAN"
-  tahun  Int // Tahun penomoran (nomor reset tiap tahun)
-  urutan Int    @default(0) // Nomor terakhir yang sudah dipakai untuk (jenis, tahun) ini
+  jenis  String
+  tahun  Int
+  urutan Int    @default(0)
 
   @@unique([jenis, tahun])
   @@map("nomor_surat_counter")
 }
 
-// 5) Audit Log — untuk tracking semua perubahan data (CRUD, status change, login)
 model AuditLog {
   id        String   @id @default(uuid())
-  userId    String?  // User yang melakukan aksi (null untuk sistem)
-  userEmail String?  // Snapshot email (jika user dihapus tetap bisa lihat)
-  userNama  String?  // Snapshot nama
-  aksi      String   // CREATE, UPDATE, DELETE, STATUS_CHANGE, LOGIN, LOGOUT, dll
-  entitas   String   // Nama tabel/entity (peminjaman, barang, user, auth)
-  entitasId String?  // ID record yang berubah (null untuk login/logout)
-  dataLama  Json?    // Data sebelum perubahan (UPDATE/DELETE)
-  dataBaru  Json?    // Data setelah perubahan (CREATE/UPDATE)
-  ipAddress String?  // Alamat IP client
-  userAgent String?  // User agent browser
+  userId    String?
+  userEmail String?
+  userNama  String?
+  aksi      String
+  entitas   String
+  entitasId String?
+  dataLama  Json?
+  dataBaru  Json?
+  ipAddress String?
+  userAgent String?
   timestamp DateTime @default(now())
 
   @@index([userId])
@@ -274,21 +168,18 @@ model AuditLog {
   @@map("audit_logs")
 }
 
-// 6) Notifikasi — untuk menampilkan notifikasi kepada pengguna
 model Notifikasi {
-  id            String            @id @default(uuid())
-  userId        String            // Pengguna yang menerima notifikasi
-  tipe          String            // Jenis notifikasi: PEMINJAMAN_BARU, PEMINJAMAN_DISETUJUI, PEMINJAMAN_DITOLAK, PENGEMBALIAN, TERLAMBAT, dll
-  judul         String            // Judul notifikasi
-  pesan         String            // Isi pesan notifikasi
-  prioritas    PrioritasNotifikasi @default(SEDANG)
-  isBaca        Boolean           @default(false) // Apakah sudah dibaca
-  referenceId   String?           // ID referensi (mis. peminjamanId)
-  referenceType String?           // Tipe referensi (mis. PEMINJAMAN)
-  createdAt     DateTime          @default(now())
-
-  // Relasi ke user
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id            String              @id @default(uuid())
+  userId        String
+  tipe          String
+  judul         String
+  pesan         String
+  prioritas     PrioritasNotifikasi @default(SEDANG)
+  isBaca        Boolean             @default(false)
+  referenceId   String?
+  referenceType String?
+  createdAt     DateTime            @default(now())
+  user          User                @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
   @@index([isBaca])
@@ -296,35 +187,81 @@ model Notifikasi {
   @@map("notifikasi")
 }
 
-// 7) Log Import — untuk menyimpan hasil/catatan setiap proses import
-// Menyimpan siapa, kapan, apa saja yang berhasil/gagal diimport
 model ImportLog {
-  id              String   @id @default(uuid())
-  userId          String   // Admin yang melakukan import
-  userEmail       String   // Snapshot email admin
-  userNama        String   // Snapshot nama admin
-  jenisImport     String   // JENIS: PEMINJAM, BARANG, PEGAWAI
-  namaFile        String   // Nama file yang diimport
-  jumlahBaris     Int      // Total baris yang diproses
-  akunDitambahkan Int      @default(0) // Jumlah akun baru dibuat
-  akunDiperbarui  Int      @default(0) // Jumlah akun diperbarui
-  peminjamanDibuat Int     @default(0) // Jumlah peminjaman baru dibuat
-  peminjamanDipertahankan Int @default(0) // Jumlah peminjaman yang sudah ada (dipertahankan)
-  dilewatiTanpaNup Int    @default(0) // Baris tanpa NUP
-  gagal           Int      @default(0) // Jumlah baris gagal diproses
-  barangTidakDitemukan Int @default(0) // NUP tidak ditemukan/stok habis
-
-  // Detail dalam JSON
-  detailDitambahkan  Json?  // [{nama, nip, email}]
-  detailDiperbarui   Json?  // [{nama, nip, perubahan}]
-  detailPeminjaman   Json?  // [{nama, merk, nup, kodeBarang}]
-  detailGagal        Json?  // [{baris, nama, pesan}]
-  detailBarangTidakDitemukan Json? // [{baris, nama, merk, nup, pesan}]
-
-  createdAt DateTime @default(now())
+  id                         String   @id @default(uuid())
+  userId                     String
+  userEmail                  String
+  userNama                   String
+  jenisImport                String
+  namaFile                   String
+  jumlahBaris                Int
+  akunDitambahkan            Int      @default(0)
+  akunDiperbarui             Int      @default(0)
+  peminjamanDibuat           Int      @default(0)
+  peminjamanDipertahankan    Int      @default(0)
+  dilewatiTanpaNup           Int      @default(0)
+  gagal                      Int      @default(0)
+  barangTidakDitemukan       Int      @default(0)
+  detailDitambahkan          Json?
+  detailDiperbarui           Json?
+  detailPeminjaman           Json?
+  detailGagal                Json?
+  detailBarangTidakDitemukan Json?
+  createdAt                  DateTime @default(now())
 
   @@index([userId])
   @@index([jenisImport])
   @@index([createdAt])
   @@map("import_logs")
+}
+
+enum Role {
+  ADMIN
+  PEMINJAM
+  SUPER_ADMIN
+}
+
+enum JenisBarang {
+  ELEKTRONIK
+  FURNITUR
+  KENDARAAN
+  ATK
+  LAINNYA
+}
+
+enum KondisiBarang {
+  BAIK
+  RUSAK_RINGAN
+  RUSAK_BERAT
+}
+
+enum StatusPeminjaman {
+  MENUNGGU
+  DISETUJUI
+  DITOLAK
+  DIPINJAM
+  DIKEMBALIKAN
+  TERLAMBAT
+  DRAFT
+}
+
+enum StatusItem {
+  DIPINJAM
+  DIKEMBALIKAN
+}
+
+enum SumberBarang {
+  MANUAL
+  IMPORT
+}
+
+enum SumberAkun {
+  MANUAL
+  IMPORT
+}
+
+enum PrioritasNotifikasi {
+  TINGGI
+  SEDANG
+  RENDAH
 }
