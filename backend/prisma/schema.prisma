@@ -43,6 +43,7 @@ model User {
   eselon2              String?
   eselon3              String?
   eselon4              String?
+  tipeLaptop           String?
   roles                Role[]       @default([PEMINJAM])
   sumber               SumberAkun   @default(MANUAL)
   tokenVersion         Int          @default(1)
