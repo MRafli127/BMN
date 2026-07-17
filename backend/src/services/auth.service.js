@@ -385,17 +385,11 @@ async function validateAccessTokenWithVersion(payload) {
 const INACTIVITY_TIMEOUT_MS = 60 * 60 * 1000;
 
 // --- Validasi sesi: cek apakah sesi valid (belum di-invalidate & masih aktif) ---
-// Dipanggil oleh auth middleware pada setiap request terproteksi
-async function validateSession(userId, jti) {
-  // Cek apakah user ada dan apakah sesi sudah di-invalidate
-  const user = await prisma.user.findUnique({
-    where: { id: userId },
-    select: {
-      sessionInvalidatedAt: true,
-      lastActivityAt: true,
-    },
-  });
-
+// Dipanggil oleh auth middleware pada setiap request terproteksi.
+// OPTIMIZED: menerima user object yang sudah di-fetch oleh validateAccessTokenWithVersion
+// untuk menghindari query DB redundant. sessionInvalidatedAt & lastActivityAt sudah ada di user object.
+async function validateSession(user) {
+  // Validasi user object yang sudah di-pass (tidak perlu query lagi)
   if (!user) {
     return { valid: false, reason: 'USER_NOT_FOUND' };
   }

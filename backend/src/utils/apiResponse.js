@@ -3,10 +3,35 @@
 //  Bentuk: { sukses: boolean, pesan: string, data: any, meta?: any }
 // ============================================================
 
-// Respons sukses
+// Generate simple ETag hash dari data
+function generateEtag(data) {
+  if (!data) return null;
+  const str = typeof data === 'string' ? data : JSON.stringify(data);
+  let hash = 0;
+  for (let i = 0; i < str.length; i++) {
+    const char = str.charCodeAt(i);
+    hash = ((hash << 5) - hash) + char;
+    hash = hash & hash;
+  }
+  return `"${Math.abs(hash).toString(16)}"`;
+}
+
+// Respons sukses — auto-set ETag header dari response body
 function responsSukses(res, { pesan = 'Berhasil', data = null, meta = null, status = 200 } = {}) {
   const body = { sukses: true, pesan, data };
   if (meta) body.meta = meta;
+
+  // Generate ETag dari response body
+  const etag = generateEtag(body);
+  if (etag) {
+    // Gunakan res.setEtag jika ada (dari etag.middleware), fallback ke setHeader
+    if (typeof res.setEtag === 'function') {
+      res.setEtag(etag);
+    } else {
+      res.setHeader('ETag', etag);
+    }
+  }
+
   return res.status(status).json(body);
 }
 

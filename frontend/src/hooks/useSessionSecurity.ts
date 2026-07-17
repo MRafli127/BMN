@@ -14,6 +14,9 @@ import { INACTIVITY_TIMEOUT_MS, HEARTBEAT_INTERVAL_MS } from '@/constants/sessio
 import toast from 'react-hot-toast';
 import api from '@/lib/api';
 
+// Base URL backend — pakai env variable yang SAMA dengan api.ts agar konsisten
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
+
 export function useSessionSecurity() {
   const { user } = useAuth();
   const isActiveRef = useRef<boolean>(false);
@@ -65,11 +68,13 @@ export function useSessionSecurity() {
     // Pada reload, cookies dari Set-Cookie header akan restore session.
 
     // Kirim invalidate session ke server via sendBeacon
+    // FIX: pakai absolute URL ke backend, BUKAN relative path
+    // (relative path resolve ke frontend origin, bukan backend)
     const token = localStorage.getItem('sipp_access_token');
     if (token && navigator.sendBeacon) {
       const data = JSON.stringify({ action: 'invalidate_session', token });
       navigator.sendBeacon(
-        '/api/auth/invalidate-session',
+        `${API_BASE}/auth/invalidate-session`,
         new Blob([data], { type: 'application/json' })
       );
     }

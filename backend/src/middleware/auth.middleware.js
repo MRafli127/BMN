@@ -12,7 +12,34 @@ const { validateAccessTokenWithVersion, validateSession, updateLastActivity, pil
 // Inactivity timeout dalam milidetik (60 menit — diselaraskan dengan access token)
 const INACTIVITY_TIMEOUT_MS = 60 * 60 * 1000;
 
+// Threshold logging untuk request lambat (5 detik)
+const SLOW_REQUEST_THRESHOLD_MS = 5000;
+
+// Timestamp mulai request untuk logging performa
+const requestStartTimes = new Map();
+
+// Helper: format timestamp ISO
+function ts() {
+  return new Date().toISOString();
+}
+
 async function authMiddleware(req, res, next) {
+  // Catat timestamp mulai request
+  const startTime = Date.now();
+  const requestId = `${req.method}:${req.originalUrl}:${Date.now()}`;
+
+  // Hook untuk logging slow request saat response selesai
+  res.on('finish', () => {
+    const elapsed = Date.now() - startTime;
+    if (elapsed >= SLOW_REQUEST_THRESHOLD_MS) {
+      const userId = req.user?.id || 'anonymous';
+      const role = req.user?.role || 'unknown';
+      console.warn(
+        `[SLOW] [${ts()}] ${elapsed}ms | ${req.method} ${req.originalUrl} | user=${userId} role=${role}`
+      );
+    }
+  });
+
   try {
     const header = req.headers.authorization || '';
     const [tipe, token] = header.split(' ');
@@ -57,7 +84,8 @@ async function authMiddleware(req, res, next) {
     }
 
     // Validasi sesi: cek apakah sesi di-invalidate atau sudah tidak aktif
-    const sessionValidation = await validateSession(payload.sub, payload.jti);
+    // OPTIMIZED: validateSession menerima user object yang sudah di-fetch oleh validateAccessTokenWithVersion
+    const sessionValidation = await validateSession(validation.user);
     if (!sessionValidation.valid) {
       if (sessionValidation.reason === 'SESSION_INVALIDATED') {
         return responsGagal(res, {

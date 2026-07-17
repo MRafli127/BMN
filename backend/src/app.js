@@ -13,8 +13,13 @@ const path = require('path');
 const env = require('./config/env');
 const apiRoutes = require('./routes');
 const { notFoundHandler, errorHandler } = require('./middleware/error.middleware');
+const { etagMiddleware } = require('./middleware/etag.middleware');
 
 const app = express();
+
+// Matikan ETag default Express (kami pakai ETag custom dengan short-circuit sebelum auth)
+// ETag default Express berjalan SETELAH handler, menyebabkan full DB query walau response tidak berubah
+app.set('etag', false);
 
 // Keamanan header HTTP. crossOriginResourcePolicy dilonggarkan agar
 // file di /uploads (foto, QR) dapat dimuat dari domain frontend.
@@ -48,6 +53,10 @@ if (env.nodeEnv === 'development') {
 
 // Sajikan file upload secara statis (foto barang, QR, dokumen stempel)
 app.use('/uploads', express.static(path.resolve(__dirname, '../uploads')));
+
+// ETag middleware — jalan SEBELUM API routes, SEBELUM auth.
+// Short-circuit 304 TANPA query database jika If-None-Match cocok.
+app.use('/api', etagMiddleware);
 
 // Rute utama API
 app.use('/api', apiRoutes);

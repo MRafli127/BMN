@@ -585,10 +585,6 @@ async function getSemua({ status, q, userId, role, page = 1, limit = 10, importM
     prisma.peminjaman.findMany({
       where,
       include: includeLengkap,
-      // Urut berdasarkan aktivitas terakhir: setiap perubahan status (Menunggu →
-      // Disetujui → Dipinjam → Dikembalikan, dst.) membumbungkan `updatedAt`
-      // (@updatedAt), sehingga transaksi yang statusnya baru berubah otomatis
-      // naik ke paling atas. `createdAt` sebagai pemecah seri agar stabil.
       orderBy: [{ updatedAt: 'desc' }, { createdAt: 'desc' }],
       skip: (halaman - 1) * perHalaman,
       take: perHalaman,
@@ -596,7 +592,7 @@ async function getSemua({ status, q, userId, role, page = 1, limit = 10, importM
     prisma.peminjaman.count({ where }),
   ]);
 
-  // Sinkronkan status berdasarkan tanggal (terlambat / pulihkan tanpa tenggat)
+  // Sinkronkan status berdasarkan tanggal
   const updates = [];
   for (const p of data) {
     const baru = statusBerdasarTanggal(p);
@@ -610,7 +606,6 @@ async function getSemua({ status, q, userId, role, page = 1, limit = 10, importM
   return {
     data: data.map((p) => {
       const s = serialisasiRingkas(p);
-      // Catatan pengembalian hanya untuk admin — jangan bocorkan ke peminjam.
       if (role === 'PEMINJAM') delete s.catatanPengembalian;
       return s;
     }),
