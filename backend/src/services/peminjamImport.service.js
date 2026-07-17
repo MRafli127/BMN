@@ -82,6 +82,41 @@ function normalMerk(v) {
     .replace(/\s+/g, ' ');
 }
 
+// Cari merk terbaik yang cocok dari database untuk merk yang ditulis di Excel.
+// Fungsi ini menangani kasus di mana Excel menulis "HP" tapi database punya
+// "HP Probook 430 G7" atau "HP Prelude Backpack 15.6".
+// Mengembalikan array of barang yang cocok, atau null jika tidak ada yang cocok.
+function cariBarangByMerkDanNup(merkExcel, nup, barangByMerk, semuaMerk) {
+  const merkNormal = normalMerk(merkExcel);
+
+  // 1. Coba cocokkan persis dengan merk yang dinormalisasi
+  if (barangByMerk.has(merkNormal)) {
+    const perNup = barangByMerk.get(merkNormal);
+    const kandidat = perNup.get(nup) || [];
+    if (kandidat.length > 0) return kandidat;
+  }
+
+  // 2. Coba cari merk yang DIMULAI dengan merk Excel
+  //    Contoh: "HP" cocok dengan "HP Probook 430 G7", "HP Prelude Backpack"
+  for (const [merkDbNormal, perNup] of barangByMerk) {
+    if (merkDbNormal.startsWith(merkNormal + ' ') || merkDbNormal.startsWith(merkNormal + '-')) {
+      const kandidat = perNup.get(nup) || [];
+      if (kandidat.length > 0) return kandidat;
+    }
+  }
+
+  // 3. Coba cari merk yang MEMILIKI merk Excel di dalamnya (fallback)
+  //    Contoh: "hp" cocok dengan "hp probook", "hp prelude"
+  for (const [merkDbNormal, perNup] of barangByMerk) {
+    if (merkDbNormal.includes(merkNormal) || merkNormal.includes(merkDbNormal.split(' ')[0])) {
+      const kandidat = perNup.get(nup) || [];
+      if (kandidat.length > 0) return kandidat;
+    }
+  }
+
+  return null;
+}
+
 const REGEX_EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 // --- Baca worksheet menjadi grid, tahan terhadap !ref yang rusak ---
@@ -182,6 +217,7 @@ function parse(buffer) {
       eselonIII: teksAtauNull(ambil(row, 'eselonIII')),
       eselonIV: teksAtauNull(ambil(row, 'eselonIV')),
       merk: teksAtauNull(ambil(row, 'merk')),
+      tipe: teksAtauNull(ambil(row, 'tipe')),
       nup: teksAtauNull(ambil(row, 'nup')),
     });
   }
@@ -244,6 +280,7 @@ async function importDariExcel(buffer, { dryRun = false, userId, userEmail, user
       nip: true,
       eselon4: true, // kolom "Eselon IV"
       eselon3: true, // kolom "Eselon III"
+      tipeLaptop: true,
       roles: true,
       sumber: true,
       retirementDate: true,
@@ -361,6 +398,7 @@ async function importDariExcel(buffer, { dryRun = false, userId, userEmail, user
               password: passwordHash,
               eselon4: r.eselonIV, // kolom "Eselon IV"
               eselon3: r.eselonIII, // kolom "Eselon III"
+              tipeLaptop: r.tipe,
               roles: ['PEMINJAM'],
               sumber: 'IMPORT',
               retirementDate,
@@ -373,6 +411,7 @@ async function importDariExcel(buffer, { dryRun = false, userId, userEmail, user
             nama: r.nama,
             eselon4: r.eselonIV,
             eselon3: r.eselonIII,
+            tipeLaptop: r.tipe,
             roles: ['PEMINJAM'],
             sumber: 'IMPORT',
           };
@@ -390,6 +429,7 @@ async function importDariExcel(buffer, { dryRun = false, userId, userEmail, user
           if (!sama(user.nama, r.nama)) perubahan.push('Nama');
           if (!sama(user.eselon4, r.eselonIV)) perubahan.push('Eselon IV');
           if (!sama(user.eselon3, r.eselonIII)) perubahan.push('Eselon III');
+          if (!sama(user.tipeLaptop, r.tipe)) perubahan.push('Tipe Laptop');
 
           // Update retirementDate jika user belum punya (user lama sebelum fitur ini)
           let perluUpdateRetirement = false;
@@ -411,6 +451,7 @@ async function importDariExcel(buffer, { dryRun = false, userId, userEmail, user
               nama: r.nama,
               eselon4: r.eselonIV,
               eselon3: r.eselonIII,
+              tipeLaptop: r.tipe,
               sumber: 'IMPORT',
             };
             if (perluUpdateRetirement) {
@@ -424,6 +465,7 @@ async function importDariExcel(buffer, { dryRun = false, userId, userEmail, user
             user.nama = r.nama;
             user.eselon4 = r.eselonIV;
             user.eselon3 = r.eselonIII;
+            user.tipeLaptop = r.tipe;
             user.sumber = 'IMPORT';
             if (perluUpdateRetirement) {
               user.retirementDate = hitungRetirementDateDariNip(r.nip);
@@ -439,26 +481,37 @@ async function importDariExcel(buffer, { dryRun = false, userId, userEmail, user
         // Baris tanpa NUP: cukup buat/perbarui AKUN, tidak ada peminjaman.
         if (!r.nup) continue;
 
-        // Apakah merk pada baris ini dikenali di data barang? Bila ya, pencarian
-        // DIKUNCI pada merk tersebut (cari merk dahulu, lalu NUP di dalamnya) dan
-        // tidak melintas ke merk lain meski NUP-nya kebetulan sama. Bila merk
-        // kosong/tak dikenali, dipakai cadangan: cocokkan hanya lewat NUP.
-        const merkDikenali = !!r.merk && barangByMerk.has(normalMerk(r.merk));
+        // Apakah merk pada baris ini dikenali di data barang? Bila merk ada di Excel,
+        // coba cari barang dengan merk tersebut (fleksibel: "HP" cocok dengan "HP Probook").
+        // Bila merk kosong/tidak ditemukan, fallback ke pencarian hanya lewat NUP.
+        const merkExcel = r.merk ? normalMerk(r.merk) : null;
+        const merkDikenali = !!merkExcel && Array.from(barangByMerk.keys()).some(
+          (m) => m === merkExcel || m.startsWith(merkExcel + ' ') || m.startsWith(merkExcel + '-')
+        );
 
         // Idempoten: jika user sudah pernah memiliki barang dengan NUP ini
         // (kondisi apapun: DIPINJAM, DIKEMBALIKAN, TERLAMBAT), baris dilewati.
-        const sudahPernah = merkDikenali
-          ? (comboPernahByUser.get(user.id) || new Set()).has(`${normalMerk(r.merk)}|${r.nup}`)
+        const sudahPernah = merkDikenali && merkExcel
+          ? (comboPernahByUser.get(user.id) || new Set()).has(`${merkExcel}|${r.nup}`)
           : (nupPernahByUser.get(user.id) || new Set()).has(r.nup);
         if (sudahPernah) {
           peminjamanDipertahankan += 1;
           continue;
         }
 
-        // Cari barang: merk dahulu (terkunci pada merk-nya), lalu NUP di dalamnya.
-        const kandidat = merkDikenali
-          ? (barangByMerk.get(normalMerk(r.merk)).get(r.nup) || []).find(tersedia)
-          : (barangByNup.get(r.nup) || []).find(tersedia);
+        // Cari barang: coba cocokkan merk + NUP secara fleksibel.
+        // "HP" akan cocok dengan "HP Probook 430 G7", "HP Prelude Backpack", dll.
+        let kandidat = null;
+        if (merkExcel) {
+          const kandidatArr = cariBarangByMerkDanNup(r.merk, r.nup, barangByMerk);
+          if (kandidatArr) {
+            kandidat = kandidatArr.find(tersedia);
+          }
+        }
+        // Fallback: cari hanya berdasarkan NUP jika merk tidak disebutkan atau gagal
+        if (!kandidat) {
+          kandidat = (barangByNup.get(r.nup) || []).find(tersedia);
+        }
 
         if (!kandidat) {
           detailBarangGagal.push({
@@ -467,8 +520,8 @@ async function importDariExcel(buffer, { dryRun = false, userId, userEmail, user
             merk: r.merk,
             nup: r.nup,
             pesan: merkDikenali
-              ? 'NUP tersebut tidak ada pada merk ini, atau stoknya sudah habis.'
-              : 'Barang dengan NUP tersebut tidak ditemukan, atau stoknya sudah habis.',
+              ? `NUP ${r.nup} tidak ada pada merk "${r.merk}", atau stoknya sudah habis.`
+              : `Barang dengan NUP ${r.nup} tidak ditemukan, atau stoknya sudah habis.`,
           });
           continue;
         }
