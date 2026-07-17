@@ -1,11 +1,13 @@
 // ============================================================
 //  Dashboard Admin - ringkasan statistik & grafik.
+//  OPTIMASI: Dialog di-lazy-load menggunakan next/dynamic
 // ============================================================
 
 'use client';
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import dynamic from 'next/dynamic';
 import { Icon } from '@/components/ui/icon';
 import { LoadingSpinner } from '@/components/shared/LoadingSpinner';
 import { EmptyState } from '@/components/shared/EmptyState';
@@ -18,10 +20,23 @@ import { STATUS_PEMINJAMAN, FILTER_STATUS_AKTIF } from '@/constants/status';
 import { RUTE } from '@/constants/routes';
 import type { KategoriDashboard } from '@/services/dashboard.service';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { X, CalendarDays } from 'lucide-react';
+import { X } from 'lucide-react';
 import { peminjamanService } from '@/services/peminjaman.service';
 import { barangService } from '@/services/barang.service';
+
+// ============================================================
+//  LAZY LOADED COMPONENTS
+//  Dialog di-load saat dibutuhkan, bukan saat page mount
+// ============================================================
+const DialogRentangWaktu = dynamic(
+  () => import('@/components/dashboard/DialogRentangWaktu').then(m => m.DialogRentangWaktu),
+  { loading: () => null, ssr: false }
+);
+
+const DialogKonfirmasiSatker = dynamic(
+  () => import('@/components/dashboard/DialogKonfirmasiSatker').then(m => m.DialogKonfirmasiSatker),
+  { loading: () => null, ssr: false }
+);
 
 // Data kartu kode satker
 const KODE_SATKER = [
@@ -104,340 +119,6 @@ const WARNA_BAR: Record<string, GayaBar> = {
   DIKEMBALIKAN: { bar: 'from-teal-400 to-teal-600', teks: 'text-teal-700', titik: 'bg-teal-500', ikon: 'assignment_return' },
   TERLAMBAT: { bar: 'from-orange-400 to-orange-600', teks: 'text-orange-700', titik: 'bg-orange-500', ikon: 'report' },
 };
-
-function DialogRentangWaktu({
-  terbuka,
-  onUbahTerbuka,
-  filterAktif,
-  onFilter,
-}: {
-  terbuka: boolean;
-  onUbahTerbuka: (o: boolean) => void;
-  filterAktif: DashboardFilter;
-  onFilter: (f: DashboardFilter) => void;
-}) {
-  const [dari, setDari] = useState(filterAktif.dari || '');
-  const [sampai, setSampai] = useState(filterAktif.sampai || '');
-
-  const handleTerapkan = () => {
-    onFilter({ dari: dari || undefined, sampai: sampai || undefined });
-    onUbahTerbuka(false);
-  };
-
-  const handleReset = () => {
-    setDari('');
-    setSampai('');
-    onFilter({});
-    onUbahTerbuka(false);
-  };
-
-  if (!terbuka) return null;
-
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-      <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl sm:p-6">
-        <div className="mb-4 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <CalendarDays className="h-5 w-5 text-primary" />
-            <h2 className="font-jakarta text-lg font-semibold text-primary">Rentang Waktu</h2>
-          </div>
-          <button onClick={() => onUbahTerbuka(false)} className="rounded-lg p-1 hover:bg-muted">
-            <X className="h-5 w-5" />
-          </button>
-        </div>
-
-        <p className="mb-4 text-sm text-muted-foreground">
-          Filter data dashboard berdasarkan rentang waktu pengajuan peminjaman.
-        </p>
-
-        <div className="space-y-4">
-          <div className="space-y-2">
-            <label htmlFor="dari" className="text-sm font-medium">
-              Dari Tanggal
-            </label>
-            <Input
-              id="dari"
-              type="date"
-              value={dari}
-              onChange={(e) => setDari(e.target.value)}
-            />
-          </div>
-          <div className="space-y-2">
-            <label htmlFor="sampai" className="text-sm font-medium">
-              Sampai Tanggal
-            </label>
-            <Input
-              id="sampai"
-              type="date"
-              value={sampai}
-              onChange={(e) => setSampai(e.target.value)}
-            />
-          </div>
-        </div>
-
-        <div className="mt-6 flex justify-end gap-2">
-          <Button variant="outline" onClick={handleReset}>
-            Reset
-          </Button>
-          <Button onClick={handleTerapkan}>Terapkan</Button>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-// Dialog konfirmasi sebelum navigasi ke halaman kode satker
-function DialogKonfirmasiSatker({
-  terbuka,
-  onUbahTerbuka,
-  kodeSatker,
-  label,
-  onPilih,
-  counts,
-  memuat,
-}: {
-  terbuka: boolean;
-  onUbahTerbuka: (o: boolean) => void;
-  kodeSatker: string;
-  label: string;
-  onPilih: (tujuan: string) => void;
-  counts: {
-    menunggu: number;
-    disetujui: number;
-    dipinjam: number;
-    dikembalikan: number;
-    terlambat: number;
-    ditolak: number;
-    totalBarang: number;
-    stokTersedia: number;
-    stokHabis: number;
-  } | null;
-  memuat: boolean;
-}) {
-  if (!terbuka) return null;
-
-  const statusOptions = [
-    {
-      label: 'Menunggu Persetujuan',
-      ikon: 'pending_actions',
-      gradient: 'from-amber-400 to-orange-500',
-      shadow: 'shadow-amber-500/30',
-      countKey: 'menunggu' as const,
-    },
-    {
-      label: 'Disetujui',
-      ikon: 'check_circle',
-      gradient: 'from-green-400 to-emerald-600',
-      shadow: 'shadow-green-500/30',
-      countKey: 'disetujui' as const,
-    },
-    {
-      label: 'Sedang Dipinjam',
-      ikon: 'sync_alt',
-      gradient: 'from-pink-400 to-rose-600',
-      shadow: 'shadow-pink-500/30',
-      countKey: 'dipinjam' as const,
-    },
-    {
-      label: 'Dikembalikan',
-      ikon: 'assignment_return',
-      gradient: 'from-teal-400 to-cyan-600',
-      shadow: 'shadow-teal-500/30',
-      countKey: 'dikembalikan' as const,
-    },
-    {
-      label: 'Terlambat',
-      ikon: 'report',
-      gradient: 'from-orange-400 to-red-600',
-      shadow: 'shadow-orange-500/30',
-      countKey: 'terlambat' as const,
-    },
-    {
-      label: 'Ditolak',
-      ikon: 'cancel',
-      gradient: 'from-red-400 to-red-700',
-      shadow: 'shadow-red-500/30',
-      countKey: 'ditolak' as const,
-    },
-  ];
-
-  const barangOptions = [
-    {
-      label: 'Total Barang',
-      ikon: 'inventory',
-      gradient: 'from-primary to-indigo-600',
-      shadow: 'shadow-primary/30',
-      countKey: 'totalBarang' as const,
-    },
-    {
-      label: 'Stok Tersedia',
-      ikon: 'check_circle',
-      gradient: 'from-green-400 to-emerald-600',
-      shadow: 'shadow-green-500/30',
-      countKey: 'stokTersedia' as const,
-    },
-    {
-      label: 'Stok Habis',
-      ikon: 'error',
-      gradient: 'from-red-400 to-red-700',
-      shadow: 'shadow-red-500/30',
-      countKey: 'stokHabis' as const,
-    },
-  ];
-
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
-      <div className="relative max-h-[95vh] w-full max-w-6xl overflow-hidden rounded-3xl bg-gradient-to-br from-white via-white to-slate-50 p-6 shadow-2xl">
-        {/* Header */}
-        <div className="mb-6 flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <div className="relative">
-              <div className="absolute inset-0 animate-ping rounded-xl bg-primary/30 blur-xl" />
-              <div className="relative flex h-14 w-14 items-center justify-center rounded-xl bg-gradient-to-br from-primary to-indigo-600 shadow-lg shadow-primary/30">
-                <Icon name="location_city" className="h-7 w-7 text-white" />
-              </div>
-            </div>
-            <div>
-              <h2 className="font-jakarta text-2xl font-bold bg-gradient-to-r from-primary to-indigo-600 bg-clip-text text-transparent">
-                {label}
-              </h2>
-              <p className="mt-1 text-sm text-muted-foreground">
-                Kode Satker: <span className="rounded-lg bg-slate-100 px-2 py-0.5 font-mono text-xs font-medium text-primary">{kodeSatker}</span>
-              </p>
-            </div>
-          </div>
-          <button
-            onClick={() => onUbahTerbuka(false)}
-            className="rounded-xl p-3 text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-600"
-          >
-            <X className="h-6 w-6" />
-          </button>
-        </div>
-
-        {/* Manajemen Peminjaman */}
-        <div className="mb-6">
-          <div className="mb-4 flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-primary to-indigo-600 shadow-md shadow-primary/30">
-              <Icon name="swap_horiz" className="h-5 w-5 text-white" />
-            </div>
-            <h3 className="font-jakarta text-lg font-bold text-slate-800">
-              Manajemen Peminjaman
-            </h3>
-          </div>
-          <div className="grid grid-cols-3 gap-4 lg:grid-cols-6">
-            {statusOptions.map((opt) => (
-              <button
-                key={opt.countKey}
-                onClick={() => {
-                  onUbahTerbuka(false);
-                  onPilih(`peminjaman:${opt.countKey.toUpperCase()}`);
-                }}
-                className="group relative"
-              >
-                {/* Glow effect */}
-                <div className={cn(
-                  'absolute inset-0 rounded-2xl bg-gradient-to-br opacity-0 blur-lg transition-opacity duration-300 group-hover:opacity-50',
-                  opt.gradient
-                )} />
-
-                {/* Card */}
-                <div className="relative flex flex-col items-center gap-3 rounded-2xl border border-slate-200/50 bg-white p-4 shadow transition-all duration-300 hover:shadow-lg hover:-translate-y-1">
-                  {/* Icon */}
-                  <div className={cn(
-                    'flex h-16 w-16 items-center justify-center rounded-xl bg-gradient-to-br shadow-md transition-transform duration-300 group-hover:scale-105',
-                    opt.gradient
-                  )}>
-                    <Icon name={opt.ikon} className="h-8 w-8 text-white" />
-                  </div>
-
-                  {/* Label */}
-                  <span className="text-center text-xs font-semibold text-slate-600">{opt.label}</span>
-
-                  {/* Count Badge - Circle */}
-                  <div className={cn(
-                    'flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-br shadow-md transition-transform duration-300 group-hover:scale-110',
-                    opt.gradient
-                  )}>
-                    {memuat ? (
-                      <div className="h-4 w-4 animate-spin rounded-full border-[2px] border-white border-t-transparent" />
-                    ) : (
-                      <span className="text-sm font-bold text-white">
-                        {counts?.[opt.countKey] ?? 0}
-                      </span>
-                    )}
-                  </div>
-                </div>
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {/* Manajemen Barang */}
-        <div>
-          <div className="mb-4 flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 shadow-md shadow-indigo-500/30">
-              <Icon name="inventory_2" className="h-5 w-5 text-white" />
-            </div>
-            <h3 className="font-jakarta text-lg font-bold text-slate-800">
-              Manajemen Barang
-            </h3>
-          </div>
-          <div className="grid grid-cols-3 gap-4">
-            {barangOptions.map((opt) => (
-              <button
-                key={opt.countKey}
-                onClick={() => {
-                  onUbahTerbuka(false);
-                  const routeMap: Record<string, string> = {
-                    totalBarang: 'barang:totalBarang',
-                    stokTersedia: 'barang:stokTersedia',
-                    stokHabis: 'barang:stokHabis',
-                  };
-                  onPilih(routeMap[opt.countKey] || `barang:${opt.countKey}`);
-                }}
-                className="group relative"
-              >
-                {/* Glow effect */}
-                <div className={cn(
-                  'absolute inset-0 rounded-2xl bg-gradient-to-br opacity-0 blur-lg transition-opacity duration-300 group-hover:opacity-50',
-                  opt.gradient
-                )} />
-
-                {/* Card */}
-                <div className="relative flex flex-col items-center gap-3 rounded-2xl border border-slate-200/50 bg-white p-4 shadow transition-all duration-300 hover:shadow-lg hover:-translate-y-1">
-                  {/* Icon */}
-                  <div className={cn(
-                    'flex h-16 w-16 items-center justify-center rounded-xl bg-gradient-to-br shadow-md transition-transform duration-300 group-hover:scale-105',
-                    opt.gradient
-                  )}>
-                    <Icon name={opt.ikon} className="h-8 w-8 text-white" />
-                  </div>
-
-                  {/* Label */}
-                  <span className="text-center text-xs font-semibold text-slate-600">{opt.label}</span>
-
-                  {/* Count Badge - Circle */}
-                  <div className={cn(
-                    'flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-br shadow-md transition-transform duration-300 group-hover:scale-110',
-                    opt.gradient
-                  )}>
-                    {memuat ? (
-                      <div className="h-4 w-4 animate-spin rounded-full border-[2px] border-white border-t-transparent" />
-                    ) : (
-                      <span className="text-sm font-bold text-white">
-                        {counts?.[opt.countKey] ?? 0}
-                      </span>
-                    )}
-                  </div>
-                </div>
-              </button>
-            ))}
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
 
 export default function AdminDashboardPage() {
   const router = useRouter();
@@ -815,8 +496,8 @@ export default function AdminDashboardPage() {
             <Icon name="location_city" className="h-5 w-5 text-white" />
           </div>
           <div>
-            <h3 class="font-jakarta text-xl font-bold text-slate-800">Pilih Kode Satker</h3>
-            <p class="text-sm text-muted-foreground">Klik kartu untuk memilih kode satker yang akan diakses</p>
+            <h3 className="font-jakarta text-xl font-bold text-slate-800">Pilih Kode Satker</h3>
+            <p className="text-sm text-muted-foreground">Klik kartu untuk memilih kode satker yang akan diakses</p>
           </div>
         </div>
         <div className="grid auto-fit min-h-[120px] grid-cols-[repeat(auto-fit,minmax(260px,1fr))] gap-4">
@@ -834,24 +515,24 @@ export default function AdminDashboardPage() {
                 setCountsMemuat(false);
               }}
               style={{ animationDelay: `${indeks * 60}ms` }}
-              class="group relative flex min-h-[108px] animate-page-in items-center rounded-2xl border-2 border-slate-200/50 bg-white p-4 shadow-md transition-all duration-300 hover:border-primary/30 hover:shadow-xl hover:-translate-y-2 active:scale-[0.98]"
+              className="group relative flex min-h-[108px] animate-page-in items-center rounded-2xl border-2 border-slate-200/50 bg-white p-4 shadow-md transition-all duration-300 hover:border-primary/30 hover:shadow-xl hover:-translate-y-2 active:scale-[0.98]"
             >
               {/* Gradient top border on hover */}
-              <div class="absolute inset-x-0 top-0 h-1 rounded-t-xl bg-gradient-to-r from-primary to-indigo-600 opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
+              <div className="absolute inset-x-0 top-0 h-1 rounded-t-xl bg-gradient-to-r from-primary to-indigo-600 opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
 
               {/* Icon */}
-              <div class="relative flex h-14 w-14 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-primary to-indigo-600 shadow-lg shadow-primary/30 transition-transform duration-300 group-hover:scale-110 group-hover:shadow-xl">
+              <div className="relative flex h-14 w-14 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-primary to-indigo-600 shadow-lg shadow-primary/30 transition-transform duration-300 group-hover:scale-110 group-hover:shadow-xl">
                 <Icon name="domain" className="h-7 w-7 text-white" />
               </div>
 
               {/* Text */}
-              <div class="ml-4 min-w-0 flex-1 text-left">
-                <p class="break-words font-semibold leading-snug text-slate-700 transition-colors group-hover:text-primary">{satker.label}</p>
-                <p class="mt-1 font-mono text-xs font-medium text-slate-500">{satker.kode}</p>
+              <div className="ml-4 min-w-0 flex-1 text-left">
+                <p className="break-words font-semibold leading-snug text-slate-700 transition-colors group-hover:text-primary">{satker.label}</p>
+                <p className="mt-1 font-mono text-xs font-medium text-slate-500">{satker.kode}</p>
               </div>
 
               {/* Arrow - only visible on hover */}
-              <div class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-slate-100 opacity-0 transition-all duration-300 group-hover:translate-x-1 group-hover:bg-primary/10 group-hover:opacity-100">
+              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-slate-100 opacity-0 transition-all duration-300 group-hover:translate-x-1 group-hover:bg-primary/10 group-hover:opacity-100">
                 <Icon name="arrow_forward" className="h-5 w-5 text-slate-400 transition-colors group-hover:text-primary" />
               </div>
             </button>

@@ -8,9 +8,9 @@
 
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, memo } from 'react';
 import Link from 'next/link';
-import { Folder, FolderOpen, ChevronDown, Eye, Trash2, Package, Info } from 'lucide-react';
+import { Folder, FolderOpen, ChevronDown, Eye, Trash2, Package } from 'lucide-react';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -70,7 +70,9 @@ interface Props {
   onHapus: (id: string) => Promise<void>;
 }
 
-export function FolderBarang({ grup, onHapus }: Props) {
+// FolderBarang dibungkus memo untuk mencegah re-render tidak perlu
+// saat parent component re-render tapi props tidak berubah.
+export const FolderBarang = memo(function FolderBarang({ grup, onHapus }: Props) {
   const [terbuka, setTerbuka] = useState<Set<string>>(new Set());
   const [target, setTarget] = useState<Barang | null>(null);
   const [sedangHapus, setSedangHapus] = useState(false);
@@ -400,4 +402,4 @@ export function FolderBarang({ grup, onHapus }: Props) {
       />
     </>
   );
-}
+});
