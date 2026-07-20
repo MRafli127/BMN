@@ -22,6 +22,7 @@ import type { Peminjaman } from '@/types/peminjaman.type';
 interface Props {
   cari?: string;
   filterStatus?: string;
+  satkerAwal?: string | null;
 }
 
 interface GrupSatker {
@@ -79,7 +80,7 @@ function SkeletonRow() {
   );
 }
 
-export function FolderSatkerSuperAdmin({ cari, filterStatus }: Props) {
+export function FolderSatkerSuperAdmin({ cari, filterStatus, satkerAwal }: Props) {
   const [terbuka, setTerbuka] = useState<Set<string>>(new Set());
   const [dataPerSatker, setDataPerSatker] = useState<Record<string, Peminjaman[]>>({});
   const [counts, setCounts] = useState<Record<string, number>>({});
@@ -90,6 +91,19 @@ export function FolderSatkerSuperAdmin({ cari, filterStatus }: Props) {
 
   // Refs untuk prevent duplicate calls
   const loadingSatkerRef = useRef<Set<string>>(new Set());
+  const sudahDibukaRef = useRef(false);
+
+  // Auto-open folder berdasarkan satkerAwal
+  useEffect(() => {
+    if (satkerAwal && !sudahDibukaRef.current) {
+      sudahDibukaRef.current = true;
+      setTerbuka(new Set([satkerAwal]));
+      // Load data untuk satker tersebut
+      if (!dataPerSatker[satkerAwal] && !loadingSatkerRef.current.has(satkerAwal)) {
+        loadSatker(satkerAwal, 1);
+      }
+    }
+  }, [satkerAwal, dataPerSatker]);
 
   const grupSatker: GrupSatker[] = useMemo(() =>
     OPSI_FILTER_BARANG.map((s) => ({
@@ -250,8 +264,8 @@ export function FolderSatkerSuperAdmin({ cari, filterStatus }: Props) {
             <div
               key={g.kodeSatker}
               className={cn(
-                'overflow-hidden rounded-xl border bg-card transition-colors',
-                buka ? 'border-blue-400 ring-1 ring-blue-400' : 'border-outline-variant'
+                'overflow-hidden rounded-xl border-2 bg-card transition-colors',
+                buka ? 'border-primary/50 ring-1 ring-primary/20' : 'border-slate-200/50'
               )}
             >
               {/* Header folder */}
@@ -260,32 +274,44 @@ export function FolderSatkerSuperAdmin({ cari, filterStatus }: Props) {
                 onClick={() => toggle(g.kodeSatker)}
                 aria-expanded={buka}
                 className={cn(
-                  'flex w-full items-center gap-2 p-3 text-left transition-colors sm:p-4 md:gap-3',
-                  buka ? 'bg-blue-50 hover:bg-blue-100' : 'hover:bg-primary/5'
+                  'flex w-full items-center gap-3 p-4 text-left transition-colors',
+                  buka ? 'bg-gradient-to-r from-primary/10 to-indigo-500/10 hover:from-primary/15 hover:to-indigo-500/15' : 'hover:bg-slate-50'
                 )}
               >
-                <ChevronRight
-                  className={cn(
-                    'h-4 w-4 shrink-0 transition-transform duration-200 sm:h-5 sm:w-5',
-                    buka && 'rotate-90',
-                    'text-blue-600'
+                <div className={cn(
+                  'flex h-10 w-10 shrink-0 items-center justify-center rounded-xl transition-all duration-300',
+                  buka ? 'bg-gradient-to-br from-primary to-indigo-600 shadow-lg' : 'bg-slate-100'
+                )}>
+                  {buka ? (
+                    <FolderOpen className="h-5 w-5 text-white" />
+                  ) : (
+                    <Folder className="h-5 w-5 text-slate-500" />
                   )}
-                />
-                {buka ? (
-                  <FolderOpen className="h-5 w-5 shrink-0 text-blue-600 sm:h-6 sm:w-6" />
-                ) : (
-                  <Folder className="h-5 w-5 shrink-0 text-primary sm:h-6 sm:w-6" />
-                )}
-                <div className="min-w-0 flex-1">
-                  <p className="truncate font-medium text-foreground text-sm sm:text-base">{g.label}</p>
-                  <p className="truncate font-mono text-xs text-muted-foreground">{g.kodeSatker}</p>
+                </div>
+                <div className="min-w-0 flex-1 text-left">
+                  <p className="truncate font-semibold text-sm text-slate-700">{g.label}</p>
+                  <p className="truncate font-mono text-xs text-slate-400">{g.kodeSatker}</p>
                 </div>
                 <span className={cn(
-                  'shrink-0 rounded-full px-2 py-0.5 text-xs font-semibold sm:px-2.5 sm:py-1',
-                  totalCount > 0 ? 'bg-primary/10 text-primary' : 'bg-gray-100 text-gray-500'
+                  'shrink-0 rounded-lg px-2.5 py-1 text-xs font-semibold transition-colors',
+                  totalCount > 0 ? 'bg-primary/10 text-primary' : 'bg-slate-100 text-slate-500'
                 )}>
                   {loadingCounts && !counts[g.kodeSatker] ? '...' : totalCount}
                 </span>
+                <div className={cn(
+                  'flex h-8 w-8 shrink-0 items-center justify-center rounded-lg transition-all duration-300',
+                  buka ? 'bg-primary/20' : 'bg-slate-100'
+                )}>
+                  <svg
+                    className={cn('h-4 w-4 transition-transform', buka ? 'rotate-180 text-primary' : 'text-slate-400')}
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                  >
+                    <polyline points="6 9 12 15 18 9"></polyline>
+                  </svg>
+                </div>
               </button>
 
               {/* Isi folder */}

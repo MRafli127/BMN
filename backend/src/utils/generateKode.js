@@ -20,33 +20,23 @@ function kodeNaturalBarang({ kodeSatker, kodeBarangBmn, nup } = {}) {
     .join('-');
 }
 
-// Karakter yang digunakan untuk random string (alphanumeric uppercase)
-// Menghilangkan 0, O, I, 1 untuk menghindari kesalahan baca manusia
-const KARAKTER_KODE = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-const PANJANG_RANDOM = 5;
-
-// Generate random string dengan karakter yang mudah dibaca
-function generateRandomString(panjang = PANJANG_RANDOM) {
-  let result = '';
-  for (let i = 0; i < panjang; i++) {
-    result += KARAKTER_KODE.charAt(Math.floor(Math.random() * KARAKTER_KODE.length));
-  }
-  return result;
-}
-
 // Generate kode transaksi unik untuk peminjaman.
 // Format: kodeSatker-kodeBarangBmn-NUP (natural code dari barang)
 // Menggunakan retry mechanism untuk menjamin uniqueness di database.
+//Tidak menggunakan format "BMN-........-......" atau timestamp-based.
+// Hanya menggunakan kunci natural aset BMN.
 async function kodeTransaksiUnik(barangData = {}) {
   const { kodeSatker, kodeBarangBmn, nup } = barangData;
 
-  // Bangun kode dari komponen natural
-  const kodeNatural = kodeNaturalBarang({ kodeSatker, kodeBarangBmn, nup });
-
-  // Jika komponen tidak lengkap, fallback ke format timestamp-based
-  if (!kodeNatural || !kodeSatker || !kodeBarangBmn || !nup) {
-    return kodeTransaksiFallback();
+  // Kode harus menggunakan komponen natural BMN
+  if (!kodeSatker || !kodeBarangBmn || !nup) {
+    throw new Error(
+      `Kode transaksi peminjaman harus menggunakan kunci natural BMN (kodeSatker-kodeBarangBmn-NUP). ` +
+        `Komponen tidak lengkap: kodeSatker=${kodeSatker}, kodeBarangBmn=${kodeBarangBmn}, nup=${nup}`
+    );
   }
+
+  const kodeNatural = kodeNaturalBarang({ kodeSatker, kodeBarangBmn, nup });
 
   // Cek apakah kode sudah ada (uniqueness)
   const count = await prisma.peminjaman.count({
@@ -70,17 +60,10 @@ async function kodeTransaksiUnik(barangData = {}) {
     }
   }
 
-  // Fallback jika semua retry gagal
-  return kodeTransaksiFallback();
-}
-
-// Fallback: format timestamp-based jika komponen tidak tersedia
-function kodeTransaksiFallback() {
-  const tahun = new Date().getFullYear();
-  const bulan = String(new Date().getMonth() + 1).padStart(2, '0');
-  const hari = String(new Date().getDate()).padStart(2, '0');
-  const random = generateRandomString(PANJANG_RANDOM);
-  return `${tahun}${bulan}${hari}-${random}`;
+  // Jika semua retry gagal, lempar error (seharusnya tidak terjadi)
+  throw new Error(
+    `Gagal membuat kode transaksi unik untuk ${kodeNatural} setelah ${MAX_RETRY} percobaan.`
+  );
 }
 
 module.exports = { kodeNaturalBarang, kodeTransaksiUnik };

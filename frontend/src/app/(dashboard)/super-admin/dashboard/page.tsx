@@ -243,7 +243,7 @@ export default function SuperAdminDashboardPage() {
         </section>
       )}
 
-      {/* Statistik Per Satker - Grid Kartu */}
+      {/* Statistik Per Satker - Single Column List */}
       <section className="rounded-3xl border-2 border-slate-200/50 bg-gradient-to-br from-white to-slate-50 p-8 shadow-lg animate-page-in" style={{ animationDelay: '200ms' }}>
         <div className="mb-6 flex items-center justify-between">
           <div className="flex items-center gap-4">
@@ -261,71 +261,64 @@ export default function SuperAdminDashboardPage() {
           </Link>
         </div>
 
-        <div className="grid auto-fit min-h-[120px] grid-cols-[repeat(auto-fit,minmax(300px,1fr))] gap-4">
+        <div className="space-y-3">
           {statistikSatkerDenganNama.map((satker, indeks) => (
             <button
               key={satker.kodeSatker}
               onClick={() => router.push(`${RUTE.superAdminBarang}?kodeSatker=${satker.kodeSatker}`)}
               style={{ animationDelay: `${250 + indeks * 60}ms` }}
-              className="group relative flex min-h-[108px] animate-page-in items-center rounded-2xl border-2 border-slate-200/50 bg-white p-4 shadow-md transition-all duration-300 hover:border-primary/30 hover:shadow-xl hover:-translate-y-2 active:scale-[0.98]"
+              className="group relative flex w-full items-center gap-4 rounded-2xl border-2 border-slate-200/50 bg-white p-4 shadow-md transition-all duration-300 hover:border-primary/30 hover:shadow-xl active:scale-[0.98]"
             >
               {/* Gradient top border on hover */}
               <div className="absolute inset-x-0 top-0 h-1 rounded-t-xl bg-gradient-to-r from-primary to-indigo-600 opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
 
               {/* Icon */}
-              <div className="relative flex h-14 w-14 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-primary to-indigo-600 shadow-lg shadow-primary/30 transition-transform duration-300 group-hover:scale-110 group-hover:shadow-xl">
-                <Icon name="domain" className="h-7 w-7 text-white" />
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-blue-100 transition-transform duration-300 group-hover:scale-105">
+                <Icon name="domain" className="h-5 w-5 text-blue-600" />
               </div>
 
-              {/* Text */}
-              <div className="ml-4 min-w-0 flex-1 text-left">
-                <p className="break-words font-semibold leading-snug text-slate-700 transition-colors group-hover:text-primary">{satker.nama}</p>
-                <div className="mt-2 flex items-center gap-4">
-                  <span className="text-sm font-medium text-slate-600">{satker.jumlahBarang} barang</span>
-                  <span className={cn(
-                    "text-sm font-medium",
-                    satker.jumlahPeminjaman > 0 ? "text-primary" : "text-slate-600"
-                  )}>
-                    {satker.jumlahPeminjaman} peminjaman
+              {/* Nama Satker */}
+              <div className="min-w-0 flex-1 text-left">
+                <p className="truncate font-semibold text-sm text-slate-700 transition-colors group-hover:text-primary">{satker.nama}</p>
+                <p className="text-xs text-slate-400">{satker.kodeSatker}</p>
+              </div>
+
+              {/* Stats - Clickable */}
+              <div className="flex items-center gap-4">
+                <Link
+                  href={`${RUTE.superAdminBarang}?kodeSatker=${satker.kodeSatker}`}
+                  onClick={(e) => e.stopPropagation()}
+                  className="group/stat flex flex-col items-center rounded-lg px-3 py-1 transition-all hover:bg-purple-50"
+                >
+                  <span className="text-base font-bold text-purple-600 transition-colors group-hover/stat:text-purple-700">
+                    {satker.jumlahBarang.toLocaleString('id-ID')}
                   </span>
-                </div>
+                  <span className="text-xs text-slate-500">Barang</span>
+                </Link>
+                <div className="h-8 w-px bg-slate-200" />
+                <Link
+                  href={`${RUTE.superAdminPeminjaman}?kodeSatker=${satker.kodeSatker}`}
+                  onClick={(e) => e.stopPropagation()}
+                  className="group/stat flex flex-col items-center rounded-lg px-3 py-1 transition-all hover:bg-orange-50"
+                >
+                  <span className={cn(
+                    "text-base font-bold transition-colors",
+                    satker.jumlahPeminjaman > 0 ? "text-orange-600 group-hover/stat:text-orange-700" : "text-slate-400"
+                  )}>
+                    {satker.jumlahPeminjaman.toLocaleString('id-ID')}
+                  </span>
+                  <span className="text-xs text-slate-500">Peminjaman</span>
+                </Link>
               </div>
 
-              {/* Arrow - only visible on hover */}
-              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-slate-100 opacity-0 transition-all duration-300 group-hover:translate-x-1 group-hover:bg-primary/10 group-hover:opacity-100">
-                <Icon name="arrow_forward" className="h-5 w-5 text-slate-400 transition-colors group-hover:text-primary" />
+              {/* Arrow */}
+              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-slate-100 opacity-0 transition-all duration-300 group-hover:translate-x-1 group-hover:bg-primary/10 group-hover:opacity-100">
+                <Icon name="arrow_forward" className="h-4 w-4 text-slate-400 transition-colors group-hover:text-primary" />
               </div>
             </button>
           ))}
         </div>
       </section>
-
-      {/* Quick Actions */}
-      {!error && (
-        <section className="rounded-3xl border-2 border-slate-200/50 bg-gradient-to-br from-white to-slate-50 p-8 shadow-lg animate-page-in" style={{ animationDelay: '250ms' }}>
-          <div className="mb-6 flex items-center gap-4">
-            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-primary to-indigo-600 shadow-lg shadow-primary/30">
-              <Icon name="flash_on" className="h-6 w-6 text-white" />
-            </div>
-            <div>
-              <h2 className="font-jakarta text-xl font-bold text-slate-800">Aksi Cepat</h2>
-              <p className="text-sm text-muted-foreground">Navigasi cepat ke fitur utama</p>
-            </div>
-          </div>
-          <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-6">
-            {[
-              { label: 'Kelola Admin', href: RUTE.superAdminAdmin, ikon: 'admin_panel_settings', warna: 'bg-blue-500' },
-              { label: 'Kelola Barang', href: RUTE.superAdminBarang, ikon: 'inventory_2', warna: 'bg-green-500' },
-              { label: 'Kelola Peminjaman', href: RUTE.superAdminPeminjaman, ikon: 'sync_alt', warna: 'bg-purple-500' },
-              { label: 'Kelola Satker', href: RUTE.superAdminSatker, ikon: 'location_city', warna: 'bg-teal-500' },
-              { label: 'Lihat Logs', href: RUTE.superAdminLogs, ikon: 'history', warna: 'bg-orange-500' },
-              { label: 'Kelola Pengguna', href: RUTE.superAdminPengguna, ikon: 'group', warna: 'bg-indigo-500' },
-            ].map((action, i) => (
-              <QuickActionButton key={action.label} {...action} index={i} />
-            ))}
-          </div>
-        </section>
-      )}
     </div>
   );
 }

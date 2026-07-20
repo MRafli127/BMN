@@ -15,6 +15,15 @@ const AKSI = {
   PEMINJAMAN_STATUS_CHANGE: 'PEMINJAMAN_STATUS_CHANGE',
   PEMINJAMAN_DELETE: 'PEMINJAMAN_DELETE',
 
+  // Peminjaman - Aksi spesifik per status
+  PEMINJAMAN_MENUNGGU: 'PEMINJAMAN_MENUNGGU',
+  PEMINJAMAN_DISETUJUI: 'PEMINJAMAN_DISETUJUI',
+  PEMINJAMAN_DITOLAK: 'PEMINJAMAN_DITOLAK',
+  PEMINJAMAN_DISERAHKAN: 'PEMINJAMAN_DISERAHKAN',
+  PEMINJAMAN_MEMINTA_PENGEMBALIAN: 'PEMINJAMAN_MEMINTA_PENGEMBALIAN',
+  PEMINJAMAN_DIKEMBALIKAN: 'PEMINJAMAN_DIKEMBALIKAN',
+  PEMINJAMAN_DIBATALKAN: 'PEMINJAMAN_DIBATALKAN',
+
   // Barang
   BARANG_CREATE: 'BARANG_CREATE',
   BARANG_UPDATE: 'BARANG_UPDATE',
@@ -57,6 +66,14 @@ const LABEL_AKSI = {
   [AKSI.PEMINJAMAN_CREATE]: 'Mengajukan Peminjaman',
   [AKSI.PEMINJAMAN_STATUS_CHANGE]: 'Mengubah Status Peminjaman',
   [AKSI.PEMINJAMAN_DELETE]: 'Menghapus Peminjaman',
+  // Peminjaman - Aksi spesifik per status
+  [AKSI.PEMINJAMAN_MENUNGGU]: 'Pengajuan Masuk',
+  [AKSI.PEMINJAMAN_DISETUJUI]: 'Menyetujui',
+  [AKSI.PEMINJAMAN_DITOLAK]: 'Menolak',
+  [AKSI.PEMINJAMAN_DISERAHKAN]: 'Menyerahkan Barang',
+  [AKSI.PEMINJAMAN_MEMINTA_PENGEMBALIAN]: 'Meminta Pengembalian',
+  [AKSI.PEMINJAMAN_DIKEMBALIKAN]: 'Mengembalikan',
+  [AKSI.PEMINJAMAN_DIBATALKAN]: 'Membatalkan',
   [AKSI.BARANG_CREATE]: 'Menambah Barang',
   [AKSI.BARANG_UPDATE]: 'Memperbarui Barang',
   [AKSI.BARANG_DELETE]: 'Menghapus Barang',
@@ -208,6 +225,7 @@ async function logStokBarang({
 
 /**
  * Ambil daftar audit log dengan filter & pagination.
+ * Untuk entitas peminjaman, ikut ambil data peminjaman untuk deskripsi lengkap.
  */
 async function getSemua({
   entitas,
@@ -242,12 +260,94 @@ async function getSemua({
     prisma.auditLog.count({ where }),
   ]);
 
-  // Tambahkan label manusia
-  const dataDenganLabel = data.map((item) => ({
-    ...item,
-    labelAksi: LABEL_AKSI[item.aksi] || item.aksi,
-    labelEntitas: LABEL_ENTITAS[item.entitas] || item.entitas,
-  }));
+  // Ambil data peminjaman untuk entitas peminjaman (agar bisa tampilkan nama peminjam)
+  const peminjamanIds = data
+    .filter((d) => d.entitas === ENTITAS.PEMINJAMAN && d.entitasId)
+    .map((d) => d.entitasId);
+
+  const peminjamanMap = new Map();
+  if (peminjamanIds.length > 0) {
+    const peminjamans = await prisma.peminjaman.findMany({
+      where: { id: { in: [...new Set(peminjamanIds)] } },
+      include: {
+        peminjam: { select: { id: true, nama: true } },
+        detail: {
+          include: {
+            barang: { select: { nama: true } },
+          },
+        },
+      },
+    });
+    peminjamans.forEach((p) => peminjamanMap.set(p.id, p));
+  }
+
+  // Tambahkan label manusia + deskripsi lengkap
+  const dataDenganLabel = data.map((item) => {
+    const labelAksi = LABEL_AKSI[item.aksi] || item.aksi;
+    const labelEntitas = LABEL_ENTITAS[item.entitas] || item.entitas;
+
+    // Generate deskripsi berdasarkan aksi
+    let deskripsi = '';
+    if (item.entitas === ENTITAS.PEMINJAMAN && item.entitasId) {
+      const peminjaman = peminjamanMap.get(item.entitasId);
+      const namaPeminjam = peminjaman?.peminjam?.nama || 'Tidak dikenal';
+      const namaBarang =
+        peminjaman?.detail?.[0]?.barang?.nama || 'barang';
+      const statusBaru = item.dataBaru?.status;
+      const statusLama = item.dataLama?.status;
+
+      // Bangun deskripsi berdasarkan aksi spesifik
+      switch (item.aksi) {
+        case AKSI.PEMINJAMAN_MENUNGGU:
+          deskripsi = `${namaPeminjam} mengajukan pinjaman ${namaBarang}`;
+          break;
+        case AKSI.PEMINJAMAN_DISETUJUI:
+          deskripsi = `Admin menyetujui pengajuan ${namaPeminjam}`;
+          break;
+        case AKSI.PEMINJAMAN_DITOLAK:
+          const alasanTolak = item.dataBaru?.alasan ? ` (${item.dataBaru.alasan})` : '';
+          deskripsi = `Admin menolak pengajuan ${namaPeminjam}${alasanTolak}`;
+          break;
+        case AKSI.PEMINJAMAN_DISERAHKAN:
+          deskripsi = `Admin menyerahkan ${namaBarang} ke ${namaPeminjam}`;
+          break;
+        case AKSI.PEMINJAMAN_MEMINTA_PENGEMBALIAN:
+          deskripsi = `${namaPeminjam} meminta pengembalian ${namaBarang}`;
+          break;
+        case AKSI.PEMINJAMAN_DIKEMBALIKAN:
+          const dikembalikanOleh = item.dataBaru?.dikembalikanOleh;
+          if (item.userNama && item.userNama !== 'Sistem') {
+            // Dilakukan oleh admin
+            deskripsi = `Admin menerima pengembalian dari ${namaPeminjam}`;
+          } else {
+            deskripsi = `${namaPeminjam} mengembalikan ${namaBarang}`;
+          }
+          break;
+        case AKSI.PEMINJAMAN_DIBATALKAN:
+          deskripsi = `${namaPeminjam} membatalkan pengajuan`;
+          break;
+        case AKSI.PEMINJAMAN_DELETE:
+          deskripsi = `Admin menghapus peminjaman ${namaPeminjam}`;
+          break;
+        default:
+          // Generic fallback
+          if (statusBaru) {
+            deskripsi = `${labelAksi}: ${statusBaru}`;
+          } else {
+            deskripsi = labelAksi;
+          }
+      }
+    } else {
+      deskripsi = labelAksi;
+    }
+
+    return {
+      ...item,
+      labelAksi,
+      labelEntitas,
+      deskripsi,
+    };
+  });
 
   return {
     data: dataDenganLabel,
