@@ -144,6 +144,8 @@ export default function AdminPeminjamanPage() {
       }
       setDialogSetujui(false);
       setCatatanSetujui('');
+      invalidasiCache('peminjaman');
+      invalidasiCache('folder-peminjaman');
       await muat();
     } catch (error) {
       notify.gagal(ambilPesanError(error, 'Gagal menyetujui data terpilih.'));
@@ -166,6 +168,8 @@ export default function AdminPeminjamanPage() {
         notify.gagal('Tidak ada peminjaman yang dapat diserahkan (bukan status disetujui).');
       }
       setDialogSerahkan(false);
+      invalidasiCache('peminjaman');
+      invalidasiCache('folder-peminjaman');
       await muat();
     } catch (error) {
       notify.gagal(ambilPesanError(error, 'Gagal menyerahkan barang terpilih.'));
@@ -188,6 +192,8 @@ export default function AdminPeminjamanPage() {
         notify.gagal('Tidak ada peminjaman yang dapat dikembalikan (tidak sedang dipinjam).');
       }
       setDialogKembalikan(false);
+      invalidasiCache('peminjaman');
+      invalidasiCache('folder-peminjaman');
       await muat();
     } catch (error) {
       notify.gagal(ambilPesanError(error, 'Gagal mengonfirmasi pengembalian terpilih.'));
@@ -202,6 +208,8 @@ export default function AdminPeminjamanPage() {
       const jumlah = await peminjamanService.hapusMassal(terpilih);
       notify.suksess(`${jumlah} data peminjaman berhasil dihapus.`);
       setDialogMassal(false);
+      invalidasiCache('peminjaman');
+      invalidasiCache('folder-peminjaman');
       await muat();
     } catch (error) {
       notify.gagal(ambilPesanError(error, 'Gagal menghapus data terpilih.'));

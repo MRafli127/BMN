@@ -38,6 +38,7 @@ import { TampilQR } from '@/components/qrcode/TampilQR';
 import { notify } from '@/components/ui/toast';
 import { peminjamanService } from '@/services/peminjaman.service';
 import { ambilPesanError, formatTanggalLengkap, cn } from '@/lib/utils';
+import { invalidasiCache } from '@/lib/cache';
 import { hitungInfoPensiun } from '@/components/peminjaman/TabelPeminjaman';
 import { STATUS_PEMINJAMAN } from '@/constants/status';
 import { RUTE } from '@/constants/routes';
@@ -93,6 +94,8 @@ export default function DetailPeminjamanAdminPage() {
       setData(hasil);
       setAksi(null);
       setCatatan('');
+      invalidasiCache('peminjaman');
+      invalidasiCache('folder-peminjaman');
       notify.suksess('Tindakan berhasil dilakukan.');
     } catch (error) {
       notify.gagal(ambilPesanError(error, 'Gagal melakukan tindakan.'));
@@ -102,6 +105,8 @@ export default function DetailPeminjamanAdminPage() {
       // pasti ditolak backend.
       const kode = (error as { response?: { status?: number } })?.response?.status;
       if (kode === 400 || kode === 404 || kode === 409) {
+        invalidasiCache('peminjaman');
+        invalidasiCache('folder-peminjaman');
         setAksi(null);
         setCatatan('');
         muat();
@@ -117,12 +122,18 @@ export default function DetailPeminjamanAdminPage() {
     try {
       const hasil = await peminjamanService.stempel(data.id);
       setData(hasil);
+      invalidasiCache('peminjaman');
+      invalidasiCache('folder-peminjaman');
       notify.suksess('Dokumen berhasil distempel & ditandatangani digital.');
     } catch (error) {
       notify.gagal(ambilPesanError(error, 'Gagal menstempel dokumen.'));
       // Sinkronkan ulang bila kondisi di server sudah berubah (halaman basi).
       const kode = (error as { response?: { status?: number } })?.response?.status;
-      if (kode === 400 || kode === 404 || kode === 409) muat();
+      if (kode === 400 || kode === 404 || kode === 409) {
+        invalidasiCache('peminjaman');
+        invalidasiCache('folder-peminjaman');
+        muat();
+      }
     } finally {
       setSedangStempel(false);
     }
