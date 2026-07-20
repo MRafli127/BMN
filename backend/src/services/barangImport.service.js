@@ -234,8 +234,7 @@ function sama(a, b) {
 }
 
 // Field deskriptif yang ikut diperbarui saat re-import.
-// Termasuk kodeBarang agar baris lama (mis. warisan kode BMN-...) ikut
-// dirapikan ke kunci natural saat import berikutnya.
+// Termasuk kodeBarang agar tersinkron dengan kunci natural satker-barang-NUP.
 function adaPerubahan(lama, baru) {
   return (
     !sama(lama.kodeBarang, kodeNaturalBarang(baru)) ||

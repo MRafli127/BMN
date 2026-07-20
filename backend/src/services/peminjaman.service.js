@@ -409,7 +409,7 @@ async function create(userId, data, dokumenDataUrl, requestInfo = {}) {
     userId,
     userEmail: peminjam?.email,
     userNama: peminjam?.nama,
-    aksi: auditLogService.AKSI.PEMINJAMAN_CREATE,
+    aksi: auditLogService.AKSI.PEMINJAMAN_MENUNGGU,
     entitas: auditLogService.ENTITAS.PEMINJAMAN,
     entitasId: created.id,
     dataBaru: {
@@ -463,7 +463,7 @@ async function unggahSurat(id, { userId, role } = {}, dokumenDataUrl, requestInf
     userId,
     userEmail: p.peminjam?.email,
     userNama: p.peminjam?.nama,
-    aksi: auditLogService.AKSI.PEMINJAMAN_STATUS_CHANGE,
+    aksi: auditLogService.AKSI.PEMINJAMAN_MENUNGGU,
     entitas: auditLogService.ENTITAS.PEMINJAMAN,
     entitasId: id,
     dataLama: { status: 'DRAFT' },
@@ -496,7 +496,7 @@ async function batalDraft(id, { userId, role } = {}, requestInfo = {}) {
     userId,
     userEmail: null,
     userNama: null,
-    aksi: auditLogService.AKSI.PEMINJAMAN_DELETE,
+    aksi: auditLogService.AKSI.PEMINJAMAN_DIBATALKAN,
     entitas: auditLogService.ENTITAS.PEMINJAMAN,
     entitasId: id,
     dataLama: { status: 'DRAFT', kodeTransaksi: p.kodeTransaksi },
@@ -785,7 +785,7 @@ async function setujui(id, adminId, catatan, requestInfo = {}) {
     userId: adminId,
     userEmail: admin?.email,
     userNama: admin?.nama,
-    aksi: auditLogService.AKSI.PEMINJAMAN_STATUS_CHANGE,
+    aksi: auditLogService.AKSI.PEMINJAMAN_DISETUJUI,
     entitas: auditLogService.ENTITAS.PEMINJAMAN,
     entitasId: id,
     dataLama,
@@ -863,7 +863,7 @@ async function tolak(id, adminId, catatan, requestInfo = {}) {
     userId: adminId,
     userEmail: admin?.email,
     userNama: admin?.nama,
-    aksi: auditLogService.AKSI.PEMINJAMAN_STATUS_CHANGE,
+    aksi: auditLogService.AKSI.PEMINJAMAN_DITOLAK,
     entitas: auditLogService.ENTITAS.PEMINJAMAN,
     entitasId: id,
     dataLama: { status: 'MENUNGGU' },
@@ -904,6 +904,19 @@ async function serahkan(id, adminId) {
     data: { status: 'DIPINJAM' },
     include: includeLengkap,
   });
+
+  // Audit log: catat penyerahan barang
+  auditLogService.log({
+    userId: adminId,
+    userEmail: admin?.email,
+    userNama: admin?.nama,
+    aksi: auditLogService.AKSI.PEMINJAMAN_DISERAHKAN,
+    entitas: auditLogService.ENTITAS.PEMINJAMAN,
+    entitasId: id,
+    dataLama: { status: 'DISETUJUI' },
+    dataBaru: { status: 'DIPINJAM' },
+    requestInfo,
+  }).catch(() => {});
 
   // Kirim email notifikasi ke peminjam
   const peminjam = p.peminjam;
@@ -1007,7 +1020,7 @@ async function mintaPengembalian(id, { userId, role } = {}, dokumenPengembalianD
     userId,
     userEmail: p.peminjam?.email,
     userNama: p.peminjam?.nama,
-    aksi: auditLogService.AKSI.PEMINJAMAN_STATUS_CHANGE,
+    aksi: auditLogService.AKSI.PEMINJAMAN_MEMINTA_PENGEMBALIAN,
     entitas: auditLogService.ENTITAS.PEMINJAMAN,
     entitasId: id,
     dataLama: { tanggalPermintaanKembali: null },
@@ -1076,7 +1089,7 @@ async function kembalikan(id, adminId, catatan, requestInfo = {}) {
     userId: adminId || null,
     userEmail: admin?.email || null,
     userNama: admin?.nama || 'Sistem',
-    aksi: auditLogService.AKSI.PEMINJAMAN_STATUS_CHANGE,
+    aksi: auditLogService.AKSI.PEMINJAMAN_DIKEMBALIKAN,
     entitas: auditLogService.ENTITAS.PEMINJAMAN,
     entitasId: id,
     dataLama: { status: statusLama },

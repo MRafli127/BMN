@@ -1,8 +1,8 @@
 // ============================================================
 //  Script Migrasi: Update kodeTransaksi ke format natural
 //
-//  Format lama: BMN-YYYYMMDD-XXXXX
-//  Format baru: kodeSatker-kodeBarangBmn-NUP
+//  Format lama (sudah dihapus dari generateKode): BMN-YYYYMMDD-XXXXX
+//  Format baru (wajib): kodeSatker-kodeBarangBmn-NUP
 //
 //  Usage: node src/scripts/migrateKodeTransaksi.js
 // ============================================================

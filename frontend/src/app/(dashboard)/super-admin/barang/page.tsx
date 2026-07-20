@@ -7,6 +7,7 @@
 'use client';
 
 import { Suspense, useCallback, useEffect, useMemo, useState } from 'react';
+import { useSearchParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Search, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Input, Select } from '@/components/ui/input';
@@ -217,22 +218,47 @@ function FolderItem({ grup, terbuka, onToggle }: { grup: GrupMerk; terbuka: bool
 }
 
 function KontenBarang() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const kodeSatkerDariUrl = searchParams.get('kodeSatker');
   const [cari, setCari] = useState('');
   const [halaman, setHalaman] = useState(1);
   const [perHalaman, setPerHalaman] = useState(8);
-  const [filterKodeSatker, setFilterKodeSatker] = useState('');
+  const [filterKodeSatker, setFilterKodeSatker] = useState(kodeSatkerDariUrl || '');
   const [filterKondisi, setFilterKondisi] = useState('');
   const [filterKetersediaan, setFilterKetersediaan] = useState('');
 
+  // Filter yang aktif: dari URL (prioritas) atau dari dropdown
+  const filterAktif: { kodeSatker?: string; kondisi?: string; ketersediaan?: string } = {
+    kodeSatker: kodeSatkerDariUrl || filterKodeSatker || undefined,
+    kondisi: filterKondisi || undefined,
+    ketersediaan: filterKetersediaan || undefined,
+  };
+
   // Ambil data barang
   const { data, filter, ubahFilter, sedangMemuat, refetch } = useBarangFolder(
-    {
-      kodeSatker: filterKodeSatker || undefined,
-      kondisi: filterKondisi || undefined,
-      ketersediaan: filterKetersediaan || undefined,
-    },
+    filterAktif,
     { includePeminjam: true }
   );
+
+  // Sync state dari URL saat mount (untuk back/forward navigation)
+  useEffect(() => {
+    setFilterKodeSatker(kodeSatkerDariUrl || '');
+  }, [kodeSatkerDariUrl]);
+
+  // Handle ubah filter satker - update URL
+  const handleUbahSatker = useCallback((nilai: string) => {
+    setFilterKodeSatker(nilai);
+    // Update URL
+    const params = new URLSearchParams(window.location.search);
+    if (nilai) {
+      params.set('kodeSatker', nilai);
+    } else {
+      params.delete('kodeSatker');
+    }
+    const qs = params.toString();
+    router.replace(qs ? `/super-admin/barang?${qs}` : '/super-admin/barang', { scroll: false });
+  }, [router]);
 
   // Debounce pencarian
   useEffect(() => {
@@ -289,8 +315,8 @@ function KontenBarang() {
         {/* Filter */}
         <div className="flex flex-wrap items-center gap-3 bg-slate-50/50 p-4">
           <Select
-            value={filterKodeSatker}
-            onChange={(e) => setFilterKodeSatker(e.target.value)}
+            value={kodeSatkerDariUrl || filterKodeSatker}
+            onChange={(e) => handleUbahSatker(e.target.value)}
             className="w-72"
           >
             <option value="">Semua Kode Satker</option>
@@ -339,7 +365,7 @@ function KontenBarang() {
         />
       ) : (
         <>
-          {/* Folder Container dengan state lokal */}
+          {/* Folder Container */}
           <FolderContainer grup={grupHalaman} />
 
           {/* Footer: jumlah folder per halaman + navigasi */}
@@ -389,8 +415,16 @@ function KontenBarang() {
 }
 
 // Folder Container dengan state terbuka sendiri
-function FolderContainer({ grup }: { grup: GrupMerk[] }) {
+function FolderContainer({ grup, autoOpenAll = false }: { grup: GrupMerk[]; autoOpenAll?: boolean }) {
   const [terbuka, setTerbuka] = useState<Set<string>>(new Set());
+
+  // Auto-open all folders when autoOpenAll is true
+  useEffect(() => {
+    if (autoOpenAll && grup.length > 0) {
+      const semuaMerk = new Set(grup.map(g => g.merk));
+      setTerbuka(semuaMerk);
+    }
+  }, [autoOpenAll, grup]);
 
   const toggle = (merk: string) => {
     setTerbuka((lama) => {
@@ -437,7 +471,15 @@ function FolderContainer({ grup }: { grup: GrupMerk[] }) {
 
 export default function SuperAdminBarangPage() {
   return (
-    <Suspense fallback={<LoadingSpinner />}>
+    <Suspense fallback={
+      <div className="space-y-6">
+        <div className="h-32 animate-pulse rounded-2xl bg-slate-200" />
+        <div className="h-16 animate-pulse rounded-xl bg-slate-200" />
+        <div className="space-y-3">
+          {[1, 2, 3].map(i => <div key={i} className="h-20 animate-pulse rounded-xl bg-slate-200" />)}
+        </div>
+      </div>
+    }>
       <KontenBarang />
     </Suspense>
   );
