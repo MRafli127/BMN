@@ -1264,6 +1264,7 @@ module.exports = {
   setujui,
   tolak,
   serahkan,
+  serahKan: serahkan, // alias untuk backward compat (dipakai controller)
   serahkanBanyak,
   serahKanBanyak: serahkanBanyak, // alias untuk backward compat
   mintaPengembalian,

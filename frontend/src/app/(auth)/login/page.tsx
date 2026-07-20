@@ -150,7 +150,7 @@ export default function LoginPage() {
           <>
           <form onSubmit={kirim} className="space-y-6">
             <div>
-              <h3 className="mb-2 font-jakarta text-headline-md text-on-surface">Selamat Datang Kembali</h3>
+              <h3 className="mb-2 font-jakarta text-headline-md text-on-surface">Selamat Datang</h3>
               <p className="mb-2 font-body-md text-on-surface-variant">
                 Silakan masuk dengan kredensial instansi Anda.
               </p>
@@ -165,7 +165,7 @@ export default function LoginPage() {
                 className="w-full rounded-xl border border-outline-variant bg-surface-container-low px-4 py-4 transition-all focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/10"
               />
               <label htmlFor="email" className="font-label-md text-on-surface-variant">
-                NIP atau Email Pegawai
+                Email Pegawai
               </label>
             </div>
             {errors.email && <p className="-mt-3 text-xs text-error">{errors.email.message}</p>}
@@ -201,8 +201,7 @@ export default function LoginPage() {
                 />
                 <span className="font-label-sm text-on-surface-variant">Ingat Saya</span>
               </label>
-              <a href="#" className="font-label-sm text-primary hover:underline">
-                Lupa kata sandi?
+              <a href="#" className="font-label-sm text-primary hover:underline"> 
               </a>
             </div>
 
