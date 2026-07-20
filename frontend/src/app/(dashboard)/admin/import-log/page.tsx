@@ -33,10 +33,12 @@ export default function ImportLogPage() {
         ambilSemuaLog(page, 10),
         ambilStatistikImport(),
       ]);
-      setLogs(responseLog.data);
-      setTotalPages(responseLog.pagination.totalPages);
-      setStatistik(responseStat);
+      const { data: logsData = [], meta } = responseLog ?? {};
+      setLogs(logsData);
+      setTotalPages(meta?.pagination?.totalPages ?? 1);
+      setStatistik(responseStat ?? null);
     } catch (error) {
+      console.error('Gagal memuat data log import:', error);
       notify.gagal('Gagal memuat data log import.');
     } finally {
       setLoading(false);

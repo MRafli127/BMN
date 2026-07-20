@@ -362,9 +362,13 @@ async function create(userId, data, dokumenDataUrl, requestInfo = {}) {
     detailItems.push({ barangId: item.barangId, jumlahPinjam: item.jumlahPinjam });
   }
 
-  // Generate kode transaksi unik untuk QR code dan referensi
-  // Format: kodeSatker-kodeBarangBmn-NUP (natural code dari barang utama)
+  // Generate kode transaksi unik untuk QR code dan referensi.
+  // Format utama: kodeSatker-kodeBarangBmn-NUP (kunci natural dari barang utama).
+  // Fallback ke BMN-YYYYMMDD-XXXXX + warning log bila kunci natural tidak lengkap,
+  // agar fitur tidak lumpuh saat ada barang warisan. Lihat generateKode.js.
   const kodeTransaksi = await kodeTransaksiUnik({
+    barangId: barangUtama?.id,
+    kodeBarang: barangUtama?.kodeBarang,
     kodeSatker: barangUtama?.kodeSatker,
     kodeBarangBmn: barangUtama?.kodeBarangBmn,
     nup: barangUtama?.nup,

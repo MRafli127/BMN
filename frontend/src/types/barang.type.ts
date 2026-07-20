@@ -20,6 +20,7 @@ export interface Barang {
   kodeBarang: string;
   nama: string;
   merk?: string | null;
+  tipe?: string | null;
   jenis: JenisBarang;
   jumlahTotal: number;
   jumlahTersedia: number;

@@ -269,10 +269,15 @@ function KontenBarang() {
   // Kelompokkan barang menjadi folder per merk
   const grup = useMemo(() => kelompokkanPerMerk(data), [data]);
 
+  // Kunci filter berdasarkan NILAI untuk dependency useEffect.
+  // Pakai object `filter` langsung selalu berubah referensinya tiap render,
+  // memicu loop. Pakai JSON.stringify agar stabil.
+  const filterKey = useMemo(() => JSON.stringify(filter), [filter]);
+
   // Kembali ke halaman 1 bila filter / jumlah per halaman berubah
   useEffect(() => {
     setHalaman(1);
-  }, [filter, perHalaman]);
+  }, [filterKey, perHalaman]);
 
   const totalHalaman = Math.max(1, Math.ceil(grup.length / perHalaman));
   const halamanAman = Math.min(halaman, totalHalaman);

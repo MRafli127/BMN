@@ -79,9 +79,16 @@ function KontenPeminjaman() {
         </div>
       </div>
 
-      {/* Folder Peminjaman */}
+      {/* Folder Peminjaman.
+          `key={satkerAwal ?? 'all'}` memaksa REMOUNT komponen setiap kali
+          ?kodeSatker= berubah, supaya state internal (terbuka, dataPerSatker,
+          counts) di-reset dan useEffect auto-open berjalan ulang untuk satker
+          baru. Tanpa remount, useEffect akan skip karena sudahDibukaRef.current
+          masih true dari satker sebelumnya (auto-open jadi gagal untuk satker
+          kedua dan seterusnya). */}
       <div className="rounded-2xl border border-slate-200 bg-white shadow-md">
         <FolderSatkerSuperAdmin
+          key={satkerAwal ?? 'all'}
           cari={cari}
           filterStatus={filterStatus}
           satkerAwal={satkerAwal}
