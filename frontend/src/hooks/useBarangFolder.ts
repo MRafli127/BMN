@@ -23,27 +23,28 @@ export function useBarangFolder(filterAwal: FilterFolder = {}, options: UseBaran
   const [sedangMemuat, setSedangMemuat] = useState(true);
   const [filter, setFilter] = useState<FilterFolder>(filterAwal);
 
-  // Sync filter saat filterAwal berubah (misal dari URL di super admin)
-  useEffect(() => {
-    setFilter(filterAwal);
-  }, [filterAwal]);
-
   // Serialize filter untuk dependency useEffect
+  // Ini adalah cara aman untuk membandingkan object tanpa reference equality issues
   const filterKey = useMemo(() => JSON.stringify(filter), [filter]);
 
   useEffect(() => {
     setSedangMemuat(true);
 
-    barangService.getSemuaLengkap(filter, { includePeminjam })
+    const controller = new AbortController();
+
+    barangService.getSemuaLengkap(filter, { includePeminjam, signal: controller.signal })
       .then((hasil) => {
         setData(hasil);
         setSedangMemuat(false);
       })
       .catch((err) => {
+        if (err.name === 'AbortError') return;
         console.error('Gagal memuat barang:', err);
         setData([]);
         setSedangMemuat(false);
       });
+
+    return () => controller.abort();
   }, [filterKey, includePeminjam]);
 
   const refetch = useCallback(() => {
@@ -55,6 +56,7 @@ export function useBarangFolder(filterAwal: FilterFolder = {}, options: UseBaran
   }, [filter, includePeminjam]);
 
   // Ubah filter internal (untuk halaman admin)
+  // Pakai functional update pattern agar tidak perlu filter sebagai dependency
   const ubahFilter = useCallback((sebagian: Partial<FilterFolder>) => {
     setFilter((lama) => ({ ...lama, ...sebagian }));
   }, []);
