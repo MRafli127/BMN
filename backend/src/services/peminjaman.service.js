@@ -287,26 +287,42 @@ async function create(userId, data, dokumenDataUrl, requestInfo = {}) {
     );
   }
 
-  // CEK: Tidak boleh mengajukan barang yang sama lebih dari sekali.
-  // Bila peminjam masih punya peminjaman AKTIF (menunggu/disetujui/dipinjam/
-  // terlambat) atas salah satu barang yang diajukan, tolak pengajuan ini.
-  // Barang baru dapat diajukan lagi hanya setelah peminjaman sebelumnya
-  // selesai (dikembalikan/ditolak/dibatalkan).
+  // CEK: Tidak boleh ada peminjaman AKTIF (oleh SIAPA PUN) atas barang yang
+  // diajukan — mencegah double-booking saat dua peminjam mengajukan barang
+  // yang sama secara bersamaan, atau saat peminjam lain sudah memegang barang
+  // (DIPINJAM/TERLAMBAT). Hanya setelah semua peminjaman sebelumnya SELESAI
+  // (DIKEMBALIKAN/DITOLAK/DIBATARKAN), barang dapat diajukan lagi.
+  //
+  // Catatan: kodeError BARANG_SUDAH_ADAKTIF dipakai bersama dengan cek duplikat
+  // oleh-user yang sama (lihat cek MAX_PEMINJAMAN_AKTIF di bawah bila perlu
+  // pemisahan) — frontend menggunakan field `dimilikiOleh` untuk membedakan.
   const barangIds = [...new Set((data.items || []).map((i) => i.barangId).filter(Boolean))];
   if (barangIds.length) {
     const sudahAktif = await prisma.peminjaman.findFirst({
       where: {
-        userId,
+        // TANPA filter userId: cek seluruh user untuk mencegah double-booking.
         status: { in: STATUS_MENGUNCI },
         detail: { some: { barangId: { in: barangIds } } },
       },
       include: {
-        detail: { include: { barang: { select: { id: true, nama: true } } } },
+        peminjam: { select: { id: true, nama: true, nip: true } },
+        detail: {
+          include: { barang: { select: { id: true, nama: true } } },
+        },
       },
     });
     if (sudahAktif) {
       const bentrok = sudahAktif.detail.find((d) => barangIds.includes(d.barangId));
       const namaBarang = bentrok?.barang?.nama || 'barang tersebut';
+      // Tentukan apakah pengajuan bentrok milik user yang sama (diri sendiri)
+      // atau user lain — pesan error disesuaikan agar peminjam paham kondisi.
+      const milikSendiri = sudahAktif.userId === userId;
+      const pemilikNama = sudahAktif.peminjam?.nama || 'peminjam lain';
+      const pesan = milikSendiri
+        ? `Anda sudah memiliki pengajuan/peminjaman aktif untuk "${namaBarang}". ` +
+          'Barang yang sama tidak dapat diajukan lebih dari sekali sampai peminjaman tersebut selesai.'
+        : `"${namaBarang}" sedang dalam proses pengajuan/peminjaman oleh ${pemilikNama}. ` +
+          'Silakan pilih barang lain atau tunggu hingga pengajuan tersebut selesai.';
       // Siapkan detail peminjaman aktif untuk ditampilkan di frontend
       const detailPeminjaman = {
         id: sudahAktif.id,
@@ -318,13 +334,13 @@ async function create(userId, data, dokumenDataUrl, requestInfo = {}) {
         tanggalKirim: sudahAktif.tanggalKirim,
         tanggalPinjamRencana: sudahAktif.tanggalPinjamRencana,
         tanggalKembaliRencana: sudahAktif.tanggalKembaliRencana,
+        dimilikiOleh: milikSendiri ? 'sendiri' : 'peminjam_lain',
+        pemilikNama: sudahAktif.peminjam?.nama || null,
       };
-      throw new AppError(
-        `Anda sudah memiliki pengajuan/peminjaman aktif untuk "${namaBarang}". ` +
-          'Barang yang sama tidak dapat diajukan lebih dari sekali sampai peminjaman tersebut selesai.',
-        400,
-        { kodeError: 'BARANG_SUDAH_ADAKTIF', detailPeminjaman }
-      );
+      throw new AppError(pesan, 400, {
+        kodeError: milikSendiri ? 'BARANG_SUDAH_ADAKTIF' : 'BARANG_SEDANG_DIPEGANG_LAIN',
+        detailPeminjaman,
+      });
     }
   }
 

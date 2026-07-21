@@ -35,6 +35,10 @@ export interface DetailPeminjamanError {
   tanggalKirim: string | null;
   tanggalPinjamRencana: string | null;
   tanggalKembaliRencana: string | null;
+  /** Sumber peminjaman aktif: 'sendiri' (user peminjam yang sama) atau 'peminjam_lain' (user berbeda) */
+  dimilikiOleh?: 'sendiri' | 'peminjam_lain';
+  /** Nama pemilik peminjaman aktif yang sedang memegang barang (untuk kasus 'peminjam_lain') */
+  pemilikNama?: string | null;
 }
 
 /** Error dari backend dengan kode error spesifik */
