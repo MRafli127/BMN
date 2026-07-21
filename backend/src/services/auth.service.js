@@ -381,7 +381,7 @@ async function validateAccessTokenWithVersion(payload) {
   return { valid: true, user };
 }
 
-// Inactivity timeout dalam milidetik (60 menit — diselaraskan dengan access token)
+// Inactivity timeout dalam milidetik (60 menit — diselaraskan dengan access token 60m)
 const INACTIVITY_TIMEOUT_MS = 60 * 60 * 1000;
 
 // --- Validasi sesi: cek apakah sesi valid (belum di-invalidate & masih aktif) ---
