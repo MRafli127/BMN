@@ -277,59 +277,101 @@ async function bulkCreate(data, fotoPath) {
   const kodeSatkerTrim = kodeSatker.trim();
   const kodeBarangBmnTrim = kodeBarangBmn.trim();
 
-  // Ambil semua NUP dan cari yang terbesar sebagai number
-  const barangList = await prisma.barang.findMany({
-    where: {
-      kodeSatker: kodeSatkerTrim,
-      kodeBarangBmn: kodeBarangBmnTrim,
-    },
-    select: { nup: true },
-  });
+  // Bangun payload bulk insert dalam transaksi atomik (all-or-nothing).
+  //
+  // DESAIN: ALL-OR-NOTHING. Bungkus "cari NUP terakhir + generate NUP urut
+  // + createMany" dalam prisma.$transaction. Bila ada P2002 (unique
+  // constraint violation pada identitasAset = kodeSatker + kodeBarangBmn +
+  // nup), SELURUH batch di-rollback — tidak ada barang yang masuk sebagian.
+  //
+  // Alasan all-or-nothing:
+  // 1. Bulk insert BMN adalah operasi administratif satu-sumber — admin
+  //    input satu set barang (mis. hasil pengadaan) sekaligus. Logikanya
+  //    "kirim semua atau kirim ulang semua", bukan "kirim sebagian".
+  // 2. Bentrok NUP saat bulk-create menandakan ada proses bersamaan
+  //    (race) atau admin lain baru saja input. Pesan error mengarahkan
+  //    admin untuk refresh dan submit ulang dengan NUP mulai dari urutan
+  //    terakhir saat ini.
+  // 3. Response sederhana: throw AppError(409) → front-end cukup toast +
+  //    biarkan admin submit ulang.
+  // 4. Konsisten dengan pola error handling P2002 yang sudah ada di
+  //    create() dan update() (baris 148 dan 195).
+  //
+  // Atomicity: READ COMMITTED (default Postgres) + unique constraint =
+  // transaction aman dari race. createMany akan throw P2002 jika ada
+  // baris yang konflik, dan transaction otomatis rollback.
+  let dataBulk;
+  try {
+    dataBulk = await prisma.$transaction(async (tx) => {
+      // Cari NUP terakhir dalam scope transaksi yang sama.
+      const barangList = await tx.barang.findMany({
+        where: {
+          kodeSatker: kodeSatkerTrim,
+          kodeBarangBmn: kodeBarangBmnTrim,
+        },
+        select: { nup: true },
+      });
 
-  // Sorting sebagai number
-  const sortedNup = barangList
-    .map((b) => parseInt(b.nup, 10))
-    .filter((n) => !isNaN(n))
-    .sort((a, b) => b - a);
+      // Sorting sebagai number.
+      const sortedNup = barangList
+        .map((b) => parseInt(b.nup, 10))
+        .filter((n) => !isNaN(n))
+        .sort((a, b) => b - a);
 
-  let nupSekarang = 1;
-  if (sortedNup.length > 0) {
-    nupSekarang = sortedNup[0] + 1;
+      let nupSekarang = 1;
+      if (sortedNup.length > 0) {
+        nupSekarang = sortedNup[0] + 1;
+      }
+
+      // Generate NUP berurutan dari nupSekarang (logika INTI — tidak diubah).
+      const daftarNup = [];
+      for (let i = 0; i < jumlah; i++) {
+        daftarNup.push(String(nupSekarang + i));
+      }
+
+      // Bangun payload untuk createMany.
+      const payload = daftarNup.map((nup) => ({
+        kodeBarang: `${kodeSatkerTrim}-${kodeBarangBmnTrim}-${nup}`,
+        nama: nama,
+        merk: merkNormalized,
+        jenis: jenis,
+        jumlahTotal: 1,
+        jumlahTersedia: 1,
+        kondisi: kondisi || 'BAIK',
+        lokasiPenyimpanan: lokasiPenyimpanan || null,
+        deskripsi: deskripsi || null,
+        fotoUrl: fotoPath || null,
+        sumber: 'MANUAL',
+        kodeSatker: kodeSatkerTrim,
+        kodeBarangBmn: kodeBarangBmnTrim,
+        nup: nup,
+      }));
+
+      // createMany di Prisma tidak mengembalikan dokumen individual —
+      // bila ada P2002, SELURUH batch di-rollback dan tidak ada row
+      // yang masuk.
+      const hasil = await tx.barang.createMany({ data: payload });
+
+      return { hasil, daftarNup };
+    });
+  } catch (e) {
+    // Tangkap P2002 (unique constraint violation pada identitasAset).
+    // Konsisten dengan pola di create() (baris 148) dan update() (baris
+    // 195). Error lain (network, timeout, dll) naik apa adanya.
+    if (e.code === 'P2002') {
+      throw new AppError(
+        'Sebagian NUP bentrok dengan data yang baru saja masuk oleh proses lain. ' +
+          'Silakan coba input ulang — sistem akan otomatis menyesuaikan NUP mulai dari urutan terakhir saat ini.',
+        409
+      );
+    }
+    throw e;
   }
-
-  // Generate NUP (langsung dari nupSekarang)
-  const daftarNup = [];
-  for (let i = 0; i < jumlah; i++) {
-    daftarNup.push(String(nupSekarang + i));
-  }
-
-  // Bangun data untuk bulk insert
-  const dataBulk = daftarNup.map((nup) => ({
-    kodeBarang: `${kodeSatkerTrim}-${kodeBarangBmnTrim}-${nup}`,
-    nama: nama,
-    merk: merkNormalized,
-    jenis: jenis,
-    jumlahTotal: 1,
-    jumlahTersedia: 1,
-    kondisi: kondisi || 'BAIK',
-    lokasiPenyimpanan: lokasiPenyimpanan || null,
-    deskripsi: deskripsi || null,
-    fotoUrl: fotoPath || null,
-    sumber: 'MANUAL',
-    kodeSatker: kodeSatkerTrim,
-    kodeBarangBmn: kodeBarangBmnTrim,
-    nup: nup,
-  }));
-
-  // Bulk insert
-  const hasil = await prisma.barang.createMany({
-    data: dataBulk,
-  });
 
   return {
-    berhasil: hasil.count,
-    nupAwal: daftarNup[0],
-    nupAkhir: daftarNup[daftarNup.length - 1],
+    berhasil: dataBulk.hasil.count,
+    nupAwal: dataBulk.daftarNup[0],
+    nupAkhir: dataBulk.daftarNup[dataBulk.daftarNup.length - 1],
     merkNormalized,
   };
 }
