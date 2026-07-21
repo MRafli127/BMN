@@ -5,7 +5,7 @@
 
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
 import {
@@ -31,7 +31,7 @@ import { Badge } from '@/components/ui/badge';
 import { Textarea, Label } from '@/components/ui/input';
 import { KonfirmasiDialog } from '@/components/shared/KonfirmasiDialog';
 import { LoadingSpinner } from '@/components/shared/LoadingSpinner';
-import { KepalaKartu, InfoIkon } from '@/components/shared/KartuDetail';
+import { KepalaKartu, InfoIkon, LangkahItem } from '@/components/shared/KartuDetail';
 import { TimelineStatus } from '@/components/peminjaman/TimelineStatus';
 import { FolderBarangDipinjam } from '@/components/peminjaman/FolderBarangDipinjam';
 import { TampilQR } from '@/components/qrcode/TampilQR';
@@ -56,53 +56,108 @@ export default function DetailPeminjamanAdminPage() {
   const [proses, setProses] = useState(false);
   const [sedangStempel, setSedangStempel] = useState(false);
 
+  // --- Return letter (surat pengembalian) state ---
+  const [suratUrl, setSuratUrl] = useState<string | null>(null);
+  const [memuatSurat, setMemuatSurat] = useState(false);
+  const [fileKembali, setFileKembali] = useState<File | null>(null);
+  const fileKembaliRef = useRef<HTMLInputElement>(null);
+
+  // Muat ulang data terkini dari server. Dipakai saat halaman pertama kali dimuat
+  // dan saat perlu menyinkronkan state lokal dengan kondisi di server
+  // (mis. setelah cache basi atau race condition antar tab).
   const muat = () => {
     setMemuat(true);
     peminjamanService
       .getById(id)
-      .then(setData)
+      .then((fresh) => {
+        setData(fresh);
+        return fresh;
+      })
       .catch((e) => {
-        // Data sudah tidak ada (mis. database di-reset) — kembali ke daftar
-        // agar admin tidak terjebak di halaman kosong/basi.
         notify.gagal(ambilPesanError(e, 'Gagal memuat detail.'));
         router.push(RUTE.adminPeminjaman);
       })
       .finally(() => setMemuat(false));
   };
 
+  // Muat ulang data sebagai Promise — dipanggil dari jalankanAksi agar setiap
+  // aksi dimulai dari data terkini di server (menjamin konsistensi status).
+  const muatSegar = (): Promise<Peminjaman> =>
+    peminjamanService.getById(id);
+
   useEffect(() => {
     if (id) muat();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
 
-  // Jalankan aksi sesuai pilihan
+  // Hasilkan Surat Pengembalian (PDF) saat admin memulai proses pengembalian
+  // (kondisi: status aktif, belum ada surat dari peminjam, belum ada suratUrl).
+  useEffect(() => {
+    if (!data) return;
+    const suratSudahAda = !!data.dokumenPengembalianUrl;
+    if (suratSudahAda || suratUrl) return;
+    if (!['DIPINJAM', 'TERLAMBAT'].includes(data.status)) return;
+    setMemuatSurat(true);
+    peminjamanService
+      .getSuratPengembalian(data.id)
+      .then(setSuratUrl)
+      .catch((e) => notify.gagal(ambilPesanError(e, 'Gagal membuat surat pengembalian.')))
+      .finally(() => setMemuatSurat(false));
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [data]);
+
+  const pilihFileKembali = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const f = e.target.files?.[0] ?? null;
+    if (f && f.type !== 'application/pdf') {
+      notify.gagal('Berkas harus berformat PDF.');
+      e.target.value = '';
+      return;
+    }
+    setFileKembali(f);
+  };
+
+  // Jalankan aksi sesuai pilihan. Selalu muat data terkini dari server
+  // sebelum memvalidasi & mengirim request agar status lokal tidak basi.
   const jalankanAksi = async () => {
     if (!data || !aksi) return;
+
+    // Ambil data terkini dari server agar status lokal tidak basi
+    // (mencegah race condition saat halaman dibuka di tab lain).
+    let segar: Peminjaman;
+    try {
+      segar = await muatSegar();
+    } catch {
+      notify.gagal('Gagal mengambil data terbaru. Silakan coba lagi.');
+      return;
+    }
+
     // Penolakan wajib disertai catatan
     if (aksi === 'tolak' && catatan.trim().length < 3) {
       notify.gagal('Catatan penolakan wajib diisi (minimal 3 karakter).');
       return;
     }
+    // Pengembalian: jika admin yang mengunggah surat, file WAJIB dipilih.
+    if (aksi === 'kembalikan' && !segar.dokumenPengembalianUrl && !fileKembali) {
+      notify.gagal('Unggah surat pengembalian yang sudah ditandatangani (PDF) sebelum melanjutkan.');
+      return;
+    }
     setProses(true);
     try {
       let hasil: Peminjaman;
-      if (aksi === 'setujui') hasil = await peminjamanService.setujui(data.id, catatan);
-      else if (aksi === 'tolak') hasil = await peminjamanService.tolak(data.id, catatan);
-      else if (aksi === 'serahkan') hasil = await peminjamanService.serahkan(data.id);
-      else hasil = await peminjamanService.kembalikan(data.id, catatan);
+      if (aksi === 'setujui') hasil = await peminjamanService.setujui(segar.id, catatan);
+      else if (aksi === 'tolak') hasil = await peminjamanService.tolak(segar.id, catatan);
+      else if (aksi === 'serahkan') hasil = await peminjamanService.serahkan(segar.id);
+      else hasil = await peminjamanService.kembalikan(segar.id, catatan, fileKembali ?? undefined);
 
       setData(hasil);
       setAksi(null);
       setCatatan('');
+      setFileKembali(null);
       invalidasiCache('peminjaman');
       invalidasiCache('folder-peminjaman');
       notify.suksess('Tindakan berhasil dilakukan.');
     } catch (error) {
       notify.gagal(ambilPesanError(error, 'Gagal melakukan tindakan.'));
-      // 400/404/409 = status di server sudah berubah / data tidak ada lagi
-      // (halaman basi). Tutup dialog & muat ulang agar tombol tindakan
-      // kembali sesuai kondisi terkini — bukan terus menawarkan aksi yang
-      // pasti ditolak backend.
       const kode = (error as { response?: { status?: number } })?.response?.status;
       if (kode === 400 || kode === 404 || kode === 409) {
         invalidasiCache('peminjaman');
@@ -146,6 +201,18 @@ export default function DetailPeminjamanAdminPage() {
   const bisaStempel = !['MENUNGGU', 'DITOLAK'].includes(data.status) && !!data.dokumenUrl;
   const bisaKembalikan = ['DISETUJUI', 'DIPINJAM', 'TERLAMBAT'].includes(data.status);
   const tanpaTindakan = data.status === 'DIKEMBALIKAN' || data.status === 'DITOLAK';
+
+  // Apakah peminjam sudah mengunggah surat pengembalian?
+  const adaSuratPeminjam = !!data.dokumenPengembalianUrl;
+  // Apakah admin sedang dalam proses: aktif (bisaKembalikan) DAN belum ada surat peminjam
+  const adminLewatiSurat = bisaKembalikan && !adaSuratPeminjam;
+
+  // Nama berkas unduhan surat pengembalian.
+  const namaBerkas = (data.peminjam?.nama || data.kodePeminjaman)
+    .trim()
+    .replace(/\s+/g, '-')
+    .replace(/[^A-Za-z0-9._-]/g, '');
+  const namaFilePengembalian = `Surat-Pengembalian-laptop_${namaBerkas}.pdf`;
 
   // Info pensiun peminjam
   const infoPensiun = hitungInfoPensiun(data.peminjam?.retirementDate);
@@ -430,16 +497,22 @@ export default function DetailPeminjamanAdminPage() {
                 <>
                   <Button
                     variant="sukses"
-                    className="group relative w-full overflow-hidden shadow-brand transition-all hover:-translate-y-0.5 hover:shadow-elevated"
+                    className="group relative w-full overflow-hidden shadow-brand transition-all hover:-translate-y-0.5 hover:shadow-elevated disabled:opacity-60"
+                    disabled={proses}
                     onClick={() => setAksi('setujui')}
                   >
                     {/* Sapuan cahaya yang meluncur saat kursor menyorot */}
                     <span className="pointer-events-none absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/25 to-transparent transition-transform duration-700 ease-out group-hover:translate-x-full" />
                     <span className="relative z-10 flex items-center gap-2">
-                      <Icon name="check_circle" fill className="text-[18px]" /> Setujui (ACC)
+                      {proses ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <Icon name="check_circle" fill className="text-[18px]" />
+                      )}{' '}
+                      Setujui (ACC)
                     </span>
                   </Button>
-                  <Button variant="destructive" className="w-full" onClick={() => setAksi('tolak')}>
+                  <Button variant="destructive" className="w-full disabled:opacity-60" disabled={proses} onClick={() => setAksi('tolak')}>
                     <Icon name="cancel" fill className="text-[18px]" /> Tolak
                   </Button>
                 </>
@@ -447,18 +520,24 @@ export default function DetailPeminjamanAdminPage() {
 
               {data.status === 'DISETUJUI' && (
                 <Button
-                  className="group relative w-full overflow-hidden shadow-brand transition-all hover:-translate-y-0.5 hover:shadow-elevated"
+                  className="group relative w-full overflow-hidden shadow-brand transition-all hover:-translate-y-0.5 hover:shadow-elevated disabled:opacity-60"
+                  disabled={proses}
                   onClick={() => setAksi('serahkan')}
                 >
                   <span className="pointer-events-none absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/25 to-transparent transition-transform duration-700 ease-out group-hover:translate-x-full" />
                   <span className="relative z-10 flex items-center gap-2">
-                    <Icon name="handshake" fill className="text-[18px]" /> Tandai Barang Diserahkan
+                    {proses ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <Icon name="handshake" fill className="text-[18px]" />
+                    )}{' '}
+                    Tandai Barang Diserahkan
                   </span>
                 </Button>
               )}
 
               {bisaStempel && (
-                <Button variant="outline" className="w-full" onClick={stempel} disabled={sedangStempel}>
+                <Button variant="outline" className="w-full disabled:opacity-60" disabled={proses || sedangStempel} onClick={stempel}>
                   {sedangStempel ? (
                     <Loader2 className="h-4 w-4 animate-spin" />
                   ) : (
@@ -481,12 +560,18 @@ export default function DetailPeminjamanAdminPage() {
               {bisaKembalikan && (
                 <Button
                   variant="secondary"
-                  className="group relative w-full overflow-hidden transition-all hover:-translate-y-0.5 hover:shadow-card"
+                  className="group relative w-full overflow-hidden transition-all hover:-translate-y-0.5 hover:shadow-card disabled:opacity-60"
+                  disabled={proses}
                   onClick={() => setAksi('kembalikan')}
                 >
                   <span className="pointer-events-none absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/25 to-transparent transition-transform duration-700 ease-out group-hover:translate-x-full" />
                   <span className="relative z-10 flex items-center gap-2">
-                    <Icon name="assignment_return" fill className="text-[18px]" /> Konfirmasi Pengembalian
+                    {proses ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <Icon name="assignment_return" fill className="text-[18px]" />
+                    )}{' '}
+                    Konfirmasi Pengembalian
                   </span>
                 </Button>
               )}
@@ -501,6 +586,88 @@ export default function DetailPeminjamanAdminPage() {
               )}
             </div>
           </Card>
+
+          {/* Pengembalian Barang oleh Admin (apabila peminjam belum mengunggah surat) */}
+          {adminLewatiSurat && (
+            <Card className="overflow-hidden border-primary/15">
+              <KepalaKartu
+                ikon="assignment_return"
+                judul="Pengembalian Barang"
+                deskripsi="Peminjam belum mengunggah surat. Ikuti langkah berikut."
+              />
+              <div className="p-5">
+                <ol>
+                  <LangkahItem nomor={1} judul="Unduh & cetak Surat Pengembalian">
+                    <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
+                      Cetak surat, lalu minta tanda tangan <strong>&quot;Yang menerima BMN&quot;</strong> secara fisik.
+                    </p>
+                    <div className="mt-2 flex flex-wrap gap-2">
+                      {memuatSurat ? (
+                        <Button variant="outline" size="sm" disabled>
+                          <Loader2 className="h-4 w-4 animate-spin" /> Menyiapkan surat…
+                        </Button>
+                      ) : suratUrl ? (
+                        <>
+                          <Button asChild variant="outline" size="sm">
+                            <a href={suratUrl} download={namaFilePengembalian}>
+                              <Icon name="download" className="text-[18px]" /> Unduh Surat
+                            </a>
+                          </Button>
+                          <Button asChild variant="outline" size="sm">
+                            <a href={suratUrl} target="_blank" rel="noreferrer">
+                              <Icon name="open_in_new" className="text-[18px]" /> Lihat
+                            </a>
+                          </Button>
+                        </>
+                      ) : (
+                        <p className="text-xs text-muted-foreground">Surat belum tersedia.</p>
+                      )}
+                    </div>
+                  </LangkahItem>
+
+                  <LangkahItem nomor={2} judul="Unggah surat bertanda tangan (PDF)" selesai={!!fileKembali} terakhir>
+                    <input
+                      ref={fileKembaliRef}
+                      type="file"
+                      accept="application/pdf"
+                      onChange={pilihFileKembali}
+                      className="hidden"
+                    />
+                    <div className="mt-2 space-y-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="w-full"
+                        onClick={() => fileKembaliRef.current?.click()}
+                      >
+                        <Icon name="upload_file" className="text-[18px]" />
+                        {fileKembali ? 'Ganti Berkas' : 'Pilih Berkas PDF'}
+                      </Button>
+                      {fileKembali && (
+                        <div className="flex items-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-800 dark:bg-emerald-950/20">
+                          <Icon name="check_circle" fill className="shrink-0 text-[18px] text-emerald-600" />
+                          <span className="min-w-0 flex-1 truncate font-medium">{fileKembali.name}</span>
+                        </div>
+                      )}
+                    </div>
+                  </LangkahItem>
+                </ol>
+
+                <div className="mt-5 border-t border-primary/10 pt-4">
+                  <Button
+                    className="group relative w-full overflow-hidden shadow-brand transition-all hover:-translate-y-0.5 hover:shadow-elevated"
+                    disabled={!fileKembali}
+                    onClick={() => setAksi('kembalikan')}
+                  >
+                    <span className="pointer-events-none absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/25 to-transparent transition-transform duration-700 ease-out group-hover:translate-x-full" />
+                    <span className="relative z-10 flex items-center gap-2">
+                      <Icon name="assignment_return" fill className="text-[18px]" /> Kembalikan Barang
+                    </span>
+                  </Button>
+                </div>
+              </div>
+            </Card>
+          )}
 
           {/* Timeline */}
           <Card className="overflow-hidden border-primary/15">
@@ -533,6 +700,7 @@ export default function DetailPeminjamanAdminPage() {
           if (!o) {
             setAksi(null);
             setCatatan('');
+            setFileKembali(null);
           }
         }}
         judul={
@@ -555,6 +723,7 @@ export default function DetailPeminjamanAdminPage() {
         }
         teksKonfirmasi={aksi === 'tolak' ? 'Ya, Tolak' : 'Ya, Lanjutkan'}
         variantKonfirmasi={aksi === 'tolak' ? 'destructive' : 'sukses'}
+        disabledKonfirmasi={aksi === 'kembalikan' && !data.dokumenPengembalianUrl && !fileKembali}
         sedangProses={proses}
         onKonfirmasi={jalankanAksi}
       >
@@ -570,9 +739,24 @@ export default function DetailPeminjamanAdminPage() {
               placeholder={aksi === 'tolak' ? 'Alasan penolakan...' : 'Catatan tambahan...'}
               className="mt-1"
             />
-            {aksi === 'kembalikan' && (
-              <p className="mt-1 text-xs text-muted-foreground">
-                Catatan ini hanya untuk admin dan tidak terlihat oleh peminjam.
+            {aksi === 'kembalikan' && !data.dokumenPengembalianUrl && (
+              <div className="mt-3 rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 dark:bg-emerald-950/20">
+                <div className="flex items-center gap-2 text-sm text-emerald-800 dark:text-emerald-300">
+                  <Icon name="check_circle" fill className="shrink-0 text-[18px] text-emerald-600" />
+                  <span className="font-medium">
+                    {fileKembali ? `Surat terpilih: ${fileKembali.name}` : 'Belum ada surat yang diunggah.'}
+                  </span>
+                </div>
+                {fileKembali && (
+                  <p className="mt-1 text-xs text-emerald-600 dark:text-emerald-400">
+                    Surat pengembalian bertanda tangan akan diunggah saat konfirmasi.
+                  </p>
+                )}
+              </div>
+            )}
+            {aksi === 'kembalikan' && data.dokumenPengembalianUrl && (
+              <p className="mt-1.5 text-xs text-muted-foreground">
+                Surat pengembalian dari peminjam sudah tersimpan dan akan digunakan.
               </p>
             )}
           </div>

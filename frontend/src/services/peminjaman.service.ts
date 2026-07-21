@@ -149,8 +149,15 @@ export const peminjamanService = {
     return res.data.data;
   },
 
-  async kembalikan(id: string, catatan?: string): Promise<Peminjaman> {
-    const res = await api.patch(`/peminjaman/${id}/kembalikan`, { catatan });
+  // Konfirmasi pengembalian oleh admin.
+  // dokumen (opsional): surat pengembalian bertanda tangan yang diunggah admin.
+  async kembalikan(id: string, catatan?: string, dokumen?: File): Promise<Peminjaman> {
+    const fd = new FormData();
+    if (catatan) fd.append('catatan', catatan);
+    if (dokumen) fd.append('dokumen', dokumen);
+    const res = await api.patch(`/peminjaman/${id}/kembalikan`, fd, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
     // Pengembalian meningkatkan jumlahTersedia barang.
     invalidasiCacheDenganNama('barang');
     return res.data.data;

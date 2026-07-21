@@ -56,7 +56,7 @@ router.get('/:id/surat-pengembalian', peminjamanController.suratPengembalian);
 // Permintaan pengembalian oleh peminjam — wajib unggah surat yang sudah
 // ditandatangani fisik (field "dokumen"). Kepemilikan dicek di service.
 router.patch('/:id/minta-pengembalian', validateCsrfTokenMiddleware, uploadDokumenPeminjaman, peminjamanController.mintaPengembalian);
-router.patch('/:id/kembalikan', validateCsrfTokenMiddleware, roleMiddleware('ADMIN', 'SUPER_ADMIN'), peminjamanController.kembalikan);
+router.patch('/:id/kembalikan', validateCsrfTokenMiddleware, roleMiddleware('ADMIN', 'SUPER_ADMIN'), uploadDokumenPeminjaman, peminjamanController.kembalikan);
 router.delete('/:id', validateCsrfTokenMiddleware, roleMiddleware('ADMIN', 'SUPER_ADMIN'), peminjamanController.hapus);
 router.post('/:id/stempel', validateCsrfTokenMiddleware, roleMiddleware('ADMIN', 'SUPER_ADMIN'), stempelController.stempel);
 

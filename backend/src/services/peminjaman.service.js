@@ -1067,7 +1067,9 @@ async function mintaPengembalian(id, { userId, role } = {}, dokumenPengembalianD
 // --- Konfirmasi pengembalian: stok dikembalikan otomatis ---
 // catatan (opsional) disimpan sebagai catatanPengembalian: HANYA untuk admin,
 // tidak pernah dikirim ke peminjam (dibuang di getById/getSemua untuk PEMINJAM).
-async function kembalikan(id, adminId, catatan, requestInfo = {}) {
+// dokumenPengembalianDataUrl (opsional): surat bertanda tangan yang diunggah admin
+// (mengabaikan surat dari peminjam bila keduanya ada).
+async function kembalikan(id, adminId, catatan, dokumenPengembalianDataUrl, requestInfo = {}) {
   // Ambil data untuk audit log
   const pLama = await prisma.peminjaman.findUnique({ where: { id }, include: { peminjam: true, detail: true } });
   if (!pLama) throw new AppError('Data peminjaman tidak ditemukan.', 404);
@@ -1108,6 +1110,10 @@ async function kembalikan(id, adminId, catatan, requestInfo = {}) {
         tanggalKembaliAktual: new Date(),
         catatanPengembalian: (typeof catatan === 'string' && catatan.trim()) ? catatan.trim() : null,
         dikembalikanOleh: adminId || null,
+        // Admin mengunggah surat → simpan; abaikan bila sudah ada dari peminjam.
+        ...(dokumenPengembalianDataUrl && !p.dokumenPengembalianUrl
+          ? { dokumenPengembalianUrl: dokumenPengembalianDataUrl }
+          : {}),
       },
     });
   }, { timeout: 20000, maxWait: 10000 });
@@ -1164,7 +1170,7 @@ async function kembalikanBanyak(ids, adminId, requestInfo = {}) {
   const dilewati = [];
   for (const id of daftarId) {
     try {
-      await kembalikan(id, adminId, undefined, requestInfo);
+      await kembalikan(id, adminId, undefined, undefined, requestInfo);
       berhasil += 1;
     } catch (e) {
       dilewati.push({ id, pesan: e.message || 'Gagal dikembalikan.' });
