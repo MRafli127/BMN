@@ -1,5 +1,5 @@
 // ============================================================
-//  Service Import Data Pegawai (Daftar Peminjam) — frontend.
+//  Service Import Data Pegawai (Daftar Pegawai) — frontend.
 //  Mengisi & menyinkronkan data diri peminjam dari file master
 //  pegawai; membuat akun baru bila NIP belum terdaftar.
 // ============================================================

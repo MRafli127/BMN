@@ -3,8 +3,7 @@
 //  dan User/Peminjam.
 // ============================================================
 
-const { PrismaClient } = require('@prisma/client');
-const prisma = new PrismaClient();
+const { prisma } = require('../config/database');
 
 /**
  * Cari barang berdasarkan query string.

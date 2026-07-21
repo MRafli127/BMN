@@ -35,7 +35,7 @@ export interface DashboardPeminjam {
 // Kategori untuk data dashboard
 export type KategoriDashboard = 'semua' | 'barang' | 'pengajuan_menunggu' | 'peminjaman_aktif' | 'barang_terlambat' | 'peminjam';
 
-// Filter peran untuk daftar peminjam
+// Filter peran untuk Daftar Pegawai
 export type FilterRole = '' | 'ADMIN' | 'NON_ADMIN';
 
 export interface ResponseKategori {

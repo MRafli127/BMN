@@ -35,11 +35,13 @@ const ActionButtons = memo(function ActionButtons({
   user,
   onPromote,
   onRevoke,
+  onReset,
   onDelete,
 }: {
   user: UserItem;
   onPromote: () => void;
   onRevoke: () => void;
+  onReset: () => void;
   onDelete: () => void;
 }) {
   const isSuperAdmin = user.roles?.includes('SUPER_ADMIN');
@@ -77,6 +79,15 @@ const ActionButtons = memo(function ActionButtons({
       <Button
         variant="outline"
         size="sm"
+        onClick={onReset}
+        className="text-xs text-blue-600 transition-transform hover:bg-blue-50 active:scale-95"
+      >
+        <Icon name="key" style={{ fontSize: 14 }} />
+        Reset
+      </Button>
+      <Button
+        variant="outline"
+        size="sm"
         onClick={onDelete}
         className="text-xs text-red-600 transition-transform hover:bg-red-50 active:scale-95"
       >
@@ -93,11 +104,13 @@ const UserTableRow = memo(function UserTableRow({
   user,
   onPromote,
   onRevoke,
+  onReset,
   onDelete,
 }: {
   user: UserItem;
   onPromote: () => void;
   onRevoke: () => void;
+  onReset: () => void;
   onDelete: () => void;
 }) {
   return (
@@ -118,6 +131,7 @@ const UserTableRow = memo(function UserTableRow({
           user={user}
           onPromote={onPromote}
           onRevoke={onRevoke}
+          onReset={onReset}
           onDelete={onDelete}
         />
       </TableCell>
@@ -264,6 +278,28 @@ export default function PenggunaPage() {
     });
   };
 
+  // Reset password pengguna
+  const resetPasswordPengguna = async (user: UserItem) => {
+    setDialogKonfirmasi({
+      terbuka: true,
+      judul: 'Reset Password',
+      pesan: `Reset password untuk ${user.nama}? Password baru akan direset ke: BMN@Reset123`,
+      aksi: async () => {
+        setSedangAksi(true);
+        try {
+          await userManagementService.resetPassword(user.id);
+          notify.suksess(`Password ${user.nama} berhasil direset ke BMN@Reset123.`);
+          await refreshData();
+        } catch (err) {
+          notify.gagal(ambilPesanError(err, 'Gagal reset password.'));
+        } finally {
+          setSedangAksi(false);
+          setDialogKonfirmasi((d) => ({ ...d, terbuka: false }));
+        }
+      },
+    });
+  };
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -340,6 +376,7 @@ export default function PenggunaPage() {
                     user={user}
                     onPromote={() => promosikan(user)}
                     onRevoke={() => cabutAdmin(user)}
+                    onReset={() => resetPasswordPengguna(user)}
                     onDelete={() => hapusPengguna(user)}
                   />
                 ))}

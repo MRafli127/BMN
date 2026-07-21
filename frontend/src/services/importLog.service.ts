@@ -61,7 +61,7 @@ export interface StatistikImport {
 
 export async function ambilSemuaLog(page = 1, limit = 10): Promise<{ data: ImportLog[]; meta: ImportLogResponse['meta'] }> {
   const res = await api.get('/import-logs', { params: { page, limit } });
-  return res.data.data;
+  return res.data;
 }
 
 export async function ambilLogById(id: string): Promise<ImportLog> {

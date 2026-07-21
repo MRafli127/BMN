@@ -1,5 +1,5 @@
 // ============================================================
-//  Tabel "Daftar Peminjam" (khusus admin).
+//  Tabel "Daftar Pegawai" (khusus admin).
 //  Mengikuti pola TabelPeminjaman: pilihan baris (checkbox) untuk
 //  hapus massal + tombol hapus per baris dengan dialog konfirmasi.
 // ============================================================
@@ -7,7 +7,7 @@
 'use client';
 
 import { useEffect, useRef, useState, type CSSProperties } from 'react';
-import { Trash2, ShieldCheck, User } from 'lucide-react';
+import { Trash2, ShieldCheck, User, Key } from 'lucide-react';
 import { EditPeminjamDialog } from './EditPeminjamDialog';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
@@ -75,6 +75,8 @@ interface Props {
   onUbahRole?: (id: string, aksi: 'promote' | 'demote') => Promise<void>;
   // Dipanggil setelah edit berhasil agar parent bisa me-refresh data.
   onEdit?: () => void;
+  // Reset password pegawai
+  onResetPassword?: (id: string) => Promise<void>;
 }
 
 // Checkbox native bergaya, mendukung kondisi indeterminate (sebagian terpilih).
@@ -105,12 +107,15 @@ function Kotak({
   );
 }
 
-export function TabelDaftarPeminjam({ data, nomorAwal = 0, onHapus, terpilih, onUbahTerpilih, onUbahRole, onEdit }: Props) {
+export function TabelDaftarPeminjam({ data, nomorAwal = 0, onHapus, terpilih, onUbahTerpilih, onUbahRole, onEdit, onResetPassword }: Props) {
   const [target, setTarget] = useState<PeminjamRow | null>(null);
   const [sedangHapus, setSedangHapus] = useState(false);
   // Target konfirmasi promote/demote admin.
   const [targetRole, setTargetRole] = useState<{ row: PeminjamRow; aksi: 'promote' | 'demote' } | null>(null);
   const [sedangRole, setSedangRole] = useState(false);
+  // Target konfirmasi reset password.
+  const [targetReset, setTargetReset] = useState<PeminjamRow | null>(null);
+  const [sedangReset, setSedangReset] = useState(false);
 
   const konfirmasiHapus = async () => {
     if (!target || !onHapus) return;
@@ -135,6 +140,19 @@ export function TabelDaftarPeminjam({ data, nomorAwal = 0, onHapus, terpilih, on
       // Error ditampilkan via toast oleh parent; dialog dibiarkan terbuka.
     } finally {
       setSedangRole(false);
+    }
+  };
+
+  const konfirmasiReset = async () => {
+    if (!targetReset || !onResetPassword) return;
+    setSedangReset(true);
+    try {
+      await onResetPassword(targetReset.id);
+      setTargetReset(null);
+    } catch {
+      // Error ditampilkan via toast oleh parent; dialog dibiarkan terbuka.
+    } finally {
+      setSedangReset(false);
     }
   };
 
@@ -301,10 +319,20 @@ export function TabelDaftarPeminjam({ data, nomorAwal = 0, onHapus, terpilih, on
                       })()}
                     </TableCell>
                   )}
-                  {/* Tombol Edit & Hapus selalu ditampilkan */}
+                  {/* Tombol Aksi: Edit, Reset Password, Hapus */}
                   <TableCell className="text-right">
-                    <div className="flex items-center justify-end gap-2">
+                    <div className="flex items-center justify-end gap-1">
                       {onEdit && <EditPeminjamDialog peminjam={user} onSelesai={onEdit} />}
+                      {onResetPassword && (
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => setTargetReset(user)}
+                          title={`Reset password ${user.nama}`}
+                        >
+                          <Key className="h-4 w-4 text-blue-600" />
+                        </Button>
+                      )}
                       {onHapus && (
                         <Button variant="destructive" size="icon" onClick={() => setTarget(user)} aria-label={`Hapus ${user.nama}`}>
                           <Trash2 className="h-4 w-4" />
@@ -353,6 +381,18 @@ export function TabelDaftarPeminjam({ data, nomorAwal = 0, onHapus, terpilih, on
           variantKonfirmasi={targetRole?.aksi === 'demote' ? 'destructive' : 'default'}
           sedangProses={sedangRole}
           onKonfirmasi={konfirmasiRole}
+        />
+      )}
+
+      {onResetPassword && (
+        <KonfirmasiDialog
+          terbuka={!!targetReset}
+          onUbahTerbuka={(o) => !o && setTargetReset(null)}
+          judul="Reset Password"
+          deskripsi={`Reset password untuk "${targetReset?.nama ?? ''}"? Password akan direset ke: BMN@Reset123`}
+          teksKonfirmasi="Ya, Reset"
+          sedangProses={sedangReset}
+          onKonfirmasi={konfirmasiReset}
         />
       )}
     </>

@@ -88,6 +88,7 @@ export function useBarangFolder(filterAwal: FilterFolder = {}, options: UseBaran
   }, [refetchCache]);
 
   // Ubah filter internal (untuk halaman admin)
+  // Pakai functional update pattern agar tidak perlu filter sebagai dependency
   const ubahFilter = useCallback((sebagian: Partial<FilterFolder>) => {
     setFilter((lama) => ({ ...lama, ...sebagian }));
   }, []);

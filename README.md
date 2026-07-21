@@ -191,7 +191,7 @@ Base URL: `http://localhost:5000/api`. Semua respons berformat:
 
 | Method | Endpoint                              | Akses | Keterangan                                            |
 | ------ | ------------------------------------- | ----- | ---------------------------------------------------- |
-| GET    | `/peminjaman`                         | Login | Daftar peminjaman (admin: semua; peminjam: miliknya) |
+| GET    | `/peminjaman`                         | Login | Daftar Pegawaian (admin: semua; peminjam: miliknya) |
 | POST   | `/peminjaman`                         | Login | Ajukan peminjaman (multipart: `items`, `dokumen`)    |
 | POST   | `/peminjaman/preview-surat`           | Login | Pratinjau Surat Pernyataan Peminjaman (PDF)          |
 | GET    | `/peminjaman/:id`                     | Login | Detail peminjaman                                    |

@@ -1,7 +1,7 @@
 // ============================================================
 //  Rute Import Data Pegawai — /api/import-pegawai
 //  Khusus ADMIN: mengisi & menyinkronkan data diri peminjam
-//  (Daftar Peminjam) dari file master pegawai Excel/CSV.
+//  (Daftar Pegawai) dari file master pegawai Excel/CSV.
 // ============================================================
 
 const express = require('express');

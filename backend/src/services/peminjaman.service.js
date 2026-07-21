@@ -261,7 +261,7 @@ async function create(userId, data, dokumenDataUrl, requestInfo = {}) {
   });
   const maxAktif = env.peminjaman?.maxAktif || 3;
   if (peminjamanAktif >= maxAktif) {
-    // Ambil daftar peminjaman aktif untuk ditampilkan di error
+    // Ambil Daftar Pegawaian aktif untuk ditampilkan di error
     const daftarAktif = await prisma.peminjaman.findMany({
       where: { userId, status: { in: STATUS_MENGUNCI } },
       include: {
@@ -561,7 +561,7 @@ async function generateSuratPernyataan(id, { userId, role } = {}) {
   return suratPernyataanService.generate({ ...s, peminjam: peminjamUntukSurat });
 }
 
-// --- Ambil daftar peminjaman (role-aware) ---
+// --- Ambil Daftar Pegawaian (role-aware) ---
 async function getSemua({ status, q, userId, role, page = 1, limit = 10, importMode, kodeSatker } = {}) {
   const { halaman, perHalaman, skip } = parsePagination({ page, limit });
 
@@ -596,9 +596,19 @@ async function getSemua({ status, q, userId, role, page = 1, limit = 10, importM
   } else if (importMode === 'manual') {
     where.dokumenUrl = { not: null };
   }
-  // Filter berdasarkan kode satker barang
+  // Filter berdasarkan kode satker barang — MENAMBAH ke where.detail yang mungkin
+  // sudah ada (dari search query `q`), BUKAN menimpanya.
   if (kodeSatker) {
-    where.detail = { some: { barang: { kodeSatker: kodeSatker } } };
+    if (where.detail?.some) {
+      // where.detail sudah ada (dari search `q`), tambahkan satker ke dalamnya
+      where.detail.some.barang = {
+        ...where.detail.some.barang,
+        kodeSatker,
+      };
+    } else {
+      // where.detail belum ada, buat baru
+      where.detail = { some: { barang: { kodeSatker } } };
+    }
   }
 
   const [data, total] = await Promise.all([

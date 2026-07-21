@@ -2,6 +2,9 @@
 //  Koneksi database menggunakan Prisma Client
 //  Menggunakan pola singleton agar koneksi tidak berganda
 //  saat hot-reload pada mode pengembangan.
+//
+//  IMPORTANT: Supabase Pooler memiliki limit pool_size: 15.
+//  connection_limit=3 di DATABASE_URL untuk menghindari session overflow.
 // ============================================================
 
 const { PrismaClient } = require('@prisma/client');
@@ -19,6 +22,21 @@ const prisma =
 if (process.env.NODE_ENV !== 'production') {
   globalForPrisma.prisma = prisma;
 }
+
+// Cleanup on exit
+process.on('beforeExit', async () => {
+  await prisma.$disconnect();
+});
+
+process.on('SIGINT', async () => {
+  await prisma.$disconnect();
+  process.exit(0);
+});
+
+process.on('SIGTERM', async () => {
+  await prisma.$disconnect();
+  process.exit(0);
+});
 
 // Fungsi pengecekan koneksi database
 async function cekKoneksiDatabase() {

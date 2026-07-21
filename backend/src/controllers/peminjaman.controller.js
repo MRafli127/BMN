@@ -86,7 +86,7 @@ const getSemua = asyncHandler(async (req, res) => {
     role: req.user.role,
   });
   return responsSukses(res, {
-    pesan: 'Daftar peminjaman berhasil dimuat.',
+    pesan: 'Daftar Pegawaian berhasil dimuat.',
     data: hasil.data,
     meta: hasil.meta,
   });
