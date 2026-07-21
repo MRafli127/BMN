@@ -236,31 +236,32 @@ async function getSemua({
   page = 1,
   limit = 50,
 } = {}) {
-  const { halaman, perHalaman, skip } = parsePagination({ page, limit, defaultLimit: 50 });
+  try {
+    const { halaman, perHalaman } = parsePagination({ page, limit, defaultLimit: 50 });
 
-  const where = {};
+    const where = {};
 
-  if (entitas) where.entitas = entitas;
-  if (aksi) where.aksi = aksi;
-  if (userId) where.userId = userId;
+    if (entitas) where.entitas = entitas;
+    if (aksi) where.aksi = aksi;
+    if (userId) where.userId = userId;
 
-  if (dari || sampai) {
-    where.timestamp = {};
-    if (dari) where.timestamp.gte = new Date(dari);
-    if (sampai) where.timestamp.lte = new Date(sampai + 'T23:59:59.999Z');
-  }
+    if (dari || sampai) {
+      where.timestamp = {};
+      if (dari) where.timestamp.gte = new Date(dari);
+      if (sampai) where.timestamp.lte = new Date(sampai + 'T23:59:59.999Z');
+    }
 
-  const [data, total] = await Promise.all([
-    prisma.auditLog.findMany({
-      where,
-      orderBy: { timestamp: 'desc' },
-      skip: (halaman - 1) * perHalaman,
-      take: perHalaman,
-    }),
-    prisma.auditLog.count({ where }),
-  ]);
+    const [data, total] = await Promise.all([
+      prisma.auditLog.findMany({
+        where,
+        orderBy: { timestamp: 'desc' },
+        skip: (halaman - 1) * perHalaman,
+        take: perHalaman,
+      }),
+      prisma.auditLog.count({ where }),
+    ]);
 
-  // Ambil data peminjaman untuk entitas peminjaman (agar bisa tampilkan nama peminjam)
+  // Ambil data peminjaman untuk entitas peminjaman (agar bisa tampilkan nama peminjam & kode barang)
   const peminjamanIds = data
     .filter((d) => d.entitas === ENTITAS.PEMINJAMAN && d.entitasId)
     .map((d) => d.entitasId);
@@ -273,7 +274,7 @@ async function getSemua({
         peminjam: { select: { id: true, nama: true } },
         detail: {
           include: {
-            barang: { select: { nama: true } },
+            barang: { select: { nama: true, kodeSatker: true, kodeBarangBmn: true, nup: true } },
           },
         },
       },
@@ -285,17 +286,18 @@ async function getSemua({
   const dataDenganLabel = data.map((item) => {
     const labelAksi = LABEL_AKSI[item.aksi] || item.aksi;
     const labelEntitas = LABEL_ENTITAS[item.entitas] || item.entitas;
+    const peminjaman = item.entitas === ENTITAS.PEMINJAMAN && item.entitasId
+      ? peminjamanMap.get(item.entitasId)
+      : null;
+    const namaPeminjam = peminjaman?.peminjam?.nama || 'Tidak dikenal';
+    const barang = peminjaman?.detail?.[0]?.barang;
+    const namaBarang = barang?.nama || 'barang';
+    const statusBaru = item.dataBaru?.status;
+    const statusLama = item.dataLama?.status;
 
     // Generate deskripsi berdasarkan aksi
     let deskripsi = '';
     if (item.entitas === ENTITAS.PEMINJAMAN && item.entitasId) {
-      const peminjaman = peminjamanMap.get(item.entitasId);
-      const namaPeminjam = peminjaman?.peminjam?.nama || 'Tidak dikenal';
-      const namaBarang =
-        peminjaman?.detail?.[0]?.barang?.nama || 'barang';
-      const statusBaru = item.dataBaru?.status;
-      const statusLama = item.dataLama?.status;
-
       // Bangun deskripsi berdasarkan aksi spesifik
       switch (item.aksi) {
         case AKSI.PEMINJAMAN_MENUNGGU:
@@ -315,7 +317,6 @@ async function getSemua({
           deskripsi = `${namaPeminjam} meminta pengembalian ${namaBarang}`;
           break;
         case AKSI.PEMINJAMAN_DIKEMBALIKAN:
-          const dikembalikanOleh = item.dataBaru?.dikembalikanOleh;
           if (item.userNama && item.userNama !== 'Sistem') {
             // Dilakukan oleh admin
             deskripsi = `Admin menerima pengembalian dari ${namaPeminjam}`;
@@ -341,11 +342,17 @@ async function getSemua({
       deskripsi = labelAksi;
     }
 
+    // Bangun kode barang: kodeSatker - kodeBarangBmn - NUP
+    const kodeBarang = barang
+      ? [barang.kodeSatker || '-', barang.kodeBarangBmn || '-', barang.nup || '-'].join(' - ')
+      : '-';
+
     return {
       ...item,
       labelAksi,
       labelEntitas,
       deskripsi,
+      kodeBarang,
     };
   });
 
@@ -358,6 +365,10 @@ async function getSemua({
       totalHalaman: Math.ceil(total / perHalaman) || 1,
     },
   };
+  } catch (error) {
+    logger.error('[AUDIT] getSemua error:', error.message, error.stack);
+    throw error;
+  }
 }
 
 /**
