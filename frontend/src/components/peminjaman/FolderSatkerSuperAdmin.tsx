@@ -92,6 +92,15 @@ export function FolderSatkerSuperAdmin({ cari, filterStatus, satkerAwal }: Props
   // Refs untuk prevent duplicate calls
   const loadingSatkerRef = useRef<Set<string>>(new Set());
 
+  // Reset semua data saat filter berubah, agar folder memuat ulang data dengan filter baru
+  useEffect(() => {
+    setDataPerSatker({});
+    setPagePerSatker({});
+    setErrors({});
+    // Tutup semua folder yang terbuka agar user melihat state loading dengan filter baru
+    setTerbuka(new Set());
+  }, [cari, filterStatus]);
+
   // Auto-open folder berdasarkan satkerAwal.
   //
   // Catatan tentang parent: parent memberikan `key={satkerAwal ?? 'all'}` agar
