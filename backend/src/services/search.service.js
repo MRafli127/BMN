@@ -3,12 +3,11 @@
 //  dan User/Peminjam.
 // ============================================================
 
-const { PrismaClient } = require('@prisma/client');
-const prisma = new PrismaClient();
+const { prisma } = require('../config/database');
 
 /**
  * Cari barang berdasarkan query string.
- * Field yang dicocokkan: nama, kodeBarang, merk, lokasiPenyimpanan.
+ * Field yang dicocokkan: nama, kodeBarang, merk, tipe, lokasiPenyimpanan.
  */
 async function cariBarang(q, limit = 5) {
   const results = await prisma.barang.findMany({
@@ -17,6 +16,7 @@ async function cariBarang(q, limit = 5) {
         { nama: { contains: q, mode: 'insensitive' } },
         { kodeBarang: { contains: q, mode: 'insensitive' } },
         { merk: { contains: q, mode: 'insensitive' } },
+        { tipe: { contains: q, mode: 'insensitive' } },
         { lokasiPenyimpanan: { contains: q, mode: 'insensitive' } },
       ],
     },
@@ -25,6 +25,7 @@ async function cariBarang(q, limit = 5) {
       kodeBarang: true,
       nama: true,
       merk: true,
+      tipe: true,
       jumlahTersedia: true,
       jumlahTotal: true,
       kondisi: true,

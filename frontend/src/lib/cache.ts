@@ -38,6 +38,31 @@ export function invalidasiCache(awalan?: string) {
   }
 }
 
+/**
+ * Invalidasi cache berdasarkan NAMA TIPE, bukan awalan key teknis.
+ *
+ * Daftar `namaCache` adalah alias yang terdaftar di `KUNCI_CACHE` di bawah.
+ * Helper ini merangkai semua awalan key cache yang terkait sehingga pemanggil
+ * tinggal menyebut "barang" tanpa harus tahu prefix internal ('barang-folder:').
+ *
+ * Pakai ini di titik-titik mutasi agar cache konsisten dengan data server.
+ */
+const KUNCI_CACHE = {
+  // Folder barang (admin/super-admin/peminjam katalog).
+  // Awalan key di useBarangFolder: 'barang-folder:'.
+  barang: ['barang-folder:'],
+};
+
+export function invalidasiCacheDenganNama(...namaCache: Array<keyof typeof KUNCI_CACHE>) {
+  for (const nama of namaCache) {
+    const awalanList = KUNCI_CACHE[nama];
+    if (!awalanList) continue;
+    for (const awalan of awalanList) {
+      invalidasiCache(awalan);
+    }
+  }
+}
+
 interface OpsiQuery {
   /** Jangan jalankan query bila false. */
   aktif?: boolean;

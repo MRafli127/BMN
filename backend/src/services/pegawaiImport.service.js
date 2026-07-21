@@ -1,5 +1,5 @@
 // ============================================================
-//  Service Import Data Pegawai (Daftar Peminjam) dari Excel/CSV.
+//  Service Import Data Pegawai (Daftar Pegawai) dari Excel/CSV.
 //
 //  Tujuan: mengisi & menyinkronkan DATA DIRI peminjam dari file
 //  master pegawai (mis. Data-Pegawai-BPPK.xlsx). Field yang

@@ -1,5 +1,5 @@
 // ============================================================
-//  Tabel daftar peminjaman (dipakai admin & peminjam).
+//  Tabel Daftar Pegawaian (dipakai admin & peminjam).
 //  Mendukung pilihan baris (checkbox) untuk hapus massal — aktif
 //  hanya bila prop onUbahTerpilih diberikan (khusus admin).
 //  Responsive: Tabel di desktop, Card view di mobile.

@@ -319,6 +319,35 @@ export default function SuperAdminDashboardPage() {
           ))}
         </div>
       </section>
+
+      {/* Aksi Cepat - shortcut ke fitur utama super admin.
+          Ditaruh SETELAH Statistik Per Satker (visual hierarchy: ringkasan data
+          dulu, baru jalan pintas). Card style konsisten dengan section lain. */}
+      {!error && (
+        <section className="rounded-3xl border-2 border-slate-200/50 bg-gradient-to-br from-white to-slate-50 p-8 shadow-lg animate-page-in" style={{ animationDelay: '300ms' }}>
+          <div className="mb-6 flex items-center gap-4">
+            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-primary to-indigo-600 shadow-lg shadow-primary/30">
+              <Icon name="flash_on" className="h-6 w-6 text-white" />
+            </div>
+            <div>
+              <h2 className="font-jakarta text-xl font-bold text-slate-800">Aksi Cepat</h2>
+              <p className="text-sm text-muted-foreground">Navigasi cepat ke fitur utama</p>
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-6">
+            {[
+              { label: 'Kelola Admin', href: RUTE.superAdminAdmin, ikon: 'admin_panel_settings', warna: 'bg-blue-500' },
+              { label: 'Kelola Barang', href: RUTE.superAdminBarang, ikon: 'inventory_2', warna: 'bg-green-500' },
+              { label: 'Kelola Peminjaman', href: RUTE.superAdminPeminjaman, ikon: 'sync_alt', warna: 'bg-purple-500' },
+              { label: 'Kelola Satker', href: RUTE.superAdminSatker, ikon: 'location_city', warna: 'bg-teal-500' },
+              { label: 'Lihat Logs', href: RUTE.superAdminLogs, ikon: 'history', warna: 'bg-orange-500' },
+              { label: 'Kelola Pengguna', href: RUTE.superAdminPengguna, ikon: 'group', warna: 'bg-indigo-500' },
+            ].map((action, i) => (
+              <QuickActionButton key={action.label} {...action} index={i} />
+            ))}
+          </div>
+        </section>
+      )}
     </div>
   );
 }

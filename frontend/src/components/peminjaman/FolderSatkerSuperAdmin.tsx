@@ -91,19 +91,31 @@ export function FolderSatkerSuperAdmin({ cari, filterStatus, satkerAwal }: Props
 
   // Refs untuk prevent duplicate calls
   const loadingSatkerRef = useRef<Set<string>>(new Set());
-  const sudahDibukaRef = useRef(false);
 
-  // Auto-open folder berdasarkan satkerAwal
+  // Auto-open folder berdasarkan satkerAwal.
+  //
+  // Catatan tentang parent: parent memberikan `key={satkerAwal ?? 'all'}` agar
+  // komponen ini di-REMOUNT penuh setiap kali ?kodeSatker= berubah. Dengan
+  // remount, state (termasuk apapun yang dulu disimpan di sudahDibukaRef) di-
+  // reset otomatis, sehingga useEffect ini SELALU berjalan untuk satker baru.
+  //
+  // Sebelumnya dipakai sudahDibukaRef.current = true supaya auto-open cuma
+  // jalan sekali per-mount. Setelah remount-based strategy, flag itu sudah
+  // tidak diperlukan — komponen "baru" setiap navigasi satker, jadi auto-open
+  // untuk satker yang ditunjuk pasti berjalan.
   useEffect(() => {
-    if (satkerAwal && !sudahDibukaRef.current) {
-      sudahDibukaRef.current = true;
+    if (satkerAwal) {
       setTerbuka(new Set([satkerAwal]));
       // Load data untuk satker tersebut
       if (!dataPerSatker[satkerAwal] && !loadingSatkerRef.current.has(satkerAwal)) {
         loadSatker(satkerAwal, 1);
       }
     }
-  }, [satkerAwal, dataPerSatker]);
+    // Sengaja TIDAK memasukkan `dataPerSatker` sebagai dependency: perubahan
+    // data satker lain boleh me-re-render komponen, tapi tidak boleh memicu
+    // auto-open ulang untuk satker yang sama.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [satkerAwal]);
 
   const grupSatker: GrupSatker[] = useMemo(() =>
     OPSI_FILTER_BARANG.map((s) => ({

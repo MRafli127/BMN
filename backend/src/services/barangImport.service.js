@@ -177,9 +177,24 @@ function parse(buffer) {
       gagal.push({ baris: nomorBaris, nama: '-', pesan: 'Nama Barang kosong.' });
       continue;
     }
-    // Wajib punya penanda identitas agar bisa dicocokkan saat re-import.
-    if (!nup && !kodeBarangBmn) {
-      gagal.push({ baris: nomorBaris, nama, pesan: 'NUP / Kode Barang kosong (tidak bisa disinkronkan).' });
+    // Wajib punya SELURUH kunci natural (kodeSatker + kodeBarangBmn + nup)
+    // agar barang bisa di-INSERT dan dicocokkan saat re-import, dan agar
+    // kodeTransaksi peminjaman bisa dibentuk dari kunci natural BMN. Tanpa
+    // ketiga komponen, baris ditolak — sesuai Kebijakan Validasi Aset.
+    if (!nup && !kodeBarangBmn && !kodeSatker) {
+      gagal.push({
+        baris: nomorBaris,
+        nama,
+        pesan: 'Kode Satker, Kode Barang, dan NUP kosong (tidak bisa disinkronkan).',
+      });
+      continue;
+    }
+    if (!kodeSatker || !kodeBarangBmn || !nup) {
+      gagal.push({
+        baris: nomorBaris,
+        nama,
+        pesan: 'Kode Satker, Kode Barang, dan NUP semuanya wajib diisi untuk Import Aset.',
+      });
       continue;
     }
 
@@ -210,6 +225,7 @@ function parse(buffer) {
       // nilai domain
       nama,
       merk,
+      tipe,
       jenis: petaJenis(jenisBmn, nama),
       kondisi: petaKondisi(ambil(row, 'kondisi')),
       // Lokasi diutamakan dari kolom Ruang (BU); fallback ke kolom lokasi
@@ -240,6 +256,7 @@ function adaPerubahan(lama, baru) {
     !sama(lama.kodeBarang, kodeNaturalBarang(baru)) ||
     !sama(lama.nama, baru.nama) ||
     !sama(lama.merk, baru.merk) ||
+    !sama(lama.tipe, baru.tipe) ||
     !sama(lama.jenis, baru.jenis) ||
     !sama(lama.kondisi, baru.kondisi) ||
     !sama(lama.lokasiPenyimpanan, baru.lokasiPenyimpanan) ||
@@ -273,6 +290,7 @@ async function importDariExcel(buffer) {
       nup: true,
       nama: true,
       merk: true,
+      tipe: true,
       jenis: true,
       kondisi: true,
       lokasiPenyimpanan: true,
@@ -355,6 +373,7 @@ function dataDeskriptif(r) {
     kodeBarang: kodeNaturalBarang(r),
     nama: r.nama,
     merk: r.merk,
+    tipe: r.tipe,
     jenis: r.jenis,
     kondisi: r.kondisi,
     lokasiPenyimpanan: r.lokasiPenyimpanan,

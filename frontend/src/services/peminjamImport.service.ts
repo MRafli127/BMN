@@ -3,6 +3,7 @@
 // ============================================================
 
 import api from '@/lib/api';
+import { invalidasiCacheDenganNama } from '@/lib/cache';
 import { downloadBlob } from '@/lib/download';
 
 export interface HasilImportPeminjam {
@@ -28,6 +29,10 @@ export const peminjamImportService = {
     const res = await api.post('/import-peminjam', fd, {
       headers: { 'Content-Type': 'multipart/form-data' },
     });
+    // Import peminjam bisa membuat peminjaman otomatis untuk barang yang
+    // sudah ada di DB — stok barang dapat berkurang. Invalidate cache folder
+    // agar tampilan stok selalu konsisten.
+    invalidasiCacheDenganNama('barang');
     return res.data.data;
   },
 

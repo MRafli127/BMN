@@ -1,6 +1,6 @@
 // ============================================================
 //  Tampilan folder peminjaman — dikelompokkan per kode satker.
-//  Tiap folder berisi daftar peminjaman dari satker tersebut.
+//  Tiap folder berisi Daftar Pegawaian dari satker tersebut.
 //  (memakai ulang TabelPeminjaman di dalamnya).
 // ============================================================
 
@@ -183,7 +183,7 @@ export function FolderSatkerPeminjaman({
               </span>
             </button>
 
-            {/* Isi folder — daftar peminjaman */}
+            {/* Isi folder — Daftar Pegawaian */}
             {buka && (
               <div className="border-t border-outline-variant p-stack-md">
                 <TabelPeminjaman

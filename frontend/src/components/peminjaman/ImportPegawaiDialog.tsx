@@ -1,5 +1,5 @@
 // ============================================================
-//  Dialog Import Data Pegawai (Daftar Peminjam).
+//  Dialog Import Data Pegawai (Daftar Pegawai).
 //  Mengisi & menyinkronkan DATA DIRI peminjam dari file master
 //  pegawai (mis. Data-Pegawai-BPPK.xlsx). Field yang diisi sama
 //  dengan halaman Pengaturan Akun: Nama, NIP, Jabatan, Email,

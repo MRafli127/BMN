@@ -129,6 +129,7 @@ async function create(data, fotoPath) {
         kodeBarang,
         nama: data.nama,
         merk: data.merk || null,
+        tipe: data.tipe || null,
         jenis: data.jenis,
         jumlahTotal: data.jumlahTotal,
         jumlahTersedia: data.jumlahTotal, // awalnya semua tersedia
