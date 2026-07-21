@@ -49,8 +49,29 @@ export function invalidasiCache(awalan?: string) {
  */
 const KUNCI_CACHE = {
   // Folder barang (admin/super-admin/peminjam katalog).
-  // Awalan key di useBarangFolder: 'barang-folder:'.
-  barang: ['barang-folder:'],
+  //   - useBarangFolder  -> prefix 'barang-folder:'
+  //   - useBarang        -> prefix 'barang:'
+  // Saat mutasi barang, kedua prefix harus di-invalidate agar SEMUA halaman
+  // yang menampilkan daftar/katalog barang ikut refresh.
+  barang: ['barang-folder:', 'barang:'],
+
+  // Folder/list peminjaman admin & super-admin: 'folder-peminjaman:'.
+  // Mutasi peminjaman (setujui/tolak/serahkan/kembalikan/dst.) membuat angka
+  // & status di folder basi jika tidak di-invalidate.
+  'folder-peminjaman': ['folder-peminjaman:'],
+
+  // Dashboard admin (statistik global + grafik): prefix 'dashboard-admin:'.
+  // Cache key literal penuh: 'dashboard-peminjam' (tanpa ':') di halaman
+  // dashboard peminjam. Mutasi peminjaman/barang dapat mengubah metrik.
+  'dashboard-admin': ['dashboard-admin:'],
+  'dashboard-peminjam': ['dashboard-peminjam'],
+
+  // Halaman kategori dashboard admin (mis. Daftar Pegawai). Awalan key
+  // tergantung kategori; yang penting di sini hanya slot peminjam.
+  'kategori:peminjam': ['kategori:peminjam:'],
+
+  // Halaman manajemen satker (super-admin): prefix 'satker:'.
+  satker: ['satker:'],
 };
 
 export function invalidasiCacheDenganNama(...namaCache: Array<keyof typeof KUNCI_CACHE>) {

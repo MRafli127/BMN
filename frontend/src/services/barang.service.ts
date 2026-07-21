@@ -114,7 +114,9 @@ export const barangService = {
     const res = await api.post('/barang', buatFormData(data), {
       headers: { 'Content-Type': 'multipart/form-data' },
     });
-    invalidasiCacheDenganNama('barang');
+    // Mutasi barang juga membuat folder peminjaman bisa basi (barang baru
+    // muncul di daftar referensi) — invalidate keduanya.
+    invalidasiCacheDenganNama('barang', 'folder-peminjaman');
     return res.data.data;
   },
 
@@ -122,13 +124,13 @@ export const barangService = {
     const res = await api.put(`/barang/${id}`, buatFormData(data), {
       headers: { 'Content-Type': 'multipart/form-data' },
     });
-    invalidasiCacheDenganNama('barang');
+    invalidasiCacheDenganNama('barang', 'folder-peminjaman');
     return res.data.data;
   },
 
   async remove(id: string): Promise<void> {
     await api.delete(`/barang/${id}`);
-    invalidasiCacheDenganNama('barang');
+    invalidasiCacheDenganNama('barang', 'folder-peminjaman');
   },
 
   // Bulk insert barang sekaligus (NUP auto-generate)
@@ -136,7 +138,7 @@ export const barangService = {
     const res = await api.post('/barang/bulk', buatFormData(data), {
       headers: { 'Content-Type': 'multipart/form-data' },
     });
-    invalidasiCacheDenganNama('barang');
+    invalidasiCacheDenganNama('barang', 'folder-peminjaman');
     return res.data.data;
   },
 
@@ -147,7 +149,7 @@ export const barangService = {
     const res = await api.post('/barang/import', fd, {
       headers: { 'Content-Type': 'multipart/form-data' },
     });
-    invalidasiCacheDenganNama('barang');
+    invalidasiCacheDenganNama('barang', 'folder-peminjaman');
     return res.data.data;
   },
 

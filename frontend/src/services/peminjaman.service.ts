@@ -47,6 +47,15 @@ export interface AppErrorDetail {
   detailPeminjaman?: DetailPeminjamanError | DetailPeminjamanError[];
 }
 
+// Mutasi peminjaman memengaruhi banyak cache sekaligus:
+//   - 'barang'           : stok/jumlahTersedia barang berubah
+//   - 'folder-peminjaman': folder & daftar peminjaman admin/super-admin
+//   - 'dashboard-admin'  : statistik dashboard admin
+//   - 'dashboard-peminjam': statistik dashboard peminjam (pengaju)
+// Pusatkan di helper agar konsisten di tiap endpoint mutasi.
+const INVALIDASI_SETELAH_MUTASI_PEMINJAMAN = () =>
+  invalidasiCacheDenganNama('barang', 'folder-peminjaman', 'dashboard-admin', 'dashboard-peminjam');
+
 export const peminjamanService = {
   async getSemua(filter: FilterPeminjaman = {}): Promise<{ data: Peminjaman[]; meta: MetaPagination }> {
     const res = await api.get('/peminjaman', { params: filter });
@@ -82,8 +91,9 @@ export const peminjamanService = {
     const res = await api.post('/peminjaman', fd, {
       headers: { 'Content-Type': 'multipart/form-data' },
     });
-    // Peminjaman baru mengubah ketersediaan barang — invalidate cache folder.
-    invalidasiCacheDenganNama('barang');
+    // Peminjaman baru mengubah ketersediaan barang + statistik dashboard +
+    // folder peminjaman admin/super-admin.
+    INVALIDASI_SETELAH_MUTASI_PEMINJAMAN();
     return res.data.data;
   },
 
@@ -102,32 +112,32 @@ export const peminjamanService = {
     const res = await api.patch(`/peminjaman/${id}/unggah-surat`, fd, {
       headers: { 'Content-Type': 'multipart/form-data' },
     });
-    invalidasiCacheDenganNama('barang');
+    INVALIDASI_SETELAH_MUTASI_PEMINJAMAN();
     return res.data.data;
   },
 
   // Batalkan pengajuan DRAFT milik peminjam (membebaskan barang yang terkunci).
   async batalDraft(id: string): Promise<void> {
     await api.delete(`/peminjaman/${id}/batal-draft`);
-    invalidasiCacheDenganNama('barang');
+    INVALIDASI_SETELAH_MUTASI_PEMINJAMAN();
   },
 
   async setujui(id: string, catatanAdmin?: string): Promise<Peminjaman> {
     const res = await api.patch(`/peminjaman/${id}/setujui`, { catatanAdmin });
-    invalidasiCacheDenganNama('barang');
+    INVALIDASI_SETELAH_MUTASI_PEMINJAMAN();
     return res.data.data;
   },
 
   async tolak(id: string, catatanAdmin: string): Promise<Peminjaman> {
     const res = await api.patch(`/peminjaman/${id}/tolak`, { catatanAdmin });
-    invalidasiCacheDenganNama('barang');
+    INVALIDASI_SETELAH_MUTASI_PEMINJAMAN();
     return res.data.data;
   },
 
   async serahkan(id: string): Promise<Peminjaman> {
     const res = await api.patch(`/peminjaman/${id}/serahkan`);
     // Serahkan menurunkan jumlahTersedia barang.
-    invalidasiCacheDenganNama('barang');
+    INVALIDASI_SETELAH_MUTASI_PEMINJAMAN();
     return res.data.data;
   },
 
@@ -145,7 +155,7 @@ export const peminjamanService = {
     const res = await api.patch(`/peminjaman/${id}/minta-pengembalian`, fd, {
       headers: { 'Content-Type': 'multipart/form-data' },
     });
-    invalidasiCacheDenganNama('barang');
+    INVALIDASI_SETELAH_MUTASI_PEMINJAMAN();
     return res.data.data;
   },
 
@@ -159,13 +169,13 @@ export const peminjamanService = {
       headers: { 'Content-Type': 'multipart/form-data' },
     });
     // Pengembalian meningkatkan jumlahTersedia barang.
-    invalidasiCacheDenganNama('barang');
+    INVALIDASI_SETELAH_MUTASI_PEMINJAMAN();
     return res.data.data;
   },
 
   async stempel(id: string): Promise<Peminjaman> {
     const res = await api.post(`/peminjaman/${id}/stempel`);
-    invalidasiCacheDenganNama('barang');
+    INVALIDASI_SETELAH_MUTASI_PEMINJAMAN();
     return res.data.data;
   },
 
@@ -183,13 +193,13 @@ export const peminjamanService = {
   // Hapus peminjaman (admin). Stok dikembalikan otomatis bila masih dipinjam.
   async hapus(id: string): Promise<void> {
     await api.delete(`/peminjaman/${id}`);
-    invalidasiCacheDenganNama('barang');
+    INVALIDASI_SETELAH_MUTASI_PEMINJAMAN();
   },
 
   // Hapus banyak peminjaman sekaligus (admin). Mengembalikan jumlah terhapus.
   async hapusMassal(ids: string[]): Promise<number> {
     const res = await api.post('/peminjaman/hapus-massal', { ids });
-    invalidasiCacheDenganNama('barang');
+    INVALIDASI_SETELAH_MUTASI_PEMINJAMAN();
     return res.data.data?.dihapus ?? 0;
   },
 
@@ -197,21 +207,21 @@ export const peminjamanService = {
   // catatanAdmin opsional: catatan yang sama dikirim ke tiap pengajuan yang disetujui.
   async setujuiMassal(ids: string[], catatanAdmin?: string): Promise<{ disetujui: number; dilewati: number }> {
     const res = await api.post('/peminjaman/setujui-massal', { ids, catatanAdmin });
-    invalidasiCacheDenganNama('barang');
+    INVALIDASI_SETELAH_MUTASI_PEMINJAMAN();
     return { disetujui: res.data.data?.disetujui ?? 0, dilewati: res.data.data?.dilewati ?? 0 };
   },
 
   // Tandai banyak barang telah diserahkan sekaligus (admin). Mengembalikan ringkasan hasil.
   async serahkanMassal(ids: string[]): Promise<{ berhasil: number; dilewati: number }> {
     const res = await api.post('/peminjaman/serahkan-massal', { ids });
-    invalidasiCacheDenganNama('barang');
+    INVALIDASI_SETELAH_MUTASI_PEMINJAMAN();
     return { berhasil: res.data.data?.berhasil ?? 0, dilewati: res.data.data?.dilewati ?? 0 };
   },
 
   // Konfirmasi pengembalian banyak peminjaman sekaligus (admin). Mengembalikan ringkasan hasil.
   async kembalikanMassal(ids: string[]): Promise<{ berhasil: number; dilewati: number }> {
     const res = await api.post('/peminjaman/kembalikan-massal', { ids });
-    invalidasiCacheDenganNama('barang');
+    INVALIDASI_SETELAH_MUTASI_PEMINJAMAN();
     return { berhasil: res.data.data?.berhasil ?? 0, dilewati: res.data.data?.dilewati ?? 0 };
   },
 };

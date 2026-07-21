@@ -20,7 +20,7 @@ import { urlFile, ambilPesanError } from '@/lib/utils';
 import { JENIS_BARANG, KONDISI_BARANG } from '@/constants/status';
 import { dashboardService, type KategoriDashboard, type ResponseKategori, type FilterRole } from '@/services/dashboard.service';
 import { userManagementService } from '@/services/userManagement.service';
-import { useQuery, invalidasiCache } from '@/lib/cache';
+import { useQuery, invalidasiCacheDenganNama } from '@/lib/cache';
 import { RUTE } from '@/constants/routes';
 import type { Barang } from '@/types/barang.type';
 import type { Peminjaman } from '@/types/peminjaman.type';
@@ -89,8 +89,7 @@ export default function KategoriDashboardPage() {
 
   // Bersihkan cache Daftar Pegawai & statistik dashboard, lalu muat ulang.
   const segarkanData = () => {
-    invalidasiCache('kategori:peminjam');
-    invalidasiCache('dashboard-admin');
+    invalidasiCacheDenganNama('kategori:peminjam', 'dashboard-admin');
     refetch();
   };
 
