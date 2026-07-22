@@ -1251,11 +1251,16 @@ async function kembalikanBanyak(ids, adminId, requestInfo = {}) {
 // Bila peminjaman masih memegang stok (DISETUJUI/DIPINJAM/TERLAMBAT dengan
 // item berstatus DIPINJAM), stok dikembalikan dulu agar tidak hilang.
 // DetailPeminjaman ikut terhapus otomatis (onDelete: Cascade).
-async function hapus(id, requestInfo = {}) {
+async function hapus(id, adminId, requestInfo = {}) {
   // Baca data di luar transaksi agar transaksi interaktif sesingkat mungkin
   // (mencegah timeout 5s pada DB remote berlatensi tinggi seperti Neon).
   const p = await prisma.peminjaman.findUnique({ where: { id }, include: { detail: true } });
   if (!p) throw new AppError('Data peminjaman tidak ditemukan.', 404);
+
+  // Ambil data peminjam untuk audit log
+  const peminjam = p.userId
+    ? await prisma.user.findUnique({ where: { id: p.userId }, select: { id: true, nama: true, email: true } })
+    : null;
 
   // Agregasi pengembalian stok per barang agar jumlah query update minimal.
   const memegangStok = ['DISETUJUI', 'DIPINJAM', 'TERLAMBAT'].includes(p.status);
@@ -1267,6 +1272,17 @@ async function hapus(id, requestInfo = {}) {
       }
     }
   }
+
+  // Bangun kode barang untuk log: kodeSatker - kodeBarangBmn - NUP
+  const kodeBarang = p.detail.length > 0
+    ? p.detail
+        .map((d) => {
+          // barang sudah ter-load via detail, tapi kita perlu kodeSatker dari relasi
+          return null; // placeholder, akan di-enrich dari barang lookup
+        })
+        .filter(Boolean)
+        .join(', ')
+    : null;
 
   await prisma.$transaction(
     async (tx) => {
@@ -1281,11 +1297,28 @@ async function hapus(id, requestInfo = {}) {
     { timeout: 20000, maxWait: 10000 }
   );
 
-  // Audit log: catat penghapusan
+  // Ambil data barang untuk kodeBarang di audit log
+  let kodeBarangStr = '-';
+  if (p.detail.length > 0) {
+    const barangIds = p.detail.map((d) => d.barangId);
+    const barangs = await prisma.barang.findMany({
+      where: { id: { in: barangIds } },
+      select: { kodeSatker: true, kodeBarangBmn: true, nup: true },
+    });
+    kodeBarangStr = barangs
+      .map((b) => [b.kodeSatker || '-', b.kodeBarangBmn || '-', b.nup || '-'].join(' - '))
+      .join(', ');
+  }
+
+  // Audit log: catat penghapusan dengan detail lengkap
+  const admin = adminId
+    ? await prisma.user.findUnique({ where: { id: adminId }, select: { id: true, nama: true, email: true } })
+    : null;
+
   auditLogService.log({
-    userId: null, // Admin melakukan, tapi kita tidak punya userId di sini
-    userEmail: null,
-    userNama: null,
+    userId: admin?.id || null,
+    userEmail: admin?.email || null,
+    userNama: admin?.nama || 'Admin',
     aksi: auditLogService.AKSI.PEMINJAMAN_DELETE,
     entitas: auditLogService.ENTITAS.PEMINJAMAN,
     entitasId: id,
@@ -1293,7 +1326,8 @@ async function hapus(id, requestInfo = {}) {
       kodeTransaksi: p.kodeTransaksi,
       kodePeminjaman: p.kodePeminjaman,
       status: p.status,
-      userId: p.userId,
+      kodeBarang: kodeBarangStr,
+      namaPeminjam: peminjam?.nama || '-',
     },
     requestInfo,
   }).catch(() => {});

@@ -9,6 +9,7 @@ const { kodeNaturalBarang } = require('../utils/generateKode');
 const { urlPublik } = require('../utils/apiResponse');
 const { parsePagination } = require('../utils/pagination');
 const { AppError } = require('../middleware/error.middleware');
+const auditLogService = require('./auditLog.service');
 
 // Include untuk detail halaman (relasi peminjam untuk melihat siapa yang pinjam)
 // Catatan: filtering status dilakukan di JavaScript oleh ekstrakPeminjam()
@@ -200,7 +201,7 @@ async function update(id, data, fotoPath) {
 }
 
 // --- Hapus barang ---
-async function remove(id) {
+async function remove(id, adminId = null, requestInfo = {}) {
   // Cek barang ada atau tidak
   const barang = await prisma.barang.findUnique({
     where: { id },
@@ -229,6 +230,32 @@ async function remove(id) {
   }
 
   await prisma.barang.delete({ where: { id } });
+
+  // Audit log: catat penghapusan barang dengan detail lengkap
+  const kodeBarangStr = [barang.kodeSatker || '-', barang.kodeBarangBmn || '-', barang.nup || '-'].join(' - ');
+  const admin = adminId
+    ? await prisma.user.findUnique({ where: { id: adminId }, select: { id: true, nama: true, email: true } })
+    : null;
+
+  auditLogService.log({
+    userId: admin?.id || null,
+    userEmail: admin?.email || null,
+    userNama: admin?.nama || 'Admin',
+    aksi: auditLogService.AKSI.BARANG_DELETE,
+    entitas: auditLogService.ENTITAS.BARANG,
+    entitasId: id,
+    dataLama: {
+      nama: barang.nama,
+      merk: barang.merk,
+      kodeBarang: barang.kodeBarang,
+      kodeSatker: barang.kodeSatker,
+      kodeBarangBmn: barang.kodeBarangBmn,
+      nup: barang.nup,
+      kodeBarangLengkap: kodeBarangStr,
+    },
+    requestInfo,
+  }).catch(() => {});
+
   return { id };
 }
 

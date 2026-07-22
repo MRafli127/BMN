@@ -162,7 +162,7 @@ const scan = asyncHandler(async (req, res) => {
 });
 
 const hapus = asyncHandler(async (req, res) => {
-  await peminjamanService.hapus(req.params.id, getRequestInfo(req));
+  await peminjamanService.hapus(req.params.id, req.user.id, getRequestInfo(req));
   return responsSukses(res, { pesan: 'Data peminjaman berhasil dihapus.' });
 });
 

@@ -328,7 +328,8 @@ async function getSemua({
           deskripsi = `${namaPeminjam} membatalkan pengajuan`;
           break;
         case AKSI.PEMINJAMAN_DELETE:
-          deskripsi = `Admin menghapus peminjaman ${namaPeminjam}`;
+          const namaPeminjamHapus = item.dataLama?.namaPeminjam || namaPeminjam;
+          deskripsi = `Admin menghapus peminjaman ${namaPeminjamHapus}`;
           break;
         default:
           // Generic fallback
@@ -338,14 +339,26 @@ async function getSemua({
             deskripsi = labelAksi;
           }
       }
+    } else if (item.entitas === ENTITAS.BARANG && item.aksi === AKSI.BARANG_DELETE) {
+      // BARANG_DELETE: tampilkan nama barang yang dihapus
+      const namaBarangHapus = item.dataLama?.nama || 'barang';
+      const merkHapus = item.dataLama?.merk || '';
+      deskripsi = `Admin menghapus barang ${namaBarangHapus}${merkHapus ? ` (${merkHapus})` : ''}`;
     } else {
       deskripsi = labelAksi;
     }
 
     // Bangun kode barang: kodeSatker - kodeBarangBmn - NUP
-    const kodeBarang = barang
-      ? [barang.kodeSatker || '-', barang.kodeBarangBmn || '-', barang.nup || '-'].join(' - ')
-      : '-';
+    // Untuk PEMINJAMAN/BARANG_DELETE, data mungkin sudah dihapus, jadi coba dari dataLama
+    let kodeBarang = '-';
+    if (item.aksi === AKSI.BARANG_DELETE && item.dataLama?.kodeBarangLengkap) {
+      kodeBarang = item.dataLama.kodeBarangLengkap;
+    } else if (barang) {
+      kodeBarang = [barang.kodeSatker || '-', barang.kodeBarangBmn || '-', barang.nup || '-'].join(' - ');
+    } else if (item.dataLama?.kodeBarang) {
+      // Fallback untuk PEMINJAMAN_DELETE
+      kodeBarang = item.dataLama.kodeBarang;
+    }
 
     return {
       ...item,
