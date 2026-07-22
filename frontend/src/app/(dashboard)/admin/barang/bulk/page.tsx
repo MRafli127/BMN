@@ -26,7 +26,17 @@ export default function BulkBarangPage() {
       );
       router.push(RUTE.adminBarang);
     } catch (error) {
-      notify.gagal(ambilPesanError(error, 'Gagal menambahkan barang.'));
+      // KHUSUS 409 dari bulkCreate: race NUP dengan proses lain (lihat
+      // service backend bulkCreate). Pesan error sudah dikirim backend
+      // (AppError) — ambilPesanError akan mengambil field `pesan` apa
+      // adanya, jadi tidak ada duplikasi/inkonsistensi pesan di frontend.
+      // Untuk status lain (400, 500, network, dll), tetap pakai toast
+      // generik agar tidak menambah branching yang tidak perlu.
+      const axiosError = error as { response?: { status?: number } };
+      const pesan = axiosError?.response?.status === 409
+        ? ambilPesanError(error, 'Sebagian NUP bentrok dengan data yang baru saja masuk. Silakan refresh dan coba input ulang.')
+        : ambilPesanError(error, 'Gagal menambahkan barang.');
+      notify.gagal(pesan);
     }
   };
 

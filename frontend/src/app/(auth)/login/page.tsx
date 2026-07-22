@@ -214,7 +214,7 @@ export default function LoginPage() {
                 <Icon name="progress_activity" className="animate-spin" />
               ) : (
                 <>
-                  Masuk Aplikasi
+                  Masuk
                   <Icon name="login" className="text-[20px]" />
                 </>
               )}

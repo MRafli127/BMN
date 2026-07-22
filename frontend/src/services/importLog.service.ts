@@ -41,11 +41,13 @@ export interface ImportLog {
 
 export interface ImportLogResponse {
   data: ImportLog[];
-  pagination: {
-    page: number;
-    limit: number;
-    total: number;
-    totalPages: number;
+  meta: {
+    pagination: {
+      page: number;
+      limit: number;
+      total: number;
+      totalPages: number;
+    };
   };
 }
 
@@ -57,7 +59,7 @@ export interface StatistikImport {
   totalGagal: number;
 }
 
-export async function ambilSemuaLog(page = 1, limit = 10): Promise<ImportLogResponse> {
+export async function ambilSemuaLog(page = 1, limit = 10): Promise<{ data: ImportLog[]; meta: ImportLogResponse['meta'] }> {
   const res = await api.get('/import-logs', { params: { page, limit } });
   return res.data;
 }
@@ -73,5 +75,5 @@ export async function hapusLog(id: string): Promise<void> {
 
 export async function ambilStatistikImport(): Promise<StatistikImport> {
   const res = await api.get('/import-logs/statistik');
-  return res.data;
+  return res.data.data;
 }

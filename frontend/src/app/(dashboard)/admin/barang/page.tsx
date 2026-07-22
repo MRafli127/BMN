@@ -12,7 +12,8 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { Search, Plus, ChevronLeft, ChevronRight, List } from 'lucide-react';
 import { Input, Select } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { FolderBarang, kelompokkanPerMerk } from '@/components/barang/FolderBarang';
+import { FolderBarang } from '@/components/barang/FolderBarang';
+import { kelompokkanBarang } from '@/lib/kelompokkanBarang';
 import { ImportBarangDialog } from '@/components/barang/ImportBarangDialog';
 import { ExportModal } from '@/components/export/ExportModal';
 import { LoadingSpinner } from '@/components/shared/LoadingSpinner';
@@ -80,13 +81,18 @@ function KontenBarang() {
     return () => clearTimeout(timer);
   }, [cari, ubahFilter]);
 
-  // Kelompokkan barang menjadi folder per merk
-  const grup = useMemo(() => kelompokkanPerMerk(data), [data]);
+  // Kelompokkan barang menjadi folder per merk+type
+  const grup = useMemo(() => kelompokkanBarang(data), [data]);
+
+  // Kunci filter berdasarkan NILAI untuk dipakai di dependency useEffect.
+  // Pakai object `filter` langsung sebagai dependency akan selalu berubah
+  // referensinya tiap render (object literal baru dari hook), memicu loop.
+  const filterKey = useMemo(() => JSON.stringify(filter), [filter]);
 
   // Kembali ke halaman 1 bila filter / jumlah per halaman berubah
   useEffect(() => {
     setHalaman(1);
-  }, [filter, perHalaman]);
+  }, [filterKey, perHalaman]);
 
   const totalHalaman = Math.max(1, Math.ceil(grup.length / perHalaman));
   const halamanAman = Math.min(halaman, totalHalaman);

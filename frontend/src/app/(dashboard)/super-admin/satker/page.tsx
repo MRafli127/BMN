@@ -16,7 +16,6 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog';
 import { satkerService, type Satker } from '@/services/satker.service';
 import { useQuery } from '@/lib/cache';
-import { invalidasiCache } from '@/lib/cache';
 import { notify } from '@/components/ui/toast';
 import { ambilPesanError } from '@/lib/utils';
 
@@ -52,7 +51,7 @@ export default function SuperAdminSatkerPage() {
       notify.suksess('Satker berhasil ditambahkan');
       setDialogTambahOpen(false);
       setFormData({ kode: '', nama: '', singkat: '', aktif: true });
-      invalidasiCache('satker');
+      // Cache satker + barang sudah di-invalidate oleh satkerService.create().
       refetch();
     } catch (error) {
       notify.gagal(ambilPesanError(error, 'Gagal menambahkan satker'));
@@ -69,7 +68,7 @@ export default function SuperAdminSatkerPage() {
       await satkerService.update(selectedSatker.id, formData);
       notify.suksess('Satker berhasil diperbarui');
       setDialogEditOpen(false);
-      invalidasiCache('satker');
+      // Cache satker + barang sudah di-invalidate oleh satkerService.update().
       refetch();
     } catch (error) {
       notify.gagal(ambilPesanError(error, 'Gagal memperbarui satker'));
@@ -86,7 +85,7 @@ export default function SuperAdminSatkerPage() {
       await satkerService.remove(selectedSatker.id);
       notify.suksess('Satker berhasil dihapus');
       setDialogHapusOpen(false);
-      invalidasiCache('satker');
+      // Cache satker + barang sudah di-invalidate oleh satkerService.remove().
       refetch();
     } catch (error) {
       notify.gagal(ambilPesanError(error, 'Gagal menghapus satker'));
@@ -101,7 +100,7 @@ export default function SuperAdminSatkerPage() {
     try {
       const result = await satkerService.sync();
       notify.suksess(`Sinkronisasi selesai: ${result.dibuat} dibuat, ${result.dilewati} dilewati`);
-      invalidasiCache('satker');
+      // Cache satker + barang sudah di-invalidate oleh satkerService.sync().
       refetch();
     } catch (error) {
       notify.gagal(ambilPesanError(error, 'Gagal sinkronisasi'));

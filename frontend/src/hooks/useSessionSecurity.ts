@@ -1,7 +1,7 @@
 // ============================================================
 //  Hook useSessionSecurity — keamanan sesi berbasis aktivitas.
-//   - Auto logout setelah 1 jam tidak aktif (idle)
-//   - Logout saat tab/browser ditutup (bukan saat switch tab/refresh)
+//   - Auto logout setelah 60 menit tidak aktif (idle)
+//   - Logout saat tab/browser ditutup (bukan saat refresh)
 //   - Heartbeat periodic untuk sync aktivitas dengan server
 // ============================================================
 
@@ -28,17 +28,15 @@ export function useSessionSecurity() {
   const resetInactivityTimer = useCallback(() => {
     if (!user || pendingLogoutRef.current) return;
 
-    // Clear existing timer
     if (logoutTimerRef.current) {
       clearTimeout(logoutTimerRef.current);
     }
 
-    // Set new timer untuk logout after inactivity
     logoutTimerRef.current = setTimeout(() => {
       if (!user || pendingLogoutRef.current) return;
 
       pendingLogoutRef.current = true;
-      toast.error('Sesi Anda telah berakhir karena tidak aktif selama 1 jam. Silakan login kembali.');
+      toast.error('Sesi Anda telah berakhir karena tidak aktif selama 60 menit. Silakan login kembali.');
       bersihkanSesi();
       window.location.href = '/login';
     }, INACTIVITY_TIMEOUT_MS);
@@ -55,39 +53,47 @@ export function useSessionSecurity() {
     }
   }, [user]);
 
-  // Handle tab/browser close secara reliable
-  // Menggunakan pagehide (lebih reliable daripada beforeunload)
-  const handlePageHide = useCallback(() => {
-    if (!user || pendingLogoutRef.current) return;
+  // Handle pagehide - reliable untuk tab close detection.
+  //
+  // pagehide fire saat tab/browser ditutup ATAU refresh/navigate away.
+  // bedakan 3 kasus:
+  //   1. pagehide.persisted = true   → BFCache restore (back/forward) → SKIP
+  //   2. pagehide.persisted = false + type = 'reload'
+  //                                    → user refresh halaman → SKIP
+  //   3. pagehide.persisted = false + type = bukan reload
+  //                                    → tab ditutup / navigasi keluar → invalidate
+  const handlePageHide = useCallback(
+    (event: PageTransitionEvent) => {
+      if (!user || pendingLogoutRef.current) return;
 
-    // CRITICAL: Jangan bersihkan sesi di sini!
-    // pagehide fire saat BOTH close DAN refresh.
-    // Jika kita bersihkan sesi di refresh, user akan logout.
-    // Solusi: Biarkan server-side invalidation yang handle logout.
-    // Pada close, invalidate session via sendBeacon.
-    // Pada reload, cookies dari Set-Cookie header akan restore session.
+      // Kasus 1: BFCache restore
+      if (event.persisted) return;
 
-    // Kirim invalidate session ke server via sendBeacon
-    // FIX: pakai absolute URL ke backend, BUKAN relative path
-    // (relative path resolve ke frontend origin, bukan backend)
-    const token = localStorage.getItem('sipp_access_token');
-    if (token && navigator.sendBeacon) {
-      const data = JSON.stringify({ action: 'invalidate_session', token });
-      navigator.sendBeacon(
-        `${API_BASE}/auth/invalidate-session`,
-        new Blob([data], { type: 'application/json' })
-      );
-    }
-    // NOTE: Tidak memanggil bersihkanSesi() di sini!
-    // Cookies dari backend (Set-Cookie header) akan di-set saat reload
-    // dan session akan tetap valid.
-  }, [user]);
+      // Kasus 2: reload halaman → jangan invalidate
+      try {
+        const navEntries = performance.getEntriesByType('navigation') as PerformanceNavigationTiming[];
+        if (navEntries[0]?.type === 'reload') return;
+      } catch {
+        // performance API tidak tersedia
+      }
+
+      // Kasus 3: tab ditutup / navigasi keluar → invalidate session
+      const token = localStorage.getItem('sipp_access_token');
+      if (token && navigator.sendBeacon) {
+        const data = JSON.stringify({ action: 'invalidate_session', token });
+        navigator.sendBeacon(
+          `${API_BASE}/auth/invalidate-session`,
+          new Blob([data], { type: 'application/json' })
+        );
+      }
+    },
+    [user]
+  );
 
   // Setup event listeners
   useEffect(() => {
     if (!user) {
       isActiveRef.current = false;
-      // Cleanup timers saat logout
       if (logoutTimerRef.current) {
         clearTimeout(logoutTimerRef.current);
         logoutTimerRef.current = null;
@@ -104,7 +110,7 @@ export function useSessionSecurity() {
     resetInactivityTimer();
 
     // Activity events - reset timer saat ada aktivitas
-    const events = ['mousedown', 'mousemove', 'keydown', 'scroll', 'touchstart', 'click'];
+    const events = ['mousedown', 'keydown', 'scroll', 'touchstart', 'click'];
     const handleUserActivity = () => {
       if (isActiveRef.current && !pendingLogoutRef.current) {
         resetInactivityTimer();
@@ -116,14 +122,11 @@ export function useSessionSecurity() {
     });
 
     // Heartbeat interval - kirim periodic ke server
-    // Berjalan terus不管 tab visible atau tidak
     heartbeatTimerRef.current = setInterval(() => {
       sendHeartbeat();
     }, HEARTBEAT_INTERVAL_MS);
 
     // Pagehide - reliable tab close detection
-    // fired saat tab/browser ditutup ATAU refresh
-    // Refresh sudah di-handle di dalam handlePageHide
     window.addEventListener('pagehide', handlePageHide);
 
     // Cleanup

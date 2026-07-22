@@ -1,5 +1,5 @@
 // ============================================================
-//  Controller Import Data Pegawai (Daftar Peminjam) — khusus admin.
+//  Controller Import Data Pegawai (Daftar Pegawai) — khusus admin.
 //  Mengisi & menyinkronkan data diri peminjam dari file master
 //  pegawai; membuat akun baru bila NIP belum terdaftar.
 // ============================================================

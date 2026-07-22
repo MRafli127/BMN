@@ -3,6 +3,7 @@
 // ============================================================
 
 import api from '@/lib/api';
+import { invalidasiCacheDenganNama } from '@/lib/cache';
 import type { AxiosError } from 'axios';
 
 export interface Satker {
@@ -48,20 +49,29 @@ export const satkerService = {
     aktif?: boolean;
   }): Promise<Satker> {
     const { data } = await api.post<{ data: Satker }>('/satker', payload);
+    // Mutasi satker memengaruhi daftar satker sendiri DAN tampilan barang
+    // (barang membawa namaSatker); invalidate keduanya.
+    invalidasiCacheDenganNama('satker', 'barang');
     return data.data;
   },
 
   async update(id: string, payload: Partial<Satker>): Promise<Satker> {
     const { data } = await api.patch<{ data: Satker }>(`/satker/${id}`, payload);
+    invalidasiCacheDenganNama('satker', 'barang');
     return data.data;
   },
 
   async remove(id: string): Promise<void> {
     await api.delete(`/satker/${id}`);
+    invalidasiCacheDenganNama('satker', 'barang');
   },
 
   async sync(): Promise<{ dibuat: number; dilewati: number }> {
     const { data } = await api.post<{ data: { dibuat: number; dilewati: number } }>('/satker/sync');
+    // sync() membuat satker dari kodeSatker yang ada di tabel barang — bila
+    // ada satker baru, daftar barang terkait (namaSatker) mungkin berubah di
+    // response berikutnya.
+    invalidasiCacheDenganNama('satker', 'barang');
     return data.data;
   },
 };

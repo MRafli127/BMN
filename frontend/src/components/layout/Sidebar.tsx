@@ -285,7 +285,7 @@ export function Sidebar() {
               <span className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-white/10 text-error-container ring-1 ring-white/10 transition-all duration-200 group-hover:scale-110 group-hover:bg-error group-hover:text-white">
                 <Icon name="logout" style={{ fontSize: 22 }} />
               </span>
-              <span className="font-label-md font-semibold">Keluar Sesi</span>
+              <span className="font-label-md font-semibold">Keluar</span>
             </button>
           </div>
         </div>

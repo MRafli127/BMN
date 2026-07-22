@@ -123,8 +123,23 @@ async function runRestore(backupFilename) {
       }
     }
 
-    // Restore data
-    console.log('\n[RESTORE] Restoring data...');
+    // Restore data — URUTAN TABLES sudah benar (induk dulu, anak belakangan):
+    //   BlacklistedToken, User, Barang, NomorSuratCounter, Peminjaman,
+    //   DetailPeminjaman, Notifikasi, AuditLog
+    // FK parent (User, Barang) harus ada sebelum child (Peminjaman, Notifikasi,
+    // DetailPeminjaman) di-insert.
+    //
+    // PERBAIKAN KRITIS (sebelumnya baris 138 strip kolom id):
+    //   `records.map(({ id, ...rest }) => rest)` membuang UUID asli dan
+    //   meminta DB generate UUID baru. Akibatnya tabel User dapat UUID baru,
+    //   tapi FK di Peminjaman/DetailPeminjaman/Notifikasi masih pegang UUID
+    //   lama -> "Foreign key constraint violated".
+    //
+    //   SOLUSI: pertahankan id ASLI dari backup. createMany mendukung ini
+    //   selama UUID belum dipakai di DB target. Karena fase "Clearing existing
+    //   data" sudah hapus semua baris, tidak ada collision.
+    console.log('\n[RESTORE] Restoring data (id asli dipertahankan untuk menjaga FK)...');
+    let firstError = null;
     for (const table of TABLES) {
       const records = backupData.data[table] || [];
       if (records.length === 0) {
@@ -134,15 +149,41 @@ async function runRestore(backupFilename) {
 
       const modelName = table.charAt(0).toLowerCase() + table.slice(1);
       try {
-        // Remove id field from records to let DB generate new IDs
-        const recordsToInsert = records.map(({ id, ...rest }) => rest);
-        await prisma[modelName].createMany({ data: recordsToInsert });
+        // Sertakan id ASLI dari backup. createMany akan insert dengan UUID itu.
+        await prisma[modelName].createMany({ data: records });
         console.log(`[RESTORE]   ✓ Restored ${table}: ${records.length} records`);
       } catch (e) {
         console.error(`[RESTORE]   ❌ Failed to restore ${table}: ${e.message}`);
         console.error(`[RESTORE]     First record:`, JSON.stringify(records[0]).substring(0, 200));
+        // BERHENTI di sini: kalau ada tabel gagal, jangan diam-diam lanjut —
+        // kondisi DB akan korup (induk ter-restore, anak gagal) dan rollback
+        // manual akan jauh lebih sulit. Catat error pertama lalu stop.
+        if (!firstError) firstError = { table, message: e.message };
+        break;
       }
     }
+
+    if (firstError) {
+      console.error(`\n[RESTORE] ❌ ABORTED karena gagal restore tabel ${firstError.table}.`);
+      console.error(`[RESTORE]    Database mungkin dalam kondisi parsial.`);
+      console.error(`[RESTORE]    Jangan gunakan aplikasi sampai dipulihkan.`);
+      await prisma.$disconnect();
+      process.exit(1);
+    }
+
+    // Sanity gate: verifikasi FK integrity pasca-restore. Kalau gagal,
+    // tandai sebagai error walau tidak ada exception di createMany.
+    console.log('\n[RESTORE] Verifying FK integrity...');
+    const fkChecks = await verifyFkIntegrity(prisma);
+    if (!fkChecks.ok) {
+      console.error('[RESTORE] ❌ FK integrity check GAGAL:');
+      for (const issue of fkChecks.issues) {
+        console.error('  - ' + issue);
+      }
+      await prisma.$disconnect();
+      process.exit(1);
+    }
+    console.log('[RESTORE]   ✓ FK integrity OK');
 
     console.log('\n[RESTORE] ✅ Restore completed successfully!');
     return { success: true };
@@ -165,4 +206,39 @@ if (require.main === module) {
     });
 }
 
-module.exports = { runRestore, listBackups };
+module.exports = { runRestore, listBackups, verifyFkIntegrity };
+
+// Verifikasi pasca-restore: hitung orphaned rows di tabel anak FK.
+// runRestore() panggil ini setelah loop insert selesai.
+async function verifyFkIntegrity(prisma) {
+  const issues = [];
+  // Peminjaman.userId -> users.id
+  const orphanPeminjaman = await prisma.peminjaman.count({
+    where: { user: { is: null } },
+  });
+  if (orphanPeminjaman > 0) {
+    issues.push(`peminjaman.userId orphan: ${orphanPeminjaman} rows`);
+  }
+  // DetailPeminjaman.peminjamanId -> peminjaman.id
+  const orphanDetailByPeminjaman = await prisma.detailPeminjaman.count({
+    where: { peminjaman: { is: null } },
+  });
+  if (orphanDetailByPeminjaman > 0) {
+    issues.push(`detail_peminjaman.peminjamanId orphan: ${orphanDetailByPeminjaman} rows`);
+  }
+  // DetailPeminjaman.barangId -> barang.id
+  const orphanDetailByBarang = await prisma.detailPeminjaman.count({
+    where: { barang: { is: null } },
+  });
+  if (orphanDetailByBarang > 0) {
+    issues.push(`detail_peminjaman.barangId orphan: ${orphanDetailByBarang} rows`);
+  }
+  // Notifikasi.userId -> users.id
+  const orphanNotif = await prisma.notifikasi.count({
+    where: { user: { is: null } },
+  });
+  if (orphanNotif > 0) {
+    issues.push(`notifikasi.userId orphan: ${orphanNotif} rows`);
+  }
+  return { ok: issues.length === 0, issues };
+}

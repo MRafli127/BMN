@@ -13,6 +13,7 @@ import { Folder, FolderOpen, ChevronDown, Eye, ShoppingCart, Check, Plus, Packag
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { cn, urlFile } from '@/lib/utils';
+import { kelompokkanBarang, type GrupBarang } from '@/lib/kelompokkanBarang';
 import { JENIS_BARANG, KONDISI_BARANG } from '@/constants/status';
 import { RUTE } from '@/constants/routes';
 import { useKeranjangStore, usePollingStokKeranjang } from '@/store/keranjangStore';
@@ -22,50 +23,8 @@ import { DialogBarangTidakTersedia } from '@/components/keranjang/DialogBarangTi
 import { useIsMobile } from '@/hooks/useIsMobile';
 import type { Barang } from '@/types/barang.type';
 
-export interface GrupMerk {
-  merk: string;
-  items: Barang[];
-  totalUnit: number;
-  totalStok: number;
-  totalTersedia: number;
-}
-
-export function kelompokkanPerMerk(data: Barang[]): GrupMerk[] {
-  const peta = new Map<string, { items: Barang[]; jumlahLabel: Map<string, number> }>();
-
-  for (const barang of data) {
-    const asli = barang.merk?.trim() || 'Tanpa Merk';
-    const kunci = asli.toLowerCase().replace(/\s+/g, ' ');
-    let grup = peta.get(kunci);
-    if (!grup) {
-      grup = { items: [], jumlahLabel: new Map() };
-      peta.set(kunci, grup);
-    }
-    grup.items.push(barang);
-    grup.jumlahLabel.set(asli, (grup.jumlahLabel.get(asli) || 0) + 1);
-  }
-
-  return Array.from(peta.values(), ({ items, jumlahLabel }) => {
-    let merk = 'Tanpa Merk';
-    let terbanyak = -1;
-    for (const [label, jumlah] of jumlahLabel) {
-      if (jumlah > terbanyak) {
-        terbanyak = jumlah;
-        merk = label;
-      }
-    }
-    return {
-      merk,
-      items,
-      totalUnit: items.length,
-      totalStok: items.reduce((s, i) => s + i.jumlahTotal, 0),
-      totalTersedia: items.reduce((s, i) => s + i.jumlahTersedia, 0),
-    };
-  }).sort((a, b) => a.merk.localeCompare(b.merk, 'id', { sensitivity: 'base' }));
-}
-
 interface Props {
-  grup: GrupMerk[];
+  grup: GrupBarang[];
 }
 
 export function FolderBarangPeminjam({ grup }: Props) {
@@ -110,13 +69,13 @@ export function FolderBarangPeminjam({ grup }: Props) {
       return baru;
     });
 
-  const semuaTerbuka = grup.length > 0 && grup.every((g) => terbuka.has(g.merk));
+  const semuaTerbuka = grup.length > 0 && grup.every((g) => terbuka.has(g.kategori));
   const bukaTutupSemua = () =>
     setTerbuka((lama) => {
       const baru = new Set(lama);
       for (const g of grup) {
-        if (semuaTerbuka) baru.delete(g.merk);
-        else baru.add(g.merk);
+        if (semuaTerbuka) baru.delete(g.kategori);
+        else baru.add(g.kategori);
       }
       return baru;
     });
@@ -150,9 +109,9 @@ export function FolderBarangPeminjam({ grup }: Props) {
 
   // Tambah semua unit tersedia di folder ke keranjang
   const [sedangProses, setSedangProses] = useState<Set<string>>(new Set());
-  const tambahSemuaFolder = (g: GrupMerk) => {
+  const tambahSemuaFolder = (g: GrupBarang) => {
     if (!mounted) return;
-    setSedangProses((lama) => new Set(lama).add(g.merk));
+    setSedangProses((lama) => new Set(lama).add(g.kategori));
 
     const tersedia = g.items.filter((b) => b.jumlahTersedia > 0);
     let berhasil = 0;
@@ -165,7 +124,7 @@ export function FolderBarangPeminjam({ grup }: Props) {
             setDialogRusakBerat({ terbuka: true, barang });
             setSedangProses((lama) => {
               const baru = new Set(lama);
-              baru.delete(g.merk);
+              baru.delete(g.kategori);
               return baru;
             });
             return;
@@ -181,12 +140,12 @@ export function FolderBarangPeminjam({ grup }: Props) {
     setTimeout(() => {
       setSedangProses((lama) => {
         const baru = new Set(lama);
-        baru.delete(g.merk);
+        baru.delete(g.kategori);
         return baru;
       });
 
       if (berhasil > 0) {
-        notify.suksess(`Berhasil menambahkan ${berhasil} unit dari folder "${g.merk}" ke keranjang.`);
+        notify.suksess(`Berhasil menambahkan ${berhasil} unit dari folder "${g.kategori}" ke keranjang.`);
       }
       if (gagal > 0) {
         notify.info(`${gagal} unit sudah ada di keranjang, dilewati.`);
@@ -198,9 +157,9 @@ export function FolderBarangPeminjam({ grup }: Props) {
   };
 
   // Hapus semua unit dari folder di keranjang
-  const hapusSemuaFolder = (g: GrupMerk) => {
+  const hapusSemuaFolder = (g: GrupBarang) => {
     if (!mounted) return;
-    setSedangProses((lama) => new Set(lama).add(g.merk));
+    setSedangProses((lama) => new Set(lama).add(g.kategori));
 
     let berhasil = 0;
     for (const barang of g.items) {
@@ -213,29 +172,29 @@ export function FolderBarangPeminjam({ grup }: Props) {
     setTimeout(() => {
       setSedangProses((lama) => {
         const baru = new Set(lama);
-        baru.delete(g.merk);
+        baru.delete(g.kategori);
         return baru;
       });
 
       if (berhasil > 0) {
-        notify.suksess(`Berhasil menghapus ${berhasil} unit dari folder "${g.merk}" dari keranjang.`);
+        notify.suksess(`Berhasil menghapus ${berhasil} unit dari folder "${g.kategori}" dari keranjang.`);
       }
     }, 100);
   };
 
-  const adaDiKeranjang = (g: GrupMerk) => g.items.some((b) => !!items[b.id]);
-  const semuaSudahDiKeranjang = (g: GrupMerk) => g.items.every((b) => b.jumlahTersedia < 1 || !!items[b.id]);
+  const adaDiKeranjang = (g: GrupBarang) => g.items.some((b) => !!items[b.id]);
+  const semuaSudahDiKeranjang = (g: GrupBarang) => g.items.every((b) => b.jumlahTersedia < 1 || !!items[b.id]);
 
   // Folder Header Button (reusable)
-  const FolderHeader = ({ g, aktif }: { g: GrupMerk; aktif: boolean }) => {
+  const FolderHeader = ({ g, aktif }: { g: GrupBarang; aktif: boolean }) => {
     const adaDiKeranjangFolder = adaDiKeranjang(g);
     const semuaDiKeranjangFolder = semuaSudahDiKeranjang(g);
-    const dalamProses = sedangProses.has(g.merk);
+    const dalamProses = sedangProses.has(g.kategori);
 
     return (
       <button
         type="button"
-        onClick={() => toggle(g.merk)}
+        onClick={() => toggle(g.kategori)}
         aria-expanded={aktif}
         className={cn(
           'flex w-full items-center gap-3 px-4 py-3 text-left transition-colors',
@@ -246,7 +205,7 @@ export function FolderBarangPeminjam({ grup }: Props) {
           {aktif ? <FolderOpen className="h-5 w-5" /> : <Folder className="h-5 w-5" />}
         </span>
         <div className="min-w-0 flex-1">
-          <p className="truncate font-semibold text-foreground">{g.merk}</p>
+          <p className="truncate font-semibold text-foreground">{g.kategori}</p>
           <p className="text-xs text-muted-foreground">
             {g.totalUnit} unit • {g.totalTersedia} tersedia / {g.totalStok}
           </p>
@@ -387,10 +346,10 @@ export function FolderBarangPeminjam({ grup }: Props) {
       {isMobile ? (
         <div className="flex flex-col gap-3">
           {grup.map((g) => {
-            const aktif = terbuka.has(g.merk);
+            const aktif = terbuka.has(g.kategori);
             return (
               <div
-                key={g.merk}
+                key={g.kategori}
                 className={cn(
                   'overflow-hidden rounded-xl border bg-card',
                   aktif && 'border-blue-400'
@@ -409,9 +368,9 @@ export function FolderBarangPeminjam({ grup }: Props) {
                         size="sm"
                         variant={adaDiKeranjang(g) ? 'destructive' : 'default'}
                         onClick={() => adaDiKeranjang(g) ? hapusSemuaFolder(g) : tambahSemuaFolder(g)}
-                        disabled={sedangProses.has(g.merk) || g.totalTersedia === 0}
+                        disabled={sedangProses.has(g.kategori) || g.totalTersedia === 0}
                       >
-                        {sedangProses.has(g.merk) ? (
+                        {sedangProses.has(g.kategori) ? (
                           <Loader2 className="h-4 w-4 animate-spin" />
                         ) : adaDiKeranjang(g) ? (
                           <>
@@ -443,10 +402,10 @@ export function FolderBarangPeminjam({ grup }: Props) {
         // Desktop: Table view
         <div className="space-y-3">
           {grup.map((g) => {
-            const aktif = terbuka.has(g.merk);
+            const aktif = terbuka.has(g.kategori);
             return (
               <div
-                key={g.merk}
+                key={g.kategori}
                 className={cn(
                   'overflow-hidden rounded-xl border bg-card',
                   aktif && 'border-blue-400 ring-1 ring-blue-400'

@@ -18,55 +18,14 @@ import { KonfirmasiDialog } from '@/components/shared/KonfirmasiDialog';
 import { SwipeableRow, SwipeableList } from '@/components/ui/swipeable';
 import { ConfirmationSheet } from '@/components/ui/bottom-sheet';
 import { cn, urlFile } from '@/lib/utils';
+import { kelompokkanBarang, type GrupBarang } from '@/lib/kelompokkanBarang';
 import { JENIS_BARANG, KONDISI_BARANG } from '@/constants/status';
 import { RUTE } from '@/constants/routes';
 import { useIsMobile } from '@/hooks/useIsMobile';
 import type { Barang } from '@/types/barang.type';
 
-export interface GrupMerk {
-  merk: string;
-  items: Barang[];
-  totalUnit: number;
-  totalStok: number;
-  totalTersedia: number;
-}
-
-export function kelompokkanPerMerk(data: Barang[]): GrupMerk[] {
-  const peta = new Map<string, { items: Barang[]; jumlahLabel: Map<string, number> }>();
-
-  for (const barang of data) {
-    const asli = barang.merk?.trim() || 'Tanpa Merk';
-    const kunci = asli.toLowerCase().replace(/\s+/g, ' ');
-    let grup = peta.get(kunci);
-    if (!grup) {
-      grup = { items: [], jumlahLabel: new Map() };
-      peta.set(kunci, grup);
-    }
-    grup.items.push(barang);
-    grup.jumlahLabel.set(asli, (grup.jumlahLabel.get(asli) || 0) + 1);
-  }
-
-  return Array.from(peta.values(), ({ items, jumlahLabel }) => {
-    let merk = 'Tanpa Merk';
-    let terbanyak = -1;
-    for (const [label, jumlah] of jumlahLabel) {
-      if (jumlah > terbanyak) {
-        terbanyak = jumlah;
-        merk = label;
-      }
-    }
-    return {
-      merk,
-      items,
-      totalUnit: items.length,
-      totalStok: items.reduce((s, i) => s + i.jumlahTotal, 0),
-      totalTersedia: items.reduce((s, i) => s + i.jumlahTersedia, 0),
-    };
-  }).sort((a, b) => a.merk.localeCompare(b.merk, 'id', { sensitivity: 'base' }));
-}
-
 interface Props {
-  grup: GrupMerk[];
+  grup: GrupBarang[];
   onHapus: (id: string) => Promise<void>;
 }
 
@@ -87,13 +46,13 @@ export const FolderBarang = memo(function FolderBarang({ grup, onHapus }: Props)
       return baru;
     });
 
-  const semuaTerbuka = grup.length > 0 && grup.every((g) => terbuka.has(g.merk));
+  const semuaTerbuka = grup.length > 0 && grup.every((g) => terbuka.has(g.kategori));
   const bukaTutupSemua = () =>
     setTerbuka((lama) => {
       const baru = new Set(lama);
       for (const g of grup) {
-        if (semuaTerbuka) baru.delete(g.merk);
-        else baru.add(g.merk);
+        if (semuaTerbuka) baru.delete(g.kategori);
+        else baru.add(g.kategori);
       }
       return baru;
     });
@@ -137,13 +96,13 @@ export const FolderBarang = memo(function FolderBarang({ grup, onHapus }: Props)
         {/* List */}
         <SwipeableList className="gap-0">
           {grup.map((g) => {
-            const aktif = terbuka.has(g.merk);
+            const aktif = terbuka.has(g.kategori);
             return (
-              <div key={g.merk}>
+              <div key={g.kategori}>
                 {/* Folder header - Instagram style */}
                 <button
                   type="button"
-                  onClick={() => toggle(g.merk)}
+                  onClick={() => toggle(g.kategori)}
                   className={cn(
                     'flex w-full items-center gap-2 px-1 py-2 text-left border-b border-gray-100',
                     aktif ? 'bg-gray-50' : 'bg-white'
@@ -156,7 +115,7 @@ export const FolderBarang = memo(function FolderBarang({ grup, onHapus }: Props)
                     {aktif ? <FolderOpen className="h-4 w-4" /> : <Folder className="h-4 w-4" />}
                   </span>
                   <div className="min-w-0 flex-1">
-                    <p className="truncate text-[12px] font-medium text-gray-900">{g.merk}</p>
+                    <p className="truncate text-[12px] font-medium text-gray-900">{g.kategori}</p>
                     <p className="text-[10px] text-gray-400">
                       {g.totalUnit} item
                     </p>
@@ -266,10 +225,10 @@ export const FolderBarang = memo(function FolderBarang({ grup, onHapus }: Props)
 
       <div className="space-y-3">
         {grup.map((g) => {
-          const aktif = terbuka.has(g.merk);
+          const aktif = terbuka.has(g.kategori);
           return (
             <div
-              key={g.merk}
+              key={g.kategori}
               className={cn(
                 'overflow-hidden rounded-xl border bg-card transition-colors',
                 aktif && 'border-blue-400 ring-1 ring-blue-400'
@@ -278,7 +237,7 @@ export const FolderBarang = memo(function FolderBarang({ grup, onHapus }: Props)
               {/* Header folder */}
               <button
                 type="button"
-                onClick={() => toggle(g.merk)}
+                onClick={() => toggle(g.kategori)}
                 aria-expanded={aktif}
                 className={cn(
                   'flex w-full items-center gap-3 px-4 py-3 text-left transition-colors',
@@ -289,7 +248,7 @@ export const FolderBarang = memo(function FolderBarang({ grup, onHapus }: Props)
                   {aktif ? <FolderOpen className="h-5 w-5" /> : <Folder className="h-5 w-5" />}
                 </span>
                 <div className="min-w-0 flex-1">
-                  <p className="truncate font-semibold text-foreground">{g.merk}</p>
+                  <p className="truncate font-semibold text-foreground">{g.kategori}</p>
                   <p className="text-xs text-muted-foreground">
                     {g.totalUnit} unit • {g.totalTersedia} tersedia / {g.totalStok}
                   </p>

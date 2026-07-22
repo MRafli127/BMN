@@ -21,6 +21,7 @@ const { kodeTransaksiUnik } = require('../utils/generateKode');
 const auditLogService = require('./auditLog.service');
 const emailService = require('./email.service');
 const notificationService = require('./notification.service');
+const logger = require('../utils/logger');
 const env = require('../config/env');
 
 // Status yang "mengunci" barang: selama peminjaman berada di salah satu status
@@ -224,15 +225,27 @@ async function previewSurat(userId, data) {
 function beritahuPengajuanMasuk(peminjaman, user) {
   const barangNames =
     peminjaman.detail?.map((d) => d.barang?.nama).filter(Boolean).join(', ') || 'Barang';
-  emailService.kirimKonfirmasiPengajuan(peminjaman, user).catch(() => {});
-  emailService.kirimNotifikasiAdmin(peminjaman, user, env.email?.notifyAdmin).catch(() => {});
-  notificationService.kirimKeSemuaAdmin({
-    tipe: notificationService.TIPE_NOTIFIKASI.PEMINJAMAN_BARU,
-    judul: 'Pengajuan Peminjaman Baru',
-    pesan: `${user?.nama || 'Peminjam'} mengajukan peminjaman ${barangNames}`,
-    referenceId: peminjaman.id,
-    referenceType: 'PEMINJAMAN',
-  }).catch(() => {});
+  emailService
+    .kirimKonfirmasiPengajuan(peminjaman, user)
+    .catch((err) => logger.warn('kirim email konfirmasi pengajuan gagal', { peminjamanId: peminjaman.id, error: err.message }));
+  emailService
+    .kirimNotifikasiAdmin(peminjaman, user, env.email?.notifyAdmin)
+    .catch((err) => logger.warn('kirim email notifikasi admin pengajuan gagal', { peminjamanId: peminjaman.id, error: err.message }));
+  notificationService
+    .kirimKeSemuaAdmin({
+      tipe: notificationService.TIPE_NOTIFIKASI.PEMINJAMAN_BARU,
+      judul: 'Pengajuan Peminjaman Baru',
+      pesan: `${user?.nama || 'Peminjam'} mengajukan peminjaman ${barangNames}`,
+      referenceId: peminjaman.id,
+      referenceType: 'PEMINJAMAN',
+    })
+    .catch((err) =>
+      logger.warn('kirim notifikasi admin pengajuan masuk gagal', {
+        peminjamanId: peminjaman.id,
+        tipe: 'PEMINJAMAN_BARU',
+        error: err.message,
+      })
+    );
 }
 
 // Mapping status ke label dan icon (sama dengan emailTemplates.js)
@@ -261,7 +274,7 @@ async function create(userId, data, dokumenDataUrl, requestInfo = {}) {
   });
   const maxAktif = env.peminjaman?.maxAktif || 3;
   if (peminjamanAktif >= maxAktif) {
-    // Ambil daftar peminjaman aktif untuk ditampilkan di error
+    // Ambil Daftar Pegawaian aktif untuk ditampilkan di error
     const daftarAktif = await prisma.peminjaman.findMany({
       where: { userId, status: { in: STATUS_MENGUNCI } },
       include: {
@@ -287,26 +300,42 @@ async function create(userId, data, dokumenDataUrl, requestInfo = {}) {
     );
   }
 
-  // CEK: Tidak boleh mengajukan barang yang sama lebih dari sekali.
-  // Bila peminjam masih punya peminjaman AKTIF (menunggu/disetujui/dipinjam/
-  // terlambat) atas salah satu barang yang diajukan, tolak pengajuan ini.
-  // Barang baru dapat diajukan lagi hanya setelah peminjaman sebelumnya
-  // selesai (dikembalikan/ditolak/dibatalkan).
+  // CEK: Tidak boleh ada peminjaman AKTIF (oleh SIAPA PUN) atas barang yang
+  // diajukan — mencegah double-booking saat dua peminjam mengajukan barang
+  // yang sama secara bersamaan, atau saat peminjam lain sudah memegang barang
+  // (DIPINJAM/TERLAMBAT). Hanya setelah semua peminjaman sebelumnya SELESAI
+  // (DIKEMBALIKAN/DITOLAK/DIBATARKAN), barang dapat diajukan lagi.
+  //
+  // Catatan: kodeError BARANG_SUDAH_ADAKTIF dipakai bersama dengan cek duplikat
+  // oleh-user yang sama (lihat cek MAX_PEMINJAMAN_AKTIF di bawah bila perlu
+  // pemisahan) — frontend menggunakan field `dimilikiOleh` untuk membedakan.
   const barangIds = [...new Set((data.items || []).map((i) => i.barangId).filter(Boolean))];
   if (barangIds.length) {
     const sudahAktif = await prisma.peminjaman.findFirst({
       where: {
-        userId,
+        // TANPA filter userId: cek seluruh user untuk mencegah double-booking.
         status: { in: STATUS_MENGUNCI },
         detail: { some: { barangId: { in: barangIds } } },
       },
       include: {
-        detail: { include: { barang: { select: { id: true, nama: true } } } },
+        peminjam: { select: { id: true, nama: true, nip: true } },
+        detail: {
+          include: { barang: { select: { id: true, nama: true } } },
+        },
       },
     });
     if (sudahAktif) {
       const bentrok = sudahAktif.detail.find((d) => barangIds.includes(d.barangId));
       const namaBarang = bentrok?.barang?.nama || 'barang tersebut';
+      // Tentukan apakah pengajuan bentrok milik user yang sama (diri sendiri)
+      // atau user lain — pesan error disesuaikan agar peminjam paham kondisi.
+      const milikSendiri = sudahAktif.userId === userId;
+      const pemilikNama = sudahAktif.peminjam?.nama || 'peminjam lain';
+      const pesan = milikSendiri
+        ? `Anda sudah memiliki pengajuan/peminjaman aktif untuk "${namaBarang}". ` +
+          'Barang yang sama tidak dapat diajukan lebih dari sekali sampai peminjaman tersebut selesai.'
+        : `"${namaBarang}" sedang dalam proses pengajuan/peminjaman oleh ${pemilikNama}. ` +
+          'Silakan pilih barang lain atau tunggu hingga pengajuan tersebut selesai.';
       // Siapkan detail peminjaman aktif untuk ditampilkan di frontend
       const detailPeminjaman = {
         id: sudahAktif.id,
@@ -318,13 +347,13 @@ async function create(userId, data, dokumenDataUrl, requestInfo = {}) {
         tanggalKirim: sudahAktif.tanggalKirim,
         tanggalPinjamRencana: sudahAktif.tanggalPinjamRencana,
         tanggalKembaliRencana: sudahAktif.tanggalKembaliRencana,
+        dimilikiOleh: milikSendiri ? 'sendiri' : 'peminjam_lain',
+        pemilikNama: sudahAktif.peminjam?.nama || null,
       };
-      throw new AppError(
-        `Anda sudah memiliki pengajuan/peminjaman aktif untuk "${namaBarang}". ` +
-          'Barang yang sama tidak dapat diajukan lebih dari sekali sampai peminjaman tersebut selesai.',
-        400,
-        { kodeError: 'BARANG_SUDAH_ADAKTIF', detailPeminjaman }
-      );
+      throw new AppError(pesan, 400, {
+        kodeError: milikSendiri ? 'BARANG_SUDAH_ADAKTIF' : 'BARANG_SEDANG_DIPEGANG_LAIN',
+        detailPeminjaman,
+      });
     }
   }
 
@@ -362,9 +391,13 @@ async function create(userId, data, dokumenDataUrl, requestInfo = {}) {
     detailItems.push({ barangId: item.barangId, jumlahPinjam: item.jumlahPinjam });
   }
 
-  // Generate kode transaksi unik untuk QR code dan referensi
-  // Format: kodeSatker-kodeBarangBmn-NUP (natural code dari barang utama)
+  // Generate kode transaksi unik untuk QR code dan referensi.
+  // Format utama: kodeSatker-kodeBarangBmn-NUP (kunci natural dari barang utama).
+  // Fallback ke BMN-YYYYMMDD-XXXXX + warning log bila kunci natural tidak lengkap,
+  // agar fitur tidak lumpuh saat ada barang warisan. Lihat generateKode.js.
   const kodeTransaksi = await kodeTransaksiUnik({
+    barangId: barangUtama?.id,
+    kodeBarang: barangUtama?.kodeBarang,
     kodeSatker: barangUtama?.kodeSatker,
     kodeBarangBmn: barangUtama?.kodeBarangBmn,
     nup: barangUtama?.nup,
@@ -541,7 +574,7 @@ async function generateSuratPernyataan(id, { userId, role } = {}) {
   return suratPernyataanService.generate({ ...s, peminjam: peminjamUntukSurat });
 }
 
-// --- Ambil daftar peminjaman (role-aware) ---
+// --- Ambil Daftar Pegawaian (role-aware) ---
 async function getSemua({ status, q, userId, role, page = 1, limit = 10, importMode, kodeSatker } = {}) {
   const { halaman, perHalaman, skip } = parsePagination({ page, limit });
 
@@ -576,9 +609,19 @@ async function getSemua({ status, q, userId, role, page = 1, limit = 10, importM
   } else if (importMode === 'manual') {
     where.dokumenUrl = { not: null };
   }
-  // Filter berdasarkan kode satker barang
+  // Filter berdasarkan kode satker barang — MENAMBAH ke where.detail yang mungkin
+  // sudah ada (dari search query `q`), BUKAN menimpanya.
   if (kodeSatker) {
-    where.detail = { some: { barang: { kodeSatker: kodeSatker } } };
+    if (where.detail?.some) {
+      // where.detail sudah ada (dari search `q`), tambahkan satker ke dalamnya
+      where.detail.some.barang = {
+        ...where.detail.some.barang,
+        kodeSatker,
+      };
+    } else {
+      // where.detail belum ada, buat baru
+      where.detail = { some: { barang: { kodeSatker } } };
+    }
   }
 
   const [data, total] = await Promise.all([
@@ -794,17 +837,27 @@ async function setujui(id, adminId, catatan, requestInfo = {}) {
   }).catch(() => {});
 
   // Kirim email notifikasi ke peminjam
-  emailService.kirimStatusUpdate(updated, pCheck.peminjam, 'MENUNGGU', 'DISETUJUI', catatan).catch(() => {});
+  emailService
+    .kirimStatusUpdate(updated, pCheck.peminjam, 'MENUNGGU', 'DISETUJUI', catatan)
+    .catch((err) => logger.warn('kirim email status update DISETUJUI gagal', { peminjamanId: id, error: err.message }));
 
   // Kirim notifikasi ke peminjam bahwa pengajuan disetujui
   const barangDipinjam = updated.detail?.[0]?.barang?.nama || 'Barang';
-  notificationService.kirimKeUser(pCheck.peminjam.id, {
-    tipe: notificationService.TIPE_NOTIFIKASI.PEMINJAMAN_DISETUJUI,
-    judul: 'Pengajuan Disetujui',
-    pesan: `Pengajuan peminjaman ${barangDipinjam} telah disetujui. Silakan ambil barang.`,
-    referenceId: id,
-    referenceType: 'PEMINJAMAN',
-  }).catch(() => {});
+  notificationService
+    .kirimKeUser(pCheck.peminjam.id, {
+      tipe: notificationService.TIPE_NOTIFIKASI.PEMINJAMAN_DISETUJUI,
+      judul: 'Pengajuan Disetujui',
+      pesan: `Pengajuan peminjaman ${barangDipinjam} telah disetujui. Silakan ambil barang.`,
+      referenceId: id,
+      referenceType: 'PEMINJAMAN',
+    })
+    .catch((err) =>
+      logger.warn('kirim notifikasi PEMINJAMAN_DISETUJUI gagal', {
+        peminjamanId: id,
+        userId: pCheck.peminjam.id,
+        error: err.message,
+      })
+    );
 
   return serialisasi(updated);
 }
@@ -872,17 +925,27 @@ async function tolak(id, adminId, catatan, requestInfo = {}) {
   }).catch(() => {});
 
   // Kirim email notifikasi ke peminjam
-  emailService.kirimStatusUpdate(updated, p.peminjam, 'MENUNGGU', 'DITOLAK', catatan).catch(() => {});
+  emailService
+    .kirimStatusUpdate(updated, p.peminjam, 'MENUNGGU', 'DITOLAK', catatan)
+    .catch((err) => logger.warn('kirim email status update DITOLAK gagal', { peminjamanId: id, error: err.message }));
 
   // Kirim notifikasi ke peminjam bahwa pengajuan ditolak
   const barangDipinjam = updated.detail?.[0]?.barang?.nama || 'Barang';
-  notificationService.kirimKeUser(p.peminjam.id, {
-    tipe: notificationService.TIPE_NOTIFIKASI.PEMINJAMAN_DITOLAK,
-    judul: 'Pengajuan Ditolak',
-    pesan: `Pengajuan peminjaman ${barangDipinjam} ditolak. ${catatan ? `Alasan: ${catatan}` : ''}`,
-    referenceId: id,
-    referenceType: 'PEMINJAMAN',
-  }).catch(() => {});
+  notificationService
+    .kirimKeUser(p.peminjam.id, {
+      tipe: notificationService.TIPE_NOTIFIKASI.PEMINJAMAN_DITOLAK,
+      judul: 'Pengajuan Ditolak',
+      pesan: `Pengajuan peminjaman ${barangDipinjam} ditolak. ${catatan ? `Alasan: ${catatan}` : ''}`,
+      referenceId: id,
+      referenceType: 'PEMINJAMAN',
+    })
+    .catch((err) =>
+      logger.warn('kirim notifikasi PEMINJAMAN_DITOLAK gagal', {
+        peminjamanId: id,
+        userId: p.peminjam.id,
+        error: err.message,
+      })
+    );
 
   return serialisasi(updated);
 }
@@ -920,20 +983,30 @@ async function serahkan(id, adminId) {
 
   // Kirim email notifikasi ke peminjam
   const peminjam = p.peminjam;
-  emailService.kirimStatusUpdate(updated, peminjam, 'DISETUJUI', 'DIPINJAM').catch(() => {});
+  emailService
+    .kirimStatusUpdate(updated, peminjam, 'DISETUJUI', 'DIPINJAM')
+    .catch((err) => logger.warn('kirim email status update DIPINJAM gagal', { peminjamanId: id, error: err.message }));
 
   // Kirim notifikasi ke peminjam bahwa barang telah diserahkan/diambil
   const barangDipinjam = updated.detail?.[0]?.barang?.nama || 'Barang';
   const tenggat = updated.tanggalKembaliRencana
     ? ` dengan batas pengembalian ${new Date(updated.tanggalKembaliRencana).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}`
     : '';
-  notificationService.kirimKeUser(peminjam.id, {
-    tipe: notificationService.TIPE_NOTIFIKASI.BARANG_DISERAHKAN,
-    judul: 'Barang Dapat Diambil',
-    pesan: `Barang ${barangDipinjam} telah siap untuk diambil.${tenggat}.`,
-    referenceId: id,
-    referenceType: 'PEMINJAMAN',
-  }).catch(() => {});
+  notificationService
+    .kirimKeUser(peminjam.id, {
+      tipe: notificationService.TIPE_NOTIFIKASI.BARANG_DISERAHKAN,
+      judul: 'Barang Dapat Diambil',
+      pesan: `Barang ${barangDipinjam} telah siap untuk diambil.${tenggat}.`,
+      referenceId: id,
+      referenceType: 'PEMINJAMAN',
+    })
+    .catch((err) =>
+      logger.warn('kirim notifikasi BARANG_DISERAHKAN gagal', {
+        peminjamanId: id,
+        userId: peminjam.id,
+        error: err.message,
+      })
+    );
 
   return serialisasi(updated);
 }
@@ -1029,7 +1102,14 @@ async function mintaPengembalian(id, { userId, role } = {}, dokumenPengembalianD
   }).catch(() => {});
 
   // Kirim notifikasi ke admin agar segera mengkonfirmasi pengembalian
-  emailService.kirimPermintaanPengembalian(updated, p.peminjam, env.email?.notifyAdmin).catch(() => {});
+  emailService
+    .kirimPermintaanPengembalian(updated, p.peminjam, env.email?.notifyAdmin)
+    .catch((err) =>
+      logger.warn('kirim email permintaan pengembalian gagal', {
+        peminjamanId: id,
+        error: err.message,
+      })
+    );
 
   return serialisasi(updated);
 }
@@ -1037,7 +1117,9 @@ async function mintaPengembalian(id, { userId, role } = {}, dokumenPengembalianD
 // --- Konfirmasi pengembalian: stok dikembalikan otomatis ---
 // catatan (opsional) disimpan sebagai catatanPengembalian: HANYA untuk admin,
 // tidak pernah dikirim ke peminjam (dibuang di getById/getSemua untuk PEMINJAM).
-async function kembalikan(id, adminId, catatan, requestInfo = {}) {
+// dokumenPengembalianDataUrl (opsional): surat bertanda tangan yang diunggah admin
+// (mengabaikan surat dari peminjam bila keduanya ada).
+async function kembalikan(id, adminId, catatan, dokumenPengembalianDataUrl, requestInfo = {}) {
   // Ambil data untuk audit log
   const pLama = await prisma.peminjaman.findUnique({ where: { id }, include: { peminjam: true, detail: true } });
   if (!pLama) throw new AppError('Data peminjaman tidak ditemukan.', 404);
@@ -1078,6 +1160,10 @@ async function kembalikan(id, adminId, catatan, requestInfo = {}) {
         tanggalKembaliAktual: new Date(),
         catatanPengembalian: (typeof catatan === 'string' && catatan.trim()) ? catatan.trim() : null,
         dikembalikanOleh: adminId || null,
+        // Admin mengunggah surat → simpan; abaikan bila sudah ada dari peminjam.
+        ...(dokumenPengembalianDataUrl && !p.dokumenPengembalianUrl
+          ? { dokumenPengembalianUrl: dokumenPengembalianDataUrl }
+          : {}),
       },
     });
   }, { timeout: 20000, maxWait: 10000 });
@@ -1098,27 +1184,44 @@ async function kembalikan(id, adminId, catatan, requestInfo = {}) {
   }).catch(() => {});
 
   // Kirim email notifikasi ke peminjam
-  emailService.kirimStatusUpdate(updated, pLama.peminjam, statusLama, 'DIKEMBALIKAN').catch(() => {});
+  emailService
+    .kirimStatusUpdate(updated, pLama.peminjam, statusLama, 'DIKEMBALIKAN')
+    .catch((err) => logger.warn('kirim email status update DIKEMBALIKAN gagal', { peminjamanId: id, error: err.message }));
 
   // Kirim notifikasi ke peminjam bahwa barang telah dikembalikan
   const barangDikembalikan = updated.detail?.[0]?.barang?.nama || 'Barang';
-  notificationService.kirimKeUser(pLama.peminjam.id, {
-    tipe: notificationService.TIPE_NOTIFIKASI.PENGEMBALIAN,
-    judul: 'Barang Dikembalikan',
-    pesan: `Barang ${barangDikembalikan} telah berhasil dikembalikan.`,
-    referenceId: id,
-    referenceType: 'PEMINJAMAN',
-  }).catch(() => {});
+  notificationService
+    .kirimKeUser(pLama.peminjam.id, {
+      tipe: notificationService.TIPE_NOTIFIKASI.PENGEMBALIAN,
+      judul: 'Barang Dikembalikan',
+      pesan: `Barang ${barangDikembalikan} telah berhasil dikembalikan.`,
+      referenceId: id,
+      referenceType: 'PEMINJAMAN',
+    })
+    .catch((err) =>
+      logger.warn('kirim notifikasi PENGEMBALIAN ke peminjam gagal', {
+        peminjamanId: id,
+        userId: pLama.peminjam.id,
+        error: err.message,
+      })
+    );
 
   // Kirim notifikasi ke semua admin bahwa ada barang yang dikembalikan
   const namaPeminjam = pLama.peminjam.nama || 'Peminjam';
-  notificationService.kirimKeSemuaAdmin({
-    tipe: notificationService.TIPE_NOTIFIKASI.PENGEMBALIAN,
-    judul: 'Pengembalian Baru',
-    pesan: `${namaPeminjam} telah mengembalikan barang ${barangDikembalikan}.`,
-    referenceId: id,
-    referenceType: 'PEMINJAMAN',
-  }).catch(() => {});
+  notificationService
+    .kirimKeSemuaAdmin({
+      tipe: notificationService.TIPE_NOTIFIKASI.PENGEMBALIAN,
+      judul: 'Pengembalian Baru',
+      pesan: `${namaPeminjam} telah mengembalikan barang ${barangDikembalikan}.`,
+      referenceId: id,
+      referenceType: 'PEMINJAMAN',
+    })
+    .catch((err) =>
+      logger.warn('kirim notifikasi PENGEMBALIAN ke admin gagal', {
+        peminjamanId: id,
+        error: err.message,
+      })
+    );
 
   return serialisasi(updated);
 }
@@ -1134,7 +1237,7 @@ async function kembalikanBanyak(ids, adminId, requestInfo = {}) {
   const dilewati = [];
   for (const id of daftarId) {
     try {
-      await kembalikan(id, adminId, undefined, requestInfo);
+      await kembalikan(id, adminId, undefined, undefined, requestInfo);
       berhasil += 1;
     } catch (e) {
       dilewati.push({ id, pesan: e.message || 'Gagal dikembalikan.' });
@@ -1148,11 +1251,16 @@ async function kembalikanBanyak(ids, adminId, requestInfo = {}) {
 // Bila peminjaman masih memegang stok (DISETUJUI/DIPINJAM/TERLAMBAT dengan
 // item berstatus DIPINJAM), stok dikembalikan dulu agar tidak hilang.
 // DetailPeminjaman ikut terhapus otomatis (onDelete: Cascade).
-async function hapus(id, requestInfo = {}) {
+async function hapus(id, adminId, requestInfo = {}) {
   // Baca data di luar transaksi agar transaksi interaktif sesingkat mungkin
   // (mencegah timeout 5s pada DB remote berlatensi tinggi seperti Neon).
   const p = await prisma.peminjaman.findUnique({ where: { id }, include: { detail: true } });
   if (!p) throw new AppError('Data peminjaman tidak ditemukan.', 404);
+
+  // Ambil data peminjam untuk audit log
+  const peminjam = p.userId
+    ? await prisma.user.findUnique({ where: { id: p.userId }, select: { id: true, nama: true, email: true } })
+    : null;
 
   // Agregasi pengembalian stok per barang agar jumlah query update minimal.
   const memegangStok = ['DISETUJUI', 'DIPINJAM', 'TERLAMBAT'].includes(p.status);
@@ -1164,6 +1272,17 @@ async function hapus(id, requestInfo = {}) {
       }
     }
   }
+
+  // Bangun kode barang untuk log: kodeSatker - kodeBarangBmn - NUP
+  const kodeBarang = p.detail.length > 0
+    ? p.detail
+        .map((d) => {
+          // barang sudah ter-load via detail, tapi kita perlu kodeSatker dari relasi
+          return null; // placeholder, akan di-enrich dari barang lookup
+        })
+        .filter(Boolean)
+        .join(', ')
+    : null;
 
   await prisma.$transaction(
     async (tx) => {
@@ -1178,11 +1297,28 @@ async function hapus(id, requestInfo = {}) {
     { timeout: 20000, maxWait: 10000 }
   );
 
-  // Audit log: catat penghapusan
+  // Ambil data barang untuk kodeBarang di audit log
+  let kodeBarangStr = '-';
+  if (p.detail.length > 0) {
+    const barangIds = p.detail.map((d) => d.barangId);
+    const barangs = await prisma.barang.findMany({
+      where: { id: { in: barangIds } },
+      select: { kodeSatker: true, kodeBarangBmn: true, nup: true },
+    });
+    kodeBarangStr = barangs
+      .map((b) => [b.kodeSatker || '-', b.kodeBarangBmn || '-', b.nup || '-'].join(' - '))
+      .join(', ');
+  }
+
+  // Audit log: catat penghapusan dengan detail lengkap
+  const admin = adminId
+    ? await prisma.user.findUnique({ where: { id: adminId }, select: { id: true, nama: true, email: true } })
+    : null;
+
   auditLogService.log({
-    userId: null, // Admin melakukan, tapi kita tidak punya userId di sini
-    userEmail: null,
-    userNama: null,
+    userId: admin?.id || null,
+    userEmail: admin?.email || null,
+    userNama: admin?.nama || 'Admin',
     aksi: auditLogService.AKSI.PEMINJAMAN_DELETE,
     entitas: auditLogService.ENTITAS.PEMINJAMAN,
     entitasId: id,
@@ -1190,7 +1326,8 @@ async function hapus(id, requestInfo = {}) {
       kodeTransaksi: p.kodeTransaksi,
       kodePeminjaman: p.kodePeminjaman,
       status: p.status,
-      userId: p.userId,
+      kodeBarang: kodeBarangStr,
+      namaPeminjam: peminjam?.nama || '-',
     },
     requestInfo,
   }).catch(() => {});

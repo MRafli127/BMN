@@ -20,7 +20,7 @@ import { urlFile, ambilPesanError } from '@/lib/utils';
 import { JENIS_BARANG, KONDISI_BARANG } from '@/constants/status';
 import { dashboardService, type KategoriDashboard, type ResponseKategori, type FilterRole } from '@/services/dashboard.service';
 import { userManagementService } from '@/services/userManagement.service';
-import { useQuery, invalidasiCache } from '@/lib/cache';
+import { useQuery, invalidasiCacheDenganNama } from '@/lib/cache';
 import { RUTE } from '@/constants/routes';
 import type { Barang } from '@/types/barang.type';
 import type { Peminjaman } from '@/types/peminjaman.type';
@@ -32,7 +32,7 @@ const INFO_KATEGORI: Record<string, { judul: string; ikon: string; deskripsi: st
   pengajuan_menunggu: { judul: 'Pengajuan Menunggu', ikon: 'pending_actions', deskripsi: 'Menunggu persetujuan admin' },
   peminjaman_aktif: { judul: 'Peminjaman Aktif', ikon: 'sync_alt', deskripsi: 'Barang sedang digunakan' },
   barang_terlambat: { judul: 'Barang Terlambat', ikon: 'report', deskripsi: 'Melebihi batas tempo pengembalian' },
-  peminjam: { judul: 'Daftar Peminjam', ikon: 'group', deskripsi: 'Pengguna terdaftar' },
+  peminjam: { judul: 'Daftar Pegawai', ikon: 'group', deskripsi: 'Pengguna terdaftar' },
 };
 
 export default function KategoriDashboardPage() {
@@ -87,10 +87,9 @@ export default function KategoriDashboardPage() {
     setTerpilih([]);
   }, [data]);
 
-  // Bersihkan cache daftar peminjam & statistik dashboard, lalu muat ulang.
+  // Bersihkan cache Daftar Pegawai & statistik dashboard, lalu muat ulang.
   const segarkanData = () => {
-    invalidasiCache('kategori:peminjam');
-    invalidasiCache('dashboard-admin');
+    invalidasiCacheDenganNama('kategori:peminjam', 'dashboard-admin');
     refetch();
   };
 
@@ -104,6 +103,18 @@ export default function KategoriDashboardPage() {
       segarkanData();
     } catch (error) {
       notify.gagal(ambilPesanError(error, 'Gagal mengubah peran akun.'));
+      throw error;
+    }
+  };
+
+  // Reset password pegawai ke BMN@Reset123
+  const resetPasswordPegawai = async (id: string) => {
+    try {
+      await userManagementService.resetPassword(id);
+      notify.suksess('Password berhasil direset ke BMN@Reset123.');
+      segarkanData();
+    } catch (error) {
+      notify.gagal(ambilPesanError(error, 'Gagal reset password.'));
       throw error;
     }
   };
@@ -164,7 +175,7 @@ export default function KategoriDashboardPage() {
         )}
       </section>
 
-      {/* Toolbar pencarian, filter peran, & ukuran halaman (khusus daftar peminjam) */}
+      {/* Toolbar pencarian, filter peran, & ukuran halaman (khusus Daftar Pegawai) */}
       {adalahPeminjam && (
         <section className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div className="relative w-full sm:max-w-md">
@@ -316,6 +327,7 @@ export default function KategoriDashboardPage() {
             onUbahTerpilih={setTerpilih}
             onUbahRole={ubahRole}
             onEdit={segarkanData}
+            onResetPassword={resetPasswordPegawai}
           />
         </div>
       ) : (

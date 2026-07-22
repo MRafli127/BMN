@@ -11,6 +11,7 @@
 // ============================================================
 
 const { prisma } = require('../config/database');
+const logger = require('./logger');
 
 // Bentuk kode barang dari komponen identitas aset.
 function kodeNaturalBarang({ kodeSatker, kodeBarangBmn, nup } = {}) {
@@ -20,20 +21,61 @@ function kodeNaturalBarang({ kodeSatker, kodeBarangBmn, nup } = {}) {
     .join('-');
 }
 
-// Generate kode transaksi unik untuk peminjaman.
-// Format: kodeSatker-kodeBarangBmn-NUP (natural code dari barang)
-// Menggunakan retry mechanism untuk menjamin uniqueness di database.
-//Tidak menggunakan format "BMN-........-......" atau timestamp-based.
-// Hanya menggunakan kunci natural aset BMN.
-async function kodeTransaksiUnik(barangData = {}) {
-  const { kodeSatker, kodeBarangBmn, nup } = barangData;
+// Karakter yang digunakan untuk random string (alphanumeric uppercase)
+// Menghilangkan 0, O, I, 1 untuk menghindari kesalahan baca manusia
+const KARAKTER_KODE = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+const PANJANG_RANDOM = 5;
 
-  // Kode harus menggunakan komponen natural BMN
+// Generate random string dengan karakter yang mudah dibaca
+function generateRandomString(panjang = PANJANG_RANDOM) {
+  let result = '';
+  for (let i = 0; i < panjang; i++) {
+    result += KARAKTER_KODE.charAt(Math.floor(Math.random() * KARAKTER_KODE.length));
+  }
+  return result;
+}
+
+// Fallback: format timestamp-based jika komponen natural tidak tersedia.
+//
+// Dipakai sebagai JARING PENGAMAN agar fitur pengajuan peminjaman tidak lumpuh
+// bila ada barang warisan yang belum punya kunci natural lengkap. Setiap kali
+// fallback dipakai, kita catat WARNING agar barang yang perlu dirapikan bisa
+// dilacak. Idealnya fallback ini TIDAK PERNAH dipakai — pemeliharaan data
+// (backfill kodeSatker/kodeBarangBmn/nup) harus dilakukan agar ketergantungan
+// ke fallback hilang seiring waktu.
+//
+// Format: BMN-YYYYMMDD-XXXXX  (mis. BMN-20260719-K7P3M)
+function kodeTransaksiFallback({ barangId, kodeBarang } = {}) {
+  const tahun = new Date().getFullYear();
+  const bulan = String(new Date().getMonth() + 1).padStart(2, '0');
+  const hari = String(new Date().getDate()).padStart(2, '0');
+  const random = generateRandomString(PANJANG_RANDOM);
+  const kode = `${tahun}${bulan}${hari}-${random}`;
+
+  // Logger harus SELALU nyala (tidak di-silence di production) — ini sinyal
+  // higienitas data, bukan info biasa.
+  logger.warn(
+    `[GENERATE-KODE] Fallback dipakai untuk barang id=${barangId ?? '?'} ` +
+      `kodeBarang=${kodeBarang ?? '?'} — komponen natural tidak lengkap. ` +
+      `Kode sementara: ${kode}. RAPIKAN barang ini agar kodeTransaksiUnik ` +
+      `bisa pakai kunci natural (kodeSatker-kodeBarangBmn-NUP).`
+  );
+
+  return `BMN-${kode}`;
+}
+
+// Generate kode transaksi unik untuk peminjaman.
+// Format utama: kodeSatker-kodeBarangBmn-NUP (natural code dari barang)
+// Fallback:   BMN-YYYYMMDD-XXXXX (timestamp-based) — dipakai bila komponen
+//             natural tidak lengkap, dengan logger.warn agar bisa dilacak.
+// Menggunakan retry mechanism untuk menjamin uniqueness di database.
+async function kodeTransaksiUnik(barangData = {}) {
+  const { barangId, kodeBarang, kodeSatker, kodeBarangBmn, nup } = barangData;
+
+  // Jika komponen natural tidak lengkap, pakai fallback agar fitur tidak
+  // terblokir, tapi catat warning agar barang bisa dirapikan kemudian.
   if (!kodeSatker || !kodeBarangBmn || !nup) {
-    throw new Error(
-      `Kode transaksi peminjaman harus menggunakan kunci natural BMN (kodeSatker-kodeBarangBmn-NUP). ` +
-        `Komponen tidak lengkap: kodeSatker=${kodeSatker}, kodeBarangBmn=${kodeBarangBmn}, nup=${nup}`
-    );
+    return kodeTransaksiFallback({ barangId, kodeBarang });
   }
 
   const kodeNatural = kodeNaturalBarang({ kodeSatker, kodeBarangBmn, nup });
@@ -66,4 +108,9 @@ async function kodeTransaksiUnik(barangData = {}) {
   );
 }
 
-module.exports = { kodeNaturalBarang, kodeTransaksiUnik };
+module.exports = {
+  kodeNaturalBarang,
+  kodeTransaksiUnik,
+  // Diekspor agar bisa diuji (unit test) tanpa harus instantiate Prisma.
+  kodeTransaksiFallback,
+};

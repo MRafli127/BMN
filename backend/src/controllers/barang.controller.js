@@ -8,6 +8,13 @@ function pathFoto(file) {
   return file ? bufferKeDataUrl(file.buffer, file.mimetype) : null;
 }
 
+function getRequestInfo(req) {
+  return {
+    ipAddress: req.ip || req.connection?.remoteAddress || req.headers['x-forwarded-for'] || null,
+    userAgent: req.get('User-Agent') || null,
+  };
+}
+
 const getSemua = asyncHandler(async (req, res) => {
   const { q, jenis, kondisi, ketersediaan, kodeSatker, page, limit, includePeminjam } = req.query;
   // Konversi string "true" ke boolean
@@ -75,7 +82,7 @@ const update = asyncHandler(async (req, res) => {
 });
 
 const remove = asyncHandler(async (req, res) => {
-  await barangService.remove(req.params.id);
+  await barangService.remove(req.params.id, req.user.id, getRequestInfo(req));
   return responsSukses(res, { pesan: 'Barang berhasil dihapus.' });
 });
 

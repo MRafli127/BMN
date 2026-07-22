@@ -86,7 +86,7 @@ const getSemua = asyncHandler(async (req, res) => {
     role: req.user.role,
   });
   return responsSukses(res, {
-    pesan: 'Daftar peminjaman berhasil dimuat.',
+    pesan: 'Daftar Pegawaian berhasil dimuat.',
     data: hasil.data,
     meta: hasil.meta,
   });
@@ -143,7 +143,13 @@ const mintaPengembalian = asyncHandler(async (req, res) => {
 });
 
 const kembalikan = asyncHandler(async (req, res) => {
-  const peminjaman = await peminjamanService.kembalikan(req.params.id, req.user.id, req.body.catatan, getRequestInfo(req));
+  const peminjaman = await peminjamanService.kembalikan(
+    req.params.id,
+    req.user.id,
+    req.body.catatan,
+    pathDokumen(req.file),
+    getRequestInfo(req)
+  );
   return responsSukses(res, {
     pesan: 'Pengembalian dikonfirmasi. Stok telah dikembalikan.',
     data: peminjaman,
@@ -156,7 +162,7 @@ const scan = asyncHandler(async (req, res) => {
 });
 
 const hapus = asyncHandler(async (req, res) => {
-  await peminjamanService.hapus(req.params.id, getRequestInfo(req));
+  await peminjamanService.hapus(req.params.id, req.user.id, getRequestInfo(req));
   return responsSukses(res, { pesan: 'Data peminjaman berhasil dihapus.' });
 });
 

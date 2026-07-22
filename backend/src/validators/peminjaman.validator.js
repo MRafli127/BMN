@@ -19,7 +19,16 @@ const parseItems = z.preprocess((val) => {
 }, z
   .array(
     z.object({
-      barangId: z.string({ required_error: 'barangId wajib diisi.' }).uuid('barangId tidak valid.'),
+      // barangId HANYA dicek tidak kosong & di-trim — service layer yang
+      // tangani kasus barang tidak ditemukan (404 dengan pesan jelas).
+      // Alasannya: ada kemungkinan barang warisan / data hasil import yang
+      // punya ID dengan format non-UUID; validasi UUID di level body akan
+      // reject pengajuan valid. Cukup pastikan string tidak kosong & rapi
+      // (trim) agar query DB tidak ikut whitespace.
+      barangId: z
+        .string({ required_error: 'barangId wajib diisi.' })
+        .trim()
+        .min(1, 'barangId wajib diisi.'),
       jumlahPinjam: z.coerce
         .number({ invalid_type_error: 'Jumlah pinjam harus angka.' })
         .int('Jumlah pinjam harus bilangan bulat.')

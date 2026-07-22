@@ -111,13 +111,18 @@ export function LangkahSuratPernyataan({
       }
       setSedangKirim(true);
       try {
-        const p = await peminjamanService.create({
-          items,
+        // Trim barangId sebelum dikirim agar whitespace tersembunyi (mis. dari
+        // salin-tempel dari spreadsheet) tidak bikin lookup DB gagal. Service
+        // layer backend juga .trim() via validator, tapi trim di sini
+        // menghindari round-trip yang sia-sia.
+        const payload = {
+          items: items.map((it) => ({ ...it, barangId: it.barangId.trim() })),
           pangkatGolongan,
           tanggalPinjamRencana,
           tanggalKembaliRencana,
           dokumen: berkas,
-        });
+        };
+        const p = await peminjamanService.create(payload);
         onSelesai(p);
       } catch (error) {
         // Cek apakah ini error peminjaman aktif (dengan detail)
@@ -126,7 +131,7 @@ export function LangkahSuratPernyataan({
         const kodeError = errorData?.errors?.kodeError;
         const detailPeminjaman = errorData?.errors?.detailPeminjaman;
 
-        if ((kodeError === 'MAX_PEMINJAMAN_AKTIF' || kodeError === 'BARANG_SUDAH_ADAKTIF') && detailPeminjaman) {
+        if ((kodeError === 'MAX_PEMINJAMAN_AKTIF' || kodeError === 'BARANG_SUDAH_ADAKTIF' || kodeError === 'BARANG_SEDANG_DIPEGANG_LAIN') && detailPeminjaman) {
           // Tampilkan dialog info peminjaman aktif
           setKodeErrorAktif(kodeError);
           setPesanErrorAktif(errorData.pesan || 'Tidak dapat membuat pengajuan.');
@@ -149,13 +154,15 @@ export function LangkahSuratPernyataan({
   const simpanDraft = async () => {
     setSedangSimpanDraft(true);
     try {
-      const p = await peminjamanService.create({
-        items,
+      // Trim barangId sebelum dikirim (lihat komentar di `kirim()` di atas).
+      const payload = {
+        items: items.map((it) => ({ ...it, barangId: it.barangId.trim() })),
         pangkatGolongan,
         tanggalPinjamRencana,
         tanggalKembaliRencana,
         draft: true,
-      });
+      };
+      const p = await peminjamanService.create(payload);
       onSelesai(p);
     } catch (error) {
       // Cek apakah ini error peminjaman aktif (dengan detail)
@@ -164,7 +171,7 @@ export function LangkahSuratPernyataan({
       const kodeError = errorData?.errors?.kodeError;
       const detailPeminjaman = errorData?.errors?.detailPeminjaman;
 
-      if ((kodeError === 'MAX_PEMINJAMAN_AKTIF' || kodeError === 'BARANG_SUDAH_ADAKTIF') && detailPeminjaman) {
+      if ((kodeError === 'MAX_PEMINJAMAN_AKTIF' || kodeError === 'BARANG_SUDAH_ADAKTIF' || kodeError === 'BARANG_SEDANG_DIPEGANG_LAIN') && detailPeminjaman) {
         // Tampilkan dialog info peminjaman aktif
         setKodeErrorAktif(kodeError);
         setPesanErrorAktif(errorData.pesan || 'Tidak dapat menyimpan draft.');
@@ -189,8 +196,15 @@ export function LangkahSuratPernyataan({
 
     console.log('[Surat] Generating preview for items:', items.length);
 
+    // Trim barangId sebelum dikirim untuk hindari whitespace tersembunyi.
+    const previewPayload = {
+      items: items.map((it) => ({ ...it, barangId: it.barangId.trim() })),
+      pangkatGolongan,
+      tanggalPinjamRencana,
+      tanggalKembaliRencana,
+    };
     peminjamanService
-      .previewSurat({ items, pangkatGolongan, tanggalPinjamRencana, tanggalKembaliRencana })
+      .previewSurat(previewPayload)
       .then((url) => {
         console.log('[Surat] Preview generated successfully');
         setSuratUrl(url);

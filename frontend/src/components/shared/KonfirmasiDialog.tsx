@@ -24,6 +24,7 @@ interface Props {
   teksBatal?: string;
   variantKonfirmasi?: 'default' | 'destructive' | 'sukses';
   sedangProses?: boolean;
+  disabledKonfirmasi?: boolean;
   onKonfirmasi: () => void;
   children?: React.ReactNode;
 }
@@ -37,6 +38,7 @@ export function KonfirmasiDialog({
   teksBatal = 'Batal',
   variantKonfirmasi = 'default',
   sedangProses = false,
+  disabledKonfirmasi = false,
   onKonfirmasi,
   children,
 }: Props) {
@@ -59,7 +61,7 @@ export function KonfirmasiDialog({
           <Button variant="outline" onClick={() => onUbahTerbuka(false)} disabled={sedangProses}>
             {teksBatal}
           </Button>
-          <Button variant={variantKonfirmasi} onClick={onKonfirmasi} disabled={sedangProses}>
+          <Button variant={variantKonfirmasi} onClick={onKonfirmasi} disabled={sedangProses || disabledKonfirmasi}>
             {sedangProses && <Loader2 className="h-4 w-4 animate-spin" />}
             {teksKonfirmasi}
           </Button>
