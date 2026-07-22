@@ -1,7 +1,7 @@
 // ============================================================
 //  Hook useSessionSecurity — keamanan sesi berbasis aktivitas.
 //   - Auto logout setelah 60 menit tidak aktif (idle)
-//   - Session tetap hidup saat tab ditutup (bukan logout otomatis)
+//   - Logout saat tab/browser ditutup (bukan saat refresh)
 //   - Heartbeat periodic untuk sync aktivitas dengan server
 // ============================================================
 
@@ -13,6 +13,9 @@ import { bersihkanSesi } from '@/lib/auth';
 import { INACTIVITY_TIMEOUT_MS, HEARTBEAT_INTERVAL_MS } from '@/constants/session';
 import toast from 'react-hot-toast';
 import api from '@/lib/api';
+
+// Base URL backend — pakai env variable yang SAMA dengan api.ts agar konsisten
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
 
 export function useSessionSecurity() {
   const { user } = useAuth();
@@ -50,6 +53,43 @@ export function useSessionSecurity() {
     }
   }, [user]);
 
+  // Handle pagehide - reliable untuk tab close detection.
+  //
+  // pagehide fire saat tab/browser ditutup ATAU refresh/navigate away.
+  // bedakan 3 kasus:
+  //   1. pagehide.persisted = true   → BFCache restore (back/forward) → SKIP
+  //   2. pagehide.persisted = false + type = 'reload'
+  //                                    → user refresh halaman → SKIP
+  //   3. pagehide.persisted = false + type = bukan reload
+  //                                    → tab ditutup / navigasi keluar → invalidate
+  const handlePageHide = useCallback(
+    (event: PageTransitionEvent) => {
+      if (!user || pendingLogoutRef.current) return;
+
+      // Kasus 1: BFCache restore
+      if (event.persisted) return;
+
+      // Kasus 2: reload halaman → jangan invalidate
+      try {
+        const navEntries = performance.getEntriesByType('navigation') as PerformanceNavigationTiming[];
+        if (navEntries[0]?.type === 'reload') return;
+      } catch {
+        // performance API tidak tersedia
+      }
+
+      // Kasus 3: tab ditutup / navigasi keluar → invalidate session
+      const token = localStorage.getItem('sipp_access_token');
+      if (token && navigator.sendBeacon) {
+        const data = JSON.stringify({ action: 'invalidate_session', token });
+        navigator.sendBeacon(
+          `${API_BASE}/auth/invalidate-session`,
+          new Blob([data], { type: 'application/json' })
+        );
+      }
+    },
+    [user]
+  );
+
   // Setup event listeners
   useEffect(() => {
     if (!user) {
@@ -69,11 +109,7 @@ export function useSessionSecurity() {
     pendingLogoutRef.current = false;
     resetInactivityTimer();
 
-    // Activity events - reset timer saat ada aktivitas.
-    // CATATAN: JANGAN masukkan 'mousemove' di sini. Mouse lewat tanpa klik
-    // bukan indikator aktivitas yang sebenarnya — user bisa AFK (tidak di
-    // depan komputer) tapi mouse kebetulan bergerak karena getaran meja,
-    // hewan peliharaan, atau gerakan tak sengaja.
+    // Activity events - reset timer saat ada aktivitas
     const events = ['mousedown', 'keydown', 'scroll', 'touchstart', 'click'];
     const handleUserActivity = () => {
       if (isActiveRef.current && !pendingLogoutRef.current) {
@@ -86,10 +122,12 @@ export function useSessionSecurity() {
     });
 
     // Heartbeat interval - kirim periodic ke server
-    // Berjalan terus不管 tab visible atau tidak
     heartbeatTimerRef.current = setInterval(() => {
       sendHeartbeat();
     }, HEARTBEAT_INTERVAL_MS);
+
+    // Pagehide - reliable tab close detection
+    window.addEventListener('pagehide', handlePageHide);
 
     // Cleanup
     return () => {
@@ -97,6 +135,7 @@ export function useSessionSecurity() {
       events.forEach(event => {
         document.removeEventListener(event, handleUserActivity);
       });
+      window.removeEventListener('pagehide', handlePageHide);
 
       if (logoutTimerRef.current) {
         clearTimeout(logoutTimerRef.current);
@@ -107,5 +146,5 @@ export function useSessionSecurity() {
         heartbeatTimerRef.current = null;
       }
     };
-  }, [user, resetInactivityTimer, sendHeartbeat]);
+  }, [user, handlePageHide, resetInactivityTimer, sendHeartbeat]);
 }
