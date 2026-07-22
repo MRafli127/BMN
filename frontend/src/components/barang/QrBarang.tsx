@@ -18,6 +18,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import QRCode from 'qrcode';
+import html2canvas from 'html2canvas';
 import { Download, QrCode as QrCodeIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { kodeUnikBarang } from '@/lib/utils';
@@ -29,6 +30,7 @@ interface QrBarangProps {
 
 export function QrBarang({ barang }: QrBarangProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const kartuRef = useRef<HTMLDivElement>(null);
   const [gagal, setGagal] = useState(false);
   const kode = kodeUnikBarang(barang);
 
@@ -48,12 +50,18 @@ export function QrBarang({ barang }: QrBarangProps) {
     );
   }, [kode]);
 
-  const unduh = () => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
+  const unduh = async () => {
+    const kartu = kartuRef.current;
+    if (!kartu) return;
+    const canvas = await html2canvas(kartu, {
+      scale: 3,
+      backgroundColor: '#ffffff',
+      useCORS: true,
+      logging: false,
+    });
     const tautan = document.createElement('a');
     tautan.href = canvas.toDataURL('image/png');
-    tautan.download = `QR-${kode.replace(/[^a-zA-Z0-9-]/g, '_') || 'barang'}.png`;
+    tautan.download = `Label-${kode.replace(/[^a-zA-Z0-9-]/g, '_') || 'barang'}.png`;
     tautan.click();
   };
 
@@ -74,7 +82,7 @@ export function QrBarang({ barang }: QrBarangProps) {
       <p className="text-sm font-medium text-foreground">Label &amp; QR Identitas Barang</p>
 
       {/* Kartu label aset — meniru stiker BMN fisik (hitam-putih). */}
-      <div className="mx-auto w-full max-w-md overflow-hidden rounded-md border-2 border-black bg-white text-black">
+      <div ref={kartuRef} className="mx-auto w-full max-w-md overflow-hidden rounded-md border-2 border-black bg-white text-black">
         {/* Header: logo + judul instansi + kode lengkap */}
         <div className="flex items-stretch border-b-2 border-black">
           <div className="flex w-16 shrink-0 items-center justify-center border-r-2 border-black p-1.5">
@@ -108,7 +116,7 @@ export function QrBarang({ barang }: QrBarangProps) {
 
       <div className="flex justify-center">
         <Button variant="outline" size="sm" onClick={unduh}>
-          <Download className="h-4 w-4" /> Unduh QR
+          <Download className="h-4 w-4" /> Unduh Label
         </Button>
       </div>
     </div>
