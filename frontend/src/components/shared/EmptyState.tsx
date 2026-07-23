@@ -16,18 +16,19 @@ interface Props {
 export function EmptyState({
   judul = 'Belum ada data',
   deskripsi = 'Data yang Anda cari belum tersedia.',
-  ikon,
+  ikon: Ikon,
   aksi,
 }: Props) {
-  const isMaterialSymbol = typeof ikon === 'string';
+  const isMaterialSymbol = typeof Ikon === 'string';
+  const IconComponent = Ikon as LucideIcon | undefined;
 
   return (
     <div className="flex animate-page-in flex-col items-center justify-center rounded-xl border border-dashed bg-muted/30 px-6 py-14 text-center transition-colors duration-300 hover:border-primary/30 hover:bg-primary/[0.03]">
       <div className="animate-float mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-gradient-to-br from-primary/15 to-primary/5 ring-4 ring-primary/5">
         {isMaterialSymbol ? (
-          <span className="material-symbols-outlined text-3xl text-primary">{ikon}</span>
+          <span className="material-symbols-outlined text-3xl text-primary">{Ikon}</span>
         ) : (
-          <ikon className="h-7 w-7 text-primary" />
+          IconComponent && <IconComponent className="h-7 w-7 text-primary" />
         )}
       </div>
       <h3 className="text-base font-semibold text-foreground">{judul}</h3>
