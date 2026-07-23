@@ -119,7 +119,7 @@ function KontenBarang() {
         <div className="flex flex-wrap gap-2">
           <ExportModal />
           <ImportBarangDialog onSelesai={refetch} />
-          <Button asChild variant="outline">
+          <Button asChild variant="default">
             <Link href={RUTE.adminBarangBulk}>
               <List className="h-4 w-4" /> Tambah Barang Massal
             </Link>
