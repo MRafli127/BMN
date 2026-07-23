@@ -101,7 +101,7 @@ const AdminTableRow = memo(function AdminTableRow({
         </div>
       </TableCell>
       <TableCell className="font-mono text-sm">{admin.nip}</TableCell>
-      <TableCell className="text-sm">{admin.email}</TableCell>
+      <TableCell className="text-sm">{admin.eselon2 || '-'}</TableCell>
       <TableCell>
         <BadgeRole roles={admin.roles} />
       </TableCell>
@@ -265,7 +265,7 @@ export default function ManajemenAdminPage() {
           <div className="relative flex-1">
             <Icon name="search" className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" style={{ fontSize: 20 }} />
             <Input
-              placeholder="Cari nama, NIP, atau email..."
+              placeholder="Cari nama, NIP, atau Eselon II..."
               value={cari}
               onChange={(e) => setCari(e.target.value)}
               className="pl-10 transition-all"
@@ -306,7 +306,7 @@ export default function ManajemenAdminPage() {
                 <TableRow className="bg-gray-50">
                   <TableHead>Nama</TableHead>
                   <TableHead>NIP</TableHead>
-                  <TableHead>Email</TableHead>
+                  <TableHead>Eselon II</TableHead>
                   <TableHead>Role</TableHead>
                   <TableHead>Aksi</TableHead>
                 </TableRow>
