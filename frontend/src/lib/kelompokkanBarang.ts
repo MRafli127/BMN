@@ -45,7 +45,7 @@ function tentukanKategori(barang: Barang): string {
  * Folder di-sort ascending berdasarkan label kategori (locale Indonesia).
  */
 export function kelompokkanBarang(data: Barang[]): GrupBarang[] {
-  const peta = new Map<string, { items: Barang[]; jumlahLabel: Map<string, number> }>();
+  const peta = new Map<string, { items: Barang[]; jumlahLabel: Map<string, number>; idTerlihat: Set<string> }>();
 
   for (const barang of data) {
     const kategori = tentukanKategori(barang);
@@ -53,9 +53,14 @@ export function kelompokkanBarang(data: Barang[]): GrupBarang[] {
 
     let grup = peta.get(kunci);
     if (!grup) {
-      grup = { items: [], jumlahLabel: new Map() };
+      grup = { items: [], jumlahLabel: new Map(), idTerlihat: new Set() };
       peta.set(kunci, grup);
     }
+    // Safety net: kalau input sudah punya id duplikat (mis. data dari
+    // getSemuaLengkap yang menarik beberapa halaman pagination),
+    // skip barang kedua agar tidak memicu React "duplicate key" warning.
+    if (grup.idTerlihat.has(barang.id)) continue;
+    grup.idTerlihat.add(barang.id);
     grup.items.push(barang);
     grup.jumlahLabel.set(kategori, (grup.jumlahLabel.get(kategori) || 0) + 1);
   }

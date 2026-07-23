@@ -81,7 +81,10 @@ export const barangService = {
   // hanya yang kebetulan berada di satu halaman.
   // OPTIMASI: tanpa include peminjam (lebih cepat untuk katalog)
   async getSemuaLengkap(filter: Omit<FilterBarang, 'page' | 'limit'> = {}, options: { includePeminjam?: boolean } = {}): Promise<Barang[]> {
-    const limit = 500; // batas maksimum per halaman di backend (dinaikkan untuk mengurangi request)
+    // Harus sama dengan MAX_LIMIT di backend (backend/src/utils/pagination.js);
+    // bila lebih besar backend akan silent-cap ke MAX_LIMIT sehingga
+    // totalHalaman jadi tidak akurat. Set ke 200 agar konsisten.
+    const limit = 200;
     const pertama = await barangService.getSemua({ ...filter, page: 1, limit, includePeminjam: options.includePeminjam });
     const semua = [...pertama.data];
     // Fetch halaman lain secara paralel untuk speed
@@ -95,7 +98,19 @@ export const barangService = {
         semua.push(...res.data);
       }
     }
-    return semua;
+    // Backend memakai pagination berbasis offset (skip/take + orderBy createdAt),
+    // yang rentan terhadap perubahan data konkuren: sebuah record bisa muncul
+    // di dua halaman sekaligus sehingga penggabungan di atas menghasilkan id
+    // duplikat dan memicu React "duplicate key" warning. Dedup dengan Set sambil
+    // mempertahankan urutan (first-seen wins).
+    const idTerlihat = new Set<string>();
+    const unik: Barang[] = [];
+    for (const b of semua) {
+      if (idTerlihat.has(b.id)) continue;
+      idTerlihat.add(b.id);
+      unik.push(b);
+    }
+    return unik;
   },
 
   // Cek stok barang untuk polling cart.
