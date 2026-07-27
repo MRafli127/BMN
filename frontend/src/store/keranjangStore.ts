@@ -13,6 +13,7 @@ import { useEffect, useState, useCallback } from 'react';
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { barangService } from '@/services/barang.service';
+import { useAuthStore } from '@/store/authStore';
 import type { Barang } from '@/types/barang.type';
 
 export interface ItemKeranjang {
@@ -132,7 +133,27 @@ export const useKeranjangStore = create<KeranjangState>()(
         }
       },
     }),
-    { name: 'keranjang-peminjam' }
+    {
+      name: 'keranjang-peminjam',
+      storage: {
+        getItem: (name) => {
+          const userId = useAuthStore.getState().user?.id;
+          const key = userId ? `${name}:${userId}` : name;
+          const value = localStorage.getItem(key);
+          return value ? JSON.parse(value) : null;
+        },
+        setItem: (name, value) => {
+          const userId = useAuthStore.getState().user?.id;
+          const key = userId ? `${name}:${userId}` : name;
+          localStorage.setItem(key, JSON.stringify(value));
+        },
+        removeItem: (name) => {
+          const userId = useAuthStore.getState().user?.id;
+          const key = userId ? `${name}:${userId}` : name;
+          localStorage.removeItem(key);
+        },
+      },
+    }
   )
 );
 
