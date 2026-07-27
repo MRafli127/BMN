@@ -2,6 +2,8 @@
 //  Header dashboard — tombol menu (mobile), jam realtime,
 //  pencarian, dan identitas pengguna dengan menu profil
 //  (pengaturan akun & keluar).
+//  Ergonomis: search breakpoint md+, identitas md+, jam realtime md+,
+//  touch target ≥ 40px, Esc tutup overlay.
 // ============================================================
 
 'use client';
@@ -136,25 +138,26 @@ export function Header() {
   };
 
   return (
-    <header className="sticky top-0 z-20 flex h-16 items-center justify-between gap-4 border-b border-white/20 bg-white/80 px-4 shadow-sm backdrop-blur-md supports-[backdrop-filter]:bg-white/70 md:px-6">
-      <div className="flex items-center gap-3">
+    <header className="sticky top-0 z-20 flex h-16 items-center justify-between gap-2 border-b border-white/20 bg-white/80 px-4 shadow-sm backdrop-blur-md supports-[backdrop-filter]:bg-white/70 sm:gap-4 md:px-6">
+      <div className="flex items-center gap-2 sm:gap-3">
         <button
           onClick={bukaSidebar}
-          className="-ml-1 rounded-lg p-2 text-primary transition-all hover:bg-primary/5 active:scale-90 md:hidden"
-          aria-label="Buka menu"
+          className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg text-primary transition-all hover:bg-primary/5 active:scale-90 md:hidden"
+          aria-label="Buka menu navigasi"
         >
           <Icon name="menu" />
         </button>
-        <JamRealtime className="hidden sm:flex" />
+        {/* Jam realtime: tampil mulai md (tablet) */}
+        <JamRealtime className="hidden md:flex" />
       </div>
 
-      <div className="flex items-center gap-4 md:gap-6">
-        {/* Pencarian — Desktop: inline input */}
-        <div className="relative hidden lg:block">
+      <div className="flex items-center gap-2 sm:gap-3 md:gap-5">
+        {/* Pencarian — md+ inline, di bawah lg masih inline tapi lebih sempit */}
+        <div className="relative hidden md:block">
           <input
             type="text"
             placeholder="Cari data aset..."
-            className="w-56 rounded-full border-none bg-surface-container-low px-5 py-2 font-body-md text-sm transition-all focus:outline-none focus:ring-2 focus:ring-primary/20 xl:w-64"
+            className="w-40 rounded-full border-none bg-surface-container-low px-4 py-2 pr-9 font-body-md text-sm transition-all focus:outline-none focus:ring-2 focus:ring-primary/20 lg:w-52 xl:w-64"
           />
           <Icon
             name="search"
@@ -162,17 +165,17 @@ export function Header() {
           />
         </div>
 
-        {/* Pencarian — Mobile: icon button */}
+        {/* Pencarian — Mobile/tablet: icon button */}
         <button
           onClick={() => setSearchTerbuka(true)}
-          className="flex items-center justify-center rounded-full p-2 text-on-surface-variant transition-all hover:bg-primary/5 lg:hidden"
-          aria-label="Cari"
+          className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-on-surface-variant transition-all hover:bg-primary/5 md:hidden"
+          aria-label="Buka pencarian"
         >
           <Icon name="search" />
         </button>
 
         {/* Notifikasi & pengaturan */}
-        <div className="hidden items-center gap-1 sm:flex">
+        <div className="flex items-center gap-1 sm:gap-1.5">
           <div className="relative" ref={notifikasiRef}>
             <button
               onMouseDown={(e) => {
@@ -180,8 +183,8 @@ export function Header() {
                 e.stopPropagation();
                 setNotifikasiBuka((v) => !v);
               }}
-              className="relative rounded-full p-2 text-on-surface-variant transition-all hover:bg-primary/5"
-              aria-label="Notifikasi"
+              className="relative flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-on-surface-variant transition-all hover:bg-primary/5"
+              aria-label={`Notifikasi${jumlahBelumBaca > 0 ? ` (${jumlahBelumBaca} belum dibaca)` : ''}`}
               aria-haspopup="menu"
               aria-expanded={notifikasiBuka}
             >
@@ -199,7 +202,7 @@ export function Header() {
           </div>
           <Link
             href={RUTE.pengaturan}
-            className="rounded-full p-2 text-on-surface-variant transition-all hover:bg-primary/5"
+            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-on-surface-variant transition-all hover:bg-primary/5"
             aria-label="Pengaturan akun"
           >
             <Icon name="settings" />
@@ -216,7 +219,7 @@ export function Header() {
           >
             <div className="hidden text-right sm:block">
               <p className="text-sm font-bold leading-tight text-on-surface">{user?.nama || 'Pengguna'}</p>
-              <p className="text-xs text-on-surface-variant">{LABEL_PERAN[user.activeRole]}</p>
+              <p className="text-xs text-on-surface-variant">{LABEL_PERAN[user?.activeRole ?? 'PEMINJAM']}</p>
             </div>
             <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary text-sm font-bold text-white shadow-sm ring-2 ring-primary/20">
               {inisial(user?.nama)}
@@ -248,7 +251,7 @@ export function Header() {
               {bisaGantiRole && (
                 <div className="border-b border-outline-variant/60 px-3 py-2.5">
                   <p className="mb-1.5 px-1 text-[11px] font-medium uppercase tracking-wide text-on-surface-variant">
-                    Peran aktif: {LABEL_PERAN[user.activeRole]}
+                    Peran aktif: {LABEL_PERAN[user?.activeRole ?? 'PEMINJAM']}
                   </p>
                   {roles
                     .filter((r) => r !== user?.activeRole)
@@ -302,7 +305,12 @@ export function Header() {
 
       {/* Mobile Search Overlay */}
       {searchTerbuka && isMobile && (
-        <div className="fixed inset-0 z-50 flex flex-col bg-white md:hidden">
+        <div
+          className="fixed inset-0 z-50 flex flex-col bg-white md:hidden"
+          role="dialog"
+          aria-modal="true"
+          aria-label="Pencarian"
+        >
           {/* Search Header */}
           <div className="flex items-center gap-2 border-b p-4">
             <button
@@ -311,7 +319,7 @@ export function Header() {
                 setSearchQuery('');
                 setSearchHasil(null);
               }}
-              className="rounded-lg p-2 text-on-surface-variant hover:bg-surface-container-high"
+              className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg text-on-surface-variant transition-colors hover:bg-surface-container-high"
               aria-label="Tutup pencarian"
             >
               <Icon name="arrow_back" />

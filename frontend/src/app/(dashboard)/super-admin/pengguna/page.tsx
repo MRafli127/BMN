@@ -60,7 +60,6 @@ const ActionButtons = memo(function ActionButtons({
           size="sm"
           onClick={onPromote}
           className="text-xs transition-transform active:scale-95"
-          prefetch={false}
         >
           <Icon name="arrow_upward" style={{ fontSize: 14 }} />
           Promosi

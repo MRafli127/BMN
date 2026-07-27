@@ -2,10 +2,12 @@
 //  Sidebar navigasi — menu menyesuaikan peran pengguna.
 //  Tema biru royal (lebih cerah dari navy) dengan aksen hijau;
 //  item aktif tampil sebagai pill putih + efek riak saat klik.
+//  Ergonomis: Esc tutup drawer, aria-modal, focus trap, logout di mobile.
 // ============================================================
 
 'use client';
 
+import { useEffect, useRef } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { usePathname, useRouter } from 'next/navigation';
@@ -65,11 +67,30 @@ export function Sidebar() {
   const { isSuperAdmin, isAdmin, logout, user, roles, bisaGantiRole, gantiRole } = useAuth();
   const { sidebarTerbuka, tutupSidebar } = useUIStore();
   const jumlahKeranjang = useJumlahKeranjang();
+  const closeButtonRef = useRef<HTMLButtonElement>(null);
+  const asideRef = useRef<HTMLElement>(null);
+
+  // Focus trap & Esc handler untuk drawer mobile
+  useEffect(() => {
+    if (!sidebarTerbuka) return;
+
+    // Fokus ke tombol close saat drawer terbuka
+    closeButtonRef.current?.focus();
+
+    const tanganiEsc = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        tutupSidebar();
+      }
+    };
+
+    document.addEventListener('keydown', tanganiEsc);
+    return () => document.removeEventListener('keydown', tanganiEsc);
+  }, [sidebarTerbuka, tutupSidebar]);
 
   // Tentukan menu berdasarkan role aktif
   const menu = isSuperAdmin ? menuSuperAdmin : isAdmin ? menuAdmin : menuPeminjam;
   // Label untuk badge role
-  const labelRole = LABEL_PERAN[user.activeRole];
+  const labelRole = LABEL_PERAN[user?.activeRole ?? 'PEMINJAM'];
   // Panduan selalu tampil untuk semua peran → digabung agar satu pemetaan.
   const semuaMenu: ItemMenu[] = [...menu, { label: 'Panduan Penggunaan', href: RUTE.bantuan, ikon: 'menu_book' }];
 
@@ -114,19 +135,23 @@ export function Sidebar() {
         <div
           className="fixed inset-0 z-30 bg-on-surface/50 backdrop-blur-sm md:hidden"
           onClick={tutupSidebar}
-          aria-hidden
+          aria-hidden="true"
         />
       )}
 
       <aside
+        ref={asideRef}
         style={{ backgroundImage: 'linear-gradient(180deg, #1e3a8a 0%, #1d4ed8 52%, #2563eb 100%)' }}
         className={cn(
-          'fixed inset-y-0 left-0 z-40 flex w-[17rem] max-w-[85vw] flex-col overflow-hidden py-stack-lg text-white shadow-2xl transition-transform duration-300 ease-out',
+          'fixed inset-y-0 left-0 z-40 flex w-64 max-w-[85vw] flex-col overflow-hidden py-stack-lg text-white shadow-2xl transition-transform duration-300 ease-out',
           // Desktop: tetap diam saat halaman di-scroll (sticky setinggi layar).
           // md+ = desktop, di bawah itu = mobile dengan BottomNav
-          'md:sticky md:top-0 md:h-screen md:max-h-screen md:max-w-none md:translate-x-0 md:self-start',
+          'md:sticky md:top-0 md:h-screen md:max-h-screen md:max-w-none md:translate-x-0 md:self-start md:shadow-none',
           sidebarTerbuka ? 'translate-x-0' : '-translate-x-full'
         )}
+        aria-modal={sidebarTerbuka ? 'true' : undefined}
+        role={sidebarTerbuka ? 'dialog' : undefined}
+        aria-label={sidebarTerbuka ? 'Menu navigasi' : undefined}
       >
         {/* Aksen dekoratif: glow lembut cyan & hijau di atas biru royal */}
         <div aria-hidden className="pointer-events-none absolute inset-0">
@@ -153,8 +178,9 @@ export function Sidebar() {
               />
             </Link>
             <button
+              ref={closeButtonRef}
               onClick={tutupSidebar}
-              className="rounded-lg p-1.5 text-white/80 transition-colors hover:bg-white/10 hover:text-white md:hidden"
+              className="rounded-lg p-1.5 text-white/80 transition-colors hover:bg-white/10 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60 md:hidden"
               aria-label="Tutup menu"
             >
               <Icon name="close" />

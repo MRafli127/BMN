@@ -77,15 +77,17 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   if (!user) return null;
 
   return (
-    <div className="flex min-h-screen bg-background">
+    <div className="flex min-h-screen bg-background" aria-label="Layout aplikasi dashboard">
       <Sidebar />
       <div className="flex min-w-0 flex-1 flex-col">
         <Header />
-        <main className={
-          `flex-1 p-margin-mobile sm:p-6 lg:p-margin-desktop`
-          // Mobile: extra padding bottom untuk BottomNav
-          + (isMobile ? ' pb-24' : '')
-        }>
+        <main
+          className={
+            'flex-1 px-5 sm:px-6 lg:px-8 xl:px-10'
+            // Mobile: extra padding bottom untuk BottomNav
+            + (isMobile ? ' pb-safe' : '')
+          }
+        >
           {children}
         </main>
         <Footer />
