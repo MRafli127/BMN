@@ -23,6 +23,16 @@ import { RUTE } from '@/constants/routes';
 import type { UserItem } from '@/services/userManagement.service';
 import type { Peminjaman } from '@/types/peminjaman.type';
 
+const KODE_SATKER = [
+  { kode: '015110199411868000KP', label: 'Sekretariat Badan Pendidikan dan Pelatihan Keuangan' },
+  { kode: '015110199411868001KP', label: 'Pusat Pembinaan Jabatan Fungsional dan Peminjaman Mutu' },
+  { kode: '015110199411868002KP', label: 'Pusat Pendidikan dan Pelatihan Anggaran dan Pembendaharaan' },
+  { kode: '015110199411868003KP', label: 'Pusat Pendidikan dan Pelatihan Pajak' },
+  { kode: '015110199411868004KP', label: 'Pusat Pendidikan dan Pelatihan Bea dan Cukai' },
+  { kode: '015110199411868005KP', label: 'Pusat Pendidikan dan Pelatihan Keuangan Publik' },
+  { kode: '015110199411868006KP', label: 'Pusat Pendidikan dan Pelatihan Kepemimpinan dan Manajemen' },
+];
+
 interface PilihanBarang {
   barang: import('@/types/barang.type').Barang;
   jumlah: number;
@@ -45,6 +55,7 @@ export function LangkahPeminjamanAdmin({ onTutup, onSelesai }: Props) {
 
   // Form fields
   const [peminjam, setPeminjam] = useState<UserItem | null>(null);
+  const [kodeSatker, setKodeSatker] = useState('');
   const [pilihanBarang, setPilihanBarang] = useState<PilihanBarang[]>([]);
   const [pangkatGol, setPangkatGol] = useState('');
   const [tglPinjam, setTglPinjam] = useState('');
@@ -60,6 +71,7 @@ export function LangkahPeminjamanAdmin({ onTutup, onSelesai }: Props) {
 
   // Validation errors
   const [errorPeminjam, setErrorPeminjam] = useState('');
+  const [errorSatker, setErrorSatker] = useState('');
   const [errorBarang, setErrorBarang] = useState('');
   const [errorPangkatGol, setErrorPangkatGol] = useState('');
 
@@ -113,6 +125,12 @@ export function LangkahPeminjamanAdmin({ onTutup, onSelesai }: Props) {
       valid = false;
     } else {
       setErrorPeminjam('');
+    }
+    if (!kodeSatker) {
+      setErrorSatker('Pilih Satker terlebih dahulu.');
+      valid = false;
+    } else {
+      setErrorSatker('');
     }
     if (pilihanBarang.length === 0) {
       setErrorBarang('Pilih minimal satu barang.');
@@ -487,15 +505,41 @@ export function LangkahPeminjamanAdmin({ onTutup, onSelesai }: Props) {
             {errorPeminjam && <p className="mt-1 text-xs text-red-600">{errorPeminjam}</p>}
           </div>
 
+          {/* Pilih Satker */}
+          <div>
+            <div className="mb-2 flex items-center gap-2">
+              <Icon name="corporate_fare" fill className="text-[20px] text-primary" />
+              <p className="text-sm font-semibold text-foreground">2. Pilih Satker</p>
+            </div>
+            <select
+              value={kodeSatker}
+              onChange={(e) => {
+                setKodeSatker(e.target.value);
+                setPilihanBarang([]);
+                if (e.target.value) setErrorSatker('');
+              }}
+              className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm transition-all focus:border-primary focus:outline-none"
+            >
+              <option value="">-- Pilih Satker --</option>
+              {KODE_SATKER.map((s) => (
+                <option key={s.kode} value={s.kode}>
+                  {s.kode.slice(-3)} - {s.label}
+                </option>
+              ))}
+            </select>
+            {errorSatker && <p className="mt-1 text-xs text-red-600">{errorSatker}</p>}
+          </div>
+
           {/* Pilih Barang */}
           <div>
             <div className="mb-2 flex items-center gap-2">
               <Icon name="inventory_2" fill className="text-[20px] text-primary" />
-              <p className="text-sm font-semibold text-foreground">2. Pilih Barang</p>
+              <p className="text-sm font-semibold text-foreground">3. Pilih Barang</p>
             </div>
             <PencarianBarangMulti
               onPilihanUbah={setPilihanBarang}
               pilihan={pilihanBarang}
+              kodeSatker={kodeSatker || undefined}
               label=""
               helperText="Cari barang lalu klik &quot;+ Tambah&quot;. Boleh pilih lebih dari satu."
             />

@@ -24,6 +24,8 @@ interface Props {
   onPilihanUbah: (pilihan: PilihanBarang[]) => void;
   /** Daftar barang yang sedang terpilih. */
   pilihan?: PilihanBarang[];
+  /** Kode satker yang harus difilter — search tidak aktif jika kosong. */
+  kodeSatker?: string;
   /** Teks label utama. */
   label?: string;
   /** Helper text di bawah label. */
@@ -34,6 +36,7 @@ interface Props {
 export function PencarianBarangMulti({
   onPilihanUbah,
   pilihan = [],
+  kodeSatker,
   label = 'Pilih Barang',
   helperText,
   className,
@@ -66,18 +69,18 @@ export function PencarianBarangMulti({
     return () => document.removeEventListener('mousedown', handleClickDiLuar);
   }, []);
 
-  // Debounced search
+  // Debounced search — hanya aktif jika kodeSatker sudah dipilih
   useEffect(() => {
     if (debounceRef.current) clearTimeout(debounceRef.current);
     debounceRef.current = setTimeout(async () => {
-      if (!cari.trim()) {
+      if (!cari.trim() || !kodeSatker) {
         setHasil([]);
         setMemuat(false);
         return;
       }
       setMemuat(true);
       try {
-        const res = await barangService.getSemua({ q: cari.trim(), limit: 20 });
+        const res = await barangService.getSemua({ q: cari.trim(), kodeSatker, limit: 20 });
         // Filter out yang sudah terpilih dan yang stoknya habis
         const tersedia = res.data.filter((b) => !terpilihIds.has(b.id) && b.jumlahTersedia > 0);
         setHasil(tersedia);
@@ -90,7 +93,7 @@ export function PencarianBarangMulti({
     return () => {
       if (debounceRef.current) clearTimeout(debounceRef.current);
     };
-  }, [cari, terpilihIds]);
+  }, [cari, kodeSatker, terpilihIds]);
 
   const tambah = (barang: Barang) => {
     if (barang.jumlahTersedia < 1) return;
@@ -129,7 +132,8 @@ export function PencarianBarangMulti({
         <Input
           value={cari}
           onChange={(e) => setCari(e.target.value)}
-          placeholder="Ketik nama, merk, tipe, kode, atau NUP..."
+          placeholder={kodeSatker ? 'Ketik nama, merk, tipe, kode, atau NUP...' : 'Pilih Satker di atas terlebih dahulu...'}
+          disabled={!kodeSatker}
           className="pl-9"
         />
         {memuat && (
@@ -147,7 +151,7 @@ export function PencarianBarangMulti({
           ) : hasil.length === 0 ? (
             <div className="flex items-center justify-center gap-2 py-8 text-sm text-muted-foreground">
               <Icon name="search_off" className="text-[18px]" />
-              Barang tidak ditemukan atau sudah dipilih.
+              Barang tidak ditemukan, sudah dipilih, atau stok habis.
             </div>
           ) : (
             <table className="w-full text-sm">
