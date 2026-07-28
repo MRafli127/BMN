@@ -259,7 +259,9 @@ export default function DetailPeminjamanAdminPage() {
     .trim()
     .replace(/\s+/g, '-')
     .replace(/[^A-Za-z0-9._-]/g, '');
-  const namaFilePengembalian = `Surat-Pengembalian-laptop_${namaBerkas}.pdf`;
+  const namaFilePeminjaman = `Surat-Peminjaman-Laptop_${namaBerkas}.pdf`;
+  const namaFilePeminjamanStempel = `Surat-Peminjaman-Berstempel-Laptop_${namaBerkas}.pdf`;
+  const namaFilePengembalian = `Surat-Pengembalian-Laptop_${namaBerkas}.pdf`;
 
   // Info pensiun peminjam
   const infoPensiun = hitungInfoPensiun(data.peminjam?.retirementDate);
@@ -463,13 +465,13 @@ export default function DetailPeminjamanAdminPage() {
                       </a>
                     </Button>
                     <Button asChild variant="outline" size="sm">
-                      <a href={data.dokumenUrl} download={`surat-pernyataan-${data.kodePeminjaman}.pdf`}>
+                      <a href={data.dokumenUrl} download={namaFilePeminjaman}>
                         <Icon name="download" className="text-[18px]" /> Unduh
                       </a>
                     </Button>
                     {data.dokumenStempelUrl && (
                       <Button asChild variant="sukses" size="sm">
-                        <a href={data.dokumenStempelUrl} download={`surat-berstempel-${data.kodePeminjaman}.pdf`}>
+                        <a href={data.dokumenStempelUrl} download={namaFilePeminjamanStempel}>
                           <Icon name="verified" fill className="text-[18px]" /> Surat Berstempel
                         </a>
                       </Button>
@@ -516,7 +518,7 @@ export default function DetailPeminjamanAdminPage() {
                       </a>
                     </Button>
                     <Button asChild variant="outline" size="sm">
-                      <a href={data.dokumenPengembalianUrl} download={`surat-pengembalian-${data.kodePeminjaman}.pdf`}>
+                      <a href={data.dokumenPengembalianUrl} download={namaFilePengembalian}>
                         <Icon name="download" className="text-[18px]" /> Unduh
                       </a>
                     </Button>
