@@ -55,7 +55,7 @@ function KontenPeminjaman() {
             <Input
               value={cari}
               onChange={(e) => setCari(e.target.value)}
-              placeholder="Cari kode / nama barang / merk / nama peminjam..."
+              placeholder="Cari kode / nama barang / merk / nama peminjam / NIP..."
               className="pl-9"
             />
           </div>
