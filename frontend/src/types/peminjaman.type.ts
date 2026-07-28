@@ -85,4 +85,16 @@ export interface DataPreviewSurat {
   tanggalPinjamRencana?: string;
   tanggalKembaliRencana?: string;
   items: ItemPengajuan[];
+  /** Untuk previewSuratAdmin — override userId (default pakai req.user.id) */
+  userId?: string;
+}
+
+// Payload buat peminjaman via admin (multipart: items JSON + dokumen surat)
+export interface DataPeminjamanAdmin {
+  userId: string;
+  pangkatGolongan: string;
+  tanggalPinjamRencana?: string;
+  tanggalKembaliRencana?: string;
+  items: ItemPengajuan[];
+  dokumen: File; // Surat pernyataan yang sudah ditandatangani peminjam+admin (PDF) — WAJIB
 }

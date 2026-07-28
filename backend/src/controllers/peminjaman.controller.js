@@ -16,6 +16,20 @@ function getRequestInfo(req) {
   };
 }
 
+const createByAdmin = asyncHandler(async (req, res) => {
+  const peminjaman = await peminjamanService.createByAdmin(
+    req.user.id,
+    req.body,
+    pathDokumen(req.file),
+    getRequestInfo(req)
+  );
+  return responsSukses(res, {
+    pesan: 'Peminjaman berhasil dibuat dan langsung berstatus Dipinjam. Stok telah dikurangi.',
+    data: peminjaman,
+    status: 201,
+  });
+});
+
 const create = asyncHandler(async (req, res) => {
   // Surat pernyataan yang sudah ditandatangani diunggah sebagai file (field "dokumen").
   // Bila field "draft" bernilai true, pengajuan disimpan tanpa surat (status DRAFT).
@@ -69,7 +83,19 @@ const suratPernyataan = asyncHandler(async (req, res) => {
 });
 
 const previewSurat = asyncHandler(async (req, res) => {
+  // Endpoint ini dipakai oleh peminjam sendiri — req.user adalah peminjam
   const suratUrl = await peminjamanService.previewSurat(req.user.id, req.body);
+  return responsSukses(res, { pesan: 'Pratinjau surat pernyataan dibuat.', data: { suratUrl } });
+});
+
+// Preview surat untuk admin yang membuatkan peminjaman atas nama peminjam.
+// Body: { userId, items, pangkatGolongan, tanggalPinjamRencana?, tanggalKembaliRencana? }
+const previewSuratAdmin = asyncHandler(async (req, res) => {
+  const { userId } = req.body;
+  if (!userId) {
+    return res.status(400).json({ pesan: 'userId peminjam wajib diisi.' });
+  }
+  const suratUrl = await peminjamanService.previewSurat(userId, req.body);
   return responsSukses(res, { pesan: 'Pratinjau surat pernyataan dibuat.', data: { suratUrl } });
 });
 
@@ -204,7 +230,9 @@ const kembalikanMassal = asyncHandler(async (req, res) => {
 });
 
 module.exports = {
+  createByAdmin,
   create,
+  previewSuratAdmin,
   unggahSurat,
   batalDraft,
   suratPernyataan,

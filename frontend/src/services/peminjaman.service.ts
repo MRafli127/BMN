@@ -4,7 +4,7 @@
 
 import api from '@/lib/api';
 import { invalidasiCacheDenganNama } from '@/lib/cache';
-import type { DataPengajuan, DataPreviewSurat, Peminjaman, StatusPeminjaman } from '@/types/peminjaman.type';
+import type { DataPengajuan, DataPreviewSurat, DataPeminjamanAdmin, Peminjaman, StatusPeminjaman } from '@/types/peminjaman.type';
 import type { MetaPagination } from '@/types/barang.type';
 
 export interface FilterPeminjaman {
@@ -95,6 +95,29 @@ export const peminjamanService = {
     // folder peminjaman admin/super-admin.
     INVALIDASI_SETELAH_MUTASI_PEMINJAMAN();
     return res.data.data;
+  },
+
+  // Admin membuatkan peminjaman atas nama peminjam (langsung DIPINJAM).
+  async createByAdmin(data: DataPeminjamanAdmin): Promise<Peminjaman> {
+    const fd = new FormData();
+    fd.append('userId', data.userId);
+    fd.append('pangkatGolongan', data.pangkatGolongan);
+    if (data.tanggalPinjamRencana) fd.append('tanggalPinjamRencana', data.tanggalPinjamRencana);
+    if (data.tanggalKembaliRencana) fd.append('tanggalKembaliRencana', data.tanggalKembaliRencana);
+    fd.append('items', JSON.stringify(data.items));
+    fd.append('dokumen', data.dokumen);
+
+    const res = await api.post('/peminjaman/oleh-admin', fd, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+    INVALIDASI_SETELAH_MUTASI_PEMINJAMAN();
+    return res.data.data;
+  },
+
+  // Preview surat untuk admin (atas nama peminjam tertentu).
+  async previewSuratAdmin(data: DataPreviewSurat): Promise<string> {
+    const res = await api.post('/peminjaman/preview-surat-admin', data);
+    return res.data.data.suratUrl;
   },
 
   // Buat Surat Pernyataan Peminjaman (PDF, data URL) untuk pengajuan tersimpan

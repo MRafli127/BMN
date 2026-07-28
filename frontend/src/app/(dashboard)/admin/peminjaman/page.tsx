@@ -5,7 +5,8 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
-import { ChevronLeft, ChevronRight, ClipboardList, Trash2, X, CheckCheck, List, FolderTree, PackageCheck, Undo2, Upload } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { ChevronLeft, ChevronRight, ClipboardList, Trash2, X, CheckCheck, List, FolderTree, PackageCheck, Undo2, Upload, Plus } from 'lucide-react';
 import { Icon } from '@/components/ui/icon';
 import { Input, Select, Textarea, Label } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -31,6 +32,7 @@ import type { MetaPagination } from '@/types/barang.type';
 const OPSI_LIMIT = [12, 50, 100, 200];
 
 export default function AdminPeminjamanPage() {
+  const router = useRouter();
   const [filter, setFilter] = useState<FilterPeminjaman>({ page: 1, limit: 12 });
   const [cari, setCari] = useState('');
   const [mode, setMode] = useState<'list' | 'folder'>('list');
@@ -232,6 +234,9 @@ export default function AdminPeminjamanPage() {
           <p className="text-on-surface-variant">Tinjau, setujui, atau tolak pengajuan peminjaman.</p>
         </div>
         <div className="flex flex-wrap gap-2">
+          <Button onClick={() => router.push(RUTE.adminPeminjamanBuat)} className="gap-2">
+            <Plus className="h-4 w-4" /> Tambah Peminjaman
+          </Button>
           <ExportModal />
           <ImportPeminjamDialog onSelesai={muat} />
         </div>
