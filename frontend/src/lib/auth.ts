@@ -57,8 +57,16 @@ export function simpanSesi(token: string, user: User) {
 
 export function bersihkanSesi() {
   if (typeof window !== 'undefined') {
+    const dataUser = localStorage.getItem(KUNCI_USER);
+    let userId: string | undefined;
+    try { userId = dataUser ? JSON.parse(dataUser).id : undefined; } catch {}
+
     localStorage.removeItem(KUNCI_TOKEN);
     localStorage.removeItem(KUNCI_USER);
+
+    if (userId) {
+      localStorage.removeItem(`keranjang-peminjam:${userId}`);
+    }
   }
   hapusCookie('sipp_token');
   hapusCookie('sipp_role');

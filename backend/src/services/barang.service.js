@@ -63,6 +63,9 @@ async function getSemua({ q, jenis, kondisi, ketersediaan, kodeSatker, page = 1,
       { kodeBarang: { contains: q, mode: 'insensitive' } },
       { merk: { contains: q, mode: 'insensitive' } },
       { lokasiPenyimpanan: { contains: q, mode: 'insensitive' } },
+      { nup: { contains: q, mode: 'insensitive' } },
+      { kodeSatker: { contains: q, mode: 'insensitive' } },
+      { kodeBarangBmn: { contains: q, mode: 'insensitive' } },
     ];
   }
   if (jenis) where.jenis = jenis;

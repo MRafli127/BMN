@@ -220,16 +220,6 @@ export default function LoginPage() {
               )}
             </button>
           </form>
-
-          <div className="mt-8 flex flex-col items-center gap-4 border-t border-outline-variant pt-8">
-            <p className="text-center font-label-sm text-on-surface-variant">
-              Belum punya akun?{' '}
-              <Link href={RUTE.register} className="font-bold text-primary hover:underline">
-                Daftar di sini
-              </Link>
-            </p>
-          </div>
-
           <div className="mt-6 rounded-xl border border-outline-variant bg-surface-container-low p-3 text-xs text-on-surface-variant">
             <p className="font-bold text-on-surface">Akun demo (setelah seeder dijalankan):</p>
             <p className="mt-1">Admin: admin@bmn.go.id / Bmn@2026</p>

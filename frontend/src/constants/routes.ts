@@ -30,6 +30,7 @@ export const RUTE = {
   superAdminBarangDetail: (id: string) => `/super-admin/barang/${id}`,
   superAdminPengguna: '/super-admin/pengguna',
   superAdminPeminjaman: '/super-admin/peminjaman',
+  superAdminPeminjamanBuat: '/super-admin/peminjaman/buat',
   superAdminPeminjamanDetail: (id: string) => `/super-admin/peminjaman/${id}`,
   superAdminSatker: '/super-admin/satker',
   superAdminLogs: '/super-admin/logs',
@@ -49,6 +50,7 @@ export const RUTE = {
   adminPeminjamanStatus: (status?: string) =>
     status ? `/admin/peminjaman?status=${encodeURIComponent(status)}` : '/admin/peminjaman',
   adminPeminjamanDetail: (id: string) => `/admin/peminjaman/${id}`,
+  adminPeminjamanBuat: '/admin/peminjaman/buat',
   adminScan: '/admin/scan',
   adminKategori: (kategori: string) => `/admin/dashboard/kategori/${kategori}`,
   adminLogImport: '/admin/import-log',

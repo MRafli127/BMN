@@ -85,4 +85,20 @@ export interface DataPreviewSurat {
   tanggalPinjamRencana?: string;
   tanggalKembaliRencana?: string;
   items: ItemPengajuan[];
+  /** Untuk previewSuratAdmin — override userId (default pakai req.user.id) */
+  userId?: string;
+}
+
+// Payload buat peminjaman via admin (multipart: items JSON + dokumen surat opsional).
+// Jika draft=true, dokumen TIDAK wajib dan peminjaman disimpan sebagai DRAFT.
+export interface DataPeminjamanAdmin {
+  userId: string;
+  pangkatGolongan: string;
+  tanggalPinjamRencana?: string;
+  tanggalKembaliRencana?: string;
+  items: ItemPengajuan[];
+  /** Surat pernyataan (PDF) — WAJIB jika draft=false, OPSIONAL jika draft=true */
+  dokumen?: File;
+  /** true = simpan sebagai DRAFT tanpa potong stok */
+  draft?: boolean;
 }

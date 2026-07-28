@@ -111,8 +111,10 @@ const createPeminjamanSchema = z
 
 // Validasi pratinjau surat pernyataan (sebelum pengajuan dibuat).
 // Sama seperti pengajuan namun tanpa alasan; dikirim sebagai JSON.
+// userId opsional: bila ada, berarti admin preview atas nama peminjam tertentu.
 const previewSuratSchema = z
   .object({
+    userId: z.string().trim().min(1).optional(),
     pangkatGolongan: z
       .string()
       .trim()
@@ -144,4 +146,15 @@ const scanSchema = z.object({
     .min(3, 'Kode peminjaman tidak valid.'),
 });
 
-module.exports = { createPeminjamanSchema, previewSuratSchema, tolakSchema, setujuiSchema, scanSchema };
+// Validator untuk admin membuatkan peminjaman (multipart: items = JSON string).
+// Jika draft=true, dokumen TIDAK wajib (disimpan sebagai DRAFT).
+const createByAdminSchema = z.object({
+  userId: z.string().trim().min(1, 'User ID peminjam wajib dipilih.'),
+  pangkatGolongan: z.string().trim().min(1, 'Pangkat/Gol. wajib diisi.').max(100),
+  draft: z.preprocess((v) => v === true || v === 'true' || v === 1 || v === '1', z.boolean()),
+  tanggalPinjamRencana: tanggalOpsional('Tanggal pinjam tidak valid.'),
+  tanggalKembaliRencana: tanggalOpsional('Tanggal kembali tidak valid.'),
+  items: parseItems,
+}).refine(tglKembaliSetelahPinjam, pesanTglKembali);
+
+module.exports = { createPeminjamanSchema, previewSuratSchema, tolakSchema, setujuiSchema, scanSchema, createByAdminSchema };

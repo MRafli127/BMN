@@ -136,8 +136,18 @@ button {
     button,
     a[role='button'],
     [type='button'],
-    [type='submit'] {
+    [type='submit'],
+    /* Header nav buttons & icons */
+    header a,
+    header button,
+    nav a,
+    nav button {
       min-height: 2.75rem;
+    }
+    /* Bottom nav items — reinforce Tailwind min-h-[56px] */
+    nav[role='navigation'] a,
+    nav[role='navigation'] button {
+      min-height: 3.5rem;
     }
   }
 
@@ -198,6 +208,20 @@ button {
   );
   background-size: 200% 100%;
   animation: shimmer 1.5s ease-in-out infinite;
+}
+
+/* ============================================================
+   Focus-visible styles untuk aksesibilitas keyboard
+   ============================================================ */
+:focus-visible {
+  outline: 2px solid hsl(var(--primary));
+  outline-offset: 2px;
+}
+
+/* Hapus outline default browser, ganti dengan style konsisten */
+button:focus:not(:focus-visible),
+a:focus:not(:focus-visible) {
+  outline: none;
 }
 
 /* ============================================================

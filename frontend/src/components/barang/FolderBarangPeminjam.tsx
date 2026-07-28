@@ -7,7 +7,7 @@
 
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, type KeyboardEvent } from 'react';
 import Link from 'next/link';
 import { Folder, FolderOpen, ChevronDown, Eye, ShoppingCart, Check, Plus, Package, Loader2, Trash2, AlertTriangle } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
@@ -191,13 +191,23 @@ export function FolderBarangPeminjam({ grup }: Props) {
     const semuaDiKeranjangFolder = semuaSudahDiKeranjang(g);
     const dalamProses = sedangProses.has(g.kategori);
 
+    const handleToggle = () => toggle(g.kategori);
+    const handleKeyDown = (e: KeyboardEvent<HTMLDivElement>) => {
+      if (e.key === 'Enter' || e.key === ' ' || e.key === 'Spacebar') {
+        e.preventDefault();
+        handleToggle();
+      }
+    };
+
     return (
-      <button
-        type="button"
-        onClick={() => toggle(g.kategori)}
+      <div
+        role="button"
+        tabIndex={0}
+        onClick={handleToggle}
         aria-expanded={aktif}
+        onKeyDown={handleKeyDown}
         className={cn(
-          'flex w-full items-center gap-3 px-4 py-3 text-left transition-colors',
+          'flex w-full cursor-pointer items-center gap-3 px-4 py-3 text-left transition-colors',
           aktif ? 'bg-blue-50 hover:bg-blue-100' : 'hover:bg-muted/40'
         )}
       >
@@ -239,7 +249,7 @@ export function FolderBarangPeminjam({ grup }: Props) {
         <ChevronDown
           className={cn('h-4 w-4 shrink-0 text-muted-foreground transition-transform', aktif && 'rotate-180')}
         />
-      </button>
+      </div>
     );
   };
 
