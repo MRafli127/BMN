@@ -337,10 +337,6 @@ export default function AdminPeminjamanPage() {
             </span>
             = Data migrasi (tanpa surat pernyataan)
           </span>
-          <span className="flex items-center gap-1.5">
-            <span className="h-2 w-2 rounded-full bg-outline-variant" />
-            = Input manual (ada surat pernyataan)
-          </span>
         </div>
 
         {/* Bilah aksi massal — muncul saat ada baris terpilih */}

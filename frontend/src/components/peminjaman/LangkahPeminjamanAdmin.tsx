@@ -8,7 +8,7 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Loader2, ArrowRight, ArrowLeft, FileText } from 'lucide-react';
+import { Loader2, ArrowRight, ArrowLeft, FileText, Save, Send } from 'lucide-react';
 import { Icon } from '@/components/ui/icon';
 import { Input, Label } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -171,14 +171,34 @@ export function LangkahPeminjamanAdmin({ onTutup, onSelesai }: Props) {
   };
 
   // --- Submit ---
-  const { callback: simpan, sedangDiblokir } = useDebounceSubmit(
+  const { callback: simpanDraf, sedangDiblokir: sedangSimpanDraf } = useDebounceSubmit(
+    async () => {
+      if (!peminjam) return;
+      try {
+        const p = await peminjamanService.createByAdmin({
+          userId: peminjam.id,
+          pangkatGolongan: pangkatGol.trim(),
+          tanggalPinjamRencana: tglPinjam || undefined,
+          tanggalKembaliRencana: tglKembali || undefined,
+          items: pilihanBarang.map((pb) => ({ barangId: pb.barang.id, jumlahPinjam: pb.jumlah })),
+          draft: true,
+        });
+        notify.suksess('Peminjaman disimpan sebagai draft. Upload Surat Pernyataan untuk diserahkan.');
+        onSelesai(p);
+      } catch (err) {
+        notify.gagal(ambilPesanError(err, 'Gagal menyimpan draft.'));
+      }
+    },
+    { jeda: 2000 }
+  );
+
+  const { callback: serahkan, sedangDiblokir: sedangMenyerahkan } = useDebounceSubmit(
     async () => {
       if (!berkas) {
-        notify.gagal('Unggah surat pernyataan yang sudah ditandatangani terlebih dahulu.');
+        notify.gagal('Unggah Surat Pernyataan yang sudah ditandatangani terlebih dahulu.');
         return;
       }
       if (!peminjam) return;
-
       try {
         const p = await peminjamanService.createByAdmin({
           userId: peminjam.id,
@@ -191,7 +211,7 @@ export function LangkahPeminjamanAdmin({ onTutup, onSelesai }: Props) {
         notify.suksess('Peminjaman berhasil dibuat dan langsung berstatus Dipinjam.');
         onSelesai(p);
       } catch (err) {
-        notify.gagal(ambilPesanError(err, 'Gagal membuat peminjaman.'));
+        notify.gagal(ambilPesanError(err, 'Gagal menyerahkan peminjaman.'));
       }
     },
     { jeda: 2000 }
@@ -435,25 +455,46 @@ export function LangkahPeminjamanAdmin({ onTutup, onSelesai }: Props) {
 
                 {/* Submit */}
                 <div className="mt-5 space-y-2.5 border-t border-primary/10 pt-4">
+                  {/* Simpan Draf — tanpa upload surat, stok tidak dikurangi */}
                   <Button
-                    onClick={simpan}
-                    disabled={!berkas || sedangDiblokir}
+                    onClick={simpanDraf}
+                    disabled={sedangSimpanDraf || sedangMenyerahkan}
+                    size="lg"
+                    variant="outline"
+                    className="group relative w-full overflow-hidden text-base transition-all hover:-translate-y-0.5 hover:shadow-elevated"
+                  >
+                    <span className="pointer-events-none absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/25 to-transparent transition-transform duration-700 ease-out group-hover:translate-x-full" />
+                    <span className="relative z-10 flex items-center gap-2">
+                      {sedangSimpanDraf ? (
+                        <Loader2 className="h-5 w-5 animate-spin" />
+                      ) : (
+                        <Save className="h-5 w-5" />
+                      )}
+                      {sedangSimpanDraf ? 'Mohon Tunggu...' : 'Simpan Draf'}
+                    </span>
+                  </Button>
+
+                  {/* Serahkan Sekarang — wajib upload surat, langsung DIPINJAM */}
+                  <Button
+                    onClick={serahkan}
+                    disabled={!berkas || sedangSimpanDraf || sedangMenyerahkan}
                     size="lg"
                     className="group relative w-full overflow-hidden text-base shadow-brand transition-all hover:-translate-y-0.5 hover:shadow-elevated"
                   >
                     <span className="pointer-events-none absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/25 to-transparent transition-transform duration-700 ease-out group-hover:translate-x-full" />
                     <span className="relative z-10 flex items-center gap-2">
-                      {sedangDiblokir ? (
+                      {sedangMenyerahkan ? (
                         <Loader2 className="h-5 w-5 animate-spin" />
                       ) : (
-                        <Icon name="save" className="text-[18px]" />
+                        <Send className="h-5 w-5" />
                       )}
-                      {sedangDiblokir ? 'Mohon Tunggu...' : 'Simpan Peminjaman'}
+                      {sedangMenyerahkan ? 'Mohon Tunggu...' : 'Serahkan Sekarang'}
                     </span>
                   </Button>
+
                   <p className="flex items-start gap-1.5 text-xs leading-relaxed text-muted-foreground">
                     <Icon name="info" className="mt-0.5 shrink-0 text-[14px]" />
-                    Peminjaman akan langsung berstatus "Sedang Dipinjam" dan stok akan dikurangi.
+                    Simpan Draf = tanpa potong stok. Serahkan = potong stok langsung.
                   </p>
                 </div>
               </div>

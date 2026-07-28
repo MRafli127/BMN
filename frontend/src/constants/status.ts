@@ -16,7 +16,7 @@ export const STATUS_PEMINJAMAN: Record<StatusPeminjaman, InfoStatus> = {
   DRAFT: {
     label: 'Draft — Surat Belum Diunggah',
     kelas: 'bg-slate-100 text-slate-700 border-slate-200',
-    deskripsi: 'Pengajuan tersimpan. Unggah Surat Pernyataan untuk melanjutkan ke persetujuan admin.',
+    deskripsi: 'Surat Pernyataan belum diunggah. Unggah untuk menyerahkan barang.',
   },
   MENUNGGU: {
     label: 'Menunggu Persetujuan',
@@ -94,11 +94,6 @@ export const OPSI_FILTER_BARANG = [
   { value: '015110199411868006KP', label: 'Pusat Pendidikan dan Pelatihan Kepemimpinan dan Manajemen' },
 ];
 
-// DRAFT dikecualikan dari opsi filter: hanya dipakai internal peminjam dan tidak
-// pernah tampil di daftar admin.
+// DRAFT: admin bisa lihat draft yang dia sendiri yang buat.
 export const OPSI_STATUS = Object.entries(STATUS_PEMINJAMAN)
-  .filter(([value]) => value !== 'DRAFT')
-  .map(([value, info]) => ({
-    value,
-    label: info.label,
-  }));
+  .map(([value, info]) => ({ value, label: info.label }));

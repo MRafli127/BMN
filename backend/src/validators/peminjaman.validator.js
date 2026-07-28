@@ -147,9 +147,11 @@ const scanSchema = z.object({
 });
 
 // Validator untuk admin membuatkan peminjaman (multipart: items = JSON string).
+// Jika draft=true, dokumen TIDAK wajib (disimpan sebagai DRAFT).
 const createByAdminSchema = z.object({
   userId: z.string().trim().min(1, 'User ID peminjam wajib dipilih.'),
   pangkatGolongan: z.string().trim().min(1, 'Pangkat/Gol. wajib diisi.').max(100),
+  draft: z.preprocess((v) => v === true || v === 'true' || v === 1 || v === '1', z.boolean()),
   tanggalPinjamRencana: tanggalOpsional('Tanggal pinjam tidak valid.'),
   tanggalKembaliRencana: tanggalOpsional('Tanggal kembali tidak valid.'),
   items: parseItems,

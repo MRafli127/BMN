@@ -89,12 +89,16 @@ export interface DataPreviewSurat {
   userId?: string;
 }
 
-// Payload buat peminjaman via admin (multipart: items JSON + dokumen surat)
+// Payload buat peminjaman via admin (multipart: items JSON + dokumen surat opsional).
+// Jika draft=true, dokumen TIDAK wajib dan peminjaman disimpan sebagai DRAFT.
 export interface DataPeminjamanAdmin {
   userId: string;
   pangkatGolongan: string;
   tanggalPinjamRencana?: string;
   tanggalKembaliRencana?: string;
   items: ItemPengajuan[];
-  dokumen: File; // Surat pernyataan yang sudah ditandatangani peminjam+admin (PDF) — WAJIB
+  /** Surat pernyataan (PDF) — WAJIB jika draft=false, OPSIONAL jika draft=true */
+  dokumen?: File;
+  /** true = simpan sebagai DRAFT tanpa potong stok */
+  draft?: boolean;
 }

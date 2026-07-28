@@ -586,8 +586,14 @@ async function getSemua({ status, q, userId, role, page = 1, limit = 10, importM
   }
   // Peminjam hanya melihat miliknya sendiri
   if (role === 'PEMINJAM') where.userId = userId;
-  // Admin tidak melihat DRAFT (pengajuan yang suratnya belum diunggah peminjam).
-  else where.NOT = { status: 'DRAFT' };
+  // Admin tidak melihat DRAFT — KECUALI draft yang admin itu sendiri yang membuat.
+  // Super Admin melihat semua termasuk DRAFT.
+  else if (role === 'ADMIN') {
+    where.OR = [
+      { status: { not: 'DRAFT' } },
+      { status: 'DRAFT', disetujuiOleh: userId },
+    ];
+  }
   if (q) {
     const cocok = { contains: q, mode: 'insensitive' };
     where.OR = [
@@ -1389,9 +1395,10 @@ async function setDokumenStempel(id, pathRelatif) {
 }
 
 // --- Admin membuatkan peminjaman atas nama peminjam ---
-// Langsung berstatus DIPINJAM (tanpa melewati persetujuan).
-// Stok langsung dipotong. Admin WAJIB mengunggah surat yang sudah ditandatangani.
+// Jika draft=true: simpan DRAFT tanpa surat, TANPA potong stok.
+// Jika draft=false/undefined: wajib upload surat, langsung DIPINJAM, potong stok.
 async function createByAdmin(adminId, data, dokumenDataUrl, requestInfo = {}) {
+  const isDraft = data.draft === true || data.draft === 'true';
   // CEK: pangkatGolongan WAJIB
   if (!data.pangkatGolongan || !String(data.pangkatGolongan).trim()) {
     throw new AppError('Pangkat/Gol. wajib diisi.', 400);
@@ -1400,7 +1407,8 @@ async function createByAdmin(adminId, data, dokumenDataUrl, requestInfo = {}) {
   if (!data.userId || !String(data.userId).trim()) {
     throw new AppError('Peminjam wajib dipilih.', 400);
   }
-  if (!dokumenDataUrl) {
+  // CEK: Surat wajib diunggah jika BUKAN draft
+  if (!isDraft && !dokumenDataUrl) {
     throw new AppError('Unggah Surat Pernyataan yang sudah ditandatangani sebelum menyimpan.', 400);
   }
 
@@ -1491,12 +1499,14 @@ async function createByAdmin(adminId, data, dokumenDataUrl, requestInfo = {}) {
     // Atomik: ambil nomor surat + potong stok + create
     const nomorSurat = await nomorSuratService.ambil(tx, nomorSuratService.JENIS.PEMINJAMAN, tahunSurat);
 
-    // Potong stok semua barang
-    for (const item of detailItems) {
-      await tx.barang.update({
-        where: { id: item.barangId },
-        data: { jumlahTersedia: { decrement: item.jumlahPinjam } },
-      });
+    // Hanya potong stok jika BUKAN draft
+    if (!isDraft) {
+      for (const item of detailItems) {
+        await tx.barang.update({
+          where: { id: item.barangId },
+          data: { jumlahTersedia: { decrement: item.jumlahPinjam } },
+        });
+      }
     }
 
     return tx.peminjaman.create({
@@ -1507,26 +1517,117 @@ async function createByAdmin(adminId, data, dokumenDataUrl, requestInfo = {}) {
         nomorSurat,
         tahunSurat,
         tanggalPengajuan: new Date(),
-        tanggalKirim: new Date(),
+        tanggalKirim: isDraft ? null : new Date(),
         tanggalPinjamRencana: data.tanggalPinjamRencana || null,
         tanggalKembaliRencana: data.tanggalKembaliRencana || null,
         pangkatGolongan: data.pangkatGolongan.trim(),
-        dokumenUrl: dokumenDataUrl,
+        dokumenUrl: isDraft ? null : dokumenDataUrl,
         disetujuiOleh: adminId,
-        status: 'DIPINJAM',
+        status: isDraft ? 'DRAFT' : 'DIPINJAM',
         detail: { create: detailItems },
       },
       include: includeLengkap,
     });
   }, { timeout: 20000, maxWait: 10000 });
 
-  // Generate QR Code (non-blocking)
-  try {
-    const qrPath = await qrcodeService.generateUntukPeminjaman(serialisasi(created));
-    await prisma.peminjaman.update({ where: { id: created.id }, data: { qrCodeUrl: qrPath } });
-  } catch {
-    // QR gagal tidak membatalkan pembuatan peminjaman
+  // Generate QR Code (non-blocking) — hanya untuk non-draft
+  if (!isDraft) {
+    try {
+      const qrPath = await qrcodeService.generateUntukPeminjaman(serialisasi(created));
+      await prisma.peminjaman.update({ where: { id: created.id }, data: { qrCodeUrl: qrPath } });
+    } catch {
+      // QR gagal tidak membatalkan pembuatan peminjaman
+    }
   }
+
+  // Audit log
+  if (!isDraft) {
+    auditLogService.log({
+      userId: adminId,
+      userEmail: admin?.email,
+      userNama: admin?.nama,
+      aksi: auditLogService.AKSI.PEMINJAMAN_DISERAHKAN,
+      entitas: auditLogService.ENTITAS.PEMINJAMAN,
+      entitasId: created.id,
+      dataBaru: {
+        kodeTransaksi: created.kodeTransaksi,
+        status: 'DIPINJAM',
+        items: data.items,
+        dibuatOleh: 'ADMIN',
+      },
+      requestInfo,
+    }).catch(() => {});
+
+    // Notifikasi ke peminjam
+    const barangNames = created.detail?.map((d) => d.barang?.nama).filter(Boolean).join(', ') || 'Barang';
+    notificationService
+      .kirimKeUser(peminjam.id, {
+        tipe: notificationService.TIPE_NOTIFIKASI.BARANG_DISERAHKAN,
+        judul: 'Barang Dipinjamkan oleh Admin',
+        pesan: `Admin telah mencatat peminjaman barang ${barangNames} atas nama Anda. Silakan ambil barang.`,
+        referenceId: created.id,
+        referenceType: 'PEMINJAMAN',
+      })
+      .catch((err) =>
+        logger.warn('kirim notifikasi BARANG_DISERAHKAN (via admin) gagal', {
+          peminjamanId: created.id,
+          userId: peminjam.id,
+          error: err.message,
+        })
+      );
+  }
+
+  return serialisasi(created);
+}
+
+// --- Serahkan draft peminjaman via admin (upload signed surat, potong stok) ---
+// DRAFT -> DIPINJAM. Dipanggil saat admin upload surat di halaman detail.
+async function serahkanDraftAdmin(peminjamanId, adminId, dokumenDataUrl, requestInfo = {}) {
+  const peminjaman = await prisma.peminjaman.findUnique({
+    where: { id: peminjamanId },
+    include: {
+      detail: { include: { barang: true } },
+      peminjam: { select: { id: true, nama: true, email: true } },
+    },
+  });
+  if (!peminjaman) throw new AppError('Peminjaman tidak ditemukan.', 404);
+  if (peminjaman.status !== 'DRAFT') {
+    throw new AppError(`Peminjaman berstatus "${peminjaman.status}", bukan DRAFT.`, 400);
+  }
+
+  const admin = await prisma.user.findUnique({ where: { id: adminId } });
+
+  // Potong stok dalam transaksi
+  const updated = await prisma.$transaction(async (tx) => {
+    for (const item of peminjaman.detail) {
+      if (item.jumlahPinjam > item.barang.jumlahTersedia) {
+        throw new AppError(
+          `Stok "${item.barang.nama}" tidak mencukupi. Tersedia ${item.barang.jumlahTersedia}, diminta ${item.jumlahPinjam}.`,
+          400
+        );
+      }
+      await tx.barang.update({
+        where: { id: item.barangId },
+        data: { jumlahTersedia: { decrement: item.jumlahPinjam } },
+      });
+    }
+    return tx.peminjaman.update({
+      where: { id: peminjamanId },
+      data: {
+        dokumenUrl: dokumenDataUrl,
+        tanggalKirim: new Date(),
+        disetujuiOleh: adminId,
+        status: 'DIPINJAM',
+      },
+      include: includeLengkap,
+    });
+  }, { timeout: 20000, maxWait: 10000 });
+
+  // Generate QR
+  try {
+    const qrPath = await qrcodeService.generateUntukPeminjaman(serialisasi(updated));
+    await prisma.peminjaman.update({ where: { id: updated.id }, data: { qrCodeUrl: qrPath } });
+  } catch { /* non-blocking */ }
 
   // Audit log
   auditLogService.log({
@@ -1535,40 +1636,28 @@ async function createByAdmin(adminId, data, dokumenDataUrl, requestInfo = {}) {
     userNama: admin?.nama,
     aksi: auditLogService.AKSI.PEMINJAMAN_DISERAHKAN,
     entitas: auditLogService.ENTITAS.PEMINJAMAN,
-    entitasId: created.id,
-    dataBaru: {
-      kodeTransaksi: created.kodeTransaksi,
-      status: 'DIPINJAM',
-      items: data.items,
-      dibuatOleh: 'ADMIN',
-    },
+    entitasId: updated.id,
+    dataBaru: { kodeTransaksi: updated.kodeTransaksi, status: 'DIPINJAM', dibuatOleh: 'ADMIN' },
     requestInfo,
   }).catch(() => {});
 
-  // Notifikasi ke peminjam
-  const barangNames = created.detail?.map((d) => d.barang?.nama).filter(Boolean).join(', ') || 'Barang';
-  notificationService
-    .kirimKeUser(peminjam.id, {
-      tipe: notificationService.TIPE_NOTIFIKASI.BARANG_DISERAHKAN,
-      judul: 'Barang Dipinjamkan oleh Admin',
-      pesan: `Admin telah mencatat peminjaman barang ${barangNames} atas nama Anda. Silakan ambil barang.`,
-      referenceId: created.id,
-      referenceType: 'PEMINJAMAN',
-    })
-    .catch((err) =>
-      logger.warn('kirim notifikasi BARANG_DISERAHKAN (via admin) gagal', {
-        peminjamanId: created.id,
-        userId: peminjam.id,
-        error: err.message,
-      })
-    );
+  // Notifikasi
+  const barangNames = updated.detail?.map((d) => d.barang?.nama).filter(Boolean).join(', ') || 'Barang';
+  notificationService.kirimKeUser(peminjaman.peminjam.id, {
+    tipe: notificationService.TIPE_NOTIFIKASI.BARANG_DISERAHKAN,
+    judul: 'Barang Dipinjamkan oleh Admin',
+    pesan: `Admin telah menyerahkan peminjaman barang ${barangNames} atas nama Anda. Silakan ambil barang.`,
+    referenceId: updated.id,
+    referenceType: 'PEMINJAMAN',
+  }).catch(() => {});
 
-  return serialisasi(created);
+  return serialisasi(updated);
 }
 
 module.exports = {
   create,
   createByAdmin,
+  serahkanDraftAdmin,
   unggahSurat,
   batalDraft,
   generateSuratPernyataan,

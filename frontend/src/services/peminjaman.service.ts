@@ -97,7 +97,9 @@ export const peminjamanService = {
     return res.data.data;
   },
 
-  // Admin membuatkan peminjaman atas nama peminjam (langsung DIPINJAM).
+  // Admin membuatkan peminjaman atas nama peminjam.
+  // draft=true: simpan sebagai DRAFT (tanpa potong stok, tanpa surat).
+  // draft=false: wajib upload surat, langsung DIPINJAM (potong stok).
   async createByAdmin(data: DataPeminjamanAdmin): Promise<Peminjaman> {
     const fd = new FormData();
     fd.append('userId', data.userId);
@@ -105,9 +107,21 @@ export const peminjamanService = {
     if (data.tanggalPinjamRencana) fd.append('tanggalPinjamRencana', data.tanggalPinjamRencana);
     if (data.tanggalKembaliRencana) fd.append('tanggalKembaliRencana', data.tanggalKembaliRencana);
     fd.append('items', JSON.stringify(data.items));
-    fd.append('dokumen', data.dokumen);
+    if (data.draft) fd.append('draft', 'true');
+    if (data.dokumen) fd.append('dokumen', data.dokumen);
 
     const res = await api.post('/peminjaman/oleh-admin', fd, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+    INVALIDASI_SETELAH_MUTASI_PEMINJAMAN();
+    return res.data.data;
+  },
+
+  // Admin menyerahkan draft peminjaman (upload signed surat, ubah DRAFT -> DIPINJAM).
+  async serahkanDraftAdmin(id: string, dokumen: File): Promise<Peminjaman> {
+    const fd = new FormData();
+    fd.append('dokumen', dokumen);
+    const res = await api.patch(`/peminjaman/${id}/serahkan-draft-admin`, fd, {
       headers: { 'Content-Type': 'multipart/form-data' },
     });
     INVALIDASI_SETELAH_MUTASI_PEMINJAMAN();

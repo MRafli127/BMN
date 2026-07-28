@@ -23,10 +23,31 @@ const createByAdmin = asyncHandler(async (req, res) => {
     pathDokumen(req.file),
     getRequestInfo(req)
   );
+  const isDraft = peminjaman.status === 'DRAFT';
   return responsSukses(res, {
-    pesan: 'Peminjaman berhasil dibuat dan langsung berstatus Dipinjam. Stok telah dikurangi.',
+    pesan: isDraft
+      ? 'Peminjaman disimpan sebagai draft. Upload Surat Pernyataan untuk diserahkan.'
+      : 'Peminjaman berhasil dibuat dan langsung berstatus Dipinjam. Stok telah dikurangi.',
     data: peminjaman,
     status: 201,
+  });
+});
+
+// Admin menyerahkan draft peminjaman via admin (upload signed surat).
+// DRAFT -> DIPINJAM, baru potong stok di sini.
+const serahkanDraftAdmin = asyncHandler(async (req, res) => {
+  if (!req.file) {
+    return res.status(400).json({ pesan: 'Surat Pernyataan yang ditandatangani wajib diunggah.' });
+  }
+  const peminjaman = await peminjamanService.serahkanDraftAdmin(
+    req.params.id,
+    req.user.id,
+    pathDokumen(req.file),
+    getRequestInfo(req)
+  );
+  return responsSukses(res, {
+    pesan: 'Peminjaman berhasil diserahkan. Barang siap diambil peminjam.',
+    data: peminjaman,
   });
 });
 
@@ -231,6 +252,7 @@ const kembalikanMassal = asyncHandler(async (req, res) => {
 
 module.exports = {
   createByAdmin,
+  serahkanDraftAdmin,
   create,
   previewSuratAdmin,
   unggahSurat,

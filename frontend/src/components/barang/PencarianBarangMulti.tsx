@@ -1,4 +1,4 @@
-// ============================================================
+  // ============================================================
 //  PencarianBarangMulti — Multi-select searchable barang picker.
 //  Admin bisa pilih banyak barang sekaligus dalam 1 transaksi.
 // ============================================================
