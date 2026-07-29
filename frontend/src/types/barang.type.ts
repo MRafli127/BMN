@@ -57,4 +57,5 @@ export interface FilterBarang {
   kodeSatker?: string | '';
   page?: number;
   limit?: number;
+  includePeminjam?: boolean;
 }

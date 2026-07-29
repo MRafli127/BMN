@@ -85,17 +85,23 @@ export const barangService = {
     // bila lebih besar backend akan silent-cap ke MAX_LIMIT sehingga
     // totalHalaman jadi tidak akurat. Set ke 200 agar konsisten.
     const limit = 200;
-    const pertama = await barangService.getSemua({ ...filter, page: 1, limit, includePeminjam: options.includePeminjam });
-    const semua = [...pertama.data];
-    // Fetch halaman lain secara paralel untuk speed
-    if (pertama.meta.totalHalaman > 1) {
-      const halamanReqs = [];
-      for (let page = 2; page <= pertama.meta.totalHalaman; page++) {
-        halamanReqs.push(barangService.getSemua({ ...filter, page, limit, includePeminjam: options.includePeminjam }));
-      }
-      const hasil = await Promise.all(halamanReqs);
-      for (const res of hasil) {
-        semua.push(...res.data);
+
+    // Pakai loop instead of fixed totalHalaman agar tidak kehilangan item
+    // yang masuk di antara request. totalHalaman dari halaman pertama bisa
+    // basi kalau ada item baru (atau dihapus) antara request halaman 1 dan
+    // request halaman N — race condition ini yang menyebabkan selisih 895 vs 1016.
+    const semua: Barang[] = [];
+    let page = 1;
+    let hasMore = true;
+    while (hasMore) {
+      const response = await barangService.getSemua({ ...filter, page, limit, includePeminjam: options.includePeminjam });
+      semua.push(...response.data);
+      // Kalau responsenya kosong atau halaman terakhir, berhenti.
+      // Kalau data di halaman ini < limit, berarti sudah halaman terakhir.
+      if (response.data.length === 0 || response.data.length < limit) {
+        hasMore = false;
+      } else {
+        page++;
       }
     }
     // Backend memakai pagination berbasis offset (skip/take + orderBy createdAt),
