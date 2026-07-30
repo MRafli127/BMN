@@ -2,13 +2,14 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { ArrowLeft, Package, Trash2, X } from 'lucide-react';
+import { ArrowLeft, Package, Trash2, X, Users, ShieldCheck, UserPlus } from 'lucide-react';
 import Link from 'next/link';
 import { Icon } from '@/components/ui/icon';
 import { LoadingSpinner } from '@/components/shared/LoadingSpinner';
 import { EmptyState } from '@/components/shared/EmptyState';
 import { TabelPeminjaman } from '@/components/peminjaman/TabelPeminjaman';
 import { TabelDaftarPeminjam, type PeminjamRow } from '@/components/peminjaman/TabelDaftarPeminjam';
+import { KartuDaftarPeminjam } from '@/components/peminjaman/KartuDaftarPeminjam';
 import { ImportPegawaiDialog } from '@/components/peminjaman/ImportPegawaiDialog';
 import { TambahPeminjamDialog } from '@/components/peminjaman/TambahPeminjamDialog';
 import { KonfirmasiDialog } from '@/components/shared/KonfirmasiDialog';
@@ -16,7 +17,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table';
 import { notify } from '@/components/ui/toast';
-import { urlFile, ambilPesanError } from '@/lib/utils';
+import { cn, urlFile, ambilPesanError } from '@/lib/utils';
 import { JENIS_BARANG, KONDISI_BARANG } from '@/constants/status';
 import { dashboardService, type KategoriDashboard, type ResponseKategori, type FilterRole } from '@/services/dashboard.service';
 import { userManagementService } from '@/services/userManagement.service';
@@ -32,8 +33,48 @@ const INFO_KATEGORI: Record<string, { judul: string; ikon: string; deskripsi: st
   pengajuan_menunggu: { judul: 'Pengajuan Menunggu', ikon: 'pending_actions', deskripsi: 'Menunggu persetujuan admin' },
   peminjaman_aktif: { judul: 'Peminjaman Aktif', ikon: 'sync_alt', deskripsi: 'Barang sedang digunakan' },
   barang_terlambat: { judul: 'Barang Terlambat', ikon: 'report', deskripsi: 'Melebihi batas tempo pengembalian' },
-  peminjam: { judul: 'Daftar Pegawai', ikon: 'group', deskripsi: 'Pengguna terdaftar' },
+  peminjam: { judul: 'Pengguna Terdaftar', ikon: 'group', deskripsi: 'Pengguna terdaftar' },
 };
+
+// Mini kartu statistik — gradient berbeda tiap kartu
+interface MiniStatProps {
+  label: string;
+  value: number | string;
+  icon: React.ReactNode;
+  gradient: string; // kelas tailwind untuk background gradient
+  ring: string;
+  delay?: number;
+}
+function MiniStat({ label, value, icon, gradient, ring, delay = 0 }: MiniStatProps) {
+  return (
+    <div
+      className={cn(
+        'group relative overflow-hidden rounded-2xl border border-white/60 bg-white p-4 shadow-card transition-all duration-300 hover:-translate-y-0.5 hover:shadow-elevated animate-page-in'
+      )}
+      style={{ animationDelay: `${delay}ms` }}
+    >
+      <div className="flex items-center gap-3">
+        <div
+          className={cn(
+            'grid h-11 w-11 shrink-0 place-items-center rounded-xl text-white shadow-md ring-2',
+            gradient,
+            ring
+          )}
+        >
+          {icon}
+        </div>
+        <div className="min-w-0 flex-1">
+          <p className="text-[11px] font-semibold uppercase tracking-wider text-gray-500">
+            {label}
+          </p>
+          <p className="truncate font-jakarta text-2xl font-bold leading-tight text-gray-900">
+            {value}
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 export default function KategoriDashboardPage() {
   const params = useParams();
@@ -41,10 +82,12 @@ export default function KategoriDashboardPage() {
   const kategori = params.kategori as KategoriDashboard;
 
   const [halaman, setHalaman] = useState(1);
-  const [limit, setLimit] = useState(10);
+  const [limit, setLimit] = useState(12);
   const [cari, setCari] = useState('');
   const [cariDebounced, setCariDebounced] = useState('');
   const [filterRole, setFilterRole] = useState<FilterRole>('');
+  // Tampilan daftar pegawai: card (default) atau tabel.
+  const [tampilanCard, setTampilanCard] = useState(true);
 
   // State fitur hapus peminjam (mengikuti pola Manajemen Peminjaman): hapus
   // per-baris ditangani di dalam tabel, hapus massal lewat seleksi checkbox.
@@ -147,98 +190,225 @@ export default function KategoriDashboardPage() {
   const items = data?.items || [];
   const totalHalaman = meta?.totalHalaman || 1;
 
+  // Hitung jumlah admin/non-admin dari daftar pegawai (tampilan page saat ini)
+  const itemsPeminjam = adalahPeminjam ? (items as PeminjamRow[]) : [];
+  const jumlahAdmin = itemsPeminjam.filter((u) => (u.roles || []).includes('ADMIN')).length;
+  const jumlahNonAdmin = itemsPeminjam.filter((u) => !(u.roles || []).includes('ADMIN')).length;
+
   return (
     <div className="space-y-gutter">
-      {/* Header */}
-      <section className="flex items-center gap-4">
-        <button
-          onClick={() => router.push(RUTE.adminDashboard)}
-          className="flex h-10 w-10 items-center justify-center rounded-xl border border-outline-variant bg-white transition-all hover:bg-surface-container-low"
-        >
-          <ArrowLeft className="h-5 w-5 text-on-surface" />
-        </button>
-        <div className="flex items-center gap-3">
-          <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10 text-primary">
-            <Icon name={info.ikon} fill className="text-[24px]" />
-          </div>
-          <div>
-            <h1 className="font-jakarta text-headline-lg text-primary">{info.judul}</h1>
-            <p className="text-sm text-on-surface-variant">{info.deskripsi}</p>
-          </div>
+      {/* Hero Header — gradient + dekorasi blob */}
+      <section className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-blue-700 via-blue-600 to-cyan-500 p-6 text-white shadow-lg shadow-blue-700/20 animate-page-in sm:p-8">
+        {/* Dekorasi blob & grid pattern */}
+        <div aria-hidden className="pointer-events-none absolute inset-0">
+          <div className="absolute -left-20 -top-24 h-72 w-72 rounded-full bg-cyan-300/30 blur-3xl" />
+          <div className="absolute -right-32 -bottom-32 h-80 w-80 rounded-full bg-indigo-400/25 blur-3xl" />
+          <div className="absolute inset-0 opacity-[0.07] [background-image:radial-gradient(circle_at_1px_1px,white_1px,transparent_0)] [background-size:24px_24px]" />
         </div>
-        {/* Tambah manual + import data pegawai (mengisi/menyinkronkan data diri peminjam) */}
-        {adalahPeminjam && (
-          <div className="ml-auto flex flex-wrap gap-2">
-            <TambahPeminjamDialog onSelesai={segarkanData} />
-            <ImportPegawaiDialog onSelesai={segarkanData} />
+
+        <div className="relative z-10 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-start gap-4">
+            <button
+              onClick={() => router.push(RUTE.adminDashboard)}
+              className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-white/20 bg-white/10 text-white backdrop-blur-md transition-all hover:bg-white/20 active:scale-95"
+              aria-label="Kembali ke dashboard"
+            >
+              <ArrowLeft className="h-5 w-5" />
+            </button>
+            <div className="flex items-center gap-3">
+              <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-white/15 text-white ring-1 ring-white/25 backdrop-blur-md">
+                <Icon name={info.ikon} fill className="text-[24px]" />
+              </div>
+              <div className="min-w-0">
+                <div className="flex flex-wrap items-center gap-2">
+                  <h1 className="font-jakarta text-2xl font-bold tracking-tight sm:text-3xl">
+                    {info.judul}
+                  </h1>
+                  {adalahPeminjam && meta && (
+                    <span className="inline-flex items-center gap-1 rounded-full bg-white/15 px-2.5 py-0.5 text-xs font-semibold ring-1 ring-white/25 backdrop-blur-md">
+                      <Users className="h-3.5 w-3.5" />
+                      {meta.total} total
+                    </span>
+                  )}
+                </div>
+                <p className="mt-0.5 text-sm text-white/85">{info.deskripsi}</p>
+              </div>
+            </div>
+          </div>
+
+          {/* Tambah manual + import data pegawai */}
+          {adalahPeminjam && (
+            <div className="flex flex-wrap gap-2">
+              <TambahPeminjamDialog onSelesai={segarkanData} />
+              <ImportPegawaiDialog onSelesai={segarkanData} />
+            </div>
+          )}
+        </div>
+
+        {/* Mini Stat Cards — muncul hanya untuk halaman Daftar Pegawai */}
+        {adalahPeminjam && meta && (
+          <div className="relative z-10 mt-6 grid grid-cols-1 gap-3 sm:grid-cols-3">
+            <MiniStat
+              label="Total Pegawai"
+              value={meta.total}
+              icon={<Users className="h-5 w-5" />}
+              gradient="bg-gradient-to-br from-blue-500 to-indigo-600"
+              ring="ring-blue-300/40"
+              delay={80}
+            />
+            <MiniStat
+              label="Ditampilkan"
+              value={`${itemsPeminjam.length} / ${meta.total}`}
+              icon={<UserPlus className="h-5 w-5" />}
+              gradient="bg-gradient-to-br from-cyan-500 to-teal-600"
+              ring="ring-cyan-300/40"
+              delay={140}
+            />
+            <MiniStat
+              label={filterRole === 'ADMIN' ? 'Admin di Halaman' : filterRole === 'NON_ADMIN' ? 'Non-Admin di Halaman' : 'Admin / Non-Admin'}
+              value={
+                filterRole === 'ADMIN'
+                  ? jumlahAdmin
+                  : filterRole === 'NON_ADMIN'
+                    ? jumlahNonAdmin
+                    : `${jumlahAdmin} / ${jumlahNonAdmin}`
+              }
+              icon={<ShieldCheck className="h-5 w-5" />}
+              gradient="bg-gradient-to-br from-blue-500 to-indigo-600"
+              ring="ring-blue-300/40"
+              delay={200}
+            />
           </div>
         )}
       </section>
 
       {/* Toolbar pencarian, filter peran, & ukuran halaman (khusus Daftar Pegawai) */}
       {adalahPeminjam && (
-        <section className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <div className="relative w-full sm:max-w-md">
-            <Icon
-              name="search"
-              className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[20px] text-on-surface-variant"
-            />
-            <input
-              type="text"
-              value={cari}
-              onChange={(e) => setCari(e.target.value)}
-              placeholder="Cari nama, NIP, Eselon III / IV..."
-              className="w-full rounded-xl border border-outline-variant bg-white py-2.5 pl-10 pr-4 text-sm outline-none transition-all focus:border-primary focus:ring-2 focus:ring-primary/20"
-            />
-          </div>
-          <div className="flex flex-wrap items-center gap-2">
-            {/* Filter peran */}
-            <select
-              value={filterRole}
-              onChange={(e) => setFilterRole(e.target.value as FilterRole)}
-              className="rounded-xl border border-outline-variant bg-white px-3 py-2.5 text-sm outline-none transition-all focus:border-primary focus:ring-2 focus:ring-primary/20"
-            >
-              <option value="">Semua Peran</option>
-              <option value="ADMIN">Admin</option>
-              <option value="NON_ADMIN">Non Admin</option>
-            </select>
-            <label htmlFor="ukuran-halaman" className="shrink-0 text-sm text-on-surface-variant">
-              Tampilkan
-            </label>
-            <select
-              id="ukuran-halaman"
-              value={limit}
-              onChange={(e) => setLimit(Number(e.target.value))}
-              className="rounded-xl border border-outline-variant bg-white px-3 py-2.5 text-sm outline-none transition-all focus:border-primary focus:ring-2 focus:ring-primary/20"
-            >
-              {[10, 50, 100, 200].map((n) => (
-                <option key={n} value={n}>
-                  {n} data
-                </option>
-              ))}
-            </select>
-          </div>
-        </section>
-      )}
+        <section className="rounded-2xl border border-outline-variant bg-white p-3 shadow-card animate-page-in sm:p-4" style={{ animationDelay: '60ms' }}>
+          <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+            {/* Search */}
+            <div className="relative w-full lg:max-w-md">
+              <Icon
+                name="search"
+                className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[20px] text-on-surface-variant"
+              />
+              <input
+                type="text"
+                value={cari}
+                onChange={(e) => setCari(e.target.value)}
+                placeholder="Cari nama, NIP, Eselon III / IV..."
+                className="w-full rounded-xl border border-outline-variant bg-surface-container-low py-2.5 pl-10 pr-4 text-sm outline-none transition-all focus:border-primary focus:bg-white focus:ring-2 focus:ring-primary/20"
+              />
+            </div>
 
-      {/* Statistik */}
-      {meta && (
-        <div className="rounded-xl border bg-card p-4">
-          <p className="text-sm text-on-surface-variant">
-            Menampilkan <span className="font-semibold">{items.length}</span> dari{' '}
-            <span className="font-semibold">{meta.total}</span> data
-            {adalahPeminjam && cariDebounced && (
-              <>
-                {' '}untuk pencarian &ldquo;<span className="font-semibold">{cariDebounced}</span>&rdquo;
-              </>
-            )}
-            {adalahPeminjam && filterRole && (
-              <>
-                {' '}&mdash; filter: <span className="font-semibold">{filterRole === 'ADMIN' ? 'Admin' : 'Non Admin'}</span>
-              </>
-            )}
-          </p>
-        </div>
+            <div className="flex flex-wrap items-center gap-2">
+              {/* Filter peran — chip-style segmented */}
+              <div className="flex items-center gap-1 rounded-xl border border-outline-variant bg-surface-container-low p-1">
+                {[
+                  { value: '', label: 'Semua' },
+                  { value: 'ADMIN', label: 'Admin' },
+                  { value: 'NON_ADMIN', label: 'Non Admin' },
+                ].map((opt) => {
+                  const aktif = filterRole === opt.value;
+                  return (
+                    <button
+                      key={opt.value || 'semua'}
+                      onClick={() => setFilterRole(opt.value as FilterRole)}
+                      className={cn(
+                        'rounded-lg px-3 py-1.5 text-xs font-semibold transition-all',
+                        aktif
+                          ? 'bg-white text-primary shadow-sm'
+                          : 'text-on-surface-variant hover:text-on-surface'
+                      )}
+                    >
+                      {opt.label}
+                    </button>
+                  );
+                })}
+              </div>
+
+              {/* Ukuran halaman */}
+              <div className="flex items-center gap-2 rounded-xl border border-outline-variant bg-surface-container-low px-3 py-1.5">
+                <span className="text-xs text-on-surface-variant">Tampilkan</span>
+                <select
+                  id="ukuran-halaman"
+                  value={limit}
+                  onChange={(e) => setLimit(Number(e.target.value))}
+                  className="bg-transparent text-sm font-semibold text-on-surface outline-none"
+                >
+                  {[12, 64, 256, 512].map((n) => (
+                    <option key={n} value={n}>
+                      {n}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Switch: Tampilan Tabel <-> Tampilan Card — pill control */}
+              <div className="flex items-center gap-1 rounded-xl border border-outline-variant bg-surface-container-low p-1">
+                <button
+                  onClick={() => setTampilanCard(true)}
+                  className={cn(
+                    'flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold transition-all',
+                    tampilanCard
+                      ? 'bg-white text-primary shadow-sm'
+                      : 'text-on-surface-variant hover:text-on-surface'
+                  )}
+                  aria-pressed={tampilanCard}
+                  title="Tampilan card"
+                >
+                  <Icon name="view_module" className="text-[16px]" />
+                  Card
+                </button>
+                <button
+                  onClick={() => setTampilanCard(false)}
+                  className={cn(
+                    'flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold transition-all',
+                    !tampilanCard
+                      ? 'bg-white text-primary shadow-sm'
+                      : 'text-on-surface-variant hover:text-on-surface'
+                  )}
+                  aria-pressed={!tampilanCard}
+                  title="Tampilan tabel"
+                >
+                  <Icon name="table_rows" className="text-[16px]" />
+                  Tabel
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* Indikator filter aktif */}
+          {(cariDebounced || filterRole) && (
+            <div className="mt-3 flex flex-wrap items-center gap-2 border-t border-outline-variant pt-3 text-xs">
+              <span className="text-on-surface-variant">Filter aktif:</span>
+              {cariDebounced && (
+                <span className="inline-flex items-center gap-1 rounded-full bg-primary/10 px-2.5 py-1 font-medium text-primary">
+                  Pencarian: &ldquo;{cariDebounced}&rdquo;
+                  <button
+                    onClick={() => setCari('')}
+                    className="ml-0.5 rounded-full p-0.5 hover:bg-primary/20"
+                    aria-label="Hapus pencarian"
+                  >
+                    <X className="h-3 w-3" />
+                  </button>
+                </span>
+              )}
+              {filterRole && (
+                <span className="inline-flex items-center gap-1 rounded-full bg-violet-100 px-2.5 py-1 font-medium text-violet-700">
+                  Peran: {filterRole === 'ADMIN' ? 'Admin' : 'Non Admin'}
+                  <button
+                    onClick={() => setFilterRole('')}
+                    className="ml-0.5 rounded-full p-0.5 hover:bg-violet-200"
+                    aria-label="Hapus filter peran"
+                  >
+                    <X className="h-3 w-3" />
+                  </button>
+                </span>
+              )}
+            </div>
+          )}
+        </section>
       )}
 
       {/* Konten berdasarkan kategori */}
@@ -320,15 +490,26 @@ export default function KategoriDashboardPage() {
               </div>
             </div>
           )}
-          <TabelDaftarPeminjam
-            data={items as PeminjamRow[]}
-            nomorAwal={(halaman - 1) * limit}
-            terpilih={terpilih}
-            onUbahTerpilih={setTerpilih}
-            onUbahRole={ubahRole}
-            onEdit={segarkanData}
-            onResetPassword={resetPasswordPegawai}
-          />
+          {tampilanCard ? (
+            <KartuDaftarPeminjam
+              data={items as PeminjamRow[]}
+              terpilih={terpilih}
+              onUbahTerpilih={setTerpilih}
+              onUbahRole={ubahRole}
+              onEdit={segarkanData}
+              onResetPassword={resetPasswordPegawai}
+            />
+          ) : (
+            <TabelDaftarPeminjam
+              data={items as PeminjamRow[]}
+              nomorAwal={(halaman - 1) * limit}
+              terpilih={terpilih}
+              onUbahTerpilih={setTerpilih}
+              onUbahRole={ubahRole}
+              onEdit={segarkanData}
+              onResetPassword={resetPasswordPegawai}
+            />
+          )}
         </div>
       ) : (
         <div className="rounded-xl border bg-card p-4">
