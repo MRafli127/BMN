@@ -92,8 +92,8 @@ export function ImportBarangDialog({ onSelesai }: Props) {
       }}
     >
       <DialogTrigger asChild>
-        <Button variant="outline">
-          <Upload className="h-4 w-4" /> Import Excel
+        <Button variant="outline" className="bg-white text-primary hover:bg-white">
+          <Upload className="h-4 w-4" /> Import Barang
         </Button>
       </DialogTrigger>
 

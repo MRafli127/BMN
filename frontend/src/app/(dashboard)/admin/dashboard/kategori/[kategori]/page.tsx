@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { ArrowLeft, Package, Trash2, X, Users, ShieldCheck, UserPlus } from 'lucide-react';
+import { Package, Trash2, X, Users, ShieldCheck, UserPlus } from 'lucide-react';
 import Link from 'next/link';
 import { Icon } from '@/components/ui/icon';
 import { LoadingSpinner } from '@/components/shared/LoadingSpinner';
@@ -94,6 +94,13 @@ export default function KategoriDashboardPage() {
   const [terpilih, setTerpilih] = useState<string[]>([]);
   const [dialogMassal, setDialogMassal] = useState(false);
   const [sedangMassal, setSedangMassal] = useState(false);
+  // Konfirmasi perubahan peran (admin) via switch di kartu.
+  const [dialogRole, setDialogRole] = useState<{
+    terbuka: boolean;
+    user: PeminjamRow | null;
+    aksi: 'promote' | 'demote';
+  }>({ terbuka: false, user: null, aksi: 'promote' });
+  const [sedangRole, setSedangRole] = useState(false);
 
   const info = INFO_KATEGORI[kategori] || INFO_KATEGORI.semua;
   const adalahBarang = kategori === 'barang';
@@ -147,6 +154,26 @@ export default function KategoriDashboardPage() {
     } catch (error) {
       notify.gagal(ambilPesanError(error, 'Gagal mengubah peran akun.'));
       throw error;
+    }
+  };
+
+  /** Buka dialog konfirmasi saat switch peran admin ditekan di tampilan kartu. */
+  const mintaKonfirmasiRole = (id: string, aksi: 'promote' | 'demote') => {
+    const user = itemsPeminjam.find((u) => u.id === id) || null;
+    setDialogRole({ terbuka: true, user, aksi });
+  };
+
+  /** Eksekusi perubahan peran setelah konfirmasi. */
+  const konfirmasiUbahRole = async () => {
+    if (!dialogRole.user) return;
+    setSedangRole(true);
+    try {
+      await ubahRole(dialogRole.user.id, dialogRole.aksi);
+      setDialogRole({ terbuka: false, user: null, aksi: 'promote' });
+    } catch {
+      // ubahRole sudah menampilkan notifikasi gagal; biarkan dialog terbuka.
+    } finally {
+      setSedangRole(false);
     }
   };
 
@@ -207,40 +234,31 @@ export default function KategoriDashboardPage() {
         </div>
 
         <div className="relative z-10 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex items-start gap-4">
-            <button
-              onClick={() => router.push(RUTE.adminDashboard)}
-              className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-white/20 bg-white/10 text-white backdrop-blur-md transition-all hover:bg-white/20 active:scale-95"
-              aria-label="Kembali ke dashboard"
-            >
-              <ArrowLeft className="h-5 w-5" />
-            </button>
-            <div className="flex items-center gap-3">
-              <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-white/15 text-white ring-1 ring-white/25 backdrop-blur-md">
-                <Icon name={info.ikon} fill className="text-[24px]" />
+          <div className="flex items-start gap-3">
+            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-white/15 text-white ring-1 ring-white/25 backdrop-blur-md">
+              <Icon name={info.ikon} fill className="text-[24px]" />
+            </div>
+            <div className="min-w-0">
+              <div className="flex flex-wrap items-center gap-2">
+                <h1 className="font-jakarta text-2xl font-bold tracking-tight sm:text-3xl">
+                  {info.judul}
+                </h1>
+                {adalahPeminjam && meta && (
+                  <span className="inline-flex items-center gap-1 rounded-full bg-white/15 px-2.5 py-0.5 text-xs font-semibold ring-1 ring-white/25 backdrop-blur-md">
+                    <Users className="h-3.5 w-3.5" />
+                    {meta.total} total
+                  </span>
+                )}
               </div>
-              <div className="min-w-0">
-                <div className="flex flex-wrap items-center gap-2">
-                  <h1 className="font-jakarta text-2xl font-bold tracking-tight sm:text-3xl">
-                    {info.judul}
-                  </h1>
-                  {adalahPeminjam && meta && (
-                    <span className="inline-flex items-center gap-1 rounded-full bg-white/15 px-2.5 py-0.5 text-xs font-semibold ring-1 ring-white/25 backdrop-blur-md">
-                      <Users className="h-3.5 w-3.5" />
-                      {meta.total} total
-                    </span>
-                  )}
-                </div>
-                <p className="mt-0.5 text-sm text-white/85">{info.deskripsi}</p>
-              </div>
+              <p className="mt-0.5 text-sm text-white/85">{info.deskripsi}</p>
             </div>
           </div>
 
           {/* Tambah manual + import data pegawai */}
           {adalahPeminjam && (
             <div className="flex flex-wrap gap-2">
-              <TambahPeminjamDialog onSelesai={segarkanData} />
               <ImportPegawaiDialog onSelesai={segarkanData} />
+              <TambahPeminjamDialog onSelesai={segarkanData} />
             </div>
           )}
         </div>
@@ -495,7 +513,7 @@ export default function KategoriDashboardPage() {
               data={items as PeminjamRow[]}
               terpilih={terpilih}
               onUbahTerpilih={setTerpilih}
-              onUbahRole={ubahRole}
+              onUbahRole={mintaKonfirmasiRole}
               onEdit={segarkanData}
               onResetPassword={resetPasswordPegawai}
             />
@@ -554,6 +572,22 @@ export default function KategoriDashboardPage() {
         variantKonfirmasi="destructive"
         sedangProses={sedangMassal}
         onKonfirmasi={hapusMassal}
+      />
+
+      {/* Dialog konfirmasi perubahan peran (admin) — dipicu dari switch di kartu. */}
+      <KonfirmasiDialog
+        terbuka={dialogRole.terbuka}
+        onUbahTerbuka={(o) => !o && setDialogRole((d) => ({ ...d, terbuka: false }))}
+        judul={dialogRole.aksi === 'promote' ? 'Jadikan Admin?' : 'Cabut Akses Admin?'}
+        deskripsi={
+          dialogRole.aksi === 'promote'
+            ? `Yakin ingin menjadikan "${dialogRole.user?.nama}" (NIP ${dialogRole.user?.nip}) sebagai Admin? Pengguna ini akan mendapat hak akses admin.`
+            : `Yakin ingin mencabut akses Admin dari "${dialogRole.user?.nama}" (NIP ${dialogRole.user?.nip})? Pengguna akan kembali menjadi Peminjam biasa.`
+        }
+        teksKonfirmasi={dialogRole.aksi === 'promote' ? 'Ya, Jadikan Admin' : 'Ya, Cabut Akses'}
+        variantKonfirmasi={dialogRole.aksi === 'promote' ? 'default' : 'destructive'}
+        sedangProses={sedangRole}
+        onKonfirmasi={konfirmasiUbahRole}
       />
     </div>
   );

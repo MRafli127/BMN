@@ -6,7 +6,21 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { ChevronLeft, ChevronRight, ClipboardList, Trash2, X, CheckCheck, List, FolderTree, PackageCheck, Undo2, Upload, Plus } from 'lucide-react';
+import {
+  ChevronLeft,
+  ChevronRight,
+  ClipboardList,
+  Trash2,
+  X,
+  CheckCheck,
+  List,
+  FolderTree,
+  PackageCheck,
+  Undo2,
+  Upload,
+  Plus,
+  FileText,
+} from 'lucide-react';
 import { Icon } from '@/components/ui/icon';
 import { Input, Select, Textarea, Label } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -29,7 +43,49 @@ import type { Peminjaman } from '@/types/peminjaman.type';
 import type { MetaPagination } from '@/types/barang.type';
 
 // Pilihan jumlah baris yang ditampilkan per halaman
-const OPSI_LIMIT = [12, 50, 100, 200];
+const OPSI_LIMIT = [12, 32, 64, 128, 256, 512];
+
+// ============================================================
+//  Mini kartu statistik
+// ============================================================
+interface MiniStatProps {
+  label: string;
+  value: number | string;
+  icon: React.ReactNode;
+  gradient: string;
+  ring: string;
+  delay?: number;
+}
+function MiniStat({ label, value, icon, gradient, ring, delay = 0 }: MiniStatProps) {
+  return (
+    <div
+      className={cn(
+        'group relative overflow-hidden rounded-2xl border border-white/60 bg-white p-4 shadow-card transition-all duration-300 hover:-translate-y-0.5 hover:shadow-elevated animate-page-in'
+      )}
+      style={{ animationDelay: `${delay}ms` }}
+    >
+      <div className="flex items-center gap-3">
+        <div
+          className={cn(
+            'grid h-11 w-11 shrink-0 place-items-center rounded-xl text-white shadow-md ring-2',
+            gradient,
+            ring
+          )}
+        >
+          {icon}
+        </div>
+        <div className="min-w-0 flex-1">
+          <p className="text-[11px] font-semibold uppercase tracking-wider text-gray-500">
+            {label}
+          </p>
+          <p className="truncate font-jakarta text-2xl font-bold leading-tight text-gray-900">
+            {value}
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 export default function AdminPeminjamanPage() {
   const router = useRouter();
@@ -89,6 +145,19 @@ export default function AdminPeminjamanPage() {
   );
   const data = hasil?.data ?? [];
   const meta = hasil?.meta ?? null;
+
+  // Hitung statistik dari data yang dimuat
+  const jumlahMenunggu = data.filter((p) => p.status === 'MENUNGGU').length;
+  const jumlahDisetujui = data.filter((p) => p.status === 'DISETUJUI').length;
+  const jumlahAktif = data.filter((p) => p.status === 'DIPINJAM' || p.status === 'TERLAMBAT').length;
+  // Jumlah satker unik yang muncul di data yang dimuat (berdasarkan kodeSatker di barang).
+  const totalSatker = new Set(
+    data.flatMap((p) =>
+      (p.detail ?? [])
+        .map((d) => d.barang?.kodeSatker)
+        .filter((k): k is string => !!k)
+    )
+  ).size;
 
   // Reset pilihan setiap kali data dimuat ulang
   useEffect(() => {
@@ -228,19 +297,84 @@ export default function AdminPeminjamanPage() {
 
   return (
     <div className="space-y-gutter">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <h1 className="font-jakarta text-headline-lg text-primary">Manajemen Peminjaman</h1>
-          <p className="text-on-surface-variant">Tinjau, setujui, atau tolak pengajuan peminjaman.</p>
+      {/* Hero Header — gradient + dekorasi blob */}
+      <section className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-blue-700 via-blue-600 to-cyan-500 p-6 text-white shadow-lg shadow-blue-700/20 animate-page-in sm:p-8">
+        {/* Dekorasi blob & grid pattern */}
+        <div aria-hidden className="pointer-events-none absolute inset-0">
+          <div className="absolute -left-20 -top-24 h-72 w-72 rounded-full bg-cyan-300/30 blur-3xl" />
+          <div className="absolute -right-32 -bottom-32 h-80 w-80 rounded-full bg-indigo-400/25 blur-3xl" />
+          <div className="absolute inset-0 opacity-[0.07] [background-image:radial-gradient(circle_at_1px_1px,white_1px,transparent_0)] [background-size:24px_24px]" />
         </div>
-        <div className="flex flex-wrap gap-2">
-          <Button onClick={() => router.push(RUTE.adminPeminjamanBuat)} className="gap-2">
-            <Plus className="h-4 w-4" /> Tambah Peminjaman
-          </Button>
-          <ExportModal />
-          <ImportPeminjamDialog onSelesai={muat} />
+
+        <div className="relative z-10 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-start gap-3">
+            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-white/15 text-white ring-1 ring-white/25 backdrop-blur-md">
+              <ClipboardList className="h-6 w-6" />
+            </div>
+            <div className="min-w-0">
+              <div className="flex flex-wrap items-center gap-2">
+                <h1 className="font-jakarta text-2xl font-bold tracking-tight sm:text-3xl">
+                  Manajemen Peminjaman
+                </h1>
+                {meta && (
+                  <span className="inline-flex items-center gap-1 rounded-full bg-white/15 px-2.5 py-0.5 text-xs font-semibold ring-1 ring-white/25 backdrop-blur-md">
+                    <ClipboardList className="h-3.5 w-3.5" />
+                    {meta.total} total
+                  </span>
+                )}
+              </div>
+              <p className="mt-0.5 text-sm text-white/85">Tinjau, setujui, atau tolak pengajuan peminjaman.</p>
+            </div>
+          </div>
+
+          {/* Tombol aksi */}
+          <div className="flex flex-wrap gap-2">
+            <ExportModal />
+            <ImportPeminjamDialog onSelesai={muat} />
+            <Button variant="outline" className="bg-white text-primary hover:bg-white" onClick={() => router.push(RUTE.adminPeminjamanBuat)}>
+              <Plus className="h-4 w-4" /> Tambah Peminjaman
+            </Button>
+          </div>
         </div>
-      </div>
+
+        {/* Mini Stat Cards */}
+        {meta && (
+          <div className="relative z-10 mt-6 grid grid-cols-1 gap-3 sm:grid-cols-4">
+            <MiniStat
+              label="Total Peminjaman"
+              value={meta.total}
+              icon={<ClipboardList className="h-5 w-5" />}
+              gradient="bg-gradient-to-br from-blue-500 to-indigo-600"
+              ring="ring-blue-300/40"
+              delay={80}
+            />
+            <MiniStat
+              label="Ditampilkan"
+              value={`${data.length} / ${meta.total}`}
+              icon={<FileText className="h-5 w-5" />}
+              gradient="bg-gradient-to-br from-cyan-500 to-blue-600"
+              ring="ring-cyan-300/40"
+              delay={140}
+            />
+            <MiniStat
+              label="Menunggu"
+              value={jumlahMenunggu}
+              icon={<PackageCheck className="h-5 w-5" />}
+              gradient="bg-gradient-to-br from-indigo-500 to-blue-600"
+              ring="ring-indigo-300/40"
+              delay={200}
+            />
+            <MiniStat
+              label="Aktif / Terlambat"
+              value={jumlahAktif}
+              icon={<PackageCheck className="h-5 w-5" />}
+              gradient="bg-gradient-to-br from-blue-600 to-indigo-700"
+              ring="ring-blue-300/40"
+              delay={260}
+            />
+          </div>
+        )}
+      </section>
 
       {/* Panel tabel */}
       <div className="glass-card overflow-hidden rounded-2xl border border-outline-variant">
