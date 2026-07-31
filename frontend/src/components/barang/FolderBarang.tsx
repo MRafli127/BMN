@@ -27,35 +27,58 @@ import type { Barang } from '@/types/barang.type';
 interface Props {
   grup: GrupBarang[];
   onHapus: (id: string) => Promise<void>;
+  terbuka?: Set<string>;
+  onToggle?: (merk: string) => void;
+  bukaTutupSemua?: () => void;
+  semuaTerbuka?: boolean;
 }
 
 // FolderBarang dibungkus memo untuk mencegah re-render tidak perlu
 // saat parent component re-render tapi props tidak berubah.
-export const FolderBarang = memo(function FolderBarang({ grup, onHapus }: Props) {
-  const [terbuka, setTerbuka] = useState<Set<string>>(new Set());
+export const FolderBarang = memo(function FolderBarang({
+  grup,
+  onHapus,
+  terbuka: terbukaProp,
+  onToggle,
+  bukaTutupSemua: bukaTutupSemuaProp,
+  semuaTerbuka: semuaTerbukaProp,
+}: Props) {
+  const [terbukaInternal, setTerbukaInternal] = useState<Set<string>>(new Set());
   const [target, setTarget] = useState<Barang | null>(null);
   const [sedangHapus, setSedangHapus] = useState(false);
   const [showMobileConfirm, setShowMobileConfirm] = useState(false);
   const isMobile = useIsMobile();
 
-  const toggle = (merk: string) =>
-    setTerbuka((lama) => {
-      const baru = new Set(lama);
-      if (baru.has(merk)) baru.delete(merk);
-      else baru.add(merk);
-      return baru;
-    });
+  const terbuka = terbukaProp !== undefined ? terbukaProp : terbukaInternal;
 
-  const semuaTerbuka = grup.length > 0 && grup.every((g) => terbuka.has(g.kategori));
-  const bukaTutupSemua = () =>
-    setTerbuka((lama) => {
-      const baru = new Set(lama);
+  const semuaTerbuka = semuaTerbukaProp ?? (grup.length > 0 && grup.every((g) => terbuka.has(g.kategori)));
+
+  const toggle = (merk: string) => {
+    if (onToggle) {
+      onToggle(merk);
+    } else {
+      setTerbukaInternal((prev) => {
+        const next = new Set(prev);
+        if (next.has(merk)) next.delete(merk);
+        else next.add(merk);
+        return next;
+      });
+    }
+  };
+
+  const handleBukaTutupSemua = () => {
+    if (bukaTutupSemuaProp) {
+      bukaTutupSemuaProp();
+    } else {
+      const allOpen = grup.length > 0 && grup.every((g) => terbuka.has(g.kategori));
+      const next = new Set(terbuka);
       for (const g of grup) {
-        if (semuaTerbuka) baru.delete(g.kategori);
-        else baru.add(g.kategori);
+        if (allOpen) next.delete(g.kategori);
+        else next.add(g.kategori);
       }
-      return baru;
-    });
+      setTerbukaInternal(next);
+    }
+  };
 
   const konfirmasiHapus = async () => {
     if (!target) return;
@@ -86,7 +109,7 @@ export const FolderBarang = memo(function FolderBarang({ grup, onHapus }: Props)
         <div className="mb-2 flex items-center justify-between px-1">
           <span className="text-xs font-medium text-gray-500">{grup.length} folder</span>
           <button
-            onClick={bukaTutupSemua}
+            onClick={handleBukaTutupSemua}
             className="text-[11px] font-medium text-blue-500"
           >
             {semuaTerbuka ? 'Tutup' : 'Buka'}
@@ -217,12 +240,6 @@ export const FolderBarang = memo(function FolderBarang({ grup, onHapus }: Props)
   // Desktop View
   return (
     <>
-      <div className="mb-3 flex justify-end">
-        <Button variant="ghost" size="sm" onClick={bukaTutupSemua}>
-          {semuaTerbuka ? 'Tutup semua folder' : 'Buka semua folder'}
-        </Button>
-      </div>
-
       <div className="space-y-3">
         {grup.map((g) => {
           const aktif = terbuka.has(g.kategori);

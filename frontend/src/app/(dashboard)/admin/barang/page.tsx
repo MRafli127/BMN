@@ -9,7 +9,7 @@
 import { Suspense, useCallback, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { Search, Plus, ChevronLeft, ChevronRight, List, Package, Box, Layers, Tag } from 'lucide-react';
+import { Search, Plus, ChevronLeft, ChevronRight, List, Package, Box, Layers, Tag, ChevronsUpDown } from 'lucide-react';
 import { Input, Select } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { FolderBarang } from '@/components/barang/FolderBarang';
@@ -140,6 +140,27 @@ function KontenBarang() {
   const halamanAman = Math.min(halaman, totalHalaman);
   const grupHalaman = grup.slice((halamanAman - 1) * perHalaman, halamanAman * perHalaman);
 
+  const [terbuka, setTerbuka] = useState<Set<string>>(new Set());
+  const semuaTerbuka = grup.length > 0 && grup.every((g) => terbuka.has(g.kategori));
+
+  const toggleFolder = (merk: string) =>
+    setTerbuka((prev) => {
+      const next = new Set(prev);
+      if (next.has(merk)) next.delete(merk);
+      else next.add(merk);
+      return next;
+    });
+
+  const bukaTutupSemua = () => {
+    const allOpen = grup.length > 0 && grup.every((g) => terbuka.has(g.kategori));
+    const next = new Set(terbuka);
+    for (const g of grup) {
+      if (allOpen) next.delete(g.kategori);
+      else next.add(g.kategori);
+    }
+    setTerbuka(next);
+  };
+
   const hapus = async (id: string) => {
     try {
       await barangService.remove(id);
@@ -246,28 +267,34 @@ function KontenBarang() {
         </div>
 
         {/* Filter */}
-        <div className="flex flex-wrap items-center gap-3 bg-muted/20 p-4">
-          <Select value={filter.kodeSatker || ''} onChange={(e) => ubahFilter({ kodeSatker: (e.target.value || undefined) as never })} className="w-52">
-            <option value="">Semua Kode Satker</option>
-            {OPSI_FILTER_BARANG.map((o) => (
-              <option key={o.value} value={o.value}>
-                {o.label}
-              </option>
-            ))}
-          </Select>
-          <Select value={filter.kondisi || ''} onChange={(e) => ubahFilter({ kondisi: (e.target.value || undefined) as never })} className="w-40">
-            <option value="">Semua Kondisi</option>
-            {OPSI_KONDISI.map((o) => (
-              <option key={o.value} value={o.value}>
-                {o.label}
-              </option>
-            ))}
-          </Select>
-          <Select value={filter.ketersediaan || ''} onChange={(e) => ubahKetersediaan(e.target.value)} className="w-40">
-            <option value="">Semua Stok</option>
-            <option value="tersedia">Tersedia</option>
-            <option value="habis">Habis</option>
-          </Select>
+        <div className="flex flex-wrap items-center justify-between gap-3 bg-muted/20 p-4">
+          <div className="flex flex-wrap items-center gap-3">
+            <Select value={filter.kodeSatker || ''} onChange={(e) => ubahFilter({ kodeSatker: (e.target.value || undefined) as never })} className="w-52">
+              <option value="">Semua Kode Satker</option>
+              {OPSI_FILTER_BARANG.map((o) => (
+                <option key={o.value} value={o.value}>
+                  {o.label}
+                </option>
+              ))}
+            </Select>
+            <Select value={filter.kondisi || ''} onChange={(e) => ubahFilter({ kondisi: (e.target.value || undefined) as never })} className="w-40">
+              <option value="">Semua Kondisi</option>
+              {OPSI_KONDISI.map((o) => (
+                <option key={o.value} value={o.value}>
+                  {o.label}
+                </option>
+              ))}
+            </Select>
+            <Select value={filter.ketersediaan || ''} onChange={(e) => ubahKetersediaan(e.target.value)} className="w-40">
+              <option value="">Semua Stok</option>
+              <option value="tersedia">Tersedia</option>
+              <option value="habis">Habis</option>
+            </Select>
+          </div>
+          <Button variant="ghost" size="sm" onClick={bukaTutupSemua} className="text-blue-600 hover:text-blue-700 shrink-0">
+            <ChevronsUpDown className="h-4 w-4" />
+            {semuaTerbuka ? 'Tutup semua folder' : 'Buka semua folder'}
+          </Button>
         </div>
       </div>
 
@@ -288,7 +315,7 @@ function KontenBarang() {
         />
       ) : (
         <>
-          <FolderBarang grup={grupHalaman} onHapus={hapus} />
+          <FolderBarang grup={grupHalaman} onHapus={hapus} terbuka={terbuka} onToggle={toggleFolder} />
 
           {/* Footer: jumlah folder per halaman + navigasi */}
           <div className="flex flex-col items-center justify-between gap-3 sm:flex-row">
