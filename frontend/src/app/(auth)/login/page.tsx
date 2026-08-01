@@ -85,6 +85,127 @@ export default function LoginPage() {
           <div className="absolute -left-[10%] -top-[10%] h-[40%] w-[40%] animate-pulse rounded-full bg-white blur-[120px]" />
           <div className="absolute -bottom-[10%] -right-[10%] h-[50%] w-[50%] animate-pulse rounded-full bg-secondary blur-[120px]" />
         </div>
+
+        {/* Ilustrasi background: aset BMN (laptop, tablet, koper/dokumen) */}
+        <svg
+          aria-hidden
+          viewBox="0 0 600 800"
+          className="pointer-events-none absolute inset-0 h-full w-full"
+          preserveAspectRatio="xMidYMid slice"
+        >
+          <defs>
+            <linearGradient id="asset-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stopColor="#ffffff" stopOpacity="0.22" />
+              <stop offset="100%" stopColor="#bae6fd" stopOpacity="0.10" />
+            </linearGradient>
+            <linearGradient id="screen-grad" x1="0%" y1="0%" x2="0%" y2="100%">
+              <stop offset="0%" stopColor="#7dd3fc" stopOpacity="0.35" />
+              <stop offset="100%" stopColor="#0ea5e9" stopOpacity="0.18" />
+            </linearGradient>
+            <linearGradient id="flow-grad" x1="0%" y1="0%" x2="100%" y2="0%">
+              <stop offset="0%" stopColor="#ffffff" stopOpacity="0.05" />
+              <stop offset="50%" stopColor="#7dd3fc" stopOpacity="0.45" />
+              <stop offset="100%" stopColor="#ffffff" stopOpacity="0.05" />
+            </linearGradient>
+          </defs>
+
+          {/* Laptop (kiri atas) */}
+          <g className="animate-float" style={{ transformOrigin: '110px 200px' }}>
+            {/* Layar */}
+            <rect x="40" y="140" width="140" height="90" rx="8" fill="url(#asset-grad)" stroke="#ffffff" strokeOpacity="0.35" strokeWidth="1.5" />
+            <rect x="50" y="150" width="120" height="70" rx="4" fill="url(#screen-grad)" />
+            {/* Garis konten di layar */}
+            <rect x="60" y="162" width="60" height="4" rx="2" fill="#ffffff" fillOpacity="0.45" />
+            <rect x="60" y="174" width="100" height="3" rx="1.5" fill="#ffffff" fillOpacity="0.25" />
+            <rect x="60" y="184" width="80" height="3" rx="1.5" fill="#ffffff" fillOpacity="0.25" />
+            <rect x="60" y="194" width="70" height="3" rx="1.5" fill="#ffffff" fillOpacity="0.25" />
+            {/* Keyboard */}
+            <rect x="28" y="230" width="164" height="14" rx="3" fill="#ffffff" fillOpacity="0.18" stroke="#ffffff" strokeOpacity="0.25" strokeWidth="1" />
+            <rect x="100" y="244" width="20" height="3" rx="1.5" fill="#ffffff" fillOpacity="0.35" />
+          </g>
+
+          {/* Tablet/iPad (kanan atas, portrait) */}
+          <g className="animate-float" style={{ transformOrigin: '460px 220px', animationDelay: '0.8s' }}>
+            <rect x="410" y="130" width="100" height="130" rx="10" fill="url(#asset-grad)" stroke="#ffffff" strokeOpacity="0.35" strokeWidth="1.5" />
+            <rect x="418" y="142" width="84" height="106" rx="4" fill="url(#screen-grad)" />
+            <circle cx="460" cy="254" r="2.5" fill="#ffffff" fillOpacity="0.35" />
+            {/* Konten tablet */}
+            <rect x="426" y="152" width="50" height="4" rx="2" fill="#ffffff" fillOpacity="0.45" />
+            <rect x="426" y="164" width="68" height="3" rx="1.5" fill="#ffffff" fillOpacity="0.25" />
+            <rect x="426" y="174" width="68" height="3" rx="1.5" fill="#ffffff" fillOpacity="0.25" />
+            <rect x="426" y="184" width="50" height="3" rx="1.5" fill="#ffffff" fillOpacity="0.25" />
+            {/* Ikon kecil di tablet */}
+            <rect x="430" y="200" width="20" height="20" rx="4" fill="#ffffff" fillOpacity="0.20" />
+            <rect x="456" y="200" width="20" height="20" rx="4" fill="#ffffff" fillOpacity="0.20" />
+            <rect x="430" y="226" width="46" height="14" rx="3" fill="#ffffff" fillOpacity="0.18" />
+          </g>
+
+          {/* Koper / tas kantor (kiri bawah) */}
+          <g className="animate-float" style={{ transformOrigin: '140px 640px', animationDelay: '0.4s' }}>
+            {/* Handle */}
+            <path d="M 90 580 Q 90 562 110 562 L 150 562 Q 170 562 170 580" fill="none" stroke="#ffffff" strokeOpacity="0.45" strokeWidth="2.5" strokeLinecap="round" />
+            {/* Body */}
+            <rect x="70" y="580" width="120" height="92" rx="10" fill="url(#asset-grad)" stroke="#ffffff" strokeOpacity="0.35" strokeWidth="1.5" />
+            {/* Detail tengah */}
+            <rect x="120" y="600" width="20" height="14" rx="3" fill="#ffffff" fillOpacity="0.30" />
+            {/* Kancing/kunci */}
+            <circle cx="130" cy="650" r="3" fill="#ffffff" fillOpacity="0.45" />
+            {/* Label nama */}
+            <rect x="84" y="638" width="60" height="6" rx="3" fill="#ffffff" fillOpacity="0.30" />
+            <rect x="84" y="650" width="40" height="4" rx="2" fill="#ffffff" fillOpacity="0.20" />
+          </g>
+
+          {/* Bundel dokumen / map (kanan bawah) */}
+          <g className="animate-float" style={{ transformOrigin: '440px 660px', animationDelay: '1.2s' }}>
+            {/* Map di belakang */}
+            <path d="M 400 600 L 460 590 L 500 600 L 500 680 L 440 690 L 400 680 Z" fill="url(#asset-grad)" stroke="#ffffff" strokeOpacity="0.35" strokeWidth="1.5" />
+            {/* Dokumen di dalam */}
+            <rect x="416" y="612" width="68" height="52" rx="4" fill="#ffffff" fillOpacity="0.18" />
+            <rect x="424" y="622" width="52" height="3" rx="1.5" fill="#ffffff" fillOpacity="0.40" />
+            <rect x="424" y="630" width="44" height="2.5" rx="1.25" fill="#ffffff" fillOpacity="0.25" />
+            <rect x="424" y="638" width="52" height="2.5" rx="1.25" fill="#ffffff" fillOpacity="0.25" />
+            <rect x="424" y="646" width="40" height="2.5" rx="1.25" fill="#ffffff" fillOpacity="0.25" />
+            {/* Cap/stempel di dokumen */}
+            <circle cx="468" cy="654" r="8" fill="none" stroke="#7dd3fc" strokeOpacity="0.55" strokeWidth="1.5" />
+            <circle cx="468" cy="654" r="3" fill="#7dd3fc" fillOpacity="0.35" />
+          </g>
+
+          {/* Alur panah peminjaman (laptop → tablet, melengkung ke atas) */}
+          <path
+            d="M 180 195 Q 300 110 410 195"
+            fill="none"
+            stroke="url(#flow-grad)"
+            strokeWidth="2.5"
+            strokeDasharray="6 8"
+            strokeLinecap="round"
+            className="login-flow"
+          />
+          {/* Alur panah pengembalian (tablet → koper, melengkung) */}
+          <path
+            d="M 460 270 Q 300 540 190 625"
+            fill="none"
+            stroke="url(#flow-grad)"
+            strokeWidth="2.5"
+            strokeDasharray="6 8"
+            strokeLinecap="round"
+            className="login-flow"
+          />
+
+          {/* Ikon peminjaman: panah keluar dari kotak (di tengah atas) */}
+          <g transform="translate(295, 100)" opacity="0.55">
+            <circle cx="0" cy="0" r="22" fill="#ffffff" fillOpacity="0.12" stroke="#ffffff" strokeOpacity="0.35" strokeWidth="1.5" />
+            <path d="M -7 -8 L -7 8 L 7 8" fill="none" stroke="#ffffff" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
+            <path d="M 7 -8 L -7 -8 L -7 8" fill="none" stroke="#ffffff" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
+          </g>
+
+          {/* Ikon pengembalian: panah kembali ke kotak (di tengah) */}
+          <g transform="translate(295, 530)" opacity="0.55">
+            <circle cx="0" cy="0" r="22" fill="#ffffff" fillOpacity="0.12" stroke="#ffffff" strokeOpacity="0.35" strokeWidth="1.5" />
+            <path d="M 7 8 L 7 -8 L -7 -8" fill="none" stroke="#ffffff" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
+            <path d="M -7 8 L 7 8 L 7 -8" fill="none" stroke="#ffffff" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
+          </g>
+        </svg>
+
         <div className="relative z-10 max-w-xl text-center">
           <div className="glass-panel mb-12 inline-flex animate-float items-center gap-3 rounded-full px-6 py-3">
             <Image src="/images/logo-kemenkeu.png" alt="Logo Kementerian Keuangan" width={220} height={60} className="object-contain" />

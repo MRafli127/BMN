@@ -415,6 +415,16 @@ a:focus:not(:focus-visible) {
   animation: login-hero-sub-rise 0.9s 0.3s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
+/* Animasi alur panah pada SVG latar login */
+@keyframes login-flow {
+  to {
+    stroke-dashoffset: -28;
+  }
+}
+.login-flow {
+  animation: login-flow 2.4s linear infinite;
+}
+
 /* Label mengambang pada input autentikasi */
 .floating-label-group {
   position: relative;
