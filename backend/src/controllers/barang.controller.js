@@ -16,10 +16,10 @@ function getRequestInfo(req) {
 }
 
 const getSemua = asyncHandler(async (req, res) => {
-  const { q, jenis, kondisi, ketersediaan, kodeSatker, page, limit, includePeminjam } = req.query;
-  // Konversi string "true" ke boolean
-  const includeDetail = includePeminjam === 'true' || includePeminjam === true;
-  const hasil = await barangService.getSemua({ q, jenis, kondisi, ketersediaan, kodeSatker, page, limit, includeDetail });
+  // Frontend mengirim includePeminjam=true|false, backend forward ke includeDetail
+  const { q, jenis, kondisi, ketersediaan, kodeSatker, page, limit, includePeminjam, includeDetail } = req.query;
+  const includeDetailBool = includePeminjam === 'true' || includePeminjam === true || includeDetail === 'true' || includeDetail === true;
+  const hasil = await barangService.getSemua({ q, jenis, kondisi, ketersediaan, kodeSatker, page, limit, includeDetail: includeDetailBool });
   return responsSukses(res, {
     pesan: 'Daftar barang berhasil dimuat.',
     data: hasil.data,

@@ -417,7 +417,7 @@ export function LangkahSuratPernyataan({
                     </a>
                   </Button>
                   <Button asChild variant="outline" size="sm">
-                    <a href={suratUrl} download="surat-pernyataan-peminjaman.pdf">
+                    <a href={suratUrl} download={`Surat-Peminjaman-Laptop_${(user?.nama ?? '').trim().replace(/\s+/g, '-').replace(/[^A-Za-z0-9._-]/g, '') || 'Tanpa-Nama'}.pdf`}>
                       <Icon name="download" className="text-[18px]" /> Unduh
                     </a>
                   </Button>
@@ -517,7 +517,7 @@ export function LangkahSuratPernyataan({
                         </Button>
                       ) : suratUrl ? (
                         <Button asChild variant="outline" size="sm" className="w-full">
-                          <a href={suratUrl} download="surat-pernyataan-peminjaman.pdf">
+                          <a href={suratUrl} download={`Surat-Peminjaman-Laptop_${(user?.nama ?? '').trim().replace(/\s+/g, '-').replace(/[^A-Za-z0-9._-]/g, '') || 'Tanpa-Nama'}.pdf`}>
                             <Icon name="download" className="text-[18px]" /> Unduh Surat
                           </a>
                         </Button>

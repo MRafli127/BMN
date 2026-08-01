@@ -159,9 +159,9 @@ export default function DetailRiwayatPage() {
     .trim()
     .replace(/\s+/g, '-')
     .replace(/[^A-Za-z0-9._-]/g, '');
-  const namaFilePeminjaman = `Surat-Peminjaman-laptop_${namaBerkasPeminjam}.pdf`;
-  const namaFilePeminjamanStempel = `Surat-Peminjaman-Berstempel-laptop_${namaBerkasPeminjam}.pdf`;
-  const namaFilePengembalian = `Surat-Pengembalian-laptop_${namaBerkasPeminjam}.pdf`;
+  const namaFilePeminjaman = `Surat-Peminjaman-Laptop_${namaBerkasPeminjam}.pdf`;
+  const namaFilePeminjamanStempel = `Surat-Peminjaman-Berstempel-Laptop_${namaBerkasPeminjam}.pdf`;
+  const namaFilePengembalian = `Surat-Pengembalian-Laptop_${namaBerkasPeminjam}.pdf`;
 
   return (
     <div className="mx-auto max-w-5xl space-y-gutter">

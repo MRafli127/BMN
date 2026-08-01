@@ -163,7 +163,7 @@ export function TabelPeminjaman({
   };
 
   const jumlahKolom =
-    (pilihAktif ? 1 : 0) + (tampilkanPeminjam ? 1 : 0) + (tampilkanMerk ? 1 : 0) + 6; // kode, barang, 2 tanggal, status, aksi
+    (pilihAktif ? 1 : 0) + (tampilkanPeminjam ? 1 : 0) + (tampilkanMerk ? 1 : 0) + 6; // kode, barang, tgl pinjam, PIC/admin, status, aksi
 
   // Mobile View - Instagram-like
   if (isMobile) {
@@ -262,7 +262,7 @@ export function TabelPeminjaman({
               <TableHead>Barang</TableHead>
               {tampilkanMerk && <TableHead>Merk</TableHead>}
               <TableHead>Rencana Pinjam</TableHead>
-              <TableHead>Rencana Kembali</TableHead>
+              <TableHead>PIC/admin</TableHead>
               <TableHead>Status</TableHead>
               <TableHead className="text-right">Aksi</TableHead>
             </TableRow>
@@ -331,15 +331,32 @@ export function TabelPeminjaman({
                     <TableCell className="text-sm text-muted-foreground">{merkBarang}</TableCell>
                   )}
                   <TableCell className="text-sm">{formatTanggal(p.tanggalPinjamRencana)}</TableCell>
-                  <TableCell className="text-sm">{formatTanggal(p.tanggalKembaliRencana)}</TableCell>
+                  <TableCell className="text-sm">
+                    {p.admin?.nama || p.pengembalianAdmin?.nama ? (
+                      <div className="flex flex-col gap-0.5">
+                        {p.admin?.nama && (
+                          <span className="font-medium text-blue-600 dark:text-blue-400">{p.admin.nama}</span>
+                        )}
+                        {p.pengembalianAdmin?.nama && (
+                          <span className="font-medium text-green-600 dark:text-green-400">{p.pengembalianAdmin.nama}</span>
+                        )}
+                      </div>
+                    ) : p.status === 'MENUNGGU' ? (
+                      <span className="text-muted-foreground">Belum diproses</span>
+                    ) : p.status === 'DITOLAK' && p.admin?.nama ? (
+                      <span className="font-medium text-red-600 dark:text-red-400">{p.admin.nama}</span>
+                    ) : (
+                      '-'
+                    )}
+                  </TableCell>
                   <TableCell>
                     <Badge className={status.kelas}>{status.label}</Badge>
                   </TableCell>
                   <TableCell className="text-right">
                     <div className="flex justify-end gap-1.5">
-                      <Button asChild variant="outline" size="sm">
-                        <Link href={hrefDetail(p.id)}>
-                          <Eye className="h-4 w-4" /> Detail
+                      <Button asChild variant="outline" size="icon">
+                        <Link href={hrefDetail(p.id)} aria-label="Detail">
+                          <Eye className="h-4 w-4" />
                         </Link>
                       </Button>
                       {onHapus && (

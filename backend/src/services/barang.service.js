@@ -79,7 +79,13 @@ async function getSemua({ q, jenis, kondisi, ketersediaan, kodeSatker, page = 1,
     prisma.barang.findMany({
       where,
       include: includeDetail ? includePeminjam : undefined,
-      orderBy: { createdAt: 'desc' },
+      // PENTING: orderBy HARUS stabil/unik untuk pagination offset-based agar
+      // skip+take konsisten. createdAt saja tidak cukup — banyak barang hasil
+      // import massal bisa punya createdAt identik (timestamp sama). Tanpa
+      // tie-breaker, Postgres kembalikan urutan nondeterministik sehingga satu
+      // record bisa muncul di dua halaman sekaligus (atau hilang sama sekali),
+      // menyebabkan totalHalaman stale dan data hilang/duplikat saat looping.
+      orderBy: [{ createdAt: 'desc' }, { id: 'asc' }],
       skip: (halaman - 1) * perHalaman,
       take: perHalaman,
     }),
