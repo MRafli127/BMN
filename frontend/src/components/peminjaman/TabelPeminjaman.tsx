@@ -262,7 +262,7 @@ export function TabelPeminjaman({
               <TableHead>Barang</TableHead>
               {tampilkanMerk && <TableHead>Merk</TableHead>}
               <TableHead>Rencana Pinjam</TableHead>
-              <TableHead>PIC/admin</TableHead>
+              <TableHead>Aksi PIC</TableHead>
               <TableHead>Status</TableHead>
               <TableHead className="text-right">Aksi</TableHead>
             </TableRow>
