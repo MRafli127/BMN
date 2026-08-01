@@ -86,13 +86,14 @@ export default function LoginPage() {
           <div className="absolute -bottom-[10%] -right-[10%] h-[50%] w-[50%] animate-pulse rounded-full bg-secondary blur-[120px]" />
         </div>
         <div className="relative z-10 max-w-xl text-center">
-          <div className="glass-panel mb-12 inline-flex items-center gap-3 rounded-full px-6 py-3">
+          <div className="glass-panel mb-12 inline-flex animate-float items-center gap-3 rounded-full px-6 py-3">
             <Image src="/images/logo-kemenkeu.png" alt="Logo Kementerian Keuangan" width={220} height={60} className="object-contain" />
           </div>
-          <h1 className="mb-6 font-display-lg text-display-lg leading-tight text-white">
-            Manajemen Aset Negara Menjadi Lebih Mudah
+          <h1 className="login-hero-title mx-auto mb-6 max-w-full text-balance text-center font-display-lg text-display-lg leading-tight text-white">
+            <span className="block">Manajemen Barang Milik Negara</span>
+            <span className="block">(BMN)</span>
           </h1>
-          <p className="mb-10 font-body-lg text-body-lg text-white/80">
+          <p className="login-hero-sub mb-10 font-body-lg text-body-lg text-white/80">
             Transformasi tata kelola barang milik negara dengan platform terpadu, transparan, dan
             akuntabel untuk masa depan birokrasi yang lebih efisien.
           </p>
