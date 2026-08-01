@@ -29,6 +29,28 @@ const LABEL_PERAN: Record<Role, string> = {
   SUPER_ADMIN: LABEL_ROLE.SUPER_ADMIN,
 };
 
+// Gradien per-role untuk tombol switch peran di sidebar.
+const GRADIEN_SWITCH: Record<Role, { from: string; to: string; ikonBg: string; ikon: string }> = {
+  ADMIN: {
+    from: 'from-blue-400/95',
+    to: 'to-indigo-500/95',
+    ikonBg: 'bg-white/20',
+    ikon: 'shield_person',
+  },
+  PEMINJAM: {
+    from: 'from-emerald-400/95',
+    to: 'to-teal-500/95',
+    ikonBg: 'bg-white/20',
+    ikon: 'person',
+  },
+  SUPER_ADMIN: {
+    from: 'from-violet-400/95',
+    to: 'to-fuchsia-500/95',
+    ikonBg: 'bg-white/20',
+    ikon: 'admin_panel_settings',
+  },
+};
+
 interface ItemMenu {
   label: string;
   href: string;
@@ -210,26 +232,51 @@ export function Sidebar() {
           {/* Beralih peran (akun multi-role) — tepat di bawah logo & identitas */}
           {/* SUPER_ADMIN tidak bisa beralih ke role lain */}
           {bisaGantiRole && !isSuperAdmin && (
-            <div className="mx-3 mb-3 animate-page-in" style={{ animationDelay: '60ms' }}>
+            <div className="mx-3 mb-3 space-y-2 animate-page-in" style={{ animationDelay: '60ms' }}>
+              <p className="px-2 text-[10px] font-bold uppercase tracking-[0.18em] text-white/50">
+                Beralih Peran
+              </p>
               {roles
                 .filter((r) => r !== user?.activeRole)
-                .map((r) => (
-                  <button
-                    key={r}
-                    onClick={(e) => {
-                      buatRipple(e);
-                      gantiPeran(r);
-                    }}
-                    className="group relative flex w-full items-center justify-center gap-2 overflow-hidden rounded-xl border border-white/20 bg-white/10 px-4 py-2.5 text-sm font-semibold text-white transition-all duration-300 hover:border-secondary-container/60 hover:bg-white/15 active:scale-[0.99]"
-                  >
-                    <Icon
-                      name="swap_horiz"
-                      className="text-secondary-container transition-transform duration-300 group-hover:rotate-180"
-                      style={{ fontSize: 20 }}
-                    />
-                    Beralih ke {LABEL_PERAN[r]}
-                  </button>
-                ))}
+                .map((r) => {
+                  const sw = GRADIEN_SWITCH[r];
+                  return (
+                    <button
+                      key={r}
+                      onClick={(e) => {
+                        buatRipple(e);
+                        gantiPeran(r);
+                      }}
+                      className={cn(
+                        'group relative flex w-full items-center justify-between gap-2 overflow-hidden rounded-xl border border-white/15 bg-transparent px-3 py-2.5 text-sm font-semibold text-white/85 transition-all duration-300 hover:-translate-y-0.5 hover:border-transparent hover:text-white hover:shadow-lg hover:shadow-blue-950/20 active:scale-[0.99]',
+                        'before:absolute before:inset-0 before:bg-gradient-to-r before:opacity-0 before:transition-opacity before:duration-300 hover:before:opacity-100',
+                        sw.from,
+                        sw.to,
+                        'before:pointer-events-none'
+                      )}
+                    >
+                      {/* Kilau sweep saat hover */}
+                      <span className="pointer-events-none absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/25 to-transparent transition-transform duration-700 group-hover:translate-x-full" />
+
+                      <span className="relative z-10 flex items-center gap-2.5">
+                        <span
+                          className={cn(
+                            'grid h-7 w-7 place-items-center rounded-lg bg-white/10 transition-colors group-hover:bg-white/25',
+                            sw.ikonBg
+                          )}
+                        >
+                          <Icon name={sw.ikon} style={{ fontSize: 18 }} fill />
+                        </span>
+                        <span>Beralih ke {LABEL_PERAN[r]}</span>
+                      </span>
+                      <Icon
+                        name="swap_horiz"
+                        className="relative z-10 text-white/80 transition-transform duration-300 group-hover:rotate-180 group-hover:text-white"
+                        style={{ fontSize: 20 }}
+                      />
+                    </button>
+                  );
+                })}
             </div>
           )}
 
