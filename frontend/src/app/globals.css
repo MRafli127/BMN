@@ -425,6 +425,38 @@ a:focus:not(:focus-visible) {
   animation: login-flow 2.4s linear infinite;
 }
 
+/* Shimmer sweep pada tombol login saat hover */
+.login-cta span.absolute {
+  transform: translateX(-100%);
+}
+
+/* Animasi layar pilihan peran */
+@keyframes role-badge-pulse {
+  0%, 100% {
+    box-shadow: 0 10px 25px -5px rgb(30 58 138 / 0.35), 0 0 0 0 rgb(56 189 248 / 0.4);
+  }
+  50% {
+    box-shadow: 0 10px 25px -5px rgb(30 58 138 / 0.45), 0 0 0 12px rgb(56 189 248 / 0);
+  }
+}
+.login-role-badge {
+  animation: role-badge-pulse 2.4s ease-in-out infinite;
+}
+
+@keyframes role-option-rise {
+  0% {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+.login-role-option {
+  animation: role-option-rise 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
 /* Label mengambang pada input autentikasi */
 .floating-label-group {
   position: relative;

@@ -14,7 +14,7 @@ import { z } from 'zod';
 import { Icon } from '@/components/ui/icon';
 import { notify } from '@/components/ui/toast';
 import { useAuth } from '@/hooks/useAuth';
-import { ambilPesanError } from '@/lib/utils';
+import { ambilPesanError, cn } from '@/lib/utils';
 import { RUTE, RUTE_DEFAULT } from '@/constants/routes';
 import { LABEL_ROLE, IKON_ROLE } from '@/constants/roles';
 import type { Role } from '@/types/user.type';
@@ -26,10 +26,31 @@ const schema = z.object({
 type FormValues = z.infer<typeof schema>;
 
 // Info tampilan tiap peran untuk layar pemilihan role.
-const INFO_PERAN: Record<Role, { label: string; deskripsi: string; ikon: string }> = {
-  ADMIN: { label: LABEL_ROLE.ADMIN, deskripsi: 'Kelola barang, peminjaman & pengguna', ikon: IKON_ROLE.ADMIN },
-  PEMINJAM: { label: LABEL_ROLE.PEMINJAM, deskripsi: 'Ajukan & pantau peminjaman barang', ikon: IKON_ROLE.PEMINJAM },
-  SUPER_ADMIN: { label: LABEL_ROLE.SUPER_ADMIN, deskripsi: 'Kelola seluruh sistem & administrator', ikon: IKON_ROLE.SUPER_ADMIN },
+const INFO_PERAN: Record<Role, { label: string; deskripsi: string; ikon: string; gradien: string; warnaIkonBg: string; warnaBadge: string }> = {
+  ADMIN: {
+    label: LABEL_ROLE.ADMIN,
+    deskripsi: 'Kelola barang, peminjaman & pengguna',
+    ikon: IKON_ROLE.ADMIN,
+    gradien: 'from-blue-500 via-blue-600 to-indigo-600',
+    warnaIkonBg: 'from-blue-500/20 to-indigo-500/20',
+    warnaBadge: 'bg-blue-100 text-blue-700',
+  },
+  PEMINJAM: {
+    label: LABEL_ROLE.PEMINJAM,
+    deskripsi: 'Ajukan & pantau peminjaman barang',
+    ikon: IKON_ROLE.PEMINJAM,
+    gradien: 'from-emerald-500 via-teal-500 to-cyan-600',
+    warnaIkonBg: 'from-emerald-500/20 to-cyan-500/20',
+    warnaBadge: 'bg-emerald-100 text-emerald-700',
+  },
+  SUPER_ADMIN: {
+    label: LABEL_ROLE.SUPER_ADMIN,
+    deskripsi: 'Kelola seluruh sistem & administrator',
+    ikon: IKON_ROLE.SUPER_ADMIN,
+    gradien: 'from-violet-500 via-purple-600 to-fuchsia-600',
+    warnaIkonBg: 'from-violet-500/20 to-fuchsia-500/20',
+    warnaBadge: 'bg-violet-100 text-violet-700',
+  },
 };
 
 export default function LoginPage() {
@@ -222,133 +243,190 @@ export default function LoginPage() {
       </section>
 
       {/* Panel kanan: form login */}
-      <section className="flex min-h-screen w-full items-center justify-center bg-white p-6 md:w-1/2 md:p-12 lg:w-2/5">
-        <div className="w-full max-w-md animate-fade-up">
-          <div className="mb-10 flex flex-col items-center gap-2 text-center md:hidden">
+      <section className="relative flex min-h-screen w-full items-center justify-center overflow-hidden bg-gradient-to-br from-slate-50 via-white to-blue-50 p-6 md:w-1/2 md:p-12 lg:w-2/5">
+        {/* Dekorasi background */}
+        <div aria-hidden className="pointer-events-none absolute inset-0">
+          <div className="absolute -left-20 -top-20 h-72 w-72 rounded-full bg-blue-200/40 blur-3xl animate-pulse" />
+          <div className="absolute -bottom-20 -right-20 h-80 w-80 rounded-full bg-cyan-200/40 blur-3xl animate-pulse" style={{ animationDelay: '1s' }} />
+          <div className="absolute inset-0 opacity-[0.04] [background-image:radial-gradient(circle_at_1px_1px,#0c4a6e_1px,transparent_0)] [background-size:24px_24px]" />
+        </div>
+
+        <div className="relative z-10 w-full max-w-md animate-fade-up">
+          {/* Logo mobile */}
+          <div className="mb-8 flex flex-col items-center gap-2 text-center md:hidden">
             <Image src="/images/logo-kemenkeu.png" alt="Logo Kementerian Keuangan" width={200} height={56} className="object-contain" />
           </div>
 
           {pilihanPeran ? (
             /* Layar pilih peran untuk akun dengan lebih dari satu role */
-            <div className="space-y-6">
-              <div>
-                <h3 className="mb-2 font-jakarta text-headline-md text-on-surface">Halo, {pilihanPeran.nama}</h3>
+            <div className="rounded-3xl border border-white/60 bg-white/70 p-8 shadow-xl shadow-slate-200/60 backdrop-blur-xl sm:p-10">
+              <div className="mb-8 text-center">
+                <div className="login-role-badge mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-primary via-blue-600 to-violet-600 shadow-lg shadow-primary/30">
+                  <Icon name="workspace_premium" className="text-[30px] text-white" fill />
+                </div>
+                <h3 className="mb-2 font-jakarta text-2xl font-bold tracking-tight text-on-surface">Halo, {pilihanPeran.nama}!</h3>
                 <p className="font-body-md text-on-surface-variant">
-                  Akun Anda memiliki lebih dari satu peran. Pilih peran yang ingin digunakan.
+                  Akun Anda memiliki lebih dari satu peran. Pilih peran untuk sesi ini.
                 </p>
               </div>
 
               <div className="space-y-3">
-                {pilihanPeran.roles.map((role) => (
-                  <button
-                    key={role}
-                    type="button"
-                    disabled={sedangProses}
-                    onClick={() => pilihPeran(role)}
-                    className="flex w-full items-center gap-4 rounded-xl border border-outline-variant bg-surface-container-low p-4 text-left transition-all hover:border-primary hover:bg-primary/5 active:scale-[0.98] disabled:opacity-60"
-                  >
-                    <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
-                      <Icon name={INFO_PERAN[role].ikon} className="text-[26px]" />
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <p className="font-jakarta text-headline-md text-on-surface">{INFO_PERAN[role].label}</p>
-                      <p className="truncate font-body-sm text-on-surface-variant">{INFO_PERAN[role].deskripsi}</p>
-                    </div>
-                    <Icon name="chevron_right" className="text-on-surface-variant" />
-                  </button>
-                ))}
+                {pilihanPeran.roles.map((role, idx) => {
+                  const info = INFO_PERAN[role];
+                  return (
+                    <button
+                      key={role}
+                      type="button"
+                      disabled={sedangProses}
+                      onClick={() => pilihPeran(role)}
+                      style={{ animationDelay: `${0.1 + idx * 0.08}s` }}
+                      className="login-role-option group relative flex w-full items-center gap-4 overflow-hidden rounded-2xl border border-outline-variant bg-white/80 p-4 text-left shadow-sm backdrop-blur-sm transition-all hover:-translate-y-1 hover:border-transparent hover:shadow-xl active:scale-[0.98] disabled:opacity-60"
+                    >
+                      {/* Gradient overlay saat hover */}
+                      <span
+                        className={cn(
+                          'absolute inset-0 bg-gradient-to-r opacity-0 transition-opacity duration-300 group-hover:opacity-100',
+                          info.gradien
+                        )}
+                      />
+
+                      <div className="relative flex h-14 w-14 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br text-white shadow-md transition-all group-hover:scale-110 group-hover:shadow-lg">
+                        <span className={cn('absolute inset-0 rounded-xl bg-gradient-to-br', info.gradien)} />
+                        <Icon name={info.ikon} className="relative text-[26px] text-white" fill />
+                      </div>
+
+                      <div className="relative min-w-0 flex-1">
+                        <div className="flex items-center gap-2">
+                          <p className="font-jakarta text-base font-bold text-on-surface transition-colors group-hover:text-white">
+                            {info.label}
+                          </p>
+                          <span
+                            className={cn(
+                              'inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide transition-colors',
+                              info.warnaBadge,
+                              'group-hover:bg-white/25 group-hover:text-white'
+                            )}
+                          >
+                            {role}
+                          </span>
+                        </div>
+                        <p className="mt-0.5 truncate text-xs text-on-surface-variant transition-colors group-hover:text-white/85">
+                          {info.deskripsi}
+                        </p>
+                      </div>
+
+                      <div className="relative flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-white/60 text-on-surface-variant transition-all group-hover:translate-x-1 group-hover:bg-white/25 group-hover:text-white">
+                        <Icon name="arrow_forward" className="text-[18px]" />
+                      </div>
+                    </button>
+                  );
+                })}
               </div>
 
-              <button
-                type="button"
-                disabled={sedangProses}
-                onClick={() => setPilihanPeran(null)}
-                className="font-label-sm text-on-surface-variant hover:text-primary hover:underline disabled:opacity-60"
-              >
-                ← Kembali ke login
-              </button>
+              <div className="mt-6 flex justify-center">
+                <button
+                  type="button"
+                  disabled={sedangProses}
+                  onClick={() => setPilihanPeran(null)}
+                  className="inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 font-label-sm text-on-surface-variant transition-colors hover:bg-white/60 hover:text-primary disabled:opacity-60"
+                >
+                  <Icon name="arrow_back" className="text-[16px]" />
+                  Kembali ke login
+                </button>
+              </div>
             </div>
           ) : (
-          <>
-          <form onSubmit={kirim} className="space-y-6">
-            <div>
-              <h3 className="mb-2 font-jakarta text-headline-md text-on-surface">Selamat Datang</h3>
-              <p className="mb-2 font-body-md text-on-surface-variant">
-                Silakan masuk dengan kredensial instansi Anda.
-              </p>
-            </div>
+            /* Form login utama */
+            <div className="rounded-3xl border border-white/60 bg-white/70 p-8 shadow-xl shadow-slate-200/60 backdrop-blur-xl sm:p-10">
+              <div className="mb-8 text-center">
+                <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-primary to-blue-600 shadow-lg shadow-primary/30">
+                  <Icon name="lock_open" className="text-[26px] text-white" fill />
+                </div>
+                <h3 className="mb-2 font-jakarta text-2xl font-bold tracking-tight text-on-surface">Selamat Datang</h3>
+                <p className="font-body-md text-on-surface-variant">
+                  Silakan masuk dengan kredensial instansi Anda.
+                </p>
+              </div>
 
-            <div className="floating-label-group">
-              <input
-                id="email"
-                type="email"
-                placeholder=" "
-                {...register('email')}
-                className="w-full rounded-xl border border-outline-variant bg-surface-container-low px-4 py-4 transition-all focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/10"
-              />
-              <label htmlFor="email" className="font-label-md text-on-surface-variant">
-                Email Pegawai
-              </label>
-            </div>
-            {errors.email && <p className="-mt-3 text-xs text-error">{errors.email.message}</p>}
+              <form onSubmit={kirim} className="space-y-5">
+                <div className="floating-label-group">
+                  <input
+                    id="email"
+                    type="email"
+                    placeholder=" "
+                    {...register('email')}
+                    className="w-full rounded-xl border border-outline-variant bg-white/80 px-4 py-4 transition-all focus:border-primary focus:bg-white focus:outline-none focus:ring-4 focus:ring-primary/15"
+                  />
+                  <label htmlFor="email" className="font-label-md text-on-surface-variant">
+                    Email Pegawai
+                  </label>
+                </div>
+                {errors.email && <p className="-mt-3 text-xs text-error">{errors.email.message}</p>}
 
-            <div className="floating-label-group relative">
-              <input
-                id="password"
-                type={lihatPassword ? 'text' : 'password'}
-                placeholder=" "
-                {...register('password')}
-                className="w-full rounded-xl border border-outline-variant bg-surface-container-low px-4 py-4 pr-12 transition-all focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/10"
-              />
-              <label htmlFor="password" className="font-label-md text-on-surface-variant">
-                Kata Sandi
-              </label>
-              <button
-                type="button"
-                onClick={() => setLihatPassword((tampil) => !tampil)}
-                aria-label={lihatPassword ? 'Sembunyikan kata sandi' : 'Lihat kata sandi'}
-                aria-pressed={lihatPassword}
-                className="absolute right-3 top-1/2 -translate-y-1/2 rounded-lg p-1 text-on-surface-variant transition-colors hover:text-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
-              >
-                <Icon name={lihatPassword ? 'visibility_off' : 'visibility'} className="text-[22px]" />
-              </button>
-            </div>
-            {errors.password && <p className="-mt-3 text-xs text-error">{errors.password.message}</p>}
+                <div className="floating-label-group relative">
+                  <input
+                    id="password"
+                    type={lihatPassword ? 'text' : 'password'}
+                    placeholder=" "
+                    {...register('password')}
+                    className="w-full rounded-xl border border-outline-variant bg-white/80 px-4 py-4 pr-12 transition-all focus:border-primary focus:bg-white focus:outline-none focus:ring-4 focus:ring-primary/15"
+                  />
+                  <label htmlFor="password" className="font-label-md text-on-surface-variant">
+                    Kata Sandi
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => setLihatPassword((tampil) => !tampil)}
+                    aria-label={lihatPassword ? 'Sembunyikan kata sandi' : 'Lihat kata sandi'}
+                    aria-pressed={lihatPassword}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 rounded-lg p-1 text-on-surface-variant transition-colors hover:text-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
+                  >
+                    <Icon name={lihatPassword ? 'visibility_off' : 'visibility'} className="text-[22px]" />
+                  </button>
+                </div>
+                {errors.password && <p className="-mt-3 text-xs text-error">{errors.password.message}</p>}
 
-            <div className="flex items-center justify-between">
-              <label className="flex cursor-pointer items-center gap-2">
-                <input
-                  type="checkbox"
-                  className="h-4 w-4 rounded border-outline-variant text-primary focus:ring-primary"
-                />
-                <span className="font-label-sm text-on-surface-variant">Ingat Saya</span>
-              </label>
-              <a href="#" className="font-label-sm text-primary hover:underline"> 
-              </a>
-            </div>
+                <div className="flex items-center justify-between pt-1">
+                  <label className="flex cursor-pointer items-center gap-2">
+                    <input
+                      type="checkbox"
+                      className="h-4 w-4 rounded border-outline-variant text-primary focus:ring-primary"
+                    />
+                    <span className="font-label-sm text-on-surface-variant">Ingat Saya</span>
+                  </label>
+                </div>
 
-            <button
-              type="submit"
-              disabled={sedangProses}
-              className="flex w-full items-center justify-center gap-2 rounded-xl bg-primary py-4 font-jakarta text-headline-md text-white shadow-lg shadow-primary/20 transition-all hover:bg-primary-container active:scale-[0.98] disabled:opacity-60"
-            >
-              {sedangProses ? (
-                <Icon name="progress_activity" className="animate-spin" />
-              ) : (
-                <>
-                  Masuk
-                  <Icon name="login" className="text-[20px]" />
-                </>
-              )}
-            </button>
-          </form>
-          <div className="mt-6 rounded-xl border border-outline-variant bg-surface-container-low p-3 text-xs text-on-surface-variant">
-            <p className="font-bold text-on-surface">Akun demo (setelah seeder dijalankan):</p>
-            <p className="mt-1">Admin: admin@bmn.go.id / Bmn@2026</p>
-            <p>Super admin: superadmin@bmn.go.id / SuperAdmin123!</p>
-            <p>Peminjam: budi@bmn.go.id / Bmn@2026</p>
-          </div>
-          </>
+                <button
+                  type="submit"
+                  disabled={sedangProses}
+                  className="login-cta group relative mt-2 flex w-full items-center justify-center gap-2 overflow-hidden rounded-xl bg-gradient-to-r from-primary via-blue-600 to-cyan-500 py-4 font-jakarta text-base font-bold text-white shadow-lg shadow-primary/30 transition-all hover:-translate-y-0.5 hover:shadow-xl hover:shadow-primary/40 active:scale-[0.98] disabled:opacity-60"
+                >
+                  <span className="absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/25 to-transparent transition-transform duration-700 group-hover:translate-x-full" />
+                  <span className="relative z-10 flex items-center gap-2">
+                    {sedangProses ? (
+                      <Icon name="progress_activity" className="animate-spin" />
+                    ) : (
+                      <>
+                        Masuk
+                        <Icon name="login" className="text-[20px] transition-transform group-hover:translate-x-1" />
+                      </>
+                    )}
+                  </span>
+                </button>
+              </form>
+
+              <div className="mt-6 rounded-xl border border-blue-100 bg-gradient-to-br from-blue-50/80 to-cyan-50/60 p-4 text-xs text-on-surface-variant">
+                <p className="mb-2 flex items-center gap-1.5 font-bold text-on-surface">
+                  <Icon name="info" className="text-[16px] text-primary" />
+                  Akun demo
+                </p>
+                <div className="space-y-1 font-mono">
+                  <p><span className="font-semibold text-primary">Admin</span>: admin@bmn.go.id / Bmn@2026</p>
+                  <p><span className="font-semibold text-primary">Super admin</span>: superadmin@bmn.go.id / SuperAdmin123!</p>
+                  <p><span className="font-semibold text-primary">Peminjam</span>: budi@bmn.go.id / Bmn@2026</p>
+                </div>
+              </div>
+            </div>
           )}
         </div>
       </section>
