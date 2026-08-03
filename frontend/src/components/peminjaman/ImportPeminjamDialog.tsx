@@ -113,6 +113,20 @@ export function ImportPeminjamDialog({ onSelesai }: Props) {
           </DialogDescription>
         </DialogHeader>
 
+        {/* Catatan pencocokan: harus PERSIS sama (case-sensitive) */}
+        <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
+          <p className="font-semibold">Catatan pencocokan Merk &amp; NUP:</p>
+          <p className="mt-1">
+            Isian kolom <strong>Merk Laptop</strong> &amp; <strong>NUP Laptop</strong> di Excel{' '}
+            <strong>harus persis sama</strong> dengan data di sistem — termasuk{' '}
+            <strong>huruf besar/kecil (kapital)</strong>, spasi, dan karakter lain. Contoh:{' '}
+            <code className="rounded bg-white px-1.5 py-0.5 font-mono text-xs">Dell</code> ≠{' '}
+            <code className="rounded bg-white px-1.5 py-0.5 font-mono text-xs">dell</code> ≠{' '}
+            <code className="rounded bg-white px-1.5 py-0.5 font-mono text-xs">DELL</code>. Jika berbeda satu
+            karakter saja, baris akan masuk tab <strong>Gagal</strong>.
+          </p>
+        </div>
+
         {/* Langkah 1: template */}
         <div className="rounded-lg border bg-muted/40 p-3 text-sm">
           <p className="mb-2 font-medium text-foreground">Belum punya format file?</p>
