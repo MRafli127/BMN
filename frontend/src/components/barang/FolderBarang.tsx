@@ -344,9 +344,9 @@ export const FolderBarang = memo(function FolderBarang({
                             <TableCell className="text-sm text-muted-foreground">{barang.lokasiPenyimpanan || '-'}</TableCell>
                             <TableCell>
                               <div className="flex justify-end gap-1.5">
-                                <Button asChild variant="outline" size="sm">
+                                <Button asChild variant="outline" size="icon" aria-label="Detail">
                                   <Link href={RUTE.adminBarangDetail(barang.id)}>
-                                    <Eye className="h-4 w-4" /> Detail
+                                    <Eye className="h-4 w-4" />
                                   </Link>
                                 </Button>
                                 <Button variant="destructive" size="icon" onClick={() => handleDeleteClick(barang)} aria-label="Hapus">

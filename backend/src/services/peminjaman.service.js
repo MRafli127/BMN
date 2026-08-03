@@ -1542,6 +1542,11 @@ async function createByAdmin(adminId, data, dokumenDataUrl, requestInfo = {}) {
 
   // Audit log
   if (!isDraft) {
+    // Snapshot nama peminjam & barang utama ke dataBaru agar log
+    // aktivitas tetap menampilkan nama yang benar meskipun record
+    // peminjaman/peminjam/barang sudah dihapus di kemudian hari.
+    const namaPeminjamSnapshot = peminjam?.nama || '-';
+    const namaBarangSnapshot = barangUtama?.nama || '-';
     auditLogService.log({
       userId: adminId,
       userEmail: admin?.email,
@@ -1554,6 +1559,8 @@ async function createByAdmin(adminId, data, dokumenDataUrl, requestInfo = {}) {
         status: 'DIPINJAM',
         items: data.items,
         dibuatOleh: 'ADMIN',
+        namaPeminjam: namaPeminjamSnapshot,
+        namaBarang: namaBarangSnapshot,
       },
       requestInfo,
     }).catch(() => {});
@@ -1630,6 +1637,10 @@ async function serahkanDraftAdmin(peminjamanId, adminId, dokumenDataUrl, request
   } catch { /* non-blocking */ }
 
   // Audit log
+  // Snapshot nama peminjam & barang utama agar log aktivitas tetap
+  // menampilkan nama yang benar meskipun record dihapus di kemudian hari.
+  const namaPeminjamSnapshot = peminjaman.peminjam?.nama || '-';
+  const namaBarangSnapshot = peminjaman.detail?.[0]?.barang?.nama || '-';
   auditLogService.log({
     userId: adminId,
     userEmail: admin?.email,
@@ -1637,7 +1648,13 @@ async function serahkanDraftAdmin(peminjamanId, adminId, dokumenDataUrl, request
     aksi: auditLogService.AKSI.PEMINJAMAN_DISERAHKAN,
     entitas: auditLogService.ENTITAS.PEMINJAMAN,
     entitasId: updated.id,
-    dataBaru: { kodeTransaksi: updated.kodeTransaksi, status: 'DIPINJAM', dibuatOleh: 'ADMIN' },
+    dataBaru: {
+      kodeTransaksi: updated.kodeTransaksi,
+      status: 'DIPINJAM',
+      dibuatOleh: 'ADMIN',
+      namaPeminjam: namaPeminjamSnapshot,
+      namaBarang: namaBarangSnapshot,
+    },
     requestInfo,
   }).catch(() => {});
 

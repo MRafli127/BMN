@@ -289,47 +289,84 @@ async function getSemua({
     const peminjaman = item.entitas === ENTITAS.PEMINJAMAN && item.entitasId
       ? peminjamanMap.get(item.entitasId)
       : null;
-    const namaPeminjam = peminjaman?.peminjam?.nama || 'Tidak dikenal';
+    // Urutan fallback: snapshot dataBaru (kalau ada) -> snapshot dataLama -> relasi peminjaman.
+    // DataLama/dataBaru sudah berisi namaPeminjam yang di-snapshot saat aksi dilakukan,
+    // sehingga bila record peminjaman / peminjam / barang sudah dihapus dari DB,
+    // deskripsi log tetap benar (tidak lagi menampilkan "Tidak dikenal").
+    const namaPeminjam =
+      item.dataBaru?.namaPeminjam ||
+      item.dataLama?.namaPeminjam ||
+      peminjaman?.peminjam?.nama ||
+      null;
     const barang = peminjaman?.detail?.[0]?.barang;
-    const namaBarang = barang?.nama || 'barang';
+    const namaBarang =
+      item.dataBaru?.namaBarang ||
+      item.dataLama?.namaBarang ||
+      barang?.nama ||
+      null;
     const statusBaru = item.dataBaru?.status;
     const statusLama = item.dataLama?.status;
 
     // Generate deskripsi berdasarkan aksi
     let deskripsi = '';
     if (item.entitas === ENTITAS.PEMINJAMAN && item.entitasId) {
+      // Pakai fallback yang menampilkan "—" (bukan "Tidak dikenal") bila
+      // benar-benar tidak ada data — supaya log yang sudah kehilangan
+      // referensi (mis. peminjaman + peminjam + barang sudah dihapus)
+      // tidak menampilkan teks aneh.
+      const peminjamLabel = namaPeminjam || '—';
+      const barangLabel = namaBarang || '—';
+
       // Bangun deskripsi berdasarkan aksi spesifik
       switch (item.aksi) {
         case AKSI.PEMINJAMAN_MENUNGGU:
-          deskripsi = `${namaPeminjam} mengajukan pinjaman ${namaBarang}`;
+          deskripsi = `${peminjamLabel} mengajukan pinjaman ${barangLabel}`;
           break;
         case AKSI.PEMINJAMAN_DISETUJUI:
-          deskripsi = `Admin menyetujui pengajuan ${namaPeminjam}`;
+          deskripsi = `Admin menyetujui pengajuan ${peminjamLabel}`;
           break;
         case AKSI.PEMINJAMAN_DITOLAK:
           const alasanTolak = item.dataBaru?.alasan ? ` (${item.dataBaru.alasan})` : '';
-          deskripsi = `Admin menolak pengajuan ${namaPeminjam}${alasanTolak}`;
+          deskripsi = `Admin menolak pengajuan ${peminjamLabel}${alasanTolak}`;
           break;
         case AKSI.PEMINJAMAN_DISERAHKAN:
-          deskripsi = `Admin menyerahkan ${namaBarang} ke ${namaPeminjam}`;
+          deskripsi = `Admin menyerahkan ${barangLabel} ke ${peminjamLabel}`;
           break;
         case AKSI.PEMINJAMAN_MEMINTA_PENGEMBALIAN:
-          deskripsi = `${namaPeminjam} meminta pengembalian ${namaBarang}`;
+          deskripsi = `${peminjamLabel} meminta pengembalian ${barangLabel}`;
           break;
         case AKSI.PEMINJAMAN_DIKEMBALIKAN:
           if (item.userNama && item.userNama !== 'Sistem') {
             // Dilakukan oleh admin
-            deskripsi = `Admin menerima pengembalian dari ${namaPeminjam}`;
+            deskripsi = `Admin menerima pengembalian dari ${peminjamLabel}`;
           } else {
-            deskripsi = `${namaPeminjam} mengembalikan ${namaBarang}`;
+            deskripsi = `${peminjamLabel} mengembalikan ${barangLabel}`;
           }
           break;
         case AKSI.PEMINJAMAN_DIBATALKAN:
-          deskripsi = `${namaPeminjam} membatalkan pengajuan`;
+          deskripsi = `${peminjamLabel} membatalkan pengajuan`;
           break;
-        case AKSI.PEMINJAMAN_DELETE:
-          const namaPeminjamHapus = item.dataLama?.namaPeminjam || namaPeminjam;
-          deskripsi = `Admin menghapus peminjaman ${namaPeminjamHapus}`;
+        case AKSI.PEMINJAMAN_DELETE: {
+          // Prioritas: dataLama.namaPeminjam (snapshot saat hapus) -> dataLama.kodeTransaksi -> nama hasil lookup -> "—"
+          const namaPeminjamHapus =
+            item.dataLama?.namaPeminjam ||
+            (item.dataLama?.kodeTransaksi ? `(${item.dataLama.kodeTransaksi})` : null) ||
+            namaPeminjam;
+          deskripsi = `Admin menghapus peminjaman ${namaPeminjamHapus || '—'}`;
+          break;
+        }
+        case AKSI.PEMINJAMAN_CREATE:
+          deskripsi = `Admin membuat peminjaman untuk ${peminjamLabel}`;
+          break;
+        case AKSI.PEMINJAMAN_STATUS_CHANGE:
+          // Fallback: tampilkan perubahan status bila nama/ barang tidak tersedia
+          if (statusBaru && statusLama) {
+            deskripsi = `${labelAksi} (${statusLama} → ${statusBaru})`;
+          } else if (statusBaru) {
+            deskripsi = `${labelAksi}: ${statusBaru}`;
+          } else {
+            deskripsi = labelAksi;
+          }
           break;
         default:
           // Generic fallback
@@ -341,9 +378,17 @@ async function getSemua({
       }
     } else if (item.entitas === ENTITAS.BARANG && item.aksi === AKSI.BARANG_DELETE) {
       // BARANG_DELETE: tampilkan nama barang yang dihapus
-      const namaBarangHapus = item.dataLama?.nama || 'barang';
-      const merkHapus = item.dataLama?.merk || '';
+      const namaBarangHapus =
+        item.dataLama?.nama ||
+        item.dataBaru?.nama ||
+        'barang';
+      const merkHapus = item.dataLama?.merk || item.dataBaru?.merk || '';
       deskripsi = `Admin menghapus barang ${namaBarangHapus}${merkHapus ? ` (${merkHapus})` : ''}`;
+    } else if (item.entitas === ENTITAS.BARANG && item.aksi === AKSI.BARANG_CREATE) {
+      // BARANG_CREATE: tampilkan nama barang yang ditambahkan
+      const namaBarangBaru = item.dataBaru?.nama || 'barang';
+      const merkBaru = item.dataBaru?.merk || '';
+      deskripsi = `Admin menambah barang ${namaBarangBaru}${merkBaru ? ` (${merkBaru})` : ''}`;
     } else {
       deskripsi = labelAksi;
     }
@@ -358,6 +403,8 @@ async function getSemua({
     } else if (item.dataLama?.kodeBarang) {
       // Fallback untuk PEMINJAMAN_DELETE
       kodeBarang = item.dataLama.kodeBarang;
+    } else if (item.dataBaru?.kodeBarang) {
+      kodeBarang = item.dataBaru.kodeBarang;
     }
 
     return {
