@@ -29,25 +29,49 @@ const LABEL_PERAN: Record<Role, string> = {
   SUPER_ADMIN: LABEL_ROLE.SUPER_ADMIN,
 };
 
-// Gradien per-role untuk tombol switch peran di sidebar.
-const GRADIEN_SWITCH: Record<Role, { from: string; to: string; ikonBg: string; ikon: string }> = {
+// Gradien & warna per-role untuk sidebar & tombol switch peran.
+const GRADIEN_ROLE: Record<Role, { sisiAtas: string; sidebar: string; glow1: string; glow2: string; accent: string; swFrom: string; swTo: string; ikonBg: string; ikon: string; shadowDark: string; shadowLight: string; rippleColor: string }> = {
   ADMIN: {
-    from: 'from-blue-400/95',
-    to: 'to-indigo-500/95',
-    ikonBg: 'bg-white/20',
+    sisiAtas: 'from-blue-300/90 to-cyan-400/90',
+    sidebar: 'linear-gradient(160deg, #1e3a5f 0%, #1d4ed8 35%, #2563eb 65%, #38bdf8 100%)',
+    glow1: 'bg-cyan-300/25',
+    glow2: 'bg-blue-200/20',
+    accent: 'from-blue-950/40',
+    swFrom: 'from-blue-400',
+    swTo: 'to-cyan-500',
+    ikonBg: 'bg-cyan-400/30',
     ikon: 'shield_person',
+    shadowDark: 'shadow-blue-950',
+    shadowLight: 'shadow-cyan-400',
+    rippleColor: 'rgba(29,78,216,0.14)',
   },
   PEMINJAM: {
-    from: 'from-emerald-400/95',
-    to: 'to-teal-500/95',
-    ikonBg: 'bg-white/20',
+    sisiAtas: 'from-blue-200/90 to-indigo-300/90',
+    sidebar: 'linear-gradient(160deg, #001453 0%, #00288e 30%, #1e40af 60%, #1d4ed8 100%)',
+    glow1: 'bg-blue-400/25',
+    glow2: 'bg-indigo-300/20',
+    accent: 'from-blue-950/40',
+    swFrom: 'from-blue-400',
+    swTo: 'to-indigo-500',
+    ikonBg: 'bg-blue-400/30',
     ikon: 'person',
+    shadowDark: 'shadow-blue-950',
+    shadowLight: 'shadow-blue-400',
+    rippleColor: 'rgba(29,78,216,0.14)',
   },
   SUPER_ADMIN: {
-    from: 'from-violet-400/95',
-    to: 'to-fuchsia-500/95',
-    ikonBg: 'bg-white/20',
+    sisiAtas: 'from-violet-300/90 to-fuchsia-400/90',
+    sidebar: 'linear-gradient(160deg, #3b0764 0%, #6b21a8 30%, #7c3aed 60%, #a855f7 100%)',
+    glow1: 'bg-fuchsia-300/25',
+    glow2: 'bg-violet-200/20',
+    accent: 'from-purple-950/40',
+    swFrom: 'from-violet-400',
+    swTo: 'to-fuchsia-500',
+    ikonBg: 'bg-fuchsia-400/30',
     ikon: 'admin_panel_settings',
+    shadowDark: 'shadow-purple-900',
+    shadowLight: 'shadow-fuchsia-400',
+    rippleColor: 'rgba(107,33,168,0.14)',
   },
 };
 
@@ -87,10 +111,10 @@ export function Sidebar() {
   const pathname = usePathname();
   const router = useRouter();
   const { isSuperAdmin, isAdmin, logout, user, roles, bisaGantiRole, gantiRole } = useAuth();
+  const activeRole = user?.activeRole ?? 'PEMINJAM';
   const { sidebarTerbuka, tutupSidebar } = useUIStore();
   const jumlahKeranjang = useJumlahKeranjang();
   const closeButtonRef = useRef<HTMLButtonElement>(null);
-  const asideRef = useRef<HTMLElement>(null);
 
   // Focus trap & Esc handler untuk drawer mobile
   useEffect(() => {
@@ -142,11 +166,13 @@ export function Sidebar() {
     (href !== RUTE.adminDashboard && href !== RUTE.peminjamDashboard && pathname.startsWith(href));
 
   // Kelas satu item navigasi (aktif = pill putih kontras di atas biru).
+  const roleColor = GRADIEN_ROLE[activeRole];
+
   const kelasItem = (aktif: boolean) =>
     cn(
       'group relative flex items-center gap-3 overflow-hidden rounded-xl px-3 py-2.5 transition-all duration-200 active:scale-[0.99]',
       aktif
-        ? 'bg-white font-bold text-primary shadow-lg shadow-blue-950/30 [--ripple-c:rgba(30,64,175,0.14)]'
+        ? `bg-white font-bold text-primary shadow-lg ${roleColor.shadowDark}/30 [--ripple-c:${roleColor.rippleColor}]`
         : 'text-white/80 hover:translate-x-1 hover:bg-white/10 hover:text-white'
     );
 
@@ -162,8 +188,7 @@ export function Sidebar() {
       )}
 
       <aside
-        ref={asideRef}
-        style={{ backgroundImage: 'linear-gradient(180deg, #1e3a8a 0%, #1d4ed8 52%, #2563eb 100%)' }}
+        style={{ backgroundImage: GRADIEN_ROLE[activeRole].sidebar }}
         className={cn(
           'fixed inset-y-0 left-0 z-40 flex w-64 max-w-[85vw] flex-col overflow-hidden py-stack-lg text-white shadow-2xl transition-transform duration-300 ease-out',
           // Desktop: tetap diam saat halaman di-scroll (sticky setinggi layar).
@@ -175,11 +200,11 @@ export function Sidebar() {
         role={sidebarTerbuka ? 'dialog' : undefined}
         aria-label={sidebarTerbuka ? 'Menu navigasi' : undefined}
       >
-        {/* Aksen dekoratif: glow lembut cyan & hijau di atas biru royal */}
+        {/* Aksen dekoratif: glow sesuai warna role */}
         <div aria-hidden className="pointer-events-none absolute inset-0">
-          <div className="absolute -left-16 -top-20 h-56 w-56 rounded-full bg-cyan-300/20 blur-3xl" />
-          <div className="absolute -right-24 top-1/3 h-56 w-56 rounded-full bg-secondary-container/20 blur-3xl" />
-          <div className="absolute inset-x-0 bottom-0 h-40 bg-gradient-to-t from-blue-950/30 to-transparent" />
+          <div className={cn('absolute -left-16 -top-20 h-56 w-56 rounded-full blur-3xl', GRADIEN_ROLE[activeRole].glow1)} />
+          <div className={cn('absolute -right-24 top-1/3 h-56 w-56 rounded-full blur-3xl', GRADIEN_ROLE[activeRole].glow2)} />
+          <div className={cn('absolute inset-x-0 bottom-0 h-40 bg-gradient-to-t', GRADIEN_ROLE[activeRole].accent, 'to-transparent')} />
         </div>
 
         {/* Konten (di atas aksen dekoratif) */}
@@ -188,7 +213,7 @@ export function Sidebar() {
           <div className="mb-5 flex items-center justify-between gap-2 px-4">
             <Link
               href={berandaHref}
-              className="flex flex-1 items-center overflow-hidden rounded-2xl bg-white px-3 py-2 shadow-lg shadow-blue-950/25 ring-1 ring-white/40 transition-transform duration-200 hover:scale-[1.02] active:scale-[0.99]"
+              className={cn('flex flex-1 items-center overflow-hidden rounded-2xl bg-white px-3 py-2 shadow-lg', roleColor.shadowDark, '/25 ring-1 ring-white/40 transition-transform duration-200 hover:scale-[1.02] active:scale-[0.99]')}
             >
               <Image
                 src="/images/logo-kemenkeu.png"
@@ -210,7 +235,7 @@ export function Sidebar() {
           </div>
 
           {/* Identitas pengguna */}
-          <div className="mx-3 mb-3 flex animate-page-in items-center gap-3 rounded-2xl border border-white/15 bg-white/10 px-3 py-3 shadow-lg shadow-blue-950/10 backdrop-blur-md">
+          <div className={cn('mx-3 mb-3 flex animate-page-in items-center gap-3 rounded-2xl border border-white/15 bg-white/10 px-3 py-3 shadow-lg backdrop-blur-md', roleColor.shadowDark, '/10')}>
             <div className="relative shrink-0">
               <div className="grid h-11 w-11 place-items-center rounded-full bg-gradient-to-br from-white/30 to-white/5 text-sm font-bold ring-2 ring-white/25">
                 {inisial(user?.nama)}
@@ -239,7 +264,7 @@ export function Sidebar() {
               {roles
                 .filter((r) => r !== user?.activeRole)
                 .map((r) => {
-                  const sw = GRADIEN_SWITCH[r];
+                  const sw = GRADIEN_ROLE[r];
                   return (
                     <button
                       key={r}
@@ -248,10 +273,10 @@ export function Sidebar() {
                         gantiPeran(r);
                       }}
                       className={cn(
-                        'group relative flex w-full items-center justify-between gap-2 overflow-hidden rounded-xl border border-white/15 bg-transparent px-3 py-2.5 text-sm font-semibold text-white/85 transition-all duration-300 hover:-translate-y-0.5 hover:border-transparent hover:text-white hover:shadow-lg hover:shadow-blue-950/20 active:scale-[0.99]',
+                        'group relative flex w-full items-center justify-between gap-2 overflow-hidden rounded-xl border border-white/15 bg-transparent px-3 py-2.5 text-sm font-semibold text-white/85 transition-all duration-300 hover:-translate-y-0.5 hover:border-transparent hover:text-white hover:shadow-lg active:scale-[0.99]',
                         'before:absolute before:inset-0 before:bg-gradient-to-r before:opacity-0 before:transition-opacity before:duration-300 hover:before:opacity-100',
-                        sw.from,
-                        sw.to,
+                        sw.swFrom,
+                        sw.swTo,
                         'before:pointer-events-none'
                       )}
                     >

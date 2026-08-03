@@ -199,11 +199,11 @@ export function ImportPeminjamDialog({ onSelesai }: Props) {
               </details>
             )}
             {hasil.detailDiperbarui.length > 0 && (
-              <details className="rounded-md bg-blue-50 p-2">
-                <summary className="cursor-pointer text-xs font-medium text-blue-800">
+              <details className="rounded-md bg-primary/5 p-2">
+                <summary className="cursor-pointer text-xs font-medium text-primary">
                   Akun diperbarui ({hasil.detailDiperbarui.length})
                 </summary>
-                <ul className="mt-1 max-h-32 space-y-1 overflow-y-auto text-xs text-blue-800">
+                <ul className="mt-1 max-h-32 space-y-1 overflow-y-auto text-xs text-primary">
                   {hasil.detailDiperbarui.map((u, i) => (
                     <li key={i}>
                       {u.nama} — NIP {u.nip}
