@@ -194,7 +194,7 @@ export default function LoginPage() {
           {/* Alur panah peminjaman (laptop → tablet, melengkung ke atas) */}
           <path
             d="M 180 195 Q 300 110 410 195"
-            fill="none"
+    fill="none"
             stroke="url(#flow-grad)"
             strokeWidth="2.5"
             strokeDasharray="6 8"

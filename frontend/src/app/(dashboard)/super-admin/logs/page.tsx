@@ -214,16 +214,6 @@ export default function LogAktivitasPage() {
               <option value="USER_UPDATE">Memperbarui User</option>
               <option value="USER_DELETE">Menghapus User</option>
             </optgroup>
-            <optgroup label="Auth">
-              <option value="LOGIN">Login</option>
-              <option value="LOGOUT">Logout</option>
-              <option value="REGISTER">Registrasi</option>
-            </optgroup>
-            <optgroup label="Satker">
-              <option value="SATKER_CREATE">Membuat Satker</option>
-              <option value="SATKER_UPDATE">Memperbarui Satker</option>
-              <option value="SATKER_DELETE">Menghapus Satker</option>
-            </optgroup>
           </select>
           <select
             value={limit}

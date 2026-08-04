@@ -99,7 +99,7 @@ const create = asyncHandler(async (req, res) => {
 });
 
 const update = asyncHandler(async (req, res) => {
-  const barang = await barangService.update(req.params.id, req.body, pathFoto(req.file));
+  const barang = await barangService.update(req.params.id, req.body, pathFoto(req.file), req.user?.id, getRequestInfo(req));
   return responsSukses(res, { pesan: 'Barang berhasil diperbarui.', data: barang });
 });
 
