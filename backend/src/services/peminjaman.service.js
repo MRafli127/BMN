@@ -586,13 +586,30 @@ async function getSemua({ status, q, userId, role, page = 1, limit = 10, importM
   }
   // Peminjam hanya melihat miliknya sendiri
   if (role === 'PEMINJAM') where.userId = userId;
-  // Admin tidak melihat DRAFT — KECUALI draft yang admin itu sendiri yang membuat.
-  // Super Admin melihat semua termasuk DRAFT.
+  // Admin tidak melihat DRAFT — KECUALI bila admin secara eksplisit memfilter
+  // status=DRAFT (tunggal atau gabungan). Pada halaman filter Draft, semua admin
+  // boleh melihat SEMUA draft (milik siapa saja) agar bisa saling mengingatkan.
+  // Di luar halaman itu, draft hanya muncul untuk admin yang membuatnya.
+  // Super Admin melihat semua termasuk DRAFT (tidak masuk blok ini).
   else if (role === 'ADMIN') {
-    where.OR = [
-      { status: { not: 'DRAFT' } },
-      { status: 'DRAFT', disetujuiOleh: userId },
-    ];
+    const filterStatus = where.status;
+    const filterStatusList = Array.isArray(filterStatus?.in)
+      ? filterStatus.in
+      : filterStatus
+      ? [filterStatus]
+      : [];
+    const filterMemuatDraft = filterStatusList.includes('DRAFT');
+
+    if (filterMemuatDraft) {
+      // Filter sudah menentukan DRAFT — tidak perlu batasan disetujuiOleh.
+      // where.status (atau where.status.in) sudah cukup membatasi ke DRAFT.
+      // where.OR mungkin sudah di-set oleh search `q` di bawah, jadi jangan disentuh.
+    } else {
+      where.OR = [
+        { status: { not: 'DRAFT' } },
+        { status: 'DRAFT', disetujuiOleh: userId },
+      ];
+    }
   }
   if (q) {
     const cocok = { contains: q, mode: 'insensitive' };
