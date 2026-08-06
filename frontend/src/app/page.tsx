@@ -40,9 +40,6 @@ export default function BerandaPage() {
             <Button asChild variant="outline">
               <Link href={RUTE.login}>Masuk</Link>
             </Button>
-            <Button asChild className="hidden xs:inline-flex">
-              <Link href={RUTE.register}>Daftar</Link>
-            </Button>
           </nav>
         </div>
       </header>
