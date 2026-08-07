@@ -202,41 +202,59 @@ async function update(id, data, fotoPath) {
 
 // --- Hapus barang ---
 async function remove(id, adminId = null, requestInfo = {}) {
-  // Cek barang ada atau tidak
+  // Baca data barang di luar transaksi (DB remote latency optimization).
+  // TOCTOU defense: kodeSatker akan di-re-check di dalam $transaction.
   const barang = await prisma.barang.findUnique({
     where: { id },
   });
   if (!barang) throw new AppError('Barang tidak ditemukan.', 404);
 
-  // Cek apakah ada detail peminjaman aktif (DIPINJAM)
-  const detailAktif = await prisma.detailPeminjaman.findFirst({
-    where: { barangId: id, statusItem: 'DIPINJAM' },
-  });
-  if (detailAktif) {
-    throw new AppError('Barang tidak dapat dihapus karena sedang dipinjam.', 400);
-  }
-
-  // Cek apakah ada relasi detail_peminjaman APAPUN (termasuk DIKEMBALIKAN)
-  // Jika ada, hapus relasi tersebut lebih dulu agar tidak violation foreign key
-  const detailPeminjaman = await prisma.detailPeminjaman.findMany({
-    where: { barangId: id },
-  });
-
-  if (detailPeminjaman.length > 0) {
-    // Hapus detail peminjaman terkait lebih dulu
-    await prisma.detailPeminjaman.deleteMany({
-      where: { barangId: id },
-    });
-  }
-
-  await prisma.barang.delete({ where: { id } });
-
-  // Audit log: catat penghapusan barang dengan detail lengkap
-  const kodeBarangStr = [barang.kodeSatker || '-', barang.kodeBarangBmn || '-', barang.nup || '-'].join(' - ');
+  // Ambil data admin dan satkerAkses (read-only, tidak perlu di dalam transaksi).
   const admin = adminId
-    ? await prisma.user.findUnique({ where: { id: adminId }, select: { id: true, nama: true, email: true } })
+    ? await prisma.user.findUnique({ where: { id: adminId }, select: { id: true, nama: true, email: true, satkerAkses: true } })
     : null;
 
+  const kodeBarangStr = [barang.kodeSatker || '-', barang.kodeBarangBmn || '-', barang.nup || '-'].join(' - ');
+
+  // TOCTOU defense: re-check scope satker di dalam transaksi menggunakan
+  // kodeSatker TERBARU dari DB. Ini mencegah race condition bila admin lain
+  // mengubah kodeSatker barang antara pass middleware dan eksekusi delete.
+  await prisma.$transaction(async (tx) => {
+    // 1. Re-check scope satker (TOCTOU defense).
+    const barangTerbaru = await tx.barang.findUnique({
+      where: { id },
+      select: { kodeSatker: true },
+    });
+    if (barangTerbaru) {
+      const satkerAkses = admin?.satkerAkses || [];
+      if (satkerAkses.length > 0 && !satkerAkses.includes(barangTerbaru.kodeSatker)) {
+        throw new AppError(
+          'Akses ditolak. Satker barang telah berubah atau Anda tidak memiliki hak untuk menghapusnya.',
+          403
+        );
+      }
+    }
+
+    // 2. Cek apakah ada detail peminjaman aktif (DIPINJAM).
+    const detailAktif = await tx.detailPeminjaman.findFirst({
+      where: { barangId: id, statusItem: 'DIPINJAM' },
+    });
+    if (detailAktif) {
+      throw new AppError('Barang tidak dapat dihapus karena sedang dipinjam.', 400);
+    }
+
+    // 3. Hapus relasi detail_peminjaman jika ada ( termasuk DIKEMBALIKAN).
+    //    foreign key constraint mencegah delete barang mientras masih ada relasi.
+    await tx.detailPeminjaman.deleteMany({ where: { barangId: id } });
+
+    // 4. Hapus barang.
+    await tx.barang.delete({ where: { id } });
+  });
+
+  // Audit log di luar transaksi — fire-and-forget.
+  // Desain original: audit log gagal TIDAK menggagalkan operasi utama.
+  // catatan: ipAddress/userAgent diambil langsung dari requestInfo, tidak perlu
+  //          lewat auditLogService.extractRequestInfo().
   auditLogService.log({
     userId: admin?.id || null,
     userEmail: admin?.email || null,
