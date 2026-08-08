@@ -202,7 +202,7 @@ export function FolderKeranjang({ header }: Props) {
                               ? 'border-red-200 bg-red-100 text-red-600'
                               : stokHabis
                               ? 'border-red-200 bg-red-50 text-red-600'
-                              : 'border-emerald-200 bg-emerald-50 text-emerald-700'
+                              : 'border-primary/20 bg-primary/50 text-primary-700'
                           )}
                         >
                           {tidakTersedia ? 'Habis' : stokHabis ? 'Habis' : item.jumlahTersedia}

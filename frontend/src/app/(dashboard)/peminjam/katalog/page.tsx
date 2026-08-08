@@ -56,25 +56,38 @@ export default function KatalogPage() {
 
   return (
     <div className="space-y-5">
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <h1 className="text-2xl font-bold text-foreground">Katalog Barang</h1>
-          <p className="text-muted-foreground">
-            Telusuri & pilih barang yang ingin dipinjam. Pilih banyak barang sekaligus!
-          </p>
+      {/* Hero Header */}
+      <section className="relative overflow-hidden rounded-2xl bg-brand-gradient text-white shadow-brand">
+        <div className="pointer-events-none absolute -right-12 -top-12 h-44 w-44 rounded-full bg-white/10 blur-3xl" />
+        <div className="pointer-events-none absolute -bottom-16 left-1/3 h-44 w-44 rounded-full bg-blue-300/20 blur-3xl" />
+
+        <div className="relative space-y-5 p-5 sm:p-7">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div className="flex items-center gap-3">
+              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-white/20 bg-white/10 backdrop-blur">
+                <ShoppingCart className="h-5 w-5" />
+              </div>
+              <div>
+                <h1 className="font-jakarta text-2xl font-bold text-white sm:text-3xl">Katalog Barang</h1>
+                <p className="text-sm text-white/80">
+                  Telusuri & pilih barang yang ingin dipinjam
+                </p>
+              </div>
+            </div>
+            <Button asChild variant="outline" className="bg-white/10 text-white border-white/20 hover:bg-white/20 hover:text-white">
+              <Link href={RUTE.peminjamKeranjang}>
+                <ShoppingCart className="h-4 w-4" />
+                Keranjang
+                {jumlahKeranjang > 0 && (
+                  <span className="ml-1 rounded-full bg-white/20 px-2 py-0.5 text-xs font-semibold">
+                    {jumlahKeranjang} jenis ({totalUnit} unit)
+                  </span>
+                )}
+              </Link>
+            </Button>
+          </div>
         </div>
-        <Button asChild variant={jumlahKeranjang > 0 ? 'default' : 'outline'}>
-          <Link href={RUTE.peminjamKeranjang}>
-            <ShoppingCart className="h-4 w-4" />
-            Keranjang
-            {jumlahKeranjang > 0 && (
-              <span className="ml-1 rounded-full bg-white/20 px-2 py-0.5 text-xs font-semibold">
-                {jumlahKeranjang} jenis ({totalUnit} unit)
-              </span>
-            )}
-          </Link>
-        </Button>
-      </div>
+      </section>
 
       {/* Filter */}
       <div className="grid grid-cols-1 gap-3 rounded-xl border bg-card p-4 sm:grid-cols-2 lg:grid-cols-4">

@@ -586,13 +586,30 @@ async function getSemua({ status, q, userId, role, page = 1, limit = 10, importM
   }
   // Peminjam hanya melihat miliknya sendiri
   if (role === 'PEMINJAM') where.userId = userId;
-  // Admin tidak melihat DRAFT — KECUALI draft yang admin itu sendiri yang membuat.
-  // Super Admin melihat semua termasuk DRAFT.
+  // Admin tidak melihat DRAFT — KECUALI bila admin secara eksplisit memfilter
+  // status=DRAFT (tunggal atau gabungan). Pada halaman filter Draft, semua admin
+  // boleh melihat SEMUA draft (milik siapa saja) agar bisa saling mengingatkan.
+  // Di luar halaman itu, draft hanya muncul untuk admin yang membuatnya.
+  // Super Admin melihat semua termasuk DRAFT (tidak masuk blok ini).
   else if (role === 'ADMIN') {
-    where.OR = [
-      { status: { not: 'DRAFT' } },
-      { status: 'DRAFT', disetujuiOleh: userId },
-    ];
+    const filterStatus = where.status;
+    const filterStatusList = Array.isArray(filterStatus?.in)
+      ? filterStatus.in
+      : filterStatus
+      ? [filterStatus]
+      : [];
+    const filterMemuatDraft = filterStatusList.includes('DRAFT');
+
+    if (filterMemuatDraft) {
+      // Filter sudah menentukan DRAFT — tidak perlu batasan disetujuiOleh.
+      // where.status (atau where.status.in) sudah cukup membatasi ke DRAFT.
+      // where.OR mungkin sudah di-set oleh search `q` di bawah, jadi jangan disentuh.
+    } else {
+      where.OR = [
+        { status: { not: 'DRAFT' } },
+        { status: 'DRAFT', disetujuiOleh: userId },
+      ];
+    }
   }
   if (q) {
     const cocok = { contains: q, mode: 'insensitive' };
@@ -1542,6 +1559,11 @@ async function createByAdmin(adminId, data, dokumenDataUrl, requestInfo = {}) {
 
   // Audit log
   if (!isDraft) {
+    // Snapshot nama peminjam & barang utama ke dataBaru agar log
+    // aktivitas tetap menampilkan nama yang benar meskipun record
+    // peminjaman/peminjam/barang sudah dihapus di kemudian hari.
+    const namaPeminjamSnapshot = peminjam?.nama || '-';
+    const namaBarangSnapshot = barangUtama?.nama || '-';
     auditLogService.log({
       userId: adminId,
       userEmail: admin?.email,
@@ -1554,6 +1576,8 @@ async function createByAdmin(adminId, data, dokumenDataUrl, requestInfo = {}) {
         status: 'DIPINJAM',
         items: data.items,
         dibuatOleh: 'ADMIN',
+        namaPeminjam: namaPeminjamSnapshot,
+        namaBarang: namaBarangSnapshot,
       },
       requestInfo,
     }).catch(() => {});
@@ -1630,6 +1654,10 @@ async function serahkanDraftAdmin(peminjamanId, adminId, dokumenDataUrl, request
   } catch { /* non-blocking */ }
 
   // Audit log
+  // Snapshot nama peminjam & barang utama agar log aktivitas tetap
+  // menampilkan nama yang benar meskipun record dihapus di kemudian hari.
+  const namaPeminjamSnapshot = peminjaman.peminjam?.nama || '-';
+  const namaBarangSnapshot = peminjaman.detail?.[0]?.barang?.nama || '-';
   auditLogService.log({
     userId: adminId,
     userEmail: admin?.email,
@@ -1637,7 +1665,13 @@ async function serahkanDraftAdmin(peminjamanId, adminId, dokumenDataUrl, request
     aksi: auditLogService.AKSI.PEMINJAMAN_DISERAHKAN,
     entitas: auditLogService.ENTITAS.PEMINJAMAN,
     entitasId: updated.id,
-    dataBaru: { kodeTransaksi: updated.kodeTransaksi, status: 'DIPINJAM', dibuatOleh: 'ADMIN' },
+    dataBaru: {
+      kodeTransaksi: updated.kodeTransaksi,
+      status: 'DIPINJAM',
+      dibuatOleh: 'ADMIN',
+      namaPeminjam: namaPeminjamSnapshot,
+      namaBarang: namaBarangSnapshot,
+    },
     requestInfo,
   }).catch(() => {});
 

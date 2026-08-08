@@ -84,14 +84,30 @@ export default function ImportLogPage() {
   };
 
   return (
-    <div className="animate-page-in p-6">
-      {/* Header */}
-      <div className="mb-6">
-        <h1 className="text-3xl font-bold text-on-surface">Riwayat Import</h1>
-        <p className="mt-1 text-sm text-on-surface-variant">
-          Catatan hasil import data peminjam, pegawai, dan barang
-        </p>
-      </div>
+    <div className="space-y-6 p-6">
+      {/* Hero Header - gradient biru modern */}
+      <section className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-blue-700 via-blue-600 to-cyan-500 p-6 text-white shadow-lg shadow-blue-700/20 animate-page-in sm:p-8">
+        {/* Dekorasi blob & grid pattern */}
+        <div aria-hidden className="pointer-events-none absolute inset-0">
+          <div className="absolute -left-20 -top-24 h-72 w-72 rounded-full bg-cyan-300/30 blur-3xl" />
+          <div className="absolute -right-32 -bottom-32 h-80 w-80 rounded-full bg-blue-400/25 blur-3xl" />
+          <div className="absolute inset-0 opacity-[0.07] [background-image:radial-gradient(circle_at_1px_1px,white_1px,transparent_0)] [background-size:24px_24px]" />
+        </div>
+
+        <div className="relative z-10 flex items-start gap-3">
+          <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-white/15 text-white ring-1 ring-white/25 backdrop-blur-md">
+            <Icon name="upload_file" className="h-6 w-6" />
+          </div>
+          <div className="min-w-0">
+            <h1 className="font-jakarta text-2xl font-bold tracking-tight sm:text-3xl">
+              Riwayat Import
+            </h1>
+            <p className="mt-0.5 text-sm text-white/85">
+              Catatan hasil import data peminjam, pegawai, dan barang
+            </p>
+          </div>
+        </div>
+      </section>
 
       {/* Statistik Ringkasan */}
       {statistik && (
@@ -291,7 +307,7 @@ export default function ImportLogPage() {
                                 )}
                               </div>
                               {item.baris && (
-                                <span className="rounded bg-outline px-1.5 py-0.5 text-xs text-on-surface-variant">
+                                <span className="rounded bg-slate-700 px-1.5 py-0.5 text-xs font-semibold text-white">
                                   Baris {item.baris}
                                 </span>
                               )}

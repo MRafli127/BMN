@@ -845,25 +845,6 @@ export default function PenggunaPage() {
           aria-hidden
         />
         <div className="relative z-10">
-          <button
-            onClick={() => router.push(RUTE.superAdminDashboard)}
-            className="mb-3 inline-flex items-center gap-1 rounded-lg bg-white/10 px-3 py-1.5 text-xs font-medium text-white transition-colors hover:bg-white/20"
-          >
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              width="14"
-              height="14"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            >
-              <path d="m15 18-6-6 6-6" />
-            </svg>
-            Kembali
-          </button>
           <h1 className="text-2xl font-bold sm:text-3xl">Pengguna Terdaftar</h1>
           <p className="mt-1 text-purple-100">Kelola seluruh pengguna dalam sistem.</p>
         </div>

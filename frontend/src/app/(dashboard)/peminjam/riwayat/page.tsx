@@ -42,17 +42,31 @@ export default function RiwayatPage() {
 
   return (
     <div className="space-y-gutter">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <h1 className="font-jakarta text-headline-lg text-primary">Riwayat Peminjaman</h1>
-          <p className="text-on-surface-variant">Daftar seluruh pengajuan peminjaman Anda.</p>
+      {/* Hero Header */}
+      <section className="relative overflow-hidden rounded-2xl bg-brand-gradient text-white shadow-brand">
+        <div className="pointer-events-none absolute -right-12 -top-12 h-44 w-44 rounded-full bg-white/10 blur-3xl" />
+        <div className="pointer-events-none absolute -bottom-16 left-1/3 h-44 w-44 rounded-full bg-blue-300/20 blur-3xl" />
+
+        <div className="relative p-5 sm:p-7">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div className="flex items-center gap-3">
+              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-white/20 bg-white/10 backdrop-blur">
+                <History className="h-5 w-5" />
+              </div>
+              <div>
+                <h1 className="font-jakarta text-2xl font-bold text-white sm:text-3xl">Riwayat Peminjaman</h1>
+                <p className="text-sm text-white/80">Daftar seluruh pengajuan peminjaman Anda</p>
+              </div>
+            </div>
+            <Button asChild variant="outline" className="bg-white/10 text-white border-white/20 hover:bg-white/20 hover:text-white">
+              <Link href={RUTE.peminjamAjukan}>
+                <History className="h-4 w-4" />
+                Ajukan Peminjaman
+              </Link>
+            </Button>
+          </div>
         </div>
-        <Button asChild>
-          <Link href={RUTE.peminjamAjukan}>
-            <Icon name="add" className="text-[18px]" /> Ajukan Peminjaman
-          </Link>
-        </Button>
-      </div>
+      </section>
 
       <div className="glass-card rounded-2xl p-stack-md">
         <Select

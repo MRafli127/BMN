@@ -211,7 +211,7 @@ export function FolderBarangPeminjam({ grup }: Props) {
           aktif ? 'bg-blue-50 hover:bg-blue-100' : 'hover:bg-muted/40'
         )}
       >
-        <span className={aktif ? 'text-blue-600' : 'text-primary'}>
+        <span className={aktif ? 'text-primary' : 'text-primary'}>
           {aktif ? <FolderOpen className="h-5 w-5" /> : <Folder className="h-5 w-5" />}
         </span>
         <div className="min-w-0 flex-1">
