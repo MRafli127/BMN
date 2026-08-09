@@ -8,7 +8,6 @@ const express = require('express');
 const barangController = require('../controllers/barang.controller');
 const authMiddleware = require('../middleware/auth.middleware');
 const roleMiddleware = require('../middleware/role.middleware');
-const { barangScopeMiddleware } = require('../middleware/role.middleware');
 const validate = require('../middleware/validate.middleware');
 const { uploadFotoBarangSingle, uploadExcelSingle } = require('../middleware/upload.middleware');
 const { createBarangSchema, updateBarangSchema, bulkBarangSchema } = require('../validators/barang.validator');
@@ -47,6 +46,6 @@ router.get('/:id', barangController.getById);
 // Khusus admin
 router.post('/', roleMiddleware('ADMIN'), uploadFotoBarangSingle, validate(createBarangSchema), barangController.create);
 router.put('/:id', roleMiddleware('ADMIN'), uploadFotoBarangSingle, validate(updateBarangSchema), barangController.update);
-router.delete('/:id', roleMiddleware('ADMIN'), barangScopeMiddleware(), barangController.remove);
+router.delete('/:id', roleMiddleware('ADMIN'), barangController.remove);
 
 module.exports = router;
