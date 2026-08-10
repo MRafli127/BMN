@@ -8,7 +8,7 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
-import { Search, ChevronLeft, ChevronRight, ShoppingCart } from 'lucide-react';
+import { Search, ChevronLeft, ChevronRight, ShoppingCart, ChevronsUpDown } from 'lucide-react';
 import { Input, Select } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { FolderBarangPeminjam } from '@/components/barang/FolderBarangPeminjam';
@@ -27,6 +27,7 @@ export default function KatalogPage() {
   const [cari, setCari] = useState('');
   const [halaman, setHalaman] = useState(1);
   const [perHalaman, setPerHalaman] = useState(8);
+  const [terbuka, setTerbuka] = useState<Set<string>>(new Set());
 
   const jumlahKeranjang = useJumlahKeranjang();
   const totalUnit = useTotalUnitKeranjang();
@@ -53,6 +54,26 @@ export default function KatalogPage() {
   const totalHalaman = Math.max(1, Math.ceil(grup.length / perHalaman));
   const halamanAman = Math.min(halaman, totalHalaman);
   const grupHalaman = grup.slice((halamanAman - 1) * perHalaman, halamanAman * perHalaman);
+
+  const semuaTerbuka = grup.length > 0 && grup.every((g) => terbuka.has(g.kategori));
+
+  const toggleFolder = (merk: string) =>
+    setTerbuka((prev) => {
+      const next = new Set(prev);
+      if (next.has(merk)) next.delete(merk);
+      else next.add(merk);
+      return next;
+    });
+
+  const bukaTutupSemua = () => {
+    const allOpen = grup.length > 0 && grup.every((g) => terbuka.has(g.kategori));
+    const next = new Set(terbuka);
+    for (const g of grup) {
+      if (allOpen) next.delete(g.kategori);
+      else next.add(g.kategori);
+    }
+    setTerbuka(next);
+  };
 
   return (
     <div className="space-y-5">
@@ -89,41 +110,46 @@ export default function KatalogPage() {
         </div>
       </section>
 
-      {/* Filter */}
-      <div className="grid grid-cols-1 gap-3 rounded-xl border bg-card p-4 sm:grid-cols-2 lg:grid-cols-4">
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-          <Input
-            value={cari}
-            onChange={(e) => setCari(e.target.value)}
-            placeholder="Cari kode / nama / merk / lokasi..."
-            className="pl-9"
-          />
+      {/* Panel search + filter */}
+      <div className="overflow-hidden rounded-xl border bg-card">
+        {/* Search — lebar penuh, baris sendiri */}
+        <div className="border-b border-outline-variant p-4">
+          <div className="relative w-full">
+            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <Input value={cari} onChange={(e) => setCari(e.target.value)} placeholder="Cari kode / nama barang / merk / nama peminjam..." className="pl-9" />
+          </div>
         </div>
-        <Select value={filter.kodeSatker || ''} onChange={(e) => ubahFilter({ kodeSatker: (e.target.value || undefined) as never })}>
-          <option value="">Semua Kode Satker</option>
-          {OPSI_FILTER_BARANG.map((o) => (
-            <option key={o.value} value={o.value}>
-              {o.label}
-            </option>
-          ))}
-        </Select>
-        <Select value={filter.kondisi || ''} onChange={(e) => ubahFilter({ kondisi: (e.target.value || undefined) as never })}>
-          <option value="">Semua Kondisi</option>
-          {OPSI_KONDISI.map((o) => (
-            <option key={o.value} value={o.value}>
-              {o.label}
-            </option>
-          ))}
-        </Select>
-        <Select
-          value={filter.ketersediaan || ''}
-          onChange={(e) => ubahFilter({ ketersediaan: (e.target.value || undefined) as never })}
-        >
-          <option value="">Semua Stok</option>
-          <option value="tersedia">Tersedia (mis. 1/1)</option>
-          <option value="habis">Stok Habis (mis. 0/1)</option>
-        </Select>
+
+        {/* Filter */}
+        <div className="flex flex-wrap items-center justify-between gap-3 bg-muted/20 p-4">
+          <div className="flex flex-wrap items-center gap-3">
+            <Select value={filter.kodeSatker || ''} onChange={(e) => ubahFilter({ kodeSatker: (e.target.value || undefined) as never })} className="w-52">
+              <option value="">Semua Kode Satker</option>
+              {OPSI_FILTER_BARANG.map((o) => (
+                <option key={o.value} value={o.value}>
+                  {o.label}
+                </option>
+              ))}
+            </Select>
+            <Select value={filter.kondisi || ''} onChange={(e) => ubahFilter({ kondisi: (e.target.value || undefined) as never })} className="w-40">
+              <option value="">Semua Kondisi</option>
+              {OPSI_KONDISI.map((o) => (
+                <option key={o.value} value={o.value}>
+                  {o.label}
+                </option>
+              ))}
+            </Select>
+            <Select value={filter.ketersediaan || ''} onChange={(e) => ubahFilter({ ketersediaan: (e.target.value || undefined) as never })} className="w-40">
+              <option value="">Semua Stok</option>
+              <option value="tersedia">Tersedia</option>
+              <option value="habis">Habis</option>
+            </Select>
+          </div>
+          <Button variant="ghost" size="sm" onClick={bukaTutupSemua} className="text-blue-600 hover:text-blue-700 shrink-0">
+            <ChevronsUpDown className="h-4 w-4" />
+            {semuaTerbuka ? 'Tutup semua folder' : 'Buka semua folder'}
+          </Button>
+        </div>
       </div>
 
       {/* Folder per merk */}
@@ -136,7 +162,7 @@ export default function KatalogPage() {
         />
       ) : (
         <>
-          <FolderBarangPeminjam grup={grupHalaman} />
+          <FolderBarangPeminjam grup={grupHalaman} terbuka={terbuka} onToggle={toggleFolder} />
 
           {/* Footer: jumlah folder per halaman + navigasi */}
           <div className="flex flex-col items-center justify-between gap-3 sm:flex-row">

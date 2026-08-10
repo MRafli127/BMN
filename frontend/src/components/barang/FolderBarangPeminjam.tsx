@@ -25,10 +25,11 @@ import type { Barang } from '@/types/barang.type';
 
 interface Props {
   grup: GrupBarang[];
+  terbuka: Set<string>;
+  onToggle: (merk: string) => void;
 }
 
-export function FolderBarangPeminjam({ grup }: Props) {
-  const [terbuka, setTerbuka] = useState<Set<string>>(new Set());
+export function FolderBarangPeminjam({ grup, terbuka, onToggle }: Props) {
   const items = useKeranjangStore((s) => s.items);
   const tambah = useKeranjangStore((s) => s.tambah);
   const hapus = useKeranjangStore((s) => s.hapus);
@@ -60,25 +61,6 @@ export function FolderBarangPeminjam({ grup }: Props) {
     }
     notify.warning(`${barangYangDihapus.length} barang yang tidak tersedia dihapus dari keranjang.`);
   };
-
-  const toggle = (merk: string) =>
-    setTerbuka((lama) => {
-      const baru = new Set(lama);
-      if (baru.has(merk)) baru.delete(merk);
-      else baru.add(merk);
-      return baru;
-    });
-
-  const semuaTerbuka = grup.length > 0 && grup.every((g) => terbuka.has(g.kategori));
-  const bukaTutupSemua = () =>
-    setTerbuka((lama) => {
-      const baru = new Set(lama);
-      for (const g of grup) {
-        if (semuaTerbuka) baru.delete(g.kategori);
-        else baru.add(g.kategori);
-      }
-      return baru;
-    });
 
   const tanganiKeranjang = (barang: Barang) => {
     if (!mounted) return;
@@ -191,7 +173,7 @@ export function FolderBarangPeminjam({ grup }: Props) {
     const semuaDiKeranjangFolder = semuaSudahDiKeranjang(g);
     const dalamProses = sedangProses.has(g.kategori);
 
-    const handleToggle = () => toggle(g.kategori);
+    const handleToggle = () => onToggle(g.kategori);
     const handleKeyDown = (e: KeyboardEvent<HTMLDivElement>) => {
       if (e.key === 'Enter' || e.key === ' ' || e.key === 'Spacebar') {
         e.preventDefault();
@@ -346,12 +328,6 @@ export function FolderBarangPeminjam({ grup }: Props) {
         onHapusSemua={handleHapusBarangTidakTersedia}
       />
 
-      <div className="mb-3 flex justify-end">
-        <Button variant="ghost" size="sm" onClick={bukaTutupSemua}>
-          {semuaTerbuka ? 'Tutup semua folder' : 'Buka semua folder'}
-        </Button>
-      </div>
-
       {/* Mobile View */}
       {isMobile ? (
         <div className="flex flex-col gap-3">
@@ -496,7 +472,7 @@ export function FolderBarangPeminjam({ grup }: Props) {
                                   <div className="flex items-center justify-end gap-1.5">
                                     <Button asChild variant="outline" size="sm">
                                       <Link href={RUTE.peminjamKatalogDetail(barang.id)}>
-                                        <Eye className="h-4 w-4" /> Detail
+                                        <Eye className="h-4 w-4" />
                                       </Link>
                                     </Button>
                                     {habis ? (
