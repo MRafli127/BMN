@@ -294,11 +294,11 @@ export function TabelPeminjaman({
                       <p className="font-medium text-foreground">{p.peminjam?.nama ?? '-'}</p>
                       <div className="flex flex-wrap items-center gap-1.5">
                         <p className="text-xs text-muted-foreground">{p.peminjam?.eselon3 ?? ''}</p>
-                        {/* Indikator Surat: tidak ada surat = hasil import (migrasi data) */}
-                        {!p.adaDokumen && (
+                        {/* Indikator Alasan Peminjaman */}
+                        {p.alasanPeminjaman && (
                           <span
                             className="inline-flex items-center gap-0.5 rounded-full bg-violet-100 px-1.5 py-0.5 text-xs font-medium text-violet-700 dark:bg-violet-900/30 dark:text-violet-300"
-                            title="Data migrasi: tidak ada surat pernyataan peminjaman"
+                            title={p.alasanPeminjaman}
                           >
                             <Upload className="h-3 w-3" />
                             Import
