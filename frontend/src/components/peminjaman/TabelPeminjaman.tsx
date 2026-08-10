@@ -260,7 +260,7 @@ export function TabelPeminjaman({
               <TableHead>Kode</TableHead>
               {tampilkanPeminjam && <TableHead>Peminjam</TableHead>}
               <TableHead>Barang</TableHead>
-              {tampilkanMerk && <TableHead>Merk</TableHead>}
+              {tampilkanMerk && <TableHead>Merk/Tipe</TableHead>}
               <TableHead>Rencana Pinjam</TableHead>
               <TableHead>Aksi PIC</TableHead>
               <TableHead>Status</TableHead>
