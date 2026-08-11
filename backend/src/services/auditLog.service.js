@@ -113,6 +113,72 @@ const LABEL_STATUS = {
   TERLAMBAT: 'Terlambat',
 };
 
+// --- Label untuk field user ---
+const LABEL_USER_FIELD = {
+  nama: 'Nama',
+  email: 'Email',
+  nip: 'NIP',
+  jabatan: 'Jabatan',
+  unitKerja: 'Unit Kerja',
+  eselon2: 'Eselon II',
+  eselon3: 'Eselon III',
+  eselon4: 'Eselon IV',
+  roles: 'Peran',
+  retirementDate: 'Tanggal Pensiun',
+};
+
+// --- Label untuk field barang ---
+const LABEL_BARANG_FIELD = {
+  nama: 'Nama Barang',
+  merk: 'Merk/Type',
+  kodeSatker: 'Kode Satker',
+  kodeBarangBmn: 'Kode Barang BMN',
+  nup: 'NUP',
+  jumlahTotal: 'Jumlah Total',
+  jumlahTersedia: 'Jumlah Tersedia',
+  kondisi: 'Kondisi',
+  lokasiPenyimpanan: 'Lokasi Penyimpanan',
+};
+
+// --- Helper: bandingkan dataLama vs dataBaru, kembalikan daftar perubahan ---
+function diffPerubahan(dataLama, dataBaru, labelField) {
+  if (!dataLama || !dataBaru) return '';
+  const perubahan = [];
+
+  for (const key of Object.keys(dataBaru)) {
+    if (key === 'kodeBarangLengkap') continue; // skip field hasil komputasi
+    const lama = dataLama[key];
+    const baru = dataBaru[key];
+    if (lama === baru) continue;
+
+    const label = labelField[key] || key;
+    const formatValue = (v) => {
+      if (v === null || v === undefined || v === '') return '(kosong)';
+      if (Array.isArray(v)) return v.join(', ');
+      if (typeof v === 'boolean') return v ? 'Ya' : 'Tidak';
+      return String(v);
+    };
+
+    perubahan.push(`${label}: ${formatValue(lama)} → ${formatValue(baru)}`);
+  }
+
+  if (perubahan.length === 0) return '';
+  return ` (${perubahan.join('; ')})`;
+}
+
+// --- Helper: bandingkan hanya array roles ---
+function diffRoles(dataLama, dataBaru) {
+  if (!Array.isArray(dataLama) || !Array.isArray(dataBaru)) return '';
+  const lamaSet = new Set(dataLama);
+  const baruSet = new Set(dataBaru);
+  const ditambah = [...baruSet].filter((r) => !lamaSet.has(r));
+  const dihapus = [...lamaSet].filter((r) => !baruSet.has(r));
+  const parts = [];
+  if (ditambah.length) parts.push(`+${ditambah.join(', ')}`);
+  if (dihapus.length) parts.push(`-${dihapus.join(', ')}`);
+  return parts.length ? ` [${parts.join(', ')}]` : '';
+}
+
 /**
  * Buat audit log entry.
  * Dipanggil dari service lain setelah aksi berhasil dilakukan.
@@ -395,10 +461,11 @@ async function getSemua({
       const merkBaru = item.dataBaru?.merk || '';
       deskripsi = `Admin menambah barang ${namaBarangBaru}${merkBaru ? ` (${merkBaru})` : ''}`;
     } else if (item.entitas === ENTITAS.BARANG && item.aksi === AKSI.BARANG_UPDATE) {
-      // BARANG_UPDATE: tampilkan nama barang yang diperbarui
+      // BARANG_UPDATE: tampilkan nama barang + daftar field yang berubah
       const namaBarangUpdate = item.dataBaru?.nama || item.dataLama?.nama || 'barang';
       const merkUpdate = item.dataBaru?.merk || item.dataLama?.merk || '';
-      deskripsi = `Admin memperbarui barang ${namaBarangUpdate}${merkUpdate ? ` (${merkUpdate})` : ''}`;
+      const diff = diffPerubahan(item.dataLama, item.dataBaru, LABEL_BARANG_FIELD);
+      deskripsi = `Admin memperbarui barang ${namaBarangUpdate}${merkUpdate ? ` (${merkUpdate})` : ''}${diff}`;
     } else if (item.entitas === ENTITAS.USER) {
       // USER_CREATE / USER_DELETE / USER_UPDATE / USER_PASSWORD_RESET / role changes:
       // deskripsi WAJIB memuat nama & email user yang terkait, supaya
@@ -424,9 +491,19 @@ async function getSemua({
             : `Admin menghapus akun`;
           break;
         case AKSI.USER_UPDATE:
-          deskripsi = ident
-            ? `Admin memperbarui data akun ${ident}`
-            : `Admin memperbarui data akun`;
+          {
+            // Bandingkan field yang berubah untuk deskripsi detail
+            const dl = item.dataLama;
+            const db = item.dataBaru;
+            let roleDiff = '';
+            if (dl?.roles !== db?.roles) {
+              roleDiff = diffRoles(dl?.roles, db?.roles);
+            }
+            const userDiff = diffPerubahan(dl, db, LABEL_USER_FIELD);
+            deskripsi = ident
+              ? `Admin memperbarui data akun ${ident}${roleDiff}${userDiff}`
+              : `Admin memperbarui data akun${roleDiff}${userDiff}`;
+          }
           break;
         case AKSI.USER_PASSWORD_RESET:
           deskripsi = ident

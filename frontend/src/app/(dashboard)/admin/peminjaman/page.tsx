@@ -462,14 +462,14 @@ export default function AdminPeminjamanPage() {
           </button>
         </div>
 
-        {/* Legenda: perbedaan data import (tanpa surat) vs manual (ada surat) */}
+        {/* Legenda: import / migrasi data */}
         <div className="flex flex-wrap items-center gap-4 border-b border-outline-variant bg-muted/20 px-stack-md py-2 text-xs text-muted-foreground">
           <span className="flex items-center gap-1.5">
             <span className="inline-flex items-center gap-0.5 rounded-full bg-violet-100 px-1.5 py-0.5 font-medium text-violet-700 dark:bg-violet-900/30 dark:text-violet-300">
               <Upload className="h-3 w-3" />
               Import
             </span>
-            = Data migrasi (tanpa surat pernyataan)
+            = Data migrasi
           </span>
         </div>
 

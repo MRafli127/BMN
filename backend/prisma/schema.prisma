@@ -122,6 +122,8 @@ model Peminjaman {
   @@index([userId])
   @@index([status])
   @@index([kodePeminjaman])
+  @@index([userId, status])
+  @@index([status, updatedAt])
   @@map("peminjaman")
 }
 
