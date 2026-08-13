@@ -12,7 +12,6 @@ import { useRouter } from 'next/navigation';
 import { Sidebar } from '@/components/layout/Sidebar';
 import { BottomNav } from '@/components/layout/BottomNav';
 import { Header } from '@/components/layout/Header';
-import { Footer } from '@/components/layout/Footer';
 import { LoadingSpinner } from '@/components/shared/LoadingSpinner';
 import { useAuth } from '@/hooks/useAuth';
 import { useSessionSecurity } from '@/hooks/useSessionSecurity';
@@ -90,7 +89,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         >
           {children}
         </main>
-        <Footer />
       </div>
       {/* Bottom Navigation untuk Mobile */}
       <BottomNav />
