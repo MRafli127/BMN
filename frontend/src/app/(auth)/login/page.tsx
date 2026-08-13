@@ -315,9 +315,6 @@ export default function LoginPage() {
                         </p>
                       </div>
 
-                      <div className="relative flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-white/60 text-on-surface-variant transition-all group-hover:translate-x-1 group-hover:bg-white/25 group-hover:text-white">
-                        <Icon name="arrow_forward" className="text-[18px]" />
-                      </div>
                     </button>
                   );
                 })}
