@@ -533,37 +533,87 @@ export default function AdminPeminjamanPage() {
               />
             )}
             {mode === 'list' && (
-              <div className="mt-4 flex flex-col items-center justify-between gap-3 sm:flex-row">
-                <div className="flex items-center gap-2 text-sm text-on-surface-variant">
-                  <span>Tampilkan</span>
-                  <Select
-                    value={String(filter.limit ?? 12)}
-                    onChange={(e) => setFilter((f) => ({ ...f, limit: Number(e.target.value), page: 1 }))}
-                    className="h-9 w-[4.5rem]"
-                    aria-label="Jumlah peminjaman per halaman"
-                  >
-                    {OPSI_LIMIT.map((n) => (
-                      <option key={n} value={n}>
-                        {n}
-                      </option>
-                    ))}
-                  </Select>
-                  <span>per halaman{meta ? ` • ${meta.total} data` : ''}</span>
-                </div>
-
+              <div className="mt-4 overflow-hidden rounded-2xl border border-outline-variant bg-white shadow-card">
+                {/* Progress bar */}
                 {meta && meta.totalHalaman > 1 && (
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm text-on-surface-variant">
-                      Halaman {meta.page} dari {meta.totalHalaman}
-                    </span>
-                    <Button variant="outline" size="sm" disabled={meta.page <= 1} onClick={() => setFilter((f) => ({ ...f, page: (f.page || 1) - 1 }))}>
-                      <ChevronLeft className="h-4 w-4" /> Sebelumnya
-                    </Button>
-                    <Button variant="outline" size="sm" disabled={meta.page >= meta.totalHalaman} onClick={() => setFilter((f) => ({ ...f, page: (f.page || 1) + 1 }))}>
-                      Berikutnya <ChevronRight className="h-4 w-4" />
-                    </Button>
+                  <div className="h-1 bg-gray-100">
+                    <div
+                      className="h-full bg-gradient-to-r from-primary to-blue-500 transition-all duration-500"
+                      style={{ width: `${(meta.page / meta.totalHalaman) * 100}%` }}
+                    />
                   </div>
                 )}
+                <div className="flex flex-col items-center justify-between gap-4 px-6 py-4 sm:flex-row">
+                  {/* Info stat */}
+                  <div className="flex items-center gap-4">
+                    {meta && (
+                      <>
+                        <div className="flex items-center gap-2 text-sm">
+                          <span className="rounded-lg bg-primary/10 px-3 py-1.5 font-medium text-primary">
+                            {meta.total}
+                          </span>
+                          <span className="text-muted-foreground">total peminjaman</span>
+                        </div>
+                        <div className="h-5 w-px bg-gray-200" />
+                        <div className="flex items-center gap-2 text-sm">
+                          <span className="rounded-lg bg-blue-50 px-3 py-1.5 font-medium text-blue-600">
+                            {data.length}
+                          </span>
+                          <span className="text-muted-foreground">ditampilkan</span>
+                        </div>
+                      </>
+                    )}
+                  </div>
+
+                  {/* Page size selector */}
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                    <span>Tampilkan</span>
+                    <Select
+                      value={String(filter.limit ?? 12)}
+                      onChange={(e) => setFilter((f) => ({ ...f, limit: Number(e.target.value), page: 1 }))}
+                      className="h-9 w-[4.5rem]"
+                      aria-label="Jumlah peminjaman per halaman"
+                    >
+                      {OPSI_LIMIT.map((n) => (
+                        <option key={n} value={n}>
+                          {n}
+                        </option>
+                      ))}
+                    </Select>
+                    <span>/ halaman</span>
+                  </div>
+
+                  {/* Navigasi halaman */}
+                  {meta && meta.totalHalaman > 1 && (
+                    <div className="flex items-center gap-3">
+                      <span className="rounded-lg bg-gray-100 px-3 py-1.5 text-sm font-medium text-gray-700">
+                        <span className="text-primary">{meta.page}</span>
+                        <span className="text-muted-foreground"> / {meta.totalHalaman}</span>
+                      </span>
+                      <div className="flex items-center gap-1">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          disabled={meta.page <= 1}
+                          onClick={() => setFilter((f) => ({ ...f, page: (f.page || 1) - 1 }))}
+                          className="h-8 w-8 p-0 transition-all active:scale-95"
+                        >
+                          <ChevronLeft className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          disabled={meta.page >= meta.totalHalaman}
+                          onClick={() => setFilter((f) => ({ ...f, page: (f.page || 1) + 1 }))}
+                          className="h-8 gap-1.5 px-4 transition-all active:scale-95"
+                        >
+                          Berikutnya
+                          <ChevronRight className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+                </div>
               </div>
             )}
           </div>

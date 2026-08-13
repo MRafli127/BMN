@@ -244,7 +244,7 @@ export function EditPeminjamDialog({ peminjam, onSelesai, variantTampilan = 'def
           </div>
 
           {/* Eselon III (opsional) */}
-          <div>
+          <div className="sm:col-span-2">
             <Label htmlFor="ep-eselon3">Eselon III</Label>
             <Input
               id="ep-eselon3"
@@ -257,7 +257,7 @@ export function EditPeminjamDialog({ peminjam, onSelesai, variantTampilan = 'def
           </div>
 
           {/* Eselon IV (opsional) */}
-          <div>
+          <div className="sm:col-span-2">
             <Label htmlFor="ep-eselon4">Eselon IV</Label>
             <Input
               id="ep-eselon4"

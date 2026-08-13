@@ -355,7 +355,7 @@ function EditUserDialog({
               autoComplete="off"
             />
           </div>
-          <div>
+          <div className="sm:col-span-2">
             <label htmlFor="eu-eselon3" className="text-sm font-medium">
               Eselon III
             </label>
@@ -368,7 +368,7 @@ function EditUserDialog({
               autoComplete="off"
             />
           </div>
-          <div>
+          <div className="sm:col-span-2">
             <label htmlFor="eu-eselon4" className="text-sm font-medium">
               Eselon IV
             </label>

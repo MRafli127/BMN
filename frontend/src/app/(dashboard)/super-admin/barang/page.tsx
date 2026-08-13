@@ -478,44 +478,80 @@ function KontenBarang() {
           <FolderContainer grup={grupHalaman} terbuka={terbuka} onToggle={toggleFolder} />
 
           {/* Footer: jumlah folder per halaman + navigasi */}
-          <div className="flex flex-col items-center justify-between gap-3 sm:flex-row">
-            <div className="flex items-center gap-2 text-sm text-slate-500">
-              <span>Tampilkan</span>
-              <Select
-                value={String(perHalaman)}
-                onChange={(e) => setPerHalaman(Number(e.target.value))}
-                className="h-9 w-[4.5rem]"
-              >
-                {OPSI_FOLDER.map((n) => (
-                  <option key={n} value={n}>{n}</option>
-                ))}
-              </Select>
-              <span>folder per halaman • {grup.length} merk • {data.length} barang</span>
-            </div>
-
+          <div className="overflow-hidden rounded-2xl border border-outline-variant bg-white shadow-card">
+            {/* Progress bar */}
             {totalHalaman > 1 && (
-              <div className="flex items-center gap-2">
-                <span className="text-sm text-slate-500">
-                  Halaman {halamanAman} dari {totalHalaman}
-                </span>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  disabled={halamanAman <= 1}
-                  onClick={() => setHalaman(halamanAman - 1)}
-                >
-                  <ChevronLeft className="h-4 w-4" /> Sebelumnya
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  disabled={halamanAman >= totalHalaman}
-                  onClick={() => setHalaman(halamanAman + 1)}
-                >
-                  Berikutnya <ChevronRight className="h-4 w-4" />
-                </Button>
+              <div className="h-1 bg-gray-100">
+                <div
+                  className="h-full bg-gradient-to-r from-primary to-blue-500 transition-all duration-500"
+                  style={{ width: `${(halamanAman / totalHalaman) * 100}%` }}
+                />
               </div>
             )}
+            <div className="flex flex-col items-center justify-between gap-4 px-6 py-4 sm:flex-row">
+              {/* Info stat */}
+              <div className="flex items-center gap-4">
+                <div className="flex items-center gap-2 text-sm">
+                  <span className="rounded-lg bg-primary/10 px-3 py-1.5 font-medium text-primary">
+                    {data.length}
+                  </span>
+                  <span className="text-muted-foreground">barang</span>
+                </div>
+                <div className="h-5 w-px bg-gray-200" />
+                <div className="flex items-center gap-2 text-sm">
+                  <span className="rounded-lg bg-blue-50 px-3 py-1.5 font-medium text-blue-600">
+                    {grup.length}
+                  </span>
+                  <span className="text-muted-foreground">merk</span>
+                </div>
+              </div>
+
+              {/* Page size selector */}
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <span>Tampilkan</span>
+                <Select
+                  value={String(perHalaman)}
+                  onChange={(e) => setPerHalaman(Number(e.target.value))}
+                  className="h-9 w-[4.5rem]"
+                >
+                  {OPSI_FOLDER.map((n) => (
+                    <option key={n} value={n}>{n}</option>
+                  ))}
+                </Select>
+                <span>folder / halaman</span>
+              </div>
+
+              {/* Navigasi halaman */}
+              {totalHalaman > 1 && (
+                <div className="flex items-center gap-3">
+                  <span className="rounded-lg bg-gray-100 px-3 py-1.5 text-sm font-medium text-gray-700">
+                    <span className="text-primary">{halamanAman}</span>
+                    <span className="text-muted-foreground"> / {totalHalaman}</span>
+                  </span>
+                  <div className="flex items-center gap-1">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      disabled={halamanAman <= 1}
+                      onClick={() => setHalaman(halamanAman - 1)}
+                      className="h-8 w-8 p-0 transition-all active:scale-95"
+                    >
+                      <ChevronLeft className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      disabled={halamanAman >= totalHalaman}
+                      onClick={() => setHalaman(halamanAman + 1)}
+                      className="h-8 gap-1.5 px-3 transition-all active:scale-95"
+                    >
+                      Berikutnya
+                      <ChevronRight className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
         </>
       )}
