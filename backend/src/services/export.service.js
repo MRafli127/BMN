@@ -26,6 +26,33 @@ const LABEL_JENIS = {
   LAINNYA: 'Lainnya',
 };
 
+// Ambil komponen identitas aset (kodeSatker, kodeBarangBmn, nup) dari
+// barang bila tersedia — sumber paling andal, terutama untuk barang hasil
+// import. Bila barang tidak punya field tersebut, fallback dengan memecah
+// kodeTransaksi. Terakhir, kalau semuanya tidak ada, kembalikan '-'.
+function ambilIdentitasAset(item, kodeTransaksi) {
+  const kosong = { kodeSatker: '-', kodeBarang: '-', nup: '-' };
+  if (!item) return kosong;
+
+  const dariBarang = {
+    kodeSatker: item.kodeSatker || null,
+    kodeBarang: item.kodeBarangBmn || null,
+    nup: item.nup || null,
+  };
+  if (dariBarang.kodeSatker && dariBarang.kodeBarang && dariBarang.nup) {
+    return dariBarang;
+  }
+
+  const dariKode = pecahKodeTransaksi(kodeTransaksi);
+  if (dariKode.kodeSatker !== '-') return dariKode;
+
+  return {
+    kodeSatker: dariBarang.kodeSatker || '-',
+    kodeBarang: dariBarang.kodeBarang || '-',
+    nup: dariBarang.nup || '-',
+  };
+}
+
 // Pecah kodeTransaksi (format: kodeSatker-kodeBarangBmn-NUP) menjadi
 // tiga komponen. Tangani suffix urutan (mis. "-1") bila kode dipakai lebih
 // dari satu kali, dan fallback "BMN-YYYYMMDD-XXXXX" yang tidak bisa dipecah.
@@ -121,7 +148,7 @@ async function exportPeminjaman(data) {
   // Transform data
   const rows = data.map((p) => {
     const item = p.detail?.[0];
-    const komponen = pecahKodeTransaksi(p.kodeTransaksi);
+    const komponen = ambilIdentitasAset(item?.barang, p.kodeTransaksi);
     return {
       kodeSatker: komponen.kodeSatker,
       kodeBarang: komponen.kodeBarang,
