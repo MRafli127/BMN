@@ -1170,34 +1170,52 @@ export default function PenggunaPage() {
 
         {/* Pagination */}
         {!memuat && pengguna.length > 0 && (
-          <div className="flex items-center justify-between border-t p-4">
-            <p className="text-sm text-gray-500">
-              Menampilkan {pengguna.length} dari {meta.total} pengguna
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-4 border-t px-6 py-4 bg-white rounded-b-2xl shadow-[0_-2px_12px_rgba(0,0,0,0.04)]">
+            <p className="text-sm text-gray-500 order-2 sm:order-1">
+              Menampilkan{' '}
+              <span className="font-semibold text-gray-700">{pengguna.length}</span>{' '}
+              dari{' '}
+              <span className="font-semibold text-[#1e3a5f]">{meta.total}</span>{' '}
+              pengguna
             </p>
-            <div className="flex items-center gap-2">
-              <Button
-                variant="outline"
-                size="sm"
+            <div className="flex items-center gap-0 bg-gradient-to-r from-[#e8f0f7] via-white to-[#e8f0f7] rounded-2xl border border-gray-200 p-1.5 order-1 sm:order-2 shadow-sm">
+              <button
                 onClick={() => setHalaman((p) => Math.max(1, p - 1))}
                 disabled={halaman === 1}
-                className="transition-transform active:scale-95"
+                className={`
+                  flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200 cursor-pointer
+                  ${halaman === 1
+                    ? 'text-gray-300 cursor-not-allowed select-none'
+                    : 'text-[#1e3a5f] bg-white hover:bg-[#f0f6fc] border border-gray-200 hover:border-[#1e3a5f] hover:shadow-sm active:scale-95'
+                  }
+                `}
               >
                 <Icon name="chevron_left" style={{ fontSize: 16 }} />
-              </Button>
-              <span className="px-2 text-sm">
-                Halaman {halaman} / {meta.totalHalaman}
-              </span>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() =>
-                  setHalaman((p) => Math.min(meta.totalHalaman, p + 1))
-                }
+                <span className="hidden sm:inline">Previous</span>
+              </button>
+              <div className="flex items-center gap-2 px-3 py-2 min-w-[110px] justify-center">
+                <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-[#1e3a5f] text-white text-sm font-bold shadow-sm">
+                  {halaman}
+                </div>
+                <span className="text-gray-400 text-xs">/</span>
+                <span className="text-gray-500 text-sm font-medium">
+                  {meta.totalHalaman}
+                </span>
+              </div>
+              <button
+                onClick={() => setHalaman((p) => Math.min(meta.totalHalaman, p + 1))}
                 disabled={halaman >= meta.totalHalaman}
-                className="transition-transform active:scale-95"
+                className={`
+                  flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200 cursor-pointer
+                  ${halaman >= meta.totalHalaman
+                    ? 'text-gray-300 cursor-not-allowed select-none'
+                    : 'text-white bg-[#1e3a5f] hover:bg-[#2a4a73] border border-[#1e3a5f] hover:shadow-md active:scale-95'
+                  }
+                `}
               >
+                <span className="hidden sm:inline">Next</span>
                 <Icon name="chevron_right" style={{ fontSize: 16 }} />
-              </Button>
+              </button>
             </div>
           </div>
         )}
