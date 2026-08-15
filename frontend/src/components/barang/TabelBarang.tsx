@@ -12,9 +12,8 @@ import { Eye, Trash2, Package } from 'lucide-react';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { KonfirmasiDialog } from '@/components/shared/KonfirmasiDialog';
+import { HapusBarangDialog } from './HapusBarangDialog';
 import { SwipeableRow, SwipeableList } from '@/components/ui/swipeable';
-import { ConfirmationSheet } from '@/components/ui/bottom-sheet';
 import { urlFile } from '@/lib/utils';
 import { JENIS_BARANG, KONDISI_BARANG } from '@/constants/status';
 import { RUTE } from '@/constants/routes';
@@ -126,19 +125,17 @@ export function TabelBarang({ data, onHapus }: Props) {
         )}
 
         {/* Mobile Confirmation Sheet */}
-        <ConfirmationSheet
-          isOpen={showMobileConfirm}
-          onClose={() => {
-            setShowMobileConfirm(false);
-            setTarget(null);
+        <HapusBarangDialog
+          terbuka={showMobileConfirm}
+          onUbahTerbuka={(o) => {
+            if (!o) {
+              setShowMobileConfirm(false);
+              setTarget(null);
+            }
           }}
-          onConfirm={konfirmasiHapus}
-          title="Hapus Barang"
-          message={`Hapus "${target?.nama}"? Tindakan tidak dapat dibatalkan.`}
-          confirmLabel="Ya, Hapus"
-          cancelLabel="Batal"
-          confirmVariant="destructive"
-          isLoading={sedangHapus}
+          target={target}
+          sedangProses={sedangHapus}
+          onKonfirmasi={konfirmasiHapus}
         />
       </>
     );
@@ -229,13 +226,10 @@ export function TabelBarang({ data, onHapus }: Props) {
       </div>
 
       {/* Desktop Confirmation Dialog */}
-      <KonfirmasiDialog
+      <HapusBarangDialog
         terbuka={!!target && !showMobileConfirm}
         onUbahTerbuka={(o) => !o && setTarget(null)}
-        judul="Hapus Barang"
-        deskripsi={`Apakah Anda yakin ingin menghapus "${target?.nama}"? Tindakan ini tidak dapat dibatalkan.`}
-        teksKonfirmasi="Ya, Hapus"
-        variantKonfirmasi="destructive"
+        target={target}
         sedangProses={sedangHapus}
         onKonfirmasi={konfirmasiHapus}
       />

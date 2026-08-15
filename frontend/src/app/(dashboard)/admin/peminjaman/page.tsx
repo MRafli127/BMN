@@ -30,6 +30,7 @@ import { FolderSatkerPeminjaman } from '@/components/peminjaman/FolderSatkerPemi
 import { ImportPeminjamDialog } from '@/components/peminjaman/ImportPeminjamDialog';
 import { ExportModal } from '@/components/export/ExportModal';
 import { KonfirmasiDialog } from '@/components/shared/KonfirmasiDialog';
+import { HapusMassalPeminjamanDialog } from '@/components/peminjaman/HapusMassalPeminjamanDialog';
 import { LoadingSpinner } from '@/components/shared/LoadingSpinner';
 import { EmptyState } from '@/components/shared/EmptyState';
 import { notify } from '@/components/ui/toast';
@@ -672,13 +673,10 @@ export default function AdminPeminjamanPage() {
         onKonfirmasi={kembalikanMassal}
       />
 
-      <KonfirmasiDialog
+      <HapusMassalPeminjamanDialog
         terbuka={dialogMassal}
         onUbahTerbuka={(o) => !o && setDialogMassal(false)}
-        judul="Hapus Peminjaman Terpilih"
-        deskripsi={`Hapus ${terpilih.length} data peminjaman yang dipilih? Untuk barang yang masih dipinjam, stok dikembalikan otomatis. Tindakan ini tidak dapat dibatalkan.`}
-        teksKonfirmasi={`Ya, Hapus ${terpilih.length} Data`}
-        variantKonfirmasi="destructive"
+        jumlah={terpilih.length}
         sedangProses={sedangMassal}
         onKonfirmasi={hapusMassal}
       />

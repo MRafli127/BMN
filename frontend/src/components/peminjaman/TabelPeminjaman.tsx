@@ -13,7 +13,7 @@ import { Eye, Trash2, AlertTriangle, Upload } from 'lucide-react';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { KonfirmasiDialog } from '@/components/shared/KonfirmasiDialog';
+import { HapusPeminjamanDialog } from './HapusPeminjamanDialog';
 import { formatTanggal, cn } from '@/lib/utils';
 import { STATUS_PEMINJAMAN } from '@/constants/status';
 import { useIsMobile } from '@/hooks/useIsMobile';
@@ -226,13 +226,10 @@ export function TabelPeminjaman({
         </div>
 
         {onHapus && (
-          <KonfirmasiDialog
+          <HapusPeminjamanDialog
             terbuka={!!target}
             onUbahTerbuka={(o) => !o && setTarget(null)}
-            judul="Hapus Peminjaman"
-            deskripsi={`Hapus data peminjaman "${target ? kodePeminjamanRingkas(target) : ''}"? Jika barang masih dipinjam, stok akan dikembalikan otomatis. Tindakan ini tidak dapat dibatalkan.`}
-            teksKonfirmasi="Ya, Hapus"
-            variantKonfirmasi="destructive"
+            target={target}
             sedangProses={sedangHapus}
             onKonfirmasi={konfirmasiHapus}
           />
@@ -381,24 +378,16 @@ export function TabelPeminjaman({
       </div>
 
       {onHapus && (
-        <KonfirmasiDialog
+        <HapusPeminjamanDialog
           terbuka={!!target}
           onUbahTerbuka={(o) => !o && setTarget(null)}
-          judul="Hapus Peminjaman"
-          deskripsi={`Hapus data peminjaman "${target ? kodePeminjamanRingkas(target) : ''}"? Jika barang masih dipinjam, stok akan dikembalikan otomatis. Tindakan ini tidak dapat dibatalkan.`}
-          teksKonfirmasi="Ya, Hapus"
-          variantKonfirmasi="destructive"
+          target={target}
           sedangProses={sedangHapus}
           onKonfirmasi={konfirmasiHapus}
         />
       )}
     </>
   );
-}
-
-// Label ringkas untuk dialog konfirmasi: kode + nama peminjam (bila ada).
-function kodePeminjamanRingkas(p: Peminjaman): string {
-  return p.peminjam?.nama ? `${p.kodePeminjaman} — ${p.peminjam.nama}` : p.kodePeminjaman;
 }
 
 // Export helper untuk dipakai komponen lain (FolderPeminjaman)
