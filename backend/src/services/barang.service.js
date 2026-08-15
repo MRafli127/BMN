@@ -63,6 +63,9 @@ async function getSemua({ q, jenis, kondisi, ketersediaan, kodeSatker, page = 1,
       { kodeBarang: { contains: q, mode: 'insensitive' } },
       { merk: { contains: q, mode: 'insensitive' } },
       { lokasiPenyimpanan: { contains: q, mode: 'insensitive' } },
+      { nup: { contains: q, mode: 'insensitive' } },
+      { kodeSatker: { contains: q, mode: 'insensitive' } },
+      { kodeBarangBmn: { contains: q, mode: 'insensitive' } },
     ];
   }
   if (jenis) where.jenis = jenis;
@@ -76,7 +79,13 @@ async function getSemua({ q, jenis, kondisi, ketersediaan, kodeSatker, page = 1,
     prisma.barang.findMany({
       where,
       include: includeDetail ? includePeminjam : undefined,
-      orderBy: { createdAt: 'desc' },
+      // PENTING: orderBy HARUS stabil/unik untuk pagination offset-based agar
+      // skip+take konsisten. createdAt saja tidak cukup — banyak barang hasil
+      // import massal bisa punya createdAt identik (timestamp sama). Tanpa
+      // tie-breaker, Postgres kembalikan urutan nondeterministik sehingga satu
+      // record bisa muncul di dua halaman sekaligus (atau hilang sama sekali),
+      // menyebabkan totalHalaman stale dan data hilang/duplikat saat looping.
+      orderBy: [{ createdAt: 'desc' }, { id: 'asc' }],
       skip: (halaman - 1) * perHalaman,
       take: perHalaman,
     }),
@@ -154,7 +163,7 @@ async function create(data, fotoPath) {
 }
 
 // --- Edit barang ---
-async function update(id, data, fotoPath) {
+async function update(id, data, fotoPath, adminId = null, requestInfo = {}) {
   const barang = await prisma.barang.findUnique({ where: { id } });
   if (!barang) throw new AppError('Barang tidak ditemukan.', 404);
 
@@ -191,6 +200,42 @@ async function update(id, data, fotoPath) {
 
   try {
     const updated = await prisma.barang.update({ where: { id }, data: dataUpdate });
+    // Catat audit log update barang
+    const admin = adminId
+      ? await prisma.user.findUnique({ where: { id: adminId }, select: { id: true, nama: true, email: true } })
+      : null;
+    const kodeBarangStr = [barang.kodeSatker || '-', barang.kodeBarangBmn || '-', barang.nup || '-'].join(' - ');
+    auditLogService.log({
+      userId: admin?.id || null,
+      userEmail: admin?.email || null,
+      userNama: admin?.nama || 'Admin',
+      aksi: auditLogService.AKSI.BARANG_UPDATE,
+      entitas: auditLogService.ENTITAS.BARANG,
+      entitasId: id,
+      dataLama: {
+        nama: barang.nama,
+        merk: barang.merk,
+        kodeBarang: barang.kodeBarang,
+        kodeSatker: barang.kodeSatker,
+        kodeBarangBmn: barang.kodeBarangBmn,
+        nup: barang.nup,
+        jumlahTotal: barang.jumlahTotal,
+        kondisi: barang.kondisi,
+        kodeBarangLengkap: kodeBarangStr,
+      },
+      dataBaru: {
+        nama: updated.nama,
+        merk: updated.merk,
+        kodeBarang: updated.kodeBarang,
+        kodeSatker: updated.kodeSatker,
+        kodeBarangBmn: updated.kodeBarangBmn,
+        nup: updated.nup,
+        jumlahTotal: updated.jumlahTotal,
+        kondisi: updated.kondisi,
+        kodeBarangLengkap: [updated.kodeSatker || '-', updated.kodeBarangBmn || '-', updated.nup || '-'].join(' - '),
+      },
+      requestInfo,
+    }).catch(() => {});
     return serialisasi(updated);
   } catch (e) {
     if (e.code === 'P2002') {

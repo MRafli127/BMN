@@ -215,11 +215,15 @@ export default function AdminDashboardPage() {
       />
 
       {/* Hero eksekutif */}
-      <section className="relative overflow-hidden rounded-2xl bg-brand-gradient p-stack-lg text-white shadow-brand">
-        {/* Orb dekoratif lembut sebagai latar */}
-        <div className="pointer-events-none absolute -right-12 -top-12 h-44 w-44 rounded-full bg-white/10 blur-3xl" />
-        <div className="pointer-events-none absolute -bottom-20 right-1/4 h-48 w-48 rounded-full bg-sky-400/20 blur-3xl" />
-        <div className="relative flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-center">
+      <section className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-blue-700 via-blue-600 to-cyan-500 p-6 text-white shadow-lg shadow-blue-700/20 animate-page-in sm:p-8">
+        {/* Dekorasi blob & grid pattern */}
+        <div aria-hidden className="pointer-events-none absolute inset-0">
+          <div className="absolute -left-20 -top-24 h-72 w-72 rounded-full bg-cyan-300/30 blur-3xl" />
+          <div className="absolute -right-32 -bottom-32 h-80 w-80 rounded-full bg-indigo-400/25 blur-3xl" />
+          <div className="absolute inset-0 opacity-[0.07] [background-image:radial-gradient(circle_at_1px_1px,white_1px,transparent_0)] [background-size:24px_24px]" />
+        </div>
+
+        <div className="relative z-10 flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-center">
           <div className="flex-1">
             <p className="mb-1 flex items-center gap-2 font-label-sm uppercase tracking-widest text-white/70">
               <Icon name="space_dashboard" className="text-[16px]" fill />
@@ -237,7 +241,7 @@ export default function AdminDashboardPage() {
                 'w-full backdrop-blur-sm sm:w-auto',
                 adaFilter
                   ? 'gap-2 bg-white text-primary hover:bg-white/90'
-                  : 'border border-white/30 bg-white/10 text-white hover:bg-white/20',
+                  : 'bg-white text-primary hover:bg-white/90',
               )}
             >
               <Icon name="calendar_today" className="text-[18px]" />
@@ -254,9 +258,9 @@ export default function AdminDashboardPage() {
             </Button>
             <ExportModal
               trigger={
-                <Button className="w-full border border-white/30 bg-white/10 text-white backdrop-blur-sm hover:bg-white/20 sm:w-auto">
+                <Button className="w-full bg-white text-primary backdrop-blur-sm hover:bg-white/90 sm:w-auto">
                   <Icon name="download" className="text-[18px]" />
-                  <span className="hidden sm:inline">Ekspor</span>
+                  <span className="hidden sm:inline">Export</span>
                 </Button>
               }
             />

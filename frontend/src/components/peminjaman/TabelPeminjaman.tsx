@@ -13,7 +13,7 @@ import { Eye, Trash2, AlertTriangle, Upload } from 'lucide-react';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { KonfirmasiDialog } from '@/components/shared/KonfirmasiDialog';
+import { HapusPeminjamanDialog } from './HapusPeminjamanDialog';
 import { formatTanggal, cn } from '@/lib/utils';
 import { STATUS_PEMINJAMAN } from '@/constants/status';
 import { useIsMobile } from '@/hooks/useIsMobile';
@@ -163,7 +163,7 @@ export function TabelPeminjaman({
   };
 
   const jumlahKolom =
-    (pilihAktif ? 1 : 0) + (tampilkanPeminjam ? 1 : 0) + (tampilkanMerk ? 1 : 0) + 6; // kode, barang, 2 tanggal, status, aksi
+    (pilihAktif ? 1 : 0) + (tampilkanPeminjam ? 1 : 0) + (tampilkanMerk ? 1 : 0) + 6; // kode, barang, tgl pinjam, PIC/admin, status, aksi
 
   // Mobile View - Instagram-like
   if (isMobile) {
@@ -226,13 +226,10 @@ export function TabelPeminjaman({
         </div>
 
         {onHapus && (
-          <KonfirmasiDialog
+          <HapusPeminjamanDialog
             terbuka={!!target}
             onUbahTerbuka={(o) => !o && setTarget(null)}
-            judul="Hapus Peminjaman"
-            deskripsi={`Hapus data peminjaman "${target ? kodePeminjamanRingkas(target) : ''}"? Jika barang masih dipinjam, stok akan dikembalikan otomatis. Tindakan ini tidak dapat dibatalkan.`}
-            teksKonfirmasi="Ya, Hapus"
-            variantKonfirmasi="destructive"
+            target={target}
             sedangProses={sedangHapus}
             onKonfirmasi={konfirmasiHapus}
           />
@@ -260,9 +257,9 @@ export function TabelPeminjaman({
               <TableHead>Kode</TableHead>
               {tampilkanPeminjam && <TableHead>Peminjam</TableHead>}
               <TableHead>Barang</TableHead>
-              {tampilkanMerk && <TableHead>Merk</TableHead>}
+              {tampilkanMerk && <TableHead>Merk/Tipe</TableHead>}
               <TableHead>Rencana Pinjam</TableHead>
-              <TableHead>Rencana Kembali</TableHead>
+              <TableHead>Aksi PIC</TableHead>
               <TableHead>Status</TableHead>
               <TableHead className="text-right">Aksi</TableHead>
             </TableRow>
@@ -294,11 +291,11 @@ export function TabelPeminjaman({
                       <p className="font-medium text-foreground">{p.peminjam?.nama ?? '-'}</p>
                       <div className="flex flex-wrap items-center gap-1.5">
                         <p className="text-xs text-muted-foreground">{p.peminjam?.eselon3 ?? ''}</p>
-                        {/* Indikator Surat: tidak ada surat = hasil import (migrasi data) */}
-                        {!p.adaDokumen && (
+                        {/* Indikator Alasan Peminjaman */}
+                        {p.alasanPeminjaman && (
                           <span
                             className="inline-flex items-center gap-0.5 rounded-full bg-violet-100 px-1.5 py-0.5 text-xs font-medium text-violet-700 dark:bg-violet-900/30 dark:text-violet-300"
-                            title="Data migrasi: tidak ada surat pernyataan peminjaman"
+                            title={p.alasanPeminjaman}
                           >
                             <Upload className="h-3 w-3" />
                             Import
@@ -331,15 +328,32 @@ export function TabelPeminjaman({
                     <TableCell className="text-sm text-muted-foreground">{merkBarang}</TableCell>
                   )}
                   <TableCell className="text-sm">{formatTanggal(p.tanggalPinjamRencana)}</TableCell>
-                  <TableCell className="text-sm">{formatTanggal(p.tanggalKembaliRencana)}</TableCell>
+                  <TableCell className="text-sm">
+                    {p.admin?.nama || p.pengembalianAdmin?.nama ? (
+                      <div className="flex flex-col gap-0.5">
+                        {p.admin?.nama && (
+                          <span className="font-medium text-blue-600 dark:text-blue-400">{p.admin.nama}</span>
+                        )}
+                        {p.pengembalianAdmin?.nama && (
+                          <span className="font-medium text-green-600 dark:text-green-400">{p.pengembalianAdmin.nama}</span>
+                        )}
+                      </div>
+                    ) : p.status === 'MENUNGGU' ? (
+                      <span className="text-muted-foreground">Belum diproses</span>
+                    ) : p.status === 'DITOLAK' && p.admin?.nama ? (
+                      <span className="font-medium text-red-600 dark:text-red-400">{p.admin.nama}</span>
+                    ) : (
+                      '-'
+                    )}
+                  </TableCell>
                   <TableCell>
                     <Badge className={status.kelas}>{status.label}</Badge>
                   </TableCell>
                   <TableCell className="text-right">
                     <div className="flex justify-end gap-1.5">
-                      <Button asChild variant="outline" size="sm">
-                        <Link href={hrefDetail(p.id)}>
-                          <Eye className="h-4 w-4" /> Detail
+                      <Button asChild variant="outline" size="icon">
+                        <Link href={hrefDetail(p.id)} aria-label="Detail">
+                          <Eye className="h-4 w-4" />
                         </Link>
                       </Button>
                       {onHapus && (
@@ -364,24 +378,16 @@ export function TabelPeminjaman({
       </div>
 
       {onHapus && (
-        <KonfirmasiDialog
+        <HapusPeminjamanDialog
           terbuka={!!target}
           onUbahTerbuka={(o) => !o && setTarget(null)}
-          judul="Hapus Peminjaman"
-          deskripsi={`Hapus data peminjaman "${target ? kodePeminjamanRingkas(target) : ''}"? Jika barang masih dipinjam, stok akan dikembalikan otomatis. Tindakan ini tidak dapat dibatalkan.`}
-          teksKonfirmasi="Ya, Hapus"
-          variantKonfirmasi="destructive"
+          target={target}
           sedangProses={sedangHapus}
           onKonfirmasi={konfirmasiHapus}
         />
       )}
     </>
   );
-}
-
-// Label ringkas untuk dialog konfirmasi: kode + nama peminjam (bila ada).
-function kodePeminjamanRingkas(p: Peminjaman): string {
-  return p.peminjam?.nama ? `${p.kodePeminjaman} — ${p.peminjam.nama}` : p.kodePeminjaman;
 }
 
 // Export helper untuk dipakai komponen lain (FolderPeminjaman)

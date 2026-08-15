@@ -105,8 +105,12 @@ async function authMiddleware(req, res, next) {
       });
     }
 
-    // Update last activity timestamp (async, tidak blocking request)
-    updateLastActivity(payload.sub, payload.jti).catch(() => {});
+    // Update last activity timestamp.
+    // DETACHED: setImmediate memastikan tidak blocking connection pool
+    // saat semua koneksi sedang digunakan query berat (mis. pagination besar).
+    setImmediate(() => {
+      updateLastActivity(payload.sub, payload.jti).catch(() => {});
+    });
 
     // Roles diambil dari DB live (validation.user) agar promote/demote langsung
     // tercermin. Active role di-heal terhadap roles terkini: bila role aktif

@@ -118,7 +118,7 @@ export default function ReviewPengajuanPage() {
                   </a>
                 </Button>
                 <Button asChild variant="outline" size="sm">
-                  <a href={data.dokumenUrl} download={`surat-pernyataan-${data.kodePeminjaman}.pdf`}>
+                  <a href={data.dokumenUrl} download={`Surat-Peminjaman-Laptop_${(data.peminjam?.nama || data.kodePeminjaman).trim().replace(/\s+/g, '-').replace(/[^A-Za-z0-9._-]/g, '')}.pdf`}>
                     <Download className="h-4 w-4" /> Unduh
                   </a>
                 </Button>

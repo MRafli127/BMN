@@ -70,10 +70,15 @@ export default function SuperAdminDetailBarangPage() {
       </div>
 
       <Card className="overflow-hidden">
-        <div className="h-56 w-full bg-muted">
+        <div className="relative flex h-72 w-full items-center justify-center overflow-hidden bg-gradient-to-br from-slate-50 to-slate-100 sm:h-80">
           {barang.fotoUrl ? (
             // eslint-disable-next-line @next/next/no-img-element
-            <img src={urlFile(barang.fotoUrl)} alt={barang.nama} className="h-full w-full object-cover" />
+            <img
+              src={urlFile(barang.fotoUrl)}
+              alt={barang.nama}
+              className="max-h-full max-w-full object-contain"
+              loading="lazy"
+            />
           ) : (
             <div className="flex h-full w-full items-center justify-center text-muted-foreground">
               <Package className="h-16 w-16" />

@@ -40,10 +40,10 @@ const GAYA: Record<string, GayaWarna> = {
     hoverBorder: 'hover:border-amber-300/50',
   },
   primary: {
-    gradient: 'from-violet-500/20 to-purple-600/20',
-    iconGradient: 'from-violet-500 to-purple-600',
-    nilai: 'text-violet-600',
-    hoverBorder: 'hover:border-violet-300/50',
+    gradient: 'from-primary/20 to-indigo-600/20',
+    iconGradient: 'from-primary to-indigo-600',
+    nilai: 'text-primary',
+    hoverBorder: 'hover:border-primary/50',
   },
 };
 

@@ -253,11 +253,29 @@ export default function ManajemenAdminPage() {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="rounded-2xl bg-gradient-to-r from-blue-800 to-blue-600 p-6 text-white shadow-lg animate-page-in">
-        <h1 className="text-2xl font-bold">Manajemen Admin</h1>
-        <p className="mt-1 text-blue-100">Kelola akun Administrator dan Super Admin.</p>
-      </div>
+      {/* Hero Header - gradient ungu modern */}
+      <section className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-purple-700 via-violet-600 to-fuchsia-500 p-6 text-white shadow-lg shadow-violet-700/20 animate-page-in sm:p-8">
+        {/* Dekorasi blob & grid pattern */}
+        <div aria-hidden className="pointer-events-none absolute inset-0">
+          <div className="absolute -left-20 -top-24 h-72 w-72 rounded-full bg-fuchsia-300/30 blur-3xl" />
+          <div className="absolute -right-32 -bottom-32 h-80 w-80 rounded-full bg-violet-400/25 blur-3xl" />
+          <div className="absolute inset-0 opacity-[0.07] [background-image:radial-gradient(circle_at_1px_1px,white_1px,transparent_0)] [background-size:24px_24px]" />
+        </div>
+
+        <div className="relative z-10 flex items-start gap-3">
+          <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-white/15 text-white ring-1 ring-white/25 backdrop-blur-md">
+            <Icon name="admin_panel_settings" className="h-6 w-6" />
+          </div>
+          <div className="min-w-0">
+            <h1 className="font-jakarta text-2xl font-bold tracking-tight sm:text-3xl">
+              Manajemen Admin
+            </h1>
+            <p className="mt-0.5 text-sm text-white/85">
+              Kelola akun Administrator dan Super Admin.
+            </p>
+          </div>
+        </div>
+      </section>
 
       {/* Filter & Pencarian */}
       <div className="rounded-2xl bg-white p-4 shadow-md animate-page-in" style={{ animationDelay: '50ms' }}>

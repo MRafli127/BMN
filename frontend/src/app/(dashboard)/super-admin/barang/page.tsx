@@ -9,7 +9,7 @@
 import { Suspense, useCallback, useEffect, useMemo, useState } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { Search, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Search, ChevronLeft, ChevronRight, Package, Box, Tag, Layers, ChevronsUpDown, Eye } from 'lucide-react';
 import { Input, Select } from '@/components/ui/input';
 import { OPSI_KONDISI } from '@/constants/status';
 import { Button } from '@/components/ui/button';
@@ -198,13 +198,13 @@ function FolderItem({ grup, terbuka, onToggle }: { grup: GrupMerk; terbuka: bool
                       )}
                     </TableCell>
                     <TableCell>
-                      <Link href={`/super-admin/barang/${barang.id}`}>
-                        <Button variant="ghost" size="sm" className="opacity-0 transition-opacity group-hover:opacity-100">
-                          <svg className="h-4 w-4" viewBox="0 0 24 24" fill="currentColor">
-                            <path d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z"/>
-                          </svg>
-                        </Button>
-                      </Link>
+                      <div className="flex justify-end gap-1.5">
+                        <Link href={`/super-admin/barang/${barang.id}`}>
+                          <Button variant="outline" size="icon" aria-label="Detail">
+                            <Eye className="h-4 w-4" />
+                          </Button>
+                        </Link>
+                      </div>
                     </TableCell>
                   </TableRow>
                 );
@@ -283,23 +283,121 @@ function KontenBarang() {
   const halamanAman = Math.min(halaman, totalHalaman);
   const grupHalaman = grup.slice((halamanAman - 1) * perHalaman, halamanAman * perHalaman);
 
+  // State buka/tutup folder diangkat ke parent agar "Buka semua folder"
+  // bisa diletakkan di baris filter (1 baris yang sama dengan Semua Stok).
+  const [terbuka, setTerbuka] = useState<Set<string>>(new Set());
+  const semuaTerbuka = grup.length > 0 && grup.every((g) => terbuka.has(g.merk));
+  const toggleFolder = (merk: string) =>
+    setTerbuka((prev) => {
+      const next = new Set(prev);
+      if (next.has(merk)) next.delete(merk);
+      else next.add(merk);
+      return next;
+    });
+  const bukaTutupSemua = () => {
+    const allOpen = grup.length > 0 && grup.every((g) => terbuka.has(g.merk));
+    const next = new Set(terbuka);
+    for (const g of grup) {
+      if (allOpen) next.delete(g.merk);
+      else next.add(g.merk);
+    }
+    setTerbuka(next);
+  };
+
   return (
     <div className="space-y-6">
-      {/* Header - ungu elegan */}
-      <section className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-purple-900 via-violet-800 to-indigo-800 p-6 text-white shadow-xl">
-        <div className="pointer-events-none absolute -right-16 -top-16 h-56 w-56 rounded-full bg-purple-500/30 blur-3xl" />
-        <div className="pointer-events-none absolute -bottom-20 right-1/3 h-48 w-48 rounded-full bg-fuchsia-500/20 blur-3xl" />
-        <div className="relative flex items-center gap-3">
-          <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-white/15 backdrop-blur-sm shadow-lg ring-1 ring-white/20">
-            <svg className="h-6 w-6" viewBox="0 0 24 24" fill="currentColor">
-              <path d="M20 6h-8l-2-2H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2z"/>
-            </svg>
-          </div>
-          <div>
-            <h1 className="text-2xl font-bold">Manajemen Barang</h1>
-            <p className="text-purple-100">{grup.length} merk • {data.length.toLocaleString('id-ID')} item total</p>
+      {/* Hero Header - gradient ungu elegan */}
+      <section className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-purple-700 via-violet-600 to-fuchsia-500 p-6 text-white shadow-lg shadow-violet-700/20 animate-page-in sm:p-8">
+        {/* Dekorasi blob & grid pattern */}
+        <div aria-hidden className="pointer-events-none absolute inset-0">
+          <div className="absolute -left-20 -top-24 h-72 w-72 rounded-full bg-fuchsia-300/30 blur-3xl" />
+          <div className="absolute -right-32 -bottom-32 h-80 w-80 rounded-full bg-violet-400/25 blur-3xl" />
+          <div className="absolute inset-0 opacity-[0.07] [background-image:radial-gradient(circle_at_1px_1px,white_1px,transparent_0)] [background-size:24px_24px]" />
+        </div>
+
+        <div className="relative z-10 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-start gap-3">
+            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-white/15 text-white ring-1 ring-white/25 backdrop-blur-md">
+              <Package className="h-6 w-6" />
+            </div>
+            <div className="min-w-0">
+              <div className="flex flex-wrap items-center gap-2">
+                <h1 className="font-jakarta text-2xl font-bold tracking-tight sm:text-3xl">
+                  Manajemen Barang
+                </h1>
+                {data.length > 0 && (
+                  <span className="inline-flex items-center gap-1 rounded-full bg-white/15 px-2.5 py-0.5 text-xs font-semibold ring-1 ring-white/25 backdrop-blur-md">
+                    <Package className="h-3.5 w-3.5" />
+                    {data.length.toLocaleString('id-ID')} total
+                  </span>
+                )}
+              </div>
+              <p className="mt-0.5 text-sm text-white/85">
+                Kelola data Barang Milik Negara, dikelompokkan per merk.
+              </p>
+            </div>
           </div>
         </div>
+
+        {/* Mini Stat Cards */}
+        {data.length > 0 && (
+          <div className="relative z-10 mt-6 grid grid-cols-1 gap-3 sm:grid-cols-3">
+            <div
+              className="group relative overflow-hidden rounded-2xl border border-white/60 bg-white p-4 shadow-card transition-all duration-300 hover:-translate-y-0.5 hover:shadow-elevated animate-page-in"
+              style={{ animationDelay: '80ms' }}
+            >
+              <div className="flex items-center gap-3">
+                <div className="grid h-11 w-11 shrink-0 place-items-center rounded-xl text-white shadow-md ring-2 bg-gradient-to-br from-purple-500 to-violet-600 ring-violet-300/40">
+                  <Box className="h-5 w-5" />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="text-[11px] font-semibold uppercase tracking-wider text-gray-500">
+                    Total Barang
+                  </p>
+                  <p className="truncate font-jakarta text-2xl font-bold leading-tight text-gray-900">
+                    {data.length.toLocaleString('id-ID')}
+                  </p>
+                </div>
+              </div>
+            </div>
+            <div
+              className="group relative overflow-hidden rounded-2xl border border-white/60 bg-white p-4 shadow-card transition-all duration-300 hover:-translate-y-0.5 hover:shadow-elevated animate-page-in"
+              style={{ animationDelay: '140ms' }}
+            >
+              <div className="flex items-center gap-3">
+                <div className="grid h-11 w-11 shrink-0 place-items-center rounded-xl text-white shadow-md ring-2 bg-gradient-to-br from-fuchsia-500 to-purple-600 ring-fuchsia-300/40">
+                  <Tag className="h-5 w-5" />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="text-[11px] font-semibold uppercase tracking-wider text-gray-500">
+                    Total Merk
+                  </p>
+                  <p className="truncate font-jakarta text-2xl font-bold leading-tight text-gray-900">
+                    {grup.length}
+                  </p>
+                </div>
+              </div>
+            </div>
+            <div
+              className="group relative overflow-hidden rounded-2xl border border-white/60 bg-white p-4 shadow-card transition-all duration-300 hover:-translate-y-0.5 hover:shadow-elevated animate-page-in"
+              style={{ animationDelay: '200ms' }}
+            >
+              <div className="flex items-center gap-3">
+                <div className="grid h-11 w-11 shrink-0 place-items-center rounded-xl text-white shadow-md ring-2 bg-gradient-to-br from-violet-500 to-purple-600 ring-violet-300/40">
+                  <Layers className="h-5 w-5" />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="text-[11px] font-semibold uppercase tracking-wider text-gray-500">
+                    Satker
+                  </p>
+                  <p className="truncate font-jakarta text-2xl font-bold leading-tight text-gray-900">
+                    {new Set(data.map((b) => b.kodeSatker).filter((k): k is string => !!k)).size}
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
       </section>
 
       {/* Panel search + filter */}
@@ -318,40 +416,46 @@ function KontenBarang() {
         </div>
 
         {/* Filter */}
-        <div className="flex flex-wrap items-center gap-3 bg-slate-50/50 p-4">
-          <Select
-            value={kodeSatkerDariUrl || filterKodeSatker}
-            onChange={(e) => handleUbahSatker(e.target.value)}
-            className="w-72"
-          >
-            <option value="">Semua Kode Satker</option>
-            {KODE_SATKER.map((s) => (
-              <option key={s.kode} value={s.kode}>
-                {s.kode.slice(-3)} - {s.label}
-              </option>
-            ))}
-          </Select>
-          <Select
-            value={filterKondisi}
-            onChange={(e) => setFilterKondisi(e.target.value)}
-            className="w-40"
-          >
-            <option value="">Semua Kondisi</option>
-            {OPSI_KONDISI.map((o) => (
-              <option key={o.value} value={o.value}>
-                {o.label}
-              </option>
-            ))}
-          </Select>
-          <Select
-            value={filterKetersediaan}
-            onChange={(e) => setFilterKetersediaan(e.target.value)}
-            className="w-40"
-          >
-            <option value="">Semua Stok</option>
-            <option value="tersedia">Tersedia</option>
-            <option value="habis">Habis</option>
-          </Select>
+        <div className="flex flex-wrap items-center justify-between gap-3 bg-slate-50/50 p-4">
+          <div className="flex flex-wrap items-center gap-3">
+            <Select
+              value={kodeSatkerDariUrl || filterKodeSatker}
+              onChange={(e) => handleUbahSatker(e.target.value)}
+              className="w-72"
+            >
+              <option value="">Semua Kode Satker</option>
+              {KODE_SATKER.map((s) => (
+                <option key={s.kode} value={s.kode}>
+                  {s.kode.slice(-3)} - {s.label}
+                </option>
+              ))}
+            </Select>
+            <Select
+              value={filterKondisi}
+              onChange={(e) => setFilterKondisi(e.target.value)}
+              className="w-40"
+            >
+              <option value="">Semua Kondisi</option>
+              {OPSI_KONDISI.map((o) => (
+                <option key={o.value} value={o.value}>
+                  {o.label}
+                </option>
+              ))}
+            </Select>
+            <Select
+              value={filterKetersediaan}
+              onChange={(e) => setFilterKetersediaan(e.target.value)}
+              className="w-40"
+            >
+              <option value="">Semua Stok</option>
+              <option value="tersedia">Tersedia</option>
+              <option value="habis">Habis</option>
+            </Select>
+          </div>
+          <Button variant="ghost" size="sm" onClick={bukaTutupSemua} className="shrink-0 text-purple-600 hover:text-purple-700">
+            <ChevronsUpDown className="h-4 w-4" />
+            {semuaTerbuka ? 'Tutup semua folder' : 'Buka semua folder'}
+          </Button>
         </div>
       </div>
 
@@ -371,47 +475,83 @@ function KontenBarang() {
       ) : (
         <>
           {/* Folder Container */}
-          <FolderContainer grup={grupHalaman} />
+          <FolderContainer grup={grupHalaman} terbuka={terbuka} onToggle={toggleFolder} />
 
           {/* Footer: jumlah folder per halaman + navigasi */}
-          <div className="flex flex-col items-center justify-between gap-3 sm:flex-row">
-            <div className="flex items-center gap-2 text-sm text-slate-500">
-              <span>Tampilkan</span>
-              <Select
-                value={String(perHalaman)}
-                onChange={(e) => setPerHalaman(Number(e.target.value))}
-                className="h-9 w-[4.5rem]"
-              >
-                {OPSI_FOLDER.map((n) => (
-                  <option key={n} value={n}>{n}</option>
-                ))}
-              </Select>
-              <span>folder per halaman • {grup.length} merk • {data.length} barang</span>
-            </div>
-
+          <div className="overflow-hidden rounded-2xl border border-outline-variant bg-white shadow-card">
+            {/* Progress bar */}
             {totalHalaman > 1 && (
-              <div className="flex items-center gap-2">
-                <span className="text-sm text-slate-500">
-                  Halaman {halamanAman} dari {totalHalaman}
-                </span>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  disabled={halamanAman <= 1}
-                  onClick={() => setHalaman(halamanAman - 1)}
-                >
-                  <ChevronLeft className="h-4 w-4" /> Sebelumnya
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  disabled={halamanAman >= totalHalaman}
-                  onClick={() => setHalaman(halamanAman + 1)}
-                >
-                  Berikutnya <ChevronRight className="h-4 w-4" />
-                </Button>
+              <div className="h-1 bg-gray-100">
+                <div
+                  className="h-full bg-gradient-to-r from-primary to-blue-500 transition-all duration-500"
+                  style={{ width: `${(halamanAman / totalHalaman) * 100}%` }}
+                />
               </div>
             )}
+            <div className="flex flex-col items-center justify-between gap-4 px-6 py-4 sm:flex-row">
+              {/* Info stat */}
+              <div className="flex items-center gap-4">
+                <div className="flex items-center gap-2 text-sm">
+                  <span className="rounded-lg bg-primary/10 px-3 py-1.5 font-medium text-primary">
+                    {data.length}
+                  </span>
+                  <span className="text-muted-foreground">barang</span>
+                </div>
+                <div className="h-5 w-px bg-gray-200" />
+                <div className="flex items-center gap-2 text-sm">
+                  <span className="rounded-lg bg-blue-50 px-3 py-1.5 font-medium text-blue-600">
+                    {grup.length}
+                  </span>
+                  <span className="text-muted-foreground">merk</span>
+                </div>
+              </div>
+
+              {/* Page size selector */}
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <span>Tampilkan</span>
+                <Select
+                  value={String(perHalaman)}
+                  onChange={(e) => setPerHalaman(Number(e.target.value))}
+                  className="h-9 w-[4.5rem]"
+                >
+                  {OPSI_FOLDER.map((n) => (
+                    <option key={n} value={n}>{n}</option>
+                  ))}
+                </Select>
+                <span>folder / halaman</span>
+              </div>
+
+              {/* Navigasi halaman */}
+              {totalHalaman > 1 && (
+                <div className="flex items-center gap-3">
+                  <span className="rounded-lg bg-gray-100 px-3 py-1.5 text-sm font-medium text-gray-700">
+                    <span className="text-primary">{halamanAman}</span>
+                    <span className="text-muted-foreground"> / {totalHalaman}</span>
+                  </span>
+                  <div className="flex items-center gap-1">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      disabled={halamanAman <= 1}
+                      onClick={() => setHalaman(halamanAman - 1)}
+                      className="h-8 w-8 p-0 transition-all active:scale-95"
+                    >
+                      <ChevronLeft className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      disabled={halamanAman >= totalHalaman}
+                      onClick={() => setHalaman(halamanAman + 1)}
+                      className="h-8 gap-1.5 px-3 transition-all active:scale-95"
+                    >
+                      Berikutnya
+                      <ChevronRight className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
         </>
       )}
@@ -420,57 +560,75 @@ function KontenBarang() {
 }
 
 // Folder Container dengan state terbuka sendiri
-function FolderContainer({ grup, autoOpenAll = false }: { grup: GrupMerk[]; autoOpenAll?: boolean }) {
-  const [terbuka, setTerbuka] = useState<Set<string>>(new Set());
+function FolderContainer({
+  grup,
+  autoOpenAll = false,
+  terbuka: terbukaProp,
+  onToggle,
+  bukaTutupSemua: bukaTutupSemuaProp,
+}: {
+  grup: GrupMerk[];
+  autoOpenAll?: boolean;
+  terbuka?: Set<string>;
+  onToggle?: (merk: string) => void;
+  bukaTutupSemua?: () => void;
+}) {
+  const [terbukaInternal, setTerbukaInternal] = useState<Set<string>>(new Set());
 
   // Auto-open all folders when autoOpenAll is true
   useEffect(() => {
     if (autoOpenAll && grup.length > 0) {
-      const semuaMerk = new Set(grup.map(g => g.merk));
-      setTerbuka(semuaMerk);
+      const semuaMerk = new Set(grup.map((g) => g.merk));
+      if (onToggle) {
+        // Skip auto-open when controlled from outside
+        return;
+      }
+      setTerbukaInternal(semuaMerk);
     }
-  }, [autoOpenAll, grup]);
+  }, [autoOpenAll, grup, onToggle]);
+
+  const terbuka = terbukaProp !== undefined ? terbukaProp : terbukaInternal;
 
   const toggle = (merk: string) => {
-    setTerbuka((lama) => {
-      const baru = new Set(lama);
-      if (baru.has(merk)) baru.delete(merk);
-      else baru.add(merk);
-      return baru;
-    });
+    if (onToggle) {
+      onToggle(merk);
+    } else {
+      setTerbukaInternal((lama) => {
+        const baru = new Set(lama);
+        if (baru.has(merk)) baru.delete(merk);
+        else baru.add(merk);
+        return baru;
+      });
+    }
   };
 
   const semuaTerbuka = grup.length > 0 && grup.every((g) => terbuka.has(g.merk));
-  const bukaTutupSemua = () => {
-    setTerbuka((lama) => {
-      const baru = new Set(lama);
-      for (const g of grup) {
-        if (semuaTerbuka) baru.delete(g.merk);
-        else baru.add(g.merk);
-      }
-      return baru;
-    });
+  const handleBukaTutupSemua = () => {
+    if (bukaTutupSemuaProp) {
+      bukaTutupSemuaProp();
+    } else {
+      setTerbukaInternal((lama) => {
+        const baru = new Set(lama);
+        for (const g of grup) {
+          if (semuaTerbuka) baru.delete(g.merk);
+          else baru.add(g.merk);
+        }
+        return baru;
+      });
+    }
   };
 
   return (
-    <>
-      <div className="mb-3 flex justify-end">
-        <Button variant="ghost" size="sm" onClick={bukaTutupSemua} className="text-primary hover:bg-primary/10">
-          {semuaTerbuka ? 'Tutup semua folder' : 'Buka semua folder'}
-        </Button>
-      </div>
-
-      <div className="space-y-3">
-        {grup.map((g) => (
-          <FolderItem
-            key={g.merk}
-            grup={g}
-            terbuka={terbuka.has(g.merk)}
-            onToggle={() => toggle(g.merk)}
-          />
-        ))}
-      </div>
-    </>
+    <div className="space-y-3">
+      {grup.map((g) => (
+        <FolderItem
+          key={g.merk}
+          grup={g}
+          terbuka={terbuka.has(g.merk)}
+          onToggle={() => toggle(g.merk)}
+        />
+      ))}
+    </div>
   );
 }
 

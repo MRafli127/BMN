@@ -43,7 +43,7 @@ const langkahPengembalian = [
 const faq = [
   {
     t: 'Siapa yang dapat mengajukan peminjaman?',
-    j: 'Seluruh pegawai yang telah memiliki akun peminjam. Pendaftaran akun dapat dilakukan melalui halaman Daftar.',
+    j: 'Seluruh pegawai yang telah memiliki akun peminjam.',
   },
   {
     t: 'Berapa lama proses persetujuan?',

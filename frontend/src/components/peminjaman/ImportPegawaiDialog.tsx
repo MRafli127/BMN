@@ -86,7 +86,7 @@ export function ImportPegawaiDialog({ onSelesai }: Props) {
       }}
     >
       <DialogTrigger asChild>
-        <Button variant="outline">
+        <Button variant="outline" className="bg-white text-primary hover:bg-white">
           <Upload className="h-4 w-4" /> Import Pegawai
         </Button>
       </DialogTrigger>

@@ -28,11 +28,17 @@ import type { PeminjamRow } from './TabelDaftarPeminjam';
 interface Props {
   peminjam: PeminjamRow;
   onSelesai?: () => void; // dipanggil setelah berhasil menyimpan (untuk refetch)
+  /**
+   * Tampilan tombol pemicu:
+   * - default: tombol outline ukuran sm dengan teks "Edit" + ikon (untuk tabel)
+   * - 'icon': tombol ghost ukuran icon saja (untuk kartu/daftar ringkas)
+   */
+  variantTampilan?: 'default' | 'icon';
 }
 
 const REGEX_EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-export function EditPeminjamDialog({ peminjam, onSelesai }: Props) {
+export function EditPeminjamDialog({ peminjam, onSelesai, variantTampilan = 'default' }: Props) {
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState({
     nama: peminjam.nama,
@@ -114,10 +120,22 @@ export function EditPeminjamDialog({ peminjam, onSelesai }: Props) {
       }}
     >
       <DialogTrigger asChild>
-        <Button variant="outline" size="sm" onClick={(e) => e.stopPropagation()}>
-          <Pencil className="h-4 w-4" />
-          Edit
-        </Button>
+        {variantTampilan === 'icon' ? (
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={(e) => e.stopPropagation()}
+            title={`Edit ${peminjam.nama}`}
+            aria-label={`Edit ${peminjam.nama}`}
+          >
+            <Pencil className="h-4 w-4" />
+          </Button>
+        ) : (
+          <Button variant="outline" size="sm" onClick={(e) => e.stopPropagation()}>
+            <Pencil className="h-4 w-4" />
+            Edit
+          </Button>
+        )}
       </DialogTrigger>
 
       <DialogContent className="max-h-[90vh] max-w-xl overflow-y-auto">
@@ -226,7 +244,7 @@ export function EditPeminjamDialog({ peminjam, onSelesai }: Props) {
           </div>
 
           {/* Eselon III (opsional) */}
-          <div>
+          <div className="sm:col-span-2">
             <Label htmlFor="ep-eselon3">Eselon III</Label>
             <Input
               id="ep-eselon3"
@@ -239,7 +257,7 @@ export function EditPeminjamDialog({ peminjam, onSelesai }: Props) {
           </div>
 
           {/* Eselon IV (opsional) */}
-          <div>
+          <div className="sm:col-span-2">
             <Label htmlFor="ep-eselon4">Eselon IV</Label>
             <Input
               id="ep-eselon4"

@@ -159,9 +159,9 @@ export default function DetailRiwayatPage() {
     .trim()
     .replace(/\s+/g, '-')
     .replace(/[^A-Za-z0-9._-]/g, '');
-  const namaFilePeminjaman = `Surat-Peminjaman-laptop_${namaBerkasPeminjam}.pdf`;
-  const namaFilePeminjamanStempel = `Surat-Peminjaman-Berstempel-laptop_${namaBerkasPeminjam}.pdf`;
-  const namaFilePengembalian = `Surat-Pengembalian-laptop_${namaBerkasPeminjam}.pdf`;
+  const namaFilePeminjaman = `Surat-Peminjaman-Laptop_${namaBerkasPeminjam}.pdf`;
+  const namaFilePeminjamanStempel = `Surat-Peminjaman-Berstempel-Laptop_${namaBerkasPeminjam}.pdf`;
+  const namaFilePengembalian = `Surat-Pengembalian-Laptop_${namaBerkasPeminjam}.pdf`;
 
   return (
     <div className="mx-auto max-w-5xl space-y-gutter">
@@ -195,8 +195,8 @@ export default function DetailRiwayatPage() {
                 </p>
               </div>
             </div>
-            {/* Hero berlatar biru — paksa pill putih solid agar teks aksen status
-                (mis. "Disetujui"/biru, "Dipinjam"/indigo) tak menyatu dengan latar. */}
+            {/* Hero berlatar emerald/teal — paksa pill putih solid agar teks aksen status
+                (mis. "Disetujui"/teal, "Dipinjam"/emerald) tak menyatu dengan latar. */}
             <Badge className={cn(status.kelas, 'border-transparent bg-white px-3.5 py-1.5 text-sm shadow-soft')}>{status.label}</Badge>
           </div>
         </div>
@@ -399,8 +399,8 @@ export default function DetailRiwayatPage() {
                         {fileSurat ? 'Ganti Berkas' : 'Pilih Berkas PDF'}
                       </Button>
                       {fileSurat && (
-                        <div className="flex items-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-800 dark:bg-emerald-950/20">
-                          <Icon name="check_circle" fill className="shrink-0 text-[18px] text-emerald-600" />
+                        <div className="flex items-center gap-2 rounded-xl border border-primary/20 bg-primary/5 px-3 py-2 text-sm text-primary dark:bg-primary-950/20">
+                          <Icon name="check_circle" fill className="shrink-0 text-[18px] text-primary" />
                           <span className="min-w-0 flex-1 truncate font-medium">{fileSurat.name}</span>
                         </div>
                       )}
@@ -491,8 +491,8 @@ export default function DetailRiwayatPage() {
                             {fileKembali ? 'Ganti Berkas' : 'Pilih Berkas PDF'}
                           </Button>
                           {fileKembali && (
-                            <div className="flex items-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-800 dark:bg-emerald-950/20">
-                              <Icon name="check_circle" fill className="shrink-0 text-[18px] text-emerald-600" />
+                            <div className="flex items-center gap-2 rounded-xl border border-primary/20 bg-primary/5 px-3 py-2 text-sm text-primary dark:bg-primary-950/20">
+                              <Icon name="check_circle" fill className="shrink-0 text-[18px] text-primary" />
                               <span className="min-w-0 flex-1 truncate font-medium">{fileKembali.name}</span>
                             </div>
                           )}

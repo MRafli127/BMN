@@ -228,7 +228,7 @@ export function ExportModal({ trigger }: ExportModalProps) {
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
         {trigger || (
-          <Button variant="outline">
+          <Button variant="outline" className="bg-white text-primary hover:bg-white">
             <Download className="h-4 w-4" />
             Export
           </Button>

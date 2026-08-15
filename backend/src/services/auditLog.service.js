@@ -113,6 +113,72 @@ const LABEL_STATUS = {
   TERLAMBAT: 'Terlambat',
 };
 
+// --- Label untuk field user ---
+const LABEL_USER_FIELD = {
+  nama: 'Nama',
+  email: 'Email',
+  nip: 'NIP',
+  jabatan: 'Jabatan',
+  unitKerja: 'Unit Kerja',
+  eselon2: 'Eselon II',
+  eselon3: 'Eselon III',
+  eselon4: 'Eselon IV',
+  roles: 'Peran',
+  retirementDate: 'Tanggal Pensiun',
+};
+
+// --- Label untuk field barang ---
+const LABEL_BARANG_FIELD = {
+  nama: 'Nama Barang',
+  merk: 'Merk/Type',
+  kodeSatker: 'Kode Satker',
+  kodeBarangBmn: 'Kode Barang BMN',
+  nup: 'NUP',
+  jumlahTotal: 'Jumlah Total',
+  jumlahTersedia: 'Jumlah Tersedia',
+  kondisi: 'Kondisi',
+  lokasiPenyimpanan: 'Lokasi Penyimpanan',
+};
+
+// --- Helper: bandingkan dataLama vs dataBaru, kembalikan daftar perubahan ---
+function diffPerubahan(dataLama, dataBaru, labelField) {
+  if (!dataLama || !dataBaru) return '';
+  const perubahan = [];
+
+  for (const key of Object.keys(dataBaru)) {
+    if (key === 'kodeBarangLengkap') continue; // skip field hasil komputasi
+    const lama = dataLama[key];
+    const baru = dataBaru[key];
+    if (lama === baru) continue;
+
+    const label = labelField[key] || key;
+    const formatValue = (v) => {
+      if (v === null || v === undefined || v === '') return '(kosong)';
+      if (Array.isArray(v)) return v.join(', ');
+      if (typeof v === 'boolean') return v ? 'Ya' : 'Tidak';
+      return String(v);
+    };
+
+    perubahan.push(`${label}: ${formatValue(lama)} → ${formatValue(baru)}`);
+  }
+
+  if (perubahan.length === 0) return '';
+  return ` (${perubahan.join('; ')})`;
+}
+
+// --- Helper: bandingkan hanya array roles ---
+function diffRoles(dataLama, dataBaru) {
+  if (!Array.isArray(dataLama) || !Array.isArray(dataBaru)) return '';
+  const lamaSet = new Set(dataLama);
+  const baruSet = new Set(dataBaru);
+  const ditambah = [...baruSet].filter((r) => !lamaSet.has(r));
+  const dihapus = [...lamaSet].filter((r) => !baruSet.has(r));
+  const parts = [];
+  if (ditambah.length) parts.push(`+${ditambah.join(', ')}`);
+  if (dihapus.length) parts.push(`-${dihapus.join(', ')}`);
+  return parts.length ? ` [${parts.join(', ')}]` : '';
+}
+
 /**
  * Buat audit log entry.
  * Dipanggil dari service lain setelah aksi berhasil dilakukan.
@@ -241,8 +307,13 @@ async function getSemua({
 
     const where = {};
 
-    if (entitas) where.entitas = entitas;
-    if (aksi) where.aksi = aksi;
+    // Handle case-insensitive entitas: DB simpan 'user' (lowercase).
+    // Jika user filter entitas 'USER' atau 'user', keduanya query ke 'user'.
+    const entitasFix = entitas
+      ? entitas.toLowerCase() === 'user' ? 'user' : entitas
+      : undefined;
+    if (entitasFix) where.entitas = entitasFix;
+    if (aksi) where.aksi = { contains: aksi, mode: 'insensitive' };
     if (userId) where.userId = userId;
 
     if (dari || sampai) {
@@ -289,47 +360,84 @@ async function getSemua({
     const peminjaman = item.entitas === ENTITAS.PEMINJAMAN && item.entitasId
       ? peminjamanMap.get(item.entitasId)
       : null;
-    const namaPeminjam = peminjaman?.peminjam?.nama || 'Tidak dikenal';
+    // Urutan fallback: snapshot dataBaru (kalau ada) -> snapshot dataLama -> relasi peminjaman.
+    // DataLama/dataBaru sudah berisi namaPeminjam yang di-snapshot saat aksi dilakukan,
+    // sehingga bila record peminjaman / peminjam / barang sudah dihapus dari DB,
+    // deskripsi log tetap benar (tidak lagi menampilkan "Tidak dikenal").
+    const namaPeminjam =
+      item.dataBaru?.namaPeminjam ||
+      item.dataLama?.namaPeminjam ||
+      peminjaman?.peminjam?.nama ||
+      null;
     const barang = peminjaman?.detail?.[0]?.barang;
-    const namaBarang = barang?.nama || 'barang';
+    const namaBarang =
+      item.dataBaru?.namaBarang ||
+      item.dataLama?.namaBarang ||
+      barang?.nama ||
+      null;
     const statusBaru = item.dataBaru?.status;
     const statusLama = item.dataLama?.status;
 
     // Generate deskripsi berdasarkan aksi
     let deskripsi = '';
     if (item.entitas === ENTITAS.PEMINJAMAN && item.entitasId) {
+      // Pakai fallback yang menampilkan "—" (bukan "Tidak dikenal") bila
+      // benar-benar tidak ada data — supaya log yang sudah kehilangan
+      // referensi (mis. peminjaman + peminjam + barang sudah dihapus)
+      // tidak menampilkan teks aneh.
+      const peminjamLabel = namaPeminjam || '—';
+      const barangLabel = namaBarang || '—';
+
       // Bangun deskripsi berdasarkan aksi spesifik
       switch (item.aksi) {
         case AKSI.PEMINJAMAN_MENUNGGU:
-          deskripsi = `${namaPeminjam} mengajukan pinjaman ${namaBarang}`;
+          deskripsi = `${peminjamLabel} mengajukan pinjaman ${barangLabel}`;
           break;
         case AKSI.PEMINJAMAN_DISETUJUI:
-          deskripsi = `Admin menyetujui pengajuan ${namaPeminjam}`;
+          deskripsi = `Admin menyetujui pengajuan ${peminjamLabel}`;
           break;
         case AKSI.PEMINJAMAN_DITOLAK:
           const alasanTolak = item.dataBaru?.alasan ? ` (${item.dataBaru.alasan})` : '';
-          deskripsi = `Admin menolak pengajuan ${namaPeminjam}${alasanTolak}`;
+          deskripsi = `Admin menolak pengajuan ${peminjamLabel}${alasanTolak}`;
           break;
         case AKSI.PEMINJAMAN_DISERAHKAN:
-          deskripsi = `Admin menyerahkan ${namaBarang} ke ${namaPeminjam}`;
+          deskripsi = `Admin menyerahkan ${barangLabel} ke ${peminjamLabel}`;
           break;
         case AKSI.PEMINJAMAN_MEMINTA_PENGEMBALIAN:
-          deskripsi = `${namaPeminjam} meminta pengembalian ${namaBarang}`;
+          deskripsi = `${peminjamLabel} meminta pengembalian ${barangLabel}`;
           break;
         case AKSI.PEMINJAMAN_DIKEMBALIKAN:
           if (item.userNama && item.userNama !== 'Sistem') {
             // Dilakukan oleh admin
-            deskripsi = `Admin menerima pengembalian dari ${namaPeminjam}`;
+            deskripsi = `Admin menerima pengembalian dari ${peminjamLabel}`;
           } else {
-            deskripsi = `${namaPeminjam} mengembalikan ${namaBarang}`;
+            deskripsi = `${peminjamLabel} mengembalikan ${barangLabel}`;
           }
           break;
         case AKSI.PEMINJAMAN_DIBATALKAN:
-          deskripsi = `${namaPeminjam} membatalkan pengajuan`;
+          deskripsi = `${peminjamLabel} membatalkan pengajuan`;
           break;
-        case AKSI.PEMINJAMAN_DELETE:
-          const namaPeminjamHapus = item.dataLama?.namaPeminjam || namaPeminjam;
-          deskripsi = `Admin menghapus peminjaman ${namaPeminjamHapus}`;
+        case AKSI.PEMINJAMAN_DELETE: {
+          // Prioritas: dataLama.namaPeminjam (snapshot saat hapus) -> dataLama.kodeTransaksi -> nama hasil lookup -> "—"
+          const namaPeminjamHapus =
+            item.dataLama?.namaPeminjam ||
+            (item.dataLama?.kodeTransaksi ? `(${item.dataLama.kodeTransaksi})` : null) ||
+            namaPeminjam;
+          deskripsi = `Admin menghapus peminjaman ${namaPeminjamHapus || '—'}`;
+          break;
+        }
+        case AKSI.PEMINJAMAN_CREATE:
+          deskripsi = `Admin membuat peminjaman untuk ${peminjamLabel}`;
+          break;
+        case AKSI.PEMINJAMAN_STATUS_CHANGE:
+          // Fallback: tampilkan perubahan status bila nama/ barang tidak tersedia
+          if (statusBaru && statusLama) {
+            deskripsi = `${labelAksi} (${statusLama} → ${statusBaru})`;
+          } else if (statusBaru) {
+            deskripsi = `${labelAksi}: ${statusBaru}`;
+          } else {
+            deskripsi = labelAksi;
+          }
           break;
         default:
           // Generic fallback
@@ -341,23 +449,100 @@ async function getSemua({
       }
     } else if (item.entitas === ENTITAS.BARANG && item.aksi === AKSI.BARANG_DELETE) {
       // BARANG_DELETE: tampilkan nama barang yang dihapus
-      const namaBarangHapus = item.dataLama?.nama || 'barang';
-      const merkHapus = item.dataLama?.merk || '';
+      const namaBarangHapus =
+        item.dataLama?.nama ||
+        item.dataBaru?.nama ||
+        'barang';
+      const merkHapus = item.dataLama?.merk || item.dataBaru?.merk || '';
       deskripsi = `Admin menghapus barang ${namaBarangHapus}${merkHapus ? ` (${merkHapus})` : ''}`;
+    } else if (item.entitas === ENTITAS.BARANG && item.aksi === AKSI.BARANG_CREATE) {
+      // BARANG_CREATE: tampilkan nama barang yang ditambahkan
+      const namaBarangBaru = item.dataBaru?.nama || 'barang';
+      const merkBaru = item.dataBaru?.merk || '';
+      deskripsi = `Admin menambah barang ${namaBarangBaru}${merkBaru ? ` (${merkBaru})` : ''}`;
+    } else if (item.entitas === ENTITAS.BARANG && item.aksi === AKSI.BARANG_UPDATE) {
+      // BARANG_UPDATE: tampilkan nama barang + daftar field yang berubah
+      const namaBarangUpdate = item.dataBaru?.nama || item.dataLama?.nama || 'barang';
+      const merkUpdate = item.dataBaru?.merk || item.dataLama?.merk || '';
+      const diff = diffPerubahan(item.dataLama, item.dataBaru, LABEL_BARANG_FIELD);
+      deskripsi = `Admin memperbarui barang ${namaBarangUpdate}${merkUpdate ? ` (${merkUpdate})` : ''}${diff}`;
+    } else if (item.entitas === ENTITAS.USER) {
+      // USER_CREATE / USER_DELETE / USER_UPDATE / USER_PASSWORD_RESET / role changes:
+      // deskripsi WAJIB memuat nama & email user yang terkait, supaya
+      // log aktivitas mudah ditelusuri tanpa harus lihat detail.
+      const target = item.dataBaru || item.dataLama;
+      const namaTarget = target?.nama || target?.namaUser || null;
+      const emailTarget = target?.email || null;
+      const ident = namaTarget
+        ? emailTarget
+          ? `${namaTarget} (${emailTarget})`
+          : namaTarget
+        : null;
+
+      switch (item.aksi) {
+        case AKSI.USER_CREATE:
+          deskripsi = ident
+            ? `Admin membuat akun baru untuk ${ident}`
+            : `Admin membuat akun baru`;
+          break;
+        case AKSI.USER_DELETE:
+          deskripsi = ident
+            ? `Admin menghapus akun ${ident}`
+            : `Admin menghapus akun`;
+          break;
+        case AKSI.USER_UPDATE:
+          {
+            // Bandingkan field yang berubah untuk deskripsi detail
+            const dl = item.dataLama;
+            const db = item.dataBaru;
+            let roleDiff = '';
+            if (dl?.roles !== db?.roles) {
+              roleDiff = diffRoles(dl?.roles, db?.roles);
+            }
+            const userDiff = diffPerubahan(dl, db, LABEL_USER_FIELD);
+            deskripsi = ident
+              ? `Admin memperbarui data akun ${ident}${roleDiff}${userDiff}`
+              : `Admin memperbarui data akun${roleDiff}${userDiff}`;
+          }
+          break;
+        case AKSI.USER_PASSWORD_RESET:
+          deskripsi = ident
+            ? `Admin mereset password akun ${ident}`
+            : `Admin mereset password akun`;
+          break;
+        case AKSI.USER_ROLE_PROMOTE:
+          deskripsi = ident
+            ? `Admin memromosikan ${ident} ke peran ${item.dataBaru?.role || ''}`.trim()
+            : `Admin memromosikan pengguna`;
+          break;
+        case AKSI.USER_ROLE_DEMOTE:
+          deskripsi = ident
+            ? `Admin mencabut peran ${item.dataLama?.role || ''} dari ${ident}`.trim()
+            : `Admin mencabut peran pengguna`;
+          break;
+        default:
+          deskripsi = ident ? `${labelAksi} ${ident}` : labelAksi;
+      }
     } else {
       deskripsi = labelAksi;
     }
 
     // Bangun kode barang: kodeSatker - kodeBarangBmn - NUP
-    // Untuk PEMINJAMAN/BARANG_DELETE, data mungkin sudah dihapus, jadi coba dari dataLama
+    // Untuk entitas bukan BARANG/PEMINJAMAN (mis. USER), tidak ada kode
+    // barang yang relevan → tampilkan '-' saja.
     let kodeBarang = '-';
-    if (item.aksi === AKSI.BARANG_DELETE && item.dataLama?.kodeBarangLengkap) {
+    if (item.entitas === ENTITAS.USER) {
+      // Entitas USER: tidak menampilkan kode barang.
+      kodeBarang = '-';
+    } else if (item.aksi === AKSI.BARANG_DELETE && item.dataLama?.kodeBarangLengkap) {
       kodeBarang = item.dataLama.kodeBarangLengkap;
     } else if (barang) {
       kodeBarang = [barang.kodeSatker || '-', barang.kodeBarangBmn || '-', barang.nup || '-'].join(' - ');
     } else if (item.dataLama?.kodeBarang) {
       // Fallback untuk PEMINJAMAN_DELETE
       kodeBarang = item.dataLama.kodeBarang;
+    } else if (item.dataBaru?.kodeBarang) {
+      kodeBarang = item.dataBaru.kodeBarang;
     }
 
     return {

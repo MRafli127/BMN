@@ -113,7 +113,7 @@ export function TambahPeminjamDialog({ onSelesai }: Props) {
       }}
     >
       <DialogTrigger asChild>
-        <Button>
+        <Button variant="outline" className="bg-white text-primary hover:bg-white">
           <UserPlus className="h-4 w-4" /> Tambah Peminjam
         </Button>
       </DialogTrigger>

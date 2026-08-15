@@ -411,10 +411,21 @@ async function validateSession(user) {
   return { valid: true };
 }
 
+// Throttle: hanya update jika sudah lebih dari 5 menit sejak update terakhir
+// Mencegah lonjakan connection pool saat banyak request konkuren.
+// Key = userId, Value = timestamp update terakhir (ms).
+const lastActivityUpdate = new Map();
+const THROTTLE_MS = 5 * 60 * 1000; // 5 menit
+
 // --- Update last activity timestamp ---
 // Dipanggil oleh auth middleware pada setiap request terproteksi
 // Menggunakan jti sebagai identifier tambahan untuk konsistensi
 async function updateLastActivity(userId, jti) {
+  const now = Date.now();
+  const last = lastActivityUpdate.get(userId) || 0;
+  if (now - last < THROTTLE_MS) return; // skip jika belum lewat 5 menit
+
+  lastActivityUpdate.set(userId, now);
   await prisma.user.update({
     where: { id: userId },
     data: {

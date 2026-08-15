@@ -93,7 +93,7 @@ export function ImportPeminjamDialog({ onSelesai }: Props) {
       }}
     >
       <DialogTrigger asChild>
-        <Button variant="outline">
+        <Button variant="outline" className="bg-white text-primary hover:bg-white">
           <Upload className="h-4 w-4" /> Import Peminjam
         </Button>
       </DialogTrigger>
@@ -112,6 +112,20 @@ export function ImportPeminjamDialog({ onSelesai }: Props) {
             yang dibuat manual/registrasi tidak terpengaruh.
           </DialogDescription>
         </DialogHeader>
+
+        {/* Catatan pencocokan: harus PERSIS sama (case-sensitive) */}
+        <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
+          <p className="font-semibold">Catatan pencocokan Merk &amp; NUP:</p>
+          <p className="mt-1">
+            Isian kolom <strong>Merk Laptop</strong> &amp; <strong>NUP Laptop</strong> di Excel{' '}
+            <strong>harus persis sama</strong> dengan data di sistem — termasuk{' '}
+            <strong>huruf besar/kecil (kapital)</strong>, spasi, dan karakter lain. Contoh:{' '}
+            <code className="rounded bg-white px-1.5 py-0.5 font-mono text-xs">Dell</code> ≠{' '}
+            <code className="rounded bg-white px-1.5 py-0.5 font-mono text-xs">dell</code> ≠{' '}
+            <code className="rounded bg-white px-1.5 py-0.5 font-mono text-xs">DELL</code>. Jika berbeda satu
+            karakter saja, baris akan masuk tab <strong>Gagal</strong>.
+          </p>
+        </div>
 
         {/* Langkah 1: template */}
         <div className="rounded-lg border bg-muted/40 p-3 text-sm">
@@ -199,11 +213,11 @@ export function ImportPeminjamDialog({ onSelesai }: Props) {
               </details>
             )}
             {hasil.detailDiperbarui.length > 0 && (
-              <details className="rounded-md bg-blue-50 p-2">
-                <summary className="cursor-pointer text-xs font-medium text-blue-800">
+              <details className="rounded-md bg-primary/5 p-2">
+                <summary className="cursor-pointer text-xs font-medium text-primary">
                   Akun diperbarui ({hasil.detailDiperbarui.length})
                 </summary>
-                <ul className="mt-1 max-h-32 space-y-1 overflow-y-auto text-xs text-blue-800">
+                <ul className="mt-1 max-h-32 space-y-1 overflow-y-auto text-xs text-primary">
                   {hasil.detailDiperbarui.map((u, i) => (
                     <li key={i}>
                       {u.nama} — NIP {u.nip}

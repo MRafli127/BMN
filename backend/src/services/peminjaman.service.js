@@ -10,7 +10,6 @@
 // ============================================================
 
 const { prisma } = require('../config/database');
-const { Prisma } = require('@prisma/client');
 const { urlPublik } = require('../utils/apiResponse');
 const { parsePagination } = require('../utils/pagination');
 const { AppError } = require('../middleware/error.middleware');
@@ -406,65 +405,39 @@ async function create(userId, data, dokumenDataUrl, requestInfo = {}) {
 
   const tahunSurat = new Date().getFullYear();
 
-  // RETRY LOGIC: wrap HANYA $transaction dengan retry loop. Kode error P2002
-  // (unique constraint violation) = ada collision nomor surat — retry transaction
-  // dari awal agar nomorSuratService.ambil() mendapat nomor baru.
-  // Operasi pasca-transaction (audit log, notifikasi, serialisasi) TIDAK di-retry
-  // karena tidak mengubah data dan tidak bisa menyebabkan duplikat.
-  const MAX_RETRIES = 3;
-  const RETRY_DELAY_MS = 100;
-  let created;
+  const created = await prisma.$transaction(async (tx) => {
+    // Nomor surat berurut & unik per tahun (atomik, anti race condition).
+    const nomorSurat = await nomorSuratService.ambil(tx, nomorSuratService.JENIS.PEMINJAMAN, tahunSurat);
 
-  for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
-    try {
-      created = await prisma.$transaction(async (tx) => {
-        // Nomor surat berurut & unik per tahun (atomik, anti race condition).
-        const nomorSurat = await nomorSuratService.ambil(tx, nomorSuratService.JENIS.PEMINJAMAN, tahunSurat);
-
-        return tx.peminjaman.create({
-          data: {
-            kodeTransaksi,
-            kodePeminjaman: kodeSnapshot, // Snapshot kode barang pertama (kolom wajib)
-            userId,
-            nomorSurat,
-            tahunSurat,
-            tanggalPinjamRencana: data.tanggalPinjamRencana || null,
-            tanggalKembaliRencana: data.tanggalKembaliRencana || null,
-            // Pengajuan langsung: waktu kirim = sekarang. Draft: belum dikirim (null),
-            // diisi nanti saat surat diunggah (unggahSurat()).
-            tanggalKirim: isDraft ? null : new Date(),
-            alasanPeminjaman: data.alasanPeminjaman || null,
-            pangkatGolongan: data.pangkatGolongan || null, // Tercantum pada surat; disimpan agar surat draft bisa diunduh menyusul
-            dokumenUrl: dokumenDataUrl, // Surat pernyataan yang sudah ditandatangani peminjam (null bila DRAFT)
-            status: isDraft ? 'DRAFT' : 'MENUNGGU',
-            detail: {
-              create: detailItems,
-            },
-          },
-          include: includeLengkap,
-        });
-      }, { timeout: 20000, maxWait: 10000 });
-      break; // Transaction berhasil — keluar dari retry loop, lanjut ke pasca-transaction.
-    } catch (err) {
-      const isUniqueViolation =
-        err instanceof Prisma.PrismaClientKnownRequestError && err.code === 'P2002';
-      if (isUniqueViolation && attempt < MAX_RETRIES) {
-        await new Promise(resolve => setTimeout(resolve, RETRY_DELAY_MS));
-        continue;
-      }
-      // Bukan P2002 atau sudah maximal retry — lempar langsung, tidak ada yang perlu di-retry.
-      logger.error('[create] Gagal setelah ' + attempt + ' percobaan', {
+    return tx.peminjaman.create({
+      data: {
+        kodeTransaksi,
+        kodePeminjaman: kodeSnapshot, // Snapshot kode barang pertama (kolom wajib)
         userId,
-        lastErrorMessage: err.message,
-      });
-      throw new AppError('Gagal membuat pengajuan setelah beberapa percobaan, silakan coba lagi.', 500);
-    }
-  }
+        nomorSurat,
+        tahunSurat,
+        tanggalPinjamRencana: data.tanggalPinjamRencana || null,
+        tanggalKembaliRencana: data.tanggalKembaliRencana || null,
+        // Pengajuan langsung: waktu kirim = sekarang. Draft: belum dikirim (null),
+        // diisi nanti saat surat diunggah (unggahSurat()).
+        tanggalKirim: isDraft ? null : new Date(),
+        alasanPeminjaman: data.alasanPeminjaman || null,
+        pangkatGolongan: data.pangkatGolongan || null, // Tercantum pada surat; disimpan agar surat draft bisa diunduh menyusul
+        dokumenUrl: dokumenDataUrl, // Surat pernyataan yang sudah ditandatangani peminjam (null bila DRAFT)
+        status: isDraft ? 'DRAFT' : 'MENUNGGU',
+        detail: {
+          create: detailItems,
+        },
+      },
+      include: includeLengkap,
+    });
+  }, { timeout: 20000, maxWait: 10000 });
 
-  // Pasca-transaction: dijalankan SATU KALI setelah $transaction berhasil.
-  // Tidak di-retry karena tidak mengubah data dan tidak bisa menyebabkan duplikat.
+  // Peminjam (user) diambil dari relasi hasil create — fungsi ini hanya menerima
+  // userId, jadi jangan mereferensikan variabel `user` yang tidak ada di scope ini.
   const peminjam = created.peminjam;
 
+  // Audit log: catat pembuatan peminjaman baru
   auditLogService.log({
     userId,
     userEmail: peminjam?.email,
@@ -573,47 +546,17 @@ async function batalDraft(id, { userId, role } = {}, requestInfo = {}) {
 // kali dibuat, lalu DISIMPAN agar sama pada setiap unduhan berikutnya dan pada
 // surat peminjaman maupun pengembalian transaksi yang sama. Mengubah objek `p`
 // (in-place) agar surat langsung memakai nomor baru.
-//
-// RETRY LOGIC: meskipun risiko collision di fungsi ini rendah (dipanggil
-// per-record), retry defense-in-depth tetap diterapkan supaya konsisten dengan
-// create(). Kode error P2002 = unique constraint violation dari partial index
-// (bila ada proses lain yang juga menerbitkan nomor secara independent).
 async function pastikanNomorSurat(p) {
   if (p.nomorSurat) return p;
-
-  const MAX_RETRIES = 3;
-  const RETRY_DELAY_MS = 100;
-  let lastError;
-
-  for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
-    try {
-      const { nomorSurat, tahunSurat } = await prisma.$transaction(async (tx) => {
-        const tahun = p.tahunSurat || new Date().getFullYear();
-        const nomor = await nomorSuratService.ambil(tx, nomorSuratService.JENIS.PEMINJAMAN, tahun);
-        await tx.peminjaman.update({ where: { id: p.id }, data: { nomorSurat: nomor, tahunSurat: tahun } });
-        return { nomorSurat: nomor, tahunSurat: tahun };
-      });
-      p.nomorSurat = nomorSurat;
-      p.tahunSurat = tahunSurat;
-      return p;
-    } catch (err) {
-      lastError = err;
-      const isUniqueViolation =
-        err instanceof Prisma.PrismaClientKnownRequestError && err.code === 'P2002';
-      if (isUniqueViolation && attempt < MAX_RETRIES) {
-        await new Promise(resolve => setTimeout(resolve, RETRY_DELAY_MS));
-        continue;
-      }
-      break;
-    }
-  }
-
-  // Log hanya untuk debugging internal — error message ke user tidak bocorkan detail teknis.
-  logger.error('[pastikanNomorSurat] Gagal setelah ' + MAX_RETRIES + ' percobaan', {
-    peminjamanId: p.id,
-    lastErrorMessage: lastError?.message,
+  const { nomorSurat, tahunSurat } = await prisma.$transaction(async (tx) => {
+    const tahun = p.tahunSurat || new Date().getFullYear();
+    const nomor = await nomorSuratService.ambil(tx, nomorSuratService.JENIS.PEMINJAMAN, tahun);
+    await tx.peminjaman.update({ where: { id: p.id }, data: { nomorSurat: nomor, tahunSurat: tahun } });
+    return { nomorSurat: nomor, tahunSurat: tahun };
   });
-  throw new AppError('Gagal menerbitkan nomor surat setelah beberapa percobaan, silakan coba lagi.', 500);
+  p.nomorSurat = nomorSurat;
+  p.tahunSurat = tahunSurat;
+  return p;
 }
 
 // --- Hasilkan Surat Pernyataan Peminjaman (PDF) untuk pengajuan tersimpan ---
@@ -643,8 +586,31 @@ async function getSemua({ status, q, userId, role, page = 1, limit = 10, importM
   }
   // Peminjam hanya melihat miliknya sendiri
   if (role === 'PEMINJAM') where.userId = userId;
-  // Admin tidak melihat DRAFT (pengajuan yang suratnya belum diunggah peminjam).
-  else where.NOT = { status: 'DRAFT' };
+  // Admin tidak melihat DRAFT — KECUALI bila admin secara eksplisit memfilter
+  // status=DRAFT (tunggal atau gabungan). Pada halaman filter Draft, semua admin
+  // boleh melihat SEMUA draft (milik siapa saja) agar bisa saling mengingatkan.
+  // Di luar halaman itu, draft hanya muncul untuk admin yang membuatnya.
+  // Super Admin melihat semua termasuk DRAFT (tidak masuk blok ini).
+  else if (role === 'ADMIN') {
+    const filterStatus = where.status;
+    const filterStatusList = Array.isArray(filterStatus?.in)
+      ? filterStatus.in
+      : filterStatus
+      ? [filterStatus]
+      : [];
+    const filterMemuatDraft = filterStatusList.includes('DRAFT');
+
+    if (filterMemuatDraft) {
+      // Filter sudah menentukan DRAFT — tidak perlu batasan disetujuiOleh.
+      // where.status (atau where.status.in) sudah cukup membatasi ke DRAFT.
+      // where.OR mungkin sudah di-set oleh search `q` di bawah, jadi jangan disentuh.
+    } else {
+      where.OR = [
+        { status: { not: 'DRAFT' } },
+        { status: 'DRAFT', disetujuiOleh: userId },
+      ];
+    }
+  }
   if (q) {
     const cocok = { contains: q, mode: 'insensitive' };
     where.OR = [
@@ -1445,8 +1411,287 @@ async function setDokumenStempel(id, pathRelatif) {
   return serialisasi(updated);
 }
 
+// --- Admin membuatkan peminjaman atas nama peminjam ---
+// Jika draft=true: simpan DRAFT tanpa surat, TANPA potong stok.
+// Jika draft=false/undefined: wajib upload surat, langsung DIPINJAM, potong stok.
+async function createByAdmin(adminId, data, dokumenDataUrl, requestInfo = {}) {
+  const isDraft = data.draft === true || data.draft === 'true';
+  // CEK: pangkatGolongan WAJIB
+  if (!data.pangkatGolongan || !String(data.pangkatGolongan).trim()) {
+    throw new AppError('Pangkat/Gol. wajib diisi.', 400);
+  }
+  // CEK: userId (peminjam) WAJIB dan ada
+  if (!data.userId || !String(data.userId).trim()) {
+    throw new AppError('Peminjam wajib dipilih.', 400);
+  }
+  // CEK: Surat wajib diunggah jika BUKAN draft
+  if (!isDraft && !dokumenDataUrl) {
+    throw new AppError('Unggah Surat Pernyataan yang sudah ditandatangani sebelum menyimpan.', 400);
+  }
+
+  // CEK: Admin tidak bisa membuatkan peminjaman untuk dirinya sendiri
+  if (data.userId === adminId) {
+    throw new AppError('Admin tidak dapat membuatkan peminjaman untuk diri sendiri.', 400);
+  }
+
+  // CEK: Peminjam ada & bukan admin
+  const peminjam = await prisma.user.findUnique({ where: { id: data.userId } });
+  if (!peminjam) throw new AppError('Data peminjam tidak ditemukan.', 404);
+  if (peminjam.roles.includes('ADMIN') || peminjam.roles.includes('SUPER_ADMIN')) {
+    throw new AppError('Tidak dapat membuatkan peminjaman untuk akun Admin.', 400);
+  }
+
+  // CEK: Scope satker admin (jika admin punya satkerAkses)
+  const admin = await prisma.user.findUnique({ where: { id: adminId } });
+
+  // CEK: Double-booking — tidak boleh ada peminjaman aktif atas barang yang sama
+  const barangIds = [...new Set((data.items || []).map((i) => i.barangId).filter(Boolean))];
+  if (barangIds.length) {
+    const sudahAktif = await prisma.peminjaman.findFirst({
+      where: {
+        status: { in: STATUS_MENGUNCI },
+        detail: { some: { barangId: { in: barangIds } } },
+      },
+      include: {
+        peminjam: { select: { id: true, nama: true, nip: true } },
+        detail: { include: { barang: { select: { id: true, nama: true } } } },
+      },
+    });
+    if (sudahAktif) {
+      const bentrok = sudahAktif.detail.find((d) => barangIds.includes(d.barangId));
+      const namaBarang = bentrok?.barang?.nama || 'barang tersebut';
+      throw new AppError(
+        `"${namaBarang}" sedang dalam proses pengajuan/peminjaman oleh ${sudahAktif.peminjam?.nama || 'peminjam lain'}. Barang tidak dapat dipinjamkan sebelum peminjaman sebelumnya selesai.`,
+        400,
+        { kodeError: 'BARANG_SEDANG_DIPEGANG_LAIN' }
+      );
+    }
+  }
+
+  // CEK: Stok tersedia untuk semua barang
+  const barangList = await prisma.barang.findMany({ where: { id: { in: barangIds } } });
+  const barangMap = new Map(barangList.map((b) => [b.id, b]));
+
+  const detailItems = [];
+  let kodeSnapshot = null;
+  let barangUtama = null;
+  for (const item of data.items) {
+    const barang = barangMap.get(item.barangId);
+    if (!barang) throw new AppError(`Barang dengan id ${item.barangId} tidak ditemukan.`, 404);
+
+    // CEK: Scope satker — admin hanya boleh memproses barang di satkernya
+    if (admin?.satkerAkses?.length > 0 && !admin.satkerAkses.includes(barang.kodeSatker)) {
+      throw new AppError(
+        `Barang "${barang.nama}" berada di satker yang tidak Anda miliki aksesnya.`,
+        403
+      );
+    }
+
+    if (item.jumlahPinjam > barang.jumlahTersedia) {
+      throw new AppError(
+        `Stok "${barang.nama}" tidak mencukupi. Tersedia ${barang.jumlahTersedia}, diminta ${item.jumlahPinjam}.`,
+        400
+      );
+    }
+    if (!kodeSnapshot) {
+      kodeSnapshot = barang.kodeBarang;
+      barangUtama = barang;
+    }
+    detailItems.push({ barangId: item.barangId, jumlahPinjam: item.jumlahPinjam });
+  }
+
+  // Generate kode transaksi unik
+  const kodeTransaksi = await kodeTransaksiUnik({
+    barangId: barangUtama?.id,
+    kodeBarang: barangUtama?.kodeBarang,
+    kodeSatker: barangUtama?.kodeSatker,
+    kodeBarangBmn: barangUtama?.kodeBarangBmn,
+    nup: barangUtama?.nup,
+  });
+
+  const tahunSurat = new Date().getFullYear();
+
+  // Buat peminjaman + potong stok dalam transaksi atomik
+  const created = await prisma.$transaction(async (tx) => {
+    // Atomik: ambil nomor surat + potong stok + create
+    const nomorSurat = await nomorSuratService.ambil(tx, nomorSuratService.JENIS.PEMINJAMAN, tahunSurat);
+
+    // Hanya potong stok jika BUKAN draft
+    if (!isDraft) {
+      for (const item of detailItems) {
+        await tx.barang.update({
+          where: { id: item.barangId },
+          data: { jumlahTersedia: { decrement: item.jumlahPinjam } },
+        });
+      }
+    }
+
+    return tx.peminjaman.create({
+      data: {
+        kodeTransaksi,
+        kodePeminjaman: kodeSnapshot,
+        userId: data.userId,
+        nomorSurat,
+        tahunSurat,
+        tanggalPengajuan: new Date(),
+        tanggalKirim: isDraft ? null : new Date(),
+        tanggalPinjamRencana: data.tanggalPinjamRencana || null,
+        tanggalKembaliRencana: data.tanggalKembaliRencana || null,
+        pangkatGolongan: data.pangkatGolongan.trim(),
+        dokumenUrl: isDraft ? null : dokumenDataUrl,
+        disetujuiOleh: adminId,
+        status: isDraft ? 'DRAFT' : 'DIPINJAM',
+        detail: { create: detailItems },
+      },
+      include: includeLengkap,
+    });
+  }, { timeout: 20000, maxWait: 10000 });
+
+  // Generate QR Code (non-blocking) — hanya untuk non-draft
+  if (!isDraft) {
+    try {
+      const qrPath = await qrcodeService.generateUntukPeminjaman(serialisasi(created));
+      await prisma.peminjaman.update({ where: { id: created.id }, data: { qrCodeUrl: qrPath } });
+    } catch {
+      // QR gagal tidak membatalkan pembuatan peminjaman
+    }
+  }
+
+  // Audit log
+  if (!isDraft) {
+    // Snapshot nama peminjam & barang utama ke dataBaru agar log
+    // aktivitas tetap menampilkan nama yang benar meskipun record
+    // peminjaman/peminjam/barang sudah dihapus di kemudian hari.
+    const namaPeminjamSnapshot = peminjam?.nama || '-';
+    const namaBarangSnapshot = barangUtama?.nama || '-';
+    auditLogService.log({
+      userId: adminId,
+      userEmail: admin?.email,
+      userNama: admin?.nama,
+      aksi: auditLogService.AKSI.PEMINJAMAN_DISERAHKAN,
+      entitas: auditLogService.ENTITAS.PEMINJAMAN,
+      entitasId: created.id,
+      dataBaru: {
+        kodeTransaksi: created.kodeTransaksi,
+        status: 'DIPINJAM',
+        items: data.items,
+        dibuatOleh: 'ADMIN',
+        namaPeminjam: namaPeminjamSnapshot,
+        namaBarang: namaBarangSnapshot,
+      },
+      requestInfo,
+    }).catch(() => {});
+
+    // Notifikasi ke peminjam
+    const barangNames = created.detail?.map((d) => d.barang?.nama).filter(Boolean).join(', ') || 'Barang';
+    notificationService
+      .kirimKeUser(peminjam.id, {
+        tipe: notificationService.TIPE_NOTIFIKASI.BARANG_DISERAHKAN,
+        judul: 'Barang Dipinjamkan oleh Admin',
+        pesan: `Admin telah mencatat peminjaman barang ${barangNames} atas nama Anda. Silakan ambil barang.`,
+        referenceId: created.id,
+        referenceType: 'PEMINJAMAN',
+      })
+      .catch((err) =>
+        logger.warn('kirim notifikasi BARANG_DISERAHKAN (via admin) gagal', {
+          peminjamanId: created.id,
+          userId: peminjam.id,
+          error: err.message,
+        })
+      );
+  }
+
+  return serialisasi(created);
+}
+
+// --- Serahkan draft peminjaman via admin (upload signed surat, potong stok) ---
+// DRAFT -> DIPINJAM. Dipanggil saat admin upload surat di halaman detail.
+async function serahkanDraftAdmin(peminjamanId, adminId, dokumenDataUrl, requestInfo = {}) {
+  const peminjaman = await prisma.peminjaman.findUnique({
+    where: { id: peminjamanId },
+    include: {
+      detail: { include: { barang: true } },
+      peminjam: { select: { id: true, nama: true, email: true } },
+    },
+  });
+  if (!peminjaman) throw new AppError('Peminjaman tidak ditemukan.', 404);
+  if (peminjaman.status !== 'DRAFT') {
+    throw new AppError(`Peminjaman berstatus "${peminjaman.status}", bukan DRAFT.`, 400);
+  }
+
+  const admin = await prisma.user.findUnique({ where: { id: adminId } });
+
+  // Potong stok dalam transaksi
+  const updated = await prisma.$transaction(async (tx) => {
+    for (const item of peminjaman.detail) {
+      if (item.jumlahPinjam > item.barang.jumlahTersedia) {
+        throw new AppError(
+          `Stok "${item.barang.nama}" tidak mencukupi. Tersedia ${item.barang.jumlahTersedia}, diminta ${item.jumlahPinjam}.`,
+          400
+        );
+      }
+      await tx.barang.update({
+        where: { id: item.barangId },
+        data: { jumlahTersedia: { decrement: item.jumlahPinjam } },
+      });
+    }
+    return tx.peminjaman.update({
+      where: { id: peminjamanId },
+      data: {
+        dokumenUrl: dokumenDataUrl,
+        tanggalKirim: new Date(),
+        disetujuiOleh: adminId,
+        status: 'DIPINJAM',
+      },
+      include: includeLengkap,
+    });
+  }, { timeout: 20000, maxWait: 10000 });
+
+  // Generate QR
+  try {
+    const qrPath = await qrcodeService.generateUntukPeminjaman(serialisasi(updated));
+    await prisma.peminjaman.update({ where: { id: updated.id }, data: { qrCodeUrl: qrPath } });
+  } catch { /* non-blocking */ }
+
+  // Audit log
+  // Snapshot nama peminjam & barang utama agar log aktivitas tetap
+  // menampilkan nama yang benar meskipun record dihapus di kemudian hari.
+  const namaPeminjamSnapshot = peminjaman.peminjam?.nama || '-';
+  const namaBarangSnapshot = peminjaman.detail?.[0]?.barang?.nama || '-';
+  auditLogService.log({
+    userId: adminId,
+    userEmail: admin?.email,
+    userNama: admin?.nama,
+    aksi: auditLogService.AKSI.PEMINJAMAN_DISERAHKAN,
+    entitas: auditLogService.ENTITAS.PEMINJAMAN,
+    entitasId: updated.id,
+    dataBaru: {
+      kodeTransaksi: updated.kodeTransaksi,
+      status: 'DIPINJAM',
+      dibuatOleh: 'ADMIN',
+      namaPeminjam: namaPeminjamSnapshot,
+      namaBarang: namaBarangSnapshot,
+    },
+    requestInfo,
+  }).catch(() => {});
+
+  // Notifikasi
+  const barangNames = updated.detail?.map((d) => d.barang?.nama).filter(Boolean).join(', ') || 'Barang';
+  notificationService.kirimKeUser(peminjaman.peminjam.id, {
+    tipe: notificationService.TIPE_NOTIFIKASI.BARANG_DISERAHKAN,
+    judul: 'Barang Dipinjamkan oleh Admin',
+    pesan: `Admin telah menyerahkan peminjaman barang ${barangNames} atas nama Anda. Silakan ambil barang.`,
+    referenceId: updated.id,
+    referenceType: 'PEMINJAMAN',
+  }).catch(() => {});
+
+  return serialisasi(updated);
+}
+
 module.exports = {
   create,
+  createByAdmin,
+  serahkanDraftAdmin,
   unggahSurat,
   batalDraft,
   generateSuratPernyataan,

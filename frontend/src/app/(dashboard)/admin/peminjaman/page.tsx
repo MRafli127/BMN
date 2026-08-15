@@ -5,7 +5,22 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
-import { ChevronLeft, ChevronRight, ClipboardList, Trash2, X, CheckCheck, List, FolderTree, PackageCheck, Undo2, Upload } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import {
+  ChevronLeft,
+  ChevronRight,
+  ClipboardList,
+  Trash2,
+  X,
+  CheckCheck,
+  List,
+  FolderTree,
+  PackageCheck,
+  Undo2,
+  Upload,
+  Plus,
+  FileText,
+} from 'lucide-react';
 import { Icon } from '@/components/ui/icon';
 import { Input, Select, Textarea, Label } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -15,6 +30,7 @@ import { FolderSatkerPeminjaman } from '@/components/peminjaman/FolderSatkerPemi
 import { ImportPeminjamDialog } from '@/components/peminjaman/ImportPeminjamDialog';
 import { ExportModal } from '@/components/export/ExportModal';
 import { KonfirmasiDialog } from '@/components/shared/KonfirmasiDialog';
+import { HapusMassalPeminjamanDialog } from '@/components/peminjaman/HapusMassalPeminjamanDialog';
 import { LoadingSpinner } from '@/components/shared/LoadingSpinner';
 import { EmptyState } from '@/components/shared/EmptyState';
 import { notify } from '@/components/ui/toast';
@@ -28,9 +44,52 @@ import type { Peminjaman } from '@/types/peminjaman.type';
 import type { MetaPagination } from '@/types/barang.type';
 
 // Pilihan jumlah baris yang ditampilkan per halaman
-const OPSI_LIMIT = [12, 50, 100, 200];
+const OPSI_LIMIT = [12, 32, 64, 128, 256, 512];
+
+// ============================================================
+//  Mini kartu statistik
+// ============================================================
+interface MiniStatProps {
+  label: string;
+  value: number | string;
+  icon: React.ReactNode;
+  gradient: string;
+  ring: string;
+  delay?: number;
+}
+function MiniStat({ label, value, icon, gradient, ring, delay = 0 }: MiniStatProps) {
+  return (
+    <div
+      className={cn(
+        'group relative overflow-hidden rounded-2xl border border-white/60 bg-white p-4 shadow-card transition-all duration-300 hover:-translate-y-0.5 hover:shadow-elevated animate-page-in'
+      )}
+      style={{ animationDelay: `${delay}ms` }}
+    >
+      <div className="flex items-center gap-3">
+        <div
+          className={cn(
+            'grid h-11 w-11 shrink-0 place-items-center rounded-xl text-white shadow-md ring-2',
+            gradient,
+            ring
+          )}
+        >
+          {icon}
+        </div>
+        <div className="min-w-0 flex-1">
+          <p className="text-[11px] font-semibold uppercase tracking-wider text-gray-500">
+            {label}
+          </p>
+          <p className="truncate font-jakarta text-2xl font-bold leading-tight text-gray-900">
+            {value}
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 export default function AdminPeminjamanPage() {
+  const router = useRouter();
   const [filter, setFilter] = useState<FilterPeminjaman>({ page: 1, limit: 12 });
   const [cari, setCari] = useState('');
   const [mode, setMode] = useState<'list' | 'folder'>('list');
@@ -87,6 +146,19 @@ export default function AdminPeminjamanPage() {
   );
   const data = hasil?.data ?? [];
   const meta = hasil?.meta ?? null;
+
+  // Hitung statistik dari data yang dimuat
+  const jumlahMenunggu = data.filter((p) => p.status === 'MENUNGGU').length;
+  const jumlahDisetujui = data.filter((p) => p.status === 'DISETUJUI').length;
+  const jumlahAktif = data.filter((p) => p.status === 'DIPINJAM' || p.status === 'TERLAMBAT').length;
+  // Jumlah satker unik yang muncul di data yang dimuat (berdasarkan kodeSatker di barang).
+  const totalSatker = new Set(
+    data.flatMap((p) =>
+      (p.detail ?? [])
+        .map((d) => d.barang?.kodeSatker)
+        .filter((k): k is string => !!k)
+    )
+  ).size;
 
   // Reset pilihan setiap kali data dimuat ulang
   useEffect(() => {
@@ -226,16 +298,84 @@ export default function AdminPeminjamanPage() {
 
   return (
     <div className="space-y-gutter">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <h1 className="font-jakarta text-headline-lg text-primary">Manajemen Peminjaman</h1>
-          <p className="text-on-surface-variant">Tinjau, setujui, atau tolak pengajuan peminjaman.</p>
+      {/* Hero Header — gradient + dekorasi blob */}
+      <section className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-blue-700 via-blue-600 to-cyan-500 p-6 text-white shadow-lg shadow-blue-700/20 animate-page-in sm:p-8">
+        {/* Dekorasi blob & grid pattern */}
+        <div aria-hidden className="pointer-events-none absolute inset-0">
+          <div className="absolute -left-20 -top-24 h-72 w-72 rounded-full bg-cyan-300/30 blur-3xl" />
+          <div className="absolute -right-32 -bottom-32 h-80 w-80 rounded-full bg-indigo-400/25 blur-3xl" />
+          <div className="absolute inset-0 opacity-[0.07] [background-image:radial-gradient(circle_at_1px_1px,white_1px,transparent_0)] [background-size:24px_24px]" />
         </div>
-        <div className="flex flex-wrap gap-2">
-          <ExportModal />
-          <ImportPeminjamDialog onSelesai={muat} />
+
+        <div className="relative z-10 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-start gap-3">
+            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-white/15 text-white ring-1 ring-white/25 backdrop-blur-md">
+              <ClipboardList className="h-6 w-6" />
+            </div>
+            <div className="min-w-0">
+              <div className="flex flex-wrap items-center gap-2">
+                <h1 className="font-jakarta text-2xl font-bold tracking-tight sm:text-3xl">
+                  Manajemen Peminjaman
+                </h1>
+                {meta && (
+                  <span className="inline-flex items-center gap-1 rounded-full bg-white/15 px-2.5 py-0.5 text-xs font-semibold ring-1 ring-white/25 backdrop-blur-md">
+                    <ClipboardList className="h-3.5 w-3.5" />
+                    {meta.total} total
+                  </span>
+                )}
+              </div>
+              <p className="mt-0.5 text-sm text-white/85">Tinjau, setujui, atau tolak pengajuan peminjaman.</p>
+            </div>
+          </div>
+
+          {/* Tombol aksi */}
+          <div className="flex flex-wrap gap-2">
+            <ExportModal />
+            <ImportPeminjamDialog onSelesai={muat} />
+            <Button variant="outline" className="bg-white text-primary hover:bg-white" onClick={() => router.push(RUTE.adminPeminjamanBuat)}>
+              <Plus className="h-4 w-4" /> Tambah Peminjaman
+            </Button>
+          </div>
         </div>
-      </div>
+
+        {/* Mini Stat Cards */}
+        {meta && (
+          <div className="relative z-10 mt-6 grid grid-cols-1 gap-3 sm:grid-cols-4">
+            <MiniStat
+              label="Total Peminjaman"
+              value={meta.total}
+              icon={<ClipboardList className="h-5 w-5" />}
+              gradient="bg-gradient-to-br from-blue-500 to-indigo-600"
+              ring="ring-blue-300/40"
+              delay={80}
+            />
+            <MiniStat
+              label="Ditampilkan"
+              value={`${data.length} / ${meta.total}`}
+              icon={<FileText className="h-5 w-5" />}
+              gradient="bg-gradient-to-br from-cyan-500 to-blue-600"
+              ring="ring-cyan-300/40"
+              delay={140}
+            />
+            <MiniStat
+              label="Menunggu"
+              value={jumlahMenunggu}
+              icon={<PackageCheck className="h-5 w-5" />}
+              gradient="bg-gradient-to-br from-indigo-500 to-blue-600"
+              ring="ring-indigo-300/40"
+              delay={200}
+            />
+            <MiniStat
+              label="Aktif / Terlambat"
+              value={jumlahAktif}
+              icon={<PackageCheck className="h-5 w-5" />}
+              gradient="bg-gradient-to-br from-blue-600 to-indigo-700"
+              ring="ring-blue-300/40"
+              delay={260}
+            />
+          </div>
+        )}
+      </section>
 
       {/* Panel tabel */}
       <div className="glass-card overflow-hidden rounded-2xl border border-outline-variant">
@@ -246,7 +386,7 @@ export default function AdminPeminjamanPage() {
               name="search"
               className="absolute left-3 top-1/2 -translate-y-1/2 text-[20px] text-on-surface-variant"
             />
-            <Input value={cari} onChange={(e) => setCari(e.target.value)} placeholder="Cari kode / nama barang / merk / nama peminjam / NIP..." className="pl-10" />
+            <Input value={cari} onChange={(e) => setCari(e.target.value)} placeholder="Cari kode / nama barang / merk / nama peminjam..." className="pl-10" />
           </div>
         </div>
 
@@ -323,18 +463,14 @@ export default function AdminPeminjamanPage() {
           </button>
         </div>
 
-        {/* Legenda: perbedaan data import (tanpa surat) vs manual (ada surat) */}
+        {/* Legenda: import / migrasi data */}
         <div className="flex flex-wrap items-center gap-4 border-b border-outline-variant bg-muted/20 px-stack-md py-2 text-xs text-muted-foreground">
           <span className="flex items-center gap-1.5">
             <span className="inline-flex items-center gap-0.5 rounded-full bg-violet-100 px-1.5 py-0.5 font-medium text-violet-700 dark:bg-violet-900/30 dark:text-violet-300">
               <Upload className="h-3 w-3" />
               Import
             </span>
-            = Data migrasi (tanpa surat pernyataan)
-          </span>
-          <span className="flex items-center gap-1.5">
-            <span className="h-2 w-2 rounded-full bg-outline-variant" />
-            = Input manual (ada surat pernyataan)
+            = Data migrasi
           </span>
         </div>
 
@@ -398,37 +534,87 @@ export default function AdminPeminjamanPage() {
               />
             )}
             {mode === 'list' && (
-              <div className="mt-4 flex flex-col items-center justify-between gap-3 sm:flex-row">
-                <div className="flex items-center gap-2 text-sm text-on-surface-variant">
-                  <span>Tampilkan</span>
-                  <Select
-                    value={String(filter.limit ?? 12)}
-                    onChange={(e) => setFilter((f) => ({ ...f, limit: Number(e.target.value), page: 1 }))}
-                    className="h-9 w-[4.5rem]"
-                    aria-label="Jumlah peminjaman per halaman"
-                  >
-                    {OPSI_LIMIT.map((n) => (
-                      <option key={n} value={n}>
-                        {n}
-                      </option>
-                    ))}
-                  </Select>
-                  <span>per halaman{meta ? ` • ${meta.total} data` : ''}</span>
-                </div>
-
+              <div className="mt-4 overflow-hidden rounded-2xl border border-outline-variant bg-white shadow-card">
+                {/* Progress bar */}
                 {meta && meta.totalHalaman > 1 && (
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm text-on-surface-variant">
-                      Halaman {meta.page} dari {meta.totalHalaman}
-                    </span>
-                    <Button variant="outline" size="sm" disabled={meta.page <= 1} onClick={() => setFilter((f) => ({ ...f, page: (f.page || 1) - 1 }))}>
-                      <ChevronLeft className="h-4 w-4" /> Sebelumnya
-                    </Button>
-                    <Button variant="outline" size="sm" disabled={meta.page >= meta.totalHalaman} onClick={() => setFilter((f) => ({ ...f, page: (f.page || 1) + 1 }))}>
-                      Berikutnya <ChevronRight className="h-4 w-4" />
-                    </Button>
+                  <div className="h-1 bg-gray-100">
+                    <div
+                      className="h-full bg-gradient-to-r from-primary to-blue-500 transition-all duration-500"
+                      style={{ width: `${(meta.page / meta.totalHalaman) * 100}%` }}
+                    />
                   </div>
                 )}
+                <div className="flex flex-col items-center justify-between gap-4 px-6 py-4 sm:flex-row">
+                  {/* Info stat */}
+                  <div className="flex items-center gap-4">
+                    {meta && (
+                      <>
+                        <div className="flex items-center gap-2 text-sm">
+                          <span className="rounded-lg bg-primary/10 px-3 py-1.5 font-medium text-primary">
+                            {meta.total}
+                          </span>
+                          <span className="text-muted-foreground">total peminjaman</span>
+                        </div>
+                        <div className="h-5 w-px bg-gray-200" />
+                        <div className="flex items-center gap-2 text-sm">
+                          <span className="rounded-lg bg-blue-50 px-3 py-1.5 font-medium text-blue-600">
+                            {data.length}
+                          </span>
+                          <span className="text-muted-foreground">ditampilkan</span>
+                        </div>
+                      </>
+                    )}
+                  </div>
+
+                  {/* Page size selector */}
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                    <span>Tampilkan</span>
+                    <Select
+                      value={String(filter.limit ?? 12)}
+                      onChange={(e) => setFilter((f) => ({ ...f, limit: Number(e.target.value), page: 1 }))}
+                      className="h-9 w-[4.5rem]"
+                      aria-label="Jumlah peminjaman per halaman"
+                    >
+                      {OPSI_LIMIT.map((n) => (
+                        <option key={n} value={n}>
+                          {n}
+                        </option>
+                      ))}
+                    </Select>
+                    <span>/ halaman</span>
+                  </div>
+
+                  {/* Navigasi halaman */}
+                  {meta && meta.totalHalaman > 1 && (
+                    <div className="flex items-center gap-3">
+                      <span className="rounded-lg bg-gray-100 px-3 py-1.5 text-sm font-medium text-gray-700">
+                        <span className="text-primary">{meta.page}</span>
+                        <span className="text-muted-foreground"> / {meta.totalHalaman}</span>
+                      </span>
+                      <div className="flex items-center gap-1">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          disabled={meta.page <= 1}
+                          onClick={() => setFilter((f) => ({ ...f, page: (f.page || 1) - 1 }))}
+                          className="h-8 w-8 p-0 transition-all active:scale-95"
+                        >
+                          <ChevronLeft className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          disabled={meta.page >= meta.totalHalaman}
+                          onClick={() => setFilter((f) => ({ ...f, page: (f.page || 1) + 1 }))}
+                          className="h-8 gap-1.5 px-4 transition-all active:scale-95"
+                        >
+                          Berikutnya
+                          <ChevronRight className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+                </div>
               </div>
             )}
           </div>
@@ -487,13 +673,10 @@ export default function AdminPeminjamanPage() {
         onKonfirmasi={kembalikanMassal}
       />
 
-      <KonfirmasiDialog
+      <HapusMassalPeminjamanDialog
         terbuka={dialogMassal}
         onUbahTerbuka={(o) => !o && setDialogMassal(false)}
-        judul="Hapus Peminjaman Terpilih"
-        deskripsi={`Hapus ${terpilih.length} data peminjaman yang dipilih? Untuk barang yang masih dipinjam, stok dikembalikan otomatis. Tindakan ini tidak dapat dibatalkan.`}
-        teksKonfirmasi={`Ya, Hapus ${terpilih.length} Data`}
-        variantKonfirmasi="destructive"
+        jumlah={terpilih.length}
         sedangProses={sedangMassal}
         onKonfirmasi={hapusMassal}
       />

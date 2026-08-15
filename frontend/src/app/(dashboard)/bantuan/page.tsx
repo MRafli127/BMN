@@ -25,6 +25,16 @@ import {
   Sparkles,
   Undo2,
   Users,
+  PackagePlus,
+  Upload,
+  UserPlus,
+  FileSpreadsheet,
+  Tag,
+  Building2,
+  Shield,
+  KeyRound,
+  History,
+  UserCog,
 } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -57,6 +67,44 @@ const adminKelola: Langkah[] = [
   { ikon: ScanLine, judul: 'Proses Pengembalian', teks: 'Scan QR via kamera / unggah gambar QR / masukkan kode, lalu konfirmasi pengembalian.' },
 ];
 
+// Alur tambah peminjaman manual oleh admin (misal untuk pegawai yang belum punya akun)
+const adminTambahPeminjaman: Langkah[] = [
+  { ikon: PackagePlus, judul: 'Buka Menu Manajemen Peminjaman', teks: 'Klik tombol "Tambah Peminjaman" di pojok kanan atas halaman Manajemen Peminjaman.' },
+  { ikon: UserPlus, judul: 'Pilih Peminjam', teks: 'Cari dan pilih akun peminjam yang akan meminjam barang. Bisa juga import banyak sekaligus dari Excel.' },
+  { ikon: Boxes, judul: 'Pilih Barang & Stok', teks: 'Tentukan barang, jumlah yang dipinjam, dan tanggal rencana kembali. Sistem otomatis mengecek ketersediaan stok.' },
+  { ikon: QrCode, judul: 'Peminjaman Aktif Otomatis', teks: 'Setelah disimpan, status langsung "Dipinjam" (lewat proses pengajuan), QR Code dibuat otomatis dan siap dicetak.' },
+];
+
+// Alur manajemen barang (tambah satuan & bulk)
+const adminManajemenBarang: Langkah[] = [
+  { ikon: Tag, judul: 'Manajemen Barang', teks: 'Kelola data barang per satker: tambah satuan, edit, hapus, dan lihat detail lengkap tiap barang.' },
+  { ikon: PackagePlus, judul: 'Tambah Barang Satuan', teks: 'Klik "Tambah Barang" di halaman Manajemen Barang, isi kode, nama, merk, NUP, tahun, dan pilih satker.' },
+  { ikon: Upload, judul: 'Import Barang Massal', teks: 'Gunakan menu "Import Barang" untuk unggah banyak data sekaligus dari file Excel/CSV.' },
+];
+
+// Alur manajemen satker
+const adminManajemenSatker: Langkah[] = [
+  { ikon: Building2, judul: 'Lihat Daftar Satker', teks: 'Buka Manajemen Satker untuk melihat seluruh satuan kerja beserta jumlah barang & peminjaman di dalamnya.' },
+  { ikon: Tag, judul: 'Tambah Satker Baru', teks: 'Klik tombol tambah, isi kode satker, nama, eselon, dan informasi lainnya.' },
+  { ikon: ClipboardList, judul: 'Lihat Detail per Satker', teks: 'Klik satker untuk membuka halaman detail berisi seluruh barang dan peminjaman milik satker tersebut.' },
+];
+
+// Alur manajemen admin
+const adminManajemenAdmin: Langkah[] = [
+  { ikon: Shield, judul: 'Kelola Akun Admin', teks: 'Buka Manajemen Admin untuk melihat semua akun Administrator (dan Super Admin) dalam sistem.' },
+  { ikon: UserPlus, judul: 'Promosikan Pengguna', teks: 'Cari pengguna yang akan dipromosikan, lalu klik tombol "Promosikan ke Admin". Akun langsung mendapat akses admin.' },
+  { ikon: KeyRound, judul: 'Reset Password', teks: 'Klik tombol "Reset" pada baris admin untuk membuat password baru. Password baru akan ditampilkan setelah reset.' },
+  { ikon: UserCog, judul: 'Cabut Akses Admin', teks: 'Klik tombol "Cabut" untuk mencabut peran Admin. Pengguna kembali menjadi Peminjam biasa (akun tetap ada).' },
+];
+
+// Alur log import
+const adminLogImport: Langkah[] = [
+  { ikon: FileSpreadsheet, judul: 'Lihat Riwayat Import', teks: 'Buka menu Log Import untuk melihat catatan seluruh aktivitas import (peminjam, pegawai, barang).' },
+  { ikon: History, judul: 'Pantau Statistik', teks: 'Di bagian atas tersedia 5 kartu statistik: Total Import, Akun Ditambahkan, Diperbarui, Peminjaman Dibuat, dan Total Gagal.' },
+  { ikon: ClipboardList, judul: 'Periksa Detail', teks: 'Klik log untuk membuka detail per-tab (Ditambahkan / Diperbarui / Peminjaman / Gagal) lengkap dengan nama, NIP, merk, NUP, dan pesan kegagalan.' },
+  { ikon: FileUp, judul: 'Bersihkan Log', teks: 'Log yang sudah tidak diperlukan dapat dihapus menggunakan tombol hapus di samping kanan tiap entri.' },
+];
+
 const faqPeminjam = [
   { t: 'Apa yang terjadi jika saya terlambat mengembalikan?', j: 'Sistem otomatis menandai peminjaman sebagai "Terlambat" bila melewati tanggal rencana kembali. Segera kembalikan barang untuk menghindari sanksi administratif.' },
   { t: 'Bagaimana jika QR Code saya hilang?', j: 'QR Code dapat dibuka & dicetak ulang kapan saja melalui menu Riwayat → detail peminjaman.' },
@@ -67,6 +115,10 @@ const faqAdmin = [
   { t: 'Apakah catatan wajib saat menolak?', j: 'Ya. Saat menolak pengajuan, catatan penolakan wajib diisi agar peminjam memahami alasannya.' },
   { t: 'Bagaimana stok dijaga agar tidak minus?', j: 'Stok berkurang otomatis saat persetujuan dan bertambah saat pengembalian, diproses dalam transaksi database yang aman.' },
   { t: 'Bisakah memindai QR tanpa kamera?', j: 'Bisa. Di halaman Scan Pengembalian tersedia opsi unggah gambar QR dan input kode peminjaman manual.' },
+  { t: 'Bagaimana cara membuat peminjaman untuk pegawai yang belum punya akun?', j: 'Gunakan menu "Tambah Peminjaman" di halaman Manajemen Peminjaman, atau import sekaligus dari Excel melalui menu Import Peminjam. Akun akan dibuat otomatis dan peminjaman langsung aktif.' },
+  { t: 'Apa perbedaan tambah peminjaman manual vs import Excel?', j: 'Tambah manual cocok untuk 1 peminjaman. Import Excel cocok untuk banyak data sekaligus (misal migrasi data lama), lengkap dengan akun, peminjam, dan barang yang sedang dipinjam.' },
+  { t: 'Bisakah menghapus akun admin?', j: 'Tidak. Akun bersifat permanen dan hanya bisa di-cabut perannya menjadi Peminjam biasa. Tidak ada penghapusan akun.' },
+  { t: 'Bagaimana jika barang yang di-import tidak ditemukan?', j: 'Sistem mencocokkan berdasarkan Merk dan NUP. Jika tidak cocok, baris akan masuk tab "Gagal" dengan pesan jelas (misal: "NUP 765 tidak ada pada merk Dell, atau stoknya sudah habis").' },
 ];
 
 export default function BantuanPage() {
@@ -96,12 +148,44 @@ export default function BantuanPage() {
 
       {/* Konten per peran */}
       {isAdmin ? (
-        <SeksiStepper
-          judul="Alur Pengelolaan Peminjaman"
-          deskripsi="Dari verifikasi pengajuan hingga konfirmasi pengembalian."
-          warna="primary"
-          langkah={adminKelola}
-        />
+        <>
+          <SeksiStepper
+            judul="Alur Pengelolaan Peminjaman"
+            deskripsi="Dari verifikasi pengajuan hingga konfirmasi pengembalian."
+            warna="primary"
+            langkah={adminKelola}
+          />
+          <SeksiStepper
+            judul="Tambah Peminjaman (Manual / Import)"
+            deskripsi="Buat peminjaman langsung untuk peminjam, atau import sekaligus dari Excel."
+            warna="hijau"
+            langkah={adminTambahPeminjaman}
+          />
+          <SeksiStepper
+            judul="Manajemen Barang & Satker"
+            deskripsi="Kelola data barang per satuan kerja: tambah satuan, import massal, dan lihat detail satker."
+            warna="primary"
+            langkah={adminManajemenBarang}
+          />
+          <SeksiStepper
+            judul="Manajemen Satker"
+            deskripsi="Lihat, tambah, dan kelola satuan kerja dalam sistem."
+            warna="hijau"
+            langkah={adminManajemenSatker}
+          />
+          <SeksiStepper
+            judul="Manajemen Admin"
+            deskripsi="Promosikan pengguna, reset password, dan cabut akses admin."
+            warna="primary"
+            langkah={adminManajemenAdmin}
+          />
+          <SeksiStepper
+            judul="Log Import"
+            deskripsi="Pantau dan periksa hasil import data secara berkala."
+            warna="hijau"
+            langkah={adminLogImport}
+          />
+        </>
       ) : (
         <>
           <SeksiStepper
@@ -123,9 +207,9 @@ export default function BantuanPage() {
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
         {(isAdmin
           ? [
-              'Selalu isi catatan yang jelas saat menolak pengajuan.',
-              'Gunakan stempel digital sebelum menyerahkan barang.',
-              'Saat pengembalian, QR bisa dipindai kamera atau diunggah gambarnya.',
+              'Gunakan Import Excel untuk migrasi data lama sekaligus — akun & peminjaman aktif dibuat otomatis.',
+              'Selalu isi catatan yang jelas saat menolak pengajuan agar peminjam memahami alasannya.',
+              'Periksa Log Import secara berkala untuk memantau kegagalan (misal NUP tidak cocok / stok habis).',
             ]
           : [
               'Kembalikan barang tepat waktu agar tidak berstatus Terlambat.',
@@ -155,6 +239,11 @@ export default function BantuanPage() {
                 <Button asChild variant="outline">
                   <Link href={RUTE.adminPeminjaman}>
                     <ClipboardList className="h-4 w-4" /> Kelola Peminjaman
+                  </Link>
+                </Button>
+                <Button asChild variant="outline">
+                  <Link href={RUTE.adminBarang}>
+                    <Boxes className="h-4 w-4" /> Manajemen Barang
                   </Link>
                 </Button>
                 <Button asChild>

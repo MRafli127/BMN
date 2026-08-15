@@ -401,13 +401,24 @@ async function hapusBanyakPeminjam(ids) {
   const idHapus = idPeminjam.filter((id) => !idAktif.has(id));
 
   if (idHapus.length > 0) {
+    // Snapshot SEBELUM hapus agar log aktivitas bisa menyimpan nama &
+    // email (data akan lenyap setelah deleteMany).
+    const snapshotsHapus = await prisma.user.findMany({
+      where: { id: { in: idHapus } },
+      select: { id: true, nama: true, email: true, nip: true, roles: true },
+    });
     await prisma.$transaction([
       prisma.peminjaman.deleteMany({ where: { userId: { in: idHapus } } }),
       prisma.user.deleteMany({ where: { id: { in: idHapus } } }),
     ]);
+    return {
+      dihapus: idHapus.length,
+      dilewati: idAktif.size,
+      snapshotsHapus,
+    };
   }
 
-  return { dihapus: idHapus.length, dilewati: idAktif.size };
+  return { dihapus: idHapus.length, dilewati: idAktif.size, snapshotsHapus: [] };
 }
 
 // --- Statistik user ---

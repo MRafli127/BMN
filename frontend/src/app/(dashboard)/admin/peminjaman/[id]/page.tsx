@@ -45,6 +45,7 @@ import { RUTE } from '@/constants/routes';
 import type { Peminjaman } from '@/types/peminjaman.type';
 
 type Aksi = 'setujui' | 'tolak' | 'serahkan' | 'kembalikan' | null;
+type AksiDraft = 'serahDraft' | null;
 
 export default function DetailPeminjamanAdminPage() {
   const { id } = useParams<{ id: string }>();
@@ -55,6 +56,11 @@ export default function DetailPeminjamanAdminPage() {
   const [catatan, setCatatan] = useState('');
   const [proses, setProses] = useState(false);
   const [sedangStempel, setSedangStempel] = useState(false);
+  // Upload surat untuk menyerahkan DRAFT via admin
+  const [fileSuratDraft, setFileSuratDraft] = useState<File | null>(null);
+  const [aksiDraft, setAksiDraft] = useState<AksiDraft>(null);
+  const [prosesDraft, setProsesDraft] = useState(false);
+  const fileSuratDraftRef = useRef<HTMLInputElement>(null);
 
   // --- Return letter (surat pengembalian) state ---
   const [suratUrl, setSuratUrl] = useState<string | null>(null);
@@ -114,6 +120,47 @@ export default function DetailPeminjamanAdminPage() {
       return;
     }
     setFileKembali(f);
+  };
+
+  const pilihFileSuratDraft = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const f = e.target.files?.[0] ?? null;
+    if (f && f.type !== 'application/pdf') {
+      notify.gagal('Berkas harus berformat PDF.');
+      e.target.value = '';
+      return;
+    }
+    setFileSuratDraft(f);
+  };
+
+  // Submit penolakan DRAFT via admin (upload signed surat).
+  const serahkanDraft = async () => {
+    if (!fileSuratDraft) {
+      notify.gagal('Unggah Surat Pernyataan yang sudah ditandatangani terlebih dahulu.');
+      return;
+    }
+    setProsesDraft(true);
+    try {
+      const hasil = await peminjamanService.serahkanDraftAdmin(id, fileSuratDraft);
+      setData(hasil);
+      setAksiDraft(null);
+      setFileSuratDraft(null);
+      invalidasiCache('peminjaman');
+      invalidasiCache('folder-peminjaman');
+      invalidasiCache('barang');
+      invalidasiCache('dashboard-admin');
+      invalidasiCache('dashboard-peminjam');
+      notify.suksess('Peminjaman berhasil diserahkan. Barang siap diambil peminjam.');
+    } catch (err) {
+      notify.gagal(ambilPesanError(err, 'Gagal menyerahkan peminjaman.'));
+      const kode = (err as { response?: { status?: number } })?.response?.status;
+      if (kode === 400 || kode === 404 || kode === 409) {
+        invalidasiCache('peminjaman');
+        invalidasiCache('folder-peminjaman');
+        muat();
+      }
+    } finally {
+      setProsesDraft(false);
+    }
   };
 
   // Jalankan aksi sesuai pilihan. Selalu muat data terkini dari server
@@ -212,7 +259,9 @@ export default function DetailPeminjamanAdminPage() {
     .trim()
     .replace(/\s+/g, '-')
     .replace(/[^A-Za-z0-9._-]/g, '');
-  const namaFilePengembalian = `Surat-Pengembalian-laptop_${namaBerkas}.pdf`;
+  const namaFilePeminjaman = `Surat-Peminjaman-Laptop_${namaBerkas}.pdf`;
+  const namaFilePeminjamanStempel = `Surat-Peminjaman-Berstempel-Laptop_${namaBerkas}.pdf`;
+  const namaFilePengembalian = `Surat-Pengembalian-Laptop_${namaBerkas}.pdf`;
 
   // Info pensiun peminjam
   const infoPensiun = hitungInfoPensiun(data.peminjam?.retirementDate);
@@ -416,13 +465,13 @@ export default function DetailPeminjamanAdminPage() {
                       </a>
                     </Button>
                     <Button asChild variant="outline" size="sm">
-                      <a href={data.dokumenUrl} download={`surat-pernyataan-${data.kodePeminjaman}.pdf`}>
+                      <a href={data.dokumenUrl} download={namaFilePeminjaman}>
                         <Icon name="download" className="text-[18px]" /> Unduh
                       </a>
                     </Button>
                     {data.dokumenStempelUrl && (
                       <Button asChild variant="sukses" size="sm">
-                        <a href={data.dokumenStempelUrl} download={`surat-berstempel-${data.kodePeminjaman}.pdf`}>
+                        <a href={data.dokumenStempelUrl} download={namaFilePeminjamanStempel}>
                           <Icon name="verified" fill className="text-[18px]" /> Surat Berstempel
                         </a>
                       </Button>
@@ -469,7 +518,7 @@ export default function DetailPeminjamanAdminPage() {
                       </a>
                     </Button>
                     <Button asChild variant="outline" size="sm">
-                      <a href={data.dokumenPengembalianUrl} download={`surat-pengembalian-${data.kodePeminjaman}.pdf`}>
+                      <a href={data.dokumenPengembalianUrl} download={namaFilePengembalian}>
                         <Icon name="download" className="text-[18px]" /> Unduh
                       </a>
                     </Button>
@@ -482,6 +531,63 @@ export default function DetailPeminjamanAdminPage() {
                   title="Surat Pernyataan Pengembalian"
                   className="h-[520px] w-full rounded-xl border border-primary/10"
                 />
+              </div>
+            </Card>
+          )}
+
+          {/* Upload Surat untuk DRAFT via admin */}
+          {data.status === 'DRAFT' && (
+            <Card className="overflow-hidden border-primary/15">
+              <KepalaKartu
+                ikon="upload_file"
+                judul="Serahkan Draf"
+                deskripsi="Unggah Surat Pernyataan yang sudah ditandatangani untuk menyerahkan barang."
+              />
+              <div className="space-y-4 p-5">
+                <div className="rounded-xl border border-dashed border-primary/30 bg-primary/[0.03] p-4">
+                  <input
+                    ref={fileSuratDraftRef}
+                    type="file"
+                    accept="application/pdf"
+                    onChange={pilihFileSuratDraft}
+                    className="hidden"
+                  />
+                  <div className="flex flex-col items-center gap-3">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => fileSuratDraftRef.current?.click()}
+                    >
+                      <Icon name="upload_file" className="text-[18px]" />
+                      {fileSuratDraft ? 'Ganti Berkas' : 'Pilih Berkas PDF'}
+                    </Button>
+                    {fileSuratDraft && (
+                      <div className="flex w-full items-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-800 dark:bg-emerald-950/20">
+                        <Icon name="check_circle" fill className="shrink-0 text-[18px] text-emerald-600" />
+                        <span className="min-w-0 flex-1 truncate font-medium">{fileSuratDraft.name}</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                <Button
+                  onClick={serahkanDraft}
+                  disabled={!fileSuratDraft || prosesDraft}
+                  size="lg"
+                  className="w-full shadow-brand transition-all hover:-translate-y-0.5 hover:shadow-elevated"
+                >
+                  {prosesDraft ? (
+                    <Loader2 className="h-5 w-5 animate-spin" />
+                  ) : (
+                    <Icon name="send" className="text-[18px]" />
+                  )}
+                  {prosesDraft ? 'Mohon Tunggu...' : 'Serahkan Sekarang'}
+                </Button>
+
+                <p className="flex items-start gap-1.5 text-xs leading-relaxed text-muted-foreground">
+                  <Icon name="info" className="mt-0.5 shrink-0 text-[14px]" />
+                  Setelah diserahkan, stok barang akan dikurangi dan status berubah menjadi "Sedang Dipinjam".
+                </p>
               </div>
             </Card>
           )}

@@ -1,5 +1,6 @@
 const barangService = require('../services/barang.service');
 const barangImportService = require('../services/barangImport.service');
+const auditLogService = require('../services/auditLog.service');
 const { bufferKeDataUrl } = require('../utils/fileData');
 const { responsSukses } = require('../utils/apiResponse');
 const { asyncHandler, AppError } = require('../middleware/error.middleware');
@@ -16,10 +17,10 @@ function getRequestInfo(req) {
 }
 
 const getSemua = asyncHandler(async (req, res) => {
-  const { q, jenis, kondisi, ketersediaan, kodeSatker, page, limit, includePeminjam } = req.query;
-  // Konversi string "true" ke boolean
-  const includeDetail = includePeminjam === 'true' || includePeminjam === true;
-  const hasil = await barangService.getSemua({ q, jenis, kondisi, ketersediaan, kodeSatker, page, limit, includeDetail });
+  // Frontend mengirim includePeminjam=true|false, backend forward ke includeDetail
+  const { q, jenis, kondisi, ketersediaan, kodeSatker, page, limit, includePeminjam, includeDetail } = req.query;
+  const includeDetailBool = includePeminjam === 'true' || includePeminjam === true || includeDetail === 'true' || includeDetail === true;
+  const hasil = await barangService.getSemua({ q, jenis, kondisi, ketersediaan, kodeSatker, page, limit, includeDetail: includeDetailBool });
   return responsSukses(res, {
     pesan: 'Daftar barang berhasil dimuat.',
     data: hasil.data,
@@ -73,11 +74,32 @@ const getPreviewNup = asyncHandler(async (req, res) => {
 
 const create = asyncHandler(async (req, res) => {
   const barang = await barangService.create(req.body, pathFoto(req.file));
+  // Catat ke log aktivitas: Admin menambah barang baru.
+  // Disimpan dengan snapshot nama/merk agar bila barang dihapus di
+  // kemudian hari, log tetap menampilkan nama barang yang benar.
+  auditLogService.log({
+    userId: req.user?.id,
+    userEmail: req.user?.email,
+    userNama: req.user?.nama || 'Admin',
+    aksi: auditLogService.AKSI.BARANG_CREATE,
+    entitas: auditLogService.ENTITAS.BARANG,
+    entitasId: barang.id,
+    dataBaru: {
+      nama: barang.nama,
+      merk: barang.merk,
+      kodeBarang: barang.kodeBarang,
+      kodeSatker: barang.kodeSatker,
+      kodeBarangBmn: barang.kodeBarangBmn,
+      nup: barang.nup,
+      jumlahTotal: barang.jumlahTotal,
+    },
+    requestInfo: getRequestInfo(req),
+  }).catch(() => {});
   return responsSukses(res, { pesan: 'Barang berhasil ditambahkan.', data: barang, status: 201 });
 });
 
 const update = asyncHandler(async (req, res) => {
-  const barang = await barangService.update(req.params.id, req.body, pathFoto(req.file));
+  const barang = await barangService.update(req.params.id, req.body, pathFoto(req.file), req.user?.id, getRequestInfo(req));
   return responsSukses(res, { pesan: 'Barang berhasil diperbarui.', data: barang });
 });
 

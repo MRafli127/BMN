@@ -197,15 +197,14 @@ export default function PengaturanPage() {
               <Input id="eselon2" {...regProfil('eselon2')} />
             </div>
 
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-              <div className="space-y-1.5">
-                <Label htmlFor="eselon4">Eselon IV</Label>
-                <Input id="eselon4" {...regProfil('eselon4')} />
-              </div>
-              <div className="space-y-1.5">
-                <Label htmlFor="eselon3">Eselon III</Label>
-                <Input id="eselon3" {...regProfil('eselon3')} />
-              </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="eselon4">Eselon IV</Label>
+              <Input id="eselon4" {...regProfil('eselon4')} />
+            </div>
+
+            <div className="space-y-1.5">
+              <Label htmlFor="eselon3">Eselon III</Label>
+              <Input id="eselon3" {...regProfil('eselon3')} />
             </div>
 
             <div className="flex justify-end pt-2">

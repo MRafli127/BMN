@@ -45,13 +45,12 @@ router.patch('/me', authMiddleware, validateCsrfTokenMiddleware, validate(update
 router.patch('/me/password', passwordLimiter, authMiddleware, validateCsrfTokenMiddleware, validate(gantiPasswordSchema), authController.gantiPassword);
 
 // Endpoint heartbeat — update last activity + return serverTime untuk sinkronisasi client
-router.post('/heartbeat', authMiddleware, async (req, res) => {
-  try {
-    await updateLastActivity(req.user.id, req.user.jti);
-    res.json({ success: true, serverTime: Date.now() });
-  } catch (error) {
-    res.status(500).json({ success: false });
-  }
+router.post('/heartbeat', authMiddleware, (req, res) => {
+  // DETACHED: biar tidak nahan koneksi DB saat pool sedang penuh
+  setImmediate(() => {
+    updateLastActivity(req.user.id, req.user.jti).catch(() => {});
+  });
+  res.json({ success: true, serverTime: Date.now() });
 });
 
 // Endpoint invalidate session saat tab ditutup (menggunakan sendBeacon)

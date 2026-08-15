@@ -10,7 +10,7 @@ const roleMiddleware = require('../middleware/role.middleware');
 const validate = require('../middleware/validate.middleware');
 const { validateCsrfTokenMiddleware, generateCsrfTokenMiddleware } = require('../middleware/csrf.middleware');
 const { uploadDokumenPeminjaman } = require('../middleware/upload.middleware');
-const { createPeminjamanSchema, tolakSchema, setujuiSchema, previewSuratSchema } = require('../validators/peminjaman.validator');
+const { createPeminjamanSchema, tolakSchema, setujuiSchema, previewSuratSchema, createByAdminSchema } = require('../validators/peminjaman.validator');
 
 const router = express.Router();
 
@@ -27,6 +27,13 @@ router.post('/preview-surat', validate(previewSuratSchema), peminjamanController
 // Daftar & pengajuan
 router.get('/', peminjamanController.getSemua);
 router.post('/', validateCsrfTokenMiddleware, uploadDokumenPeminjaman, validate(createPeminjamanSchema), peminjamanController.create);
+
+// Admin membuatkan peminjaman atas nama peminjam.
+// draft=true: simpan DRAFT tanpa surat (tanpa potong stok).
+// draft=false/undefined: wajib upload surat, langsung DIPINJAM (potong stok).
+router.post('/preview-surat-admin', validateCsrfTokenMiddleware, roleMiddleware('ADMIN', 'SUPER_ADMIN'), peminjamanController.previewSuratAdmin);
+router.post('/oleh-admin', validateCsrfTokenMiddleware, roleMiddleware('ADMIN', 'SUPER_ADMIN'), uploadDokumenPeminjaman, validate(createByAdminSchema), peminjamanController.createByAdmin);
+router.patch('/:id/serahkan-draft-admin', validateCsrfTokenMiddleware, roleMiddleware('ADMIN', 'SUPER_ADMIN'), uploadDokumenPeminjaman, peminjamanController.serahkanDraftAdmin);
 
 // Aksi massal (khusus admin) — didefinisikan sebelum '/:id' agar tidak
 // tertangkap sebagai parameter id.
