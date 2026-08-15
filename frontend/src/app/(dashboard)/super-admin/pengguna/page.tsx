@@ -9,6 +9,8 @@ import { useEffect, useState, useCallback, useRef, memo, useDeferredValue } from
 import { Icon } from '@/components/ui/icon';
 import { EmptyState } from '@/components/shared/EmptyState';
 import { KonfirmasiDialog } from '@/components/shared/KonfirmasiDialog';
+import { ResetPasswordDialog } from '@/components/pengguna/ResetPasswordDialog';
+import { ResetPasswordAdminDialog } from '@/components/pengguna/ResetPasswordAdminDialog';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { Input } from '@/components/ui/input';
@@ -409,7 +411,7 @@ function EditUserDialog({
 // ============================================================
 //  User Card — persis sama dengan KartuDaftarPeminjam
 // ============================================================
-const UserCard = memo(function UserCard({
+function UserCard({
   user,
   onPromote,
   onRevoke,
@@ -544,7 +546,11 @@ const UserCard = memo(function UserCard({
           <Button
             variant="ghost"
             size="icon"
-            onClick={onReset}
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              onReset();
+            }}
             className="hover:bg-blue-100"
             aria-label={`Reset password ${user.nama}`}
             title={`Reset password ${user.nama}`}
@@ -565,12 +571,12 @@ const UserCard = memo(function UserCard({
       )}
     </div>
   );
-});
+}
 
 // ============================================================
-//  Memoized Table Row
+//  Table Row
 // ============================================================
-const UserTableRow = memo(function UserTableRow({
+function UserTableRow({
   user,
   onPromote,
   onRevoke,
@@ -647,7 +653,7 @@ const UserTableRow = memo(function UserTableRow({
       </TableCell>
     </TableRow>
   );
-});
+}
 
 export default function PenggunaPage() {
   const router = useRouter();
@@ -675,6 +681,10 @@ export default function PenggunaPage() {
     aksi: async () => {},
   });
   const [sedangAksi, setSedangAksi] = useState(false);
+  const [resetTarget, setResetTarget] = useState<UserItem | null>(null);
+  const [resetTargetAdmin, setResetTargetAdmin] = useState<UserItem | null>(null);
+  const resetTargetRef = useRef<UserItem | null>(null);
+  const resetTargetAdminRef = useRef<UserItem | null>(null);
 
   // Hitung statistik dari data yang dimuat
   const jumlahAdmin = pengguna.filter(
@@ -809,26 +819,29 @@ export default function PenggunaPage() {
 
   // Reset password pengguna
   const resetPasswordPengguna = async (user: UserItem) => {
-    setDialogKonfirmasi({
-      terbuka: true,
-      judul: 'Reset Password',
-      pesan: `Reset password untuk ${user.nama}? Password baru akan direset ke: BMN@Reset123`,
-      aksi: async () => {
-        setSedangAksi(true);
-        try {
-          await userManagementService.resetPassword(user.id);
-          notify.suksess(
-            `Password ${user.nama} berhasil direset ke BMN@Reset123.`
-          );
-          await refreshData();
-        } catch (err) {
-          notify.gagal(ambilPesanError(err, 'Gagal reset password.'));
-        } finally {
-          setSedangAksi(false);
-          setDialogKonfirmasi((d) => ({ ...d, terbuka: false }));
-        }
-      },
-    });
+    resetTargetRef.current = user;
+    resetTargetAdminRef.current = user;
+    if ((user.roles || []).includes('ADMIN')) {
+      setResetTargetAdmin(user);
+    } else {
+      setResetTarget(user);
+    }
+  };
+
+  const handleResetPassword = async () => {
+    const user = resetTargetRef.current;
+    if (!user) return { passwordBaru: '' };
+    const hasil = await userManagementService.resetPassword(user.id);
+    await refreshData();
+    return hasil;
+  };
+
+  const handleResetPasswordAdmin = async () => {
+    const user = resetTargetAdminRef.current;
+    if (!user) return { passwordBaru: '' };
+    const hasil = await userManagementService.resetPassword(user.id);
+    await refreshData();
+    return hasil;
   };
 
   return (
@@ -1231,6 +1244,20 @@ export default function PenggunaPage() {
         onKonfirmasi={dialogKonfirmasi.aksi}
         sedangProses={sedangAksi}
         teksKonfirmasi="Ya, Lanjutkan"
+      />
+
+      <ResetPasswordDialog
+        terbuka={!!resetTarget && !(resetTarget.roles || []).includes('ADMIN')}
+        onUbahTerbuka={(o) => !o && setResetTarget(null)}
+        user={resetTarget}
+        onKonfirmasi={handleResetPassword}
+      />
+
+      <ResetPasswordAdminDialog
+        terbuka={!!resetTargetAdmin}
+        onUbahTerbuka={(o) => !o && setResetTargetAdmin(null)}
+        user={resetTargetAdmin}
+        onKonfirmasi={handleResetPasswordAdmin}
       />
     </div>
   );
