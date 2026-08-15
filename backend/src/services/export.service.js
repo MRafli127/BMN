@@ -26,6 +26,55 @@ const LABEL_JENIS = {
   LAINNYA: 'Lainnya',
 };
 
+// Ambil komponen identitas aset (kodeSatker, kodeBarangBmn, nup) dari
+// barang bila tersedia — sumber paling andal, terutama untuk barang hasil
+// import. Bila barang tidak punya field tersebut, fallback dengan memecah
+// kodeTransaksi. Terakhir, kalau semuanya tidak ada, kembalikan '-'.
+function ambilIdentitasAset(item, kodeTransaksi) {
+  const kosong = { kodeSatker: '-', kodeBarang: '-', nup: '-' };
+  if (!item) return kosong;
+
+  const dariBarang = {
+    kodeSatker: item.kodeSatker || null,
+    kodeBarang: item.kodeBarangBmn || null,
+    nup: item.nup || null,
+  };
+  if (dariBarang.kodeSatker && dariBarang.kodeBarang && dariBarang.nup) {
+    return dariBarang;
+  }
+
+  const dariKode = pecahKodeTransaksi(kodeTransaksi);
+  if (dariKode.kodeSatker !== '-') return dariKode;
+
+  return {
+    kodeSatker: dariBarang.kodeSatker || '-',
+    kodeBarang: dariBarang.kodeBarang || '-',
+    nup: dariBarang.nup || '-',
+  };
+}
+
+// Pecah kodeTransaksi (format: kodeSatker-kodeBarangBmn-NUP) menjadi
+// tiga komponen. Tangani suffix urutan (mis. "-1") bila kode dipakai lebih
+// dari satu kali, dan fallback "BMN-YYYYMMDD-XXXXX" yang tidak bisa dipecah.
+function pecahKodeTransaksi(kodeTransaksi) {
+  const kosong = { kodeSatker: '-', kodeBarang: '-', nup: '-' };
+  if (!kodeTransaksi || kodeTransaksi === '-') return kosong;
+  if (kodeTransaksi.startsWith('BMN-')) return kosong;
+
+  const parts = kodeTransaksi.split('-');
+  // Buang suffix urutan di akhir (digit-only) bila ada.
+  while (parts.length > 3 && /^\d+$/.test(parts[parts.length - 1])) {
+    parts.pop();
+  }
+  if (parts.length !== 3) return kosong;
+
+  return {
+    kodeSatker: parts[0] || '-',
+    kodeBarang: parts[1] || '-',
+    nup: parts[2] || '-',
+  };
+}
+
 // Format tanggal standar Indonesia
 function formatTanggal(date) {
   if (!date) return '-';
@@ -76,12 +125,15 @@ function setColumnWidths(ws, headers) {
 // --- Export Peminjaman ---
 async function exportPeminjaman(data) {
   const headers = [
+    { label: 'Kode Satker', key: 'kodeSatker' },
+    { label: 'Kode Barang', key: 'kodeBarang' },
+    { label: 'NUP', key: 'nup' },
     { label: 'Kode Transaksi', key: 'kodeTransaksi' },
-    { label: 'Kode Barang', key: 'kodePeminjaman' },
     { label: 'Nama Peminjam', key: 'namaPeminjam' },
     { label: 'NIP Peminjam', key: 'nipPeminjam' },
     { label: 'Unit Kerja', key: 'unitKerja' },
     { label: 'Barang', key: 'namaBarang' },
+    { label: 'Merk/Tipe', key: 'merkTipe' },
     { label: 'Jumlah', key: 'jumlahPinjam' },
     { label: 'Status', key: 'status' },
     { label: 'Tanggal Pengajuan', key: 'tanggalPengajuan' },
@@ -96,13 +148,17 @@ async function exportPeminjaman(data) {
   // Transform data
   const rows = data.map((p) => {
     const item = p.detail?.[0];
+    const komponen = ambilIdentitasAset(item?.barang, p.kodeTransaksi);
     return {
+      kodeSatker: komponen.kodeSatker,
+      kodeBarang: komponen.kodeBarang,
+      nup: komponen.nup,
       kodeTransaksi: p.kodeTransaksi || '-',
-      kodePeminjaman: p.kodePeminjaman || '-',
       namaPeminjam: p.peminjam?.nama || '-',
       nipPeminjam: p.peminjam?.nip || '-',
       unitKerja: p.peminjam?.unitKerja || '-',
       namaBarang: item?.barang?.nama || '-',
+      merkTipe: [item?.barang?.merk, item?.barang?.tipe].filter(Boolean).join(' / ') || '-',
       jumlahPinjam: item?.jumlahPinjam || '-',
       status: LABEL_STATUS[p.status] || p.status || '-',
       tanggalPengajuan: formatTanggal(p.tanggalPengajuan),
@@ -196,6 +252,9 @@ async function exportUsers(data) {
     { label: 'Email', key: 'email' },
     { label: 'Jabatan', key: 'jabatan' },
     { label: 'Unit Kerja', key: 'unitKerja' },
+    { label: 'Eselon II', key: 'eselon2' },
+    { label: 'Eselon III', key: 'eselon3' },
+    { label: 'Eselon IV', key: 'eselon4' },
     { label: 'Role', key: 'role' },
     { label: 'Sumber', key: 'sumber' },
     { label: 'Total Peminjaman', key: 'totalPeminjaman' },
@@ -208,6 +267,9 @@ async function exportUsers(data) {
     email: u.email || '-',
     jabatan: u.jabatan || '-',
     unitKerja: u.unitKerja || '-',
+    eselon2: u.eselon2 || '-',
+    eselon3: u.eselon3 || '-',
+    eselon4: u.eselon4 || '-',
     role: (u.roles || []).includes('ADMIN') ? 'Administrator' : 'Peminjam',
     sumber: u.sumber === 'IMPORT' ? 'Import' : 'Manual',
     totalPeminjaman: u.totalPeminjaman ?? '-',

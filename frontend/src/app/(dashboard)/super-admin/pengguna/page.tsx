@@ -9,6 +9,8 @@ import { useEffect, useState, useCallback, useRef, memo, useDeferredValue } from
 import { Icon } from '@/components/ui/icon';
 import { EmptyState } from '@/components/shared/EmptyState';
 import { KonfirmasiDialog } from '@/components/shared/KonfirmasiDialog';
+import { ResetPasswordDialog } from '@/components/pengguna/ResetPasswordDialog';
+import { ResetPasswordAdminDialog } from '@/components/pengguna/ResetPasswordAdminDialog';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { Input } from '@/components/ui/input';
@@ -409,7 +411,7 @@ function EditUserDialog({
 // ============================================================
 //  User Card — persis sama dengan KartuDaftarPeminjam
 // ============================================================
-const UserCard = memo(function UserCard({
+function UserCard({
   user,
   onPromote,
   onRevoke,
@@ -544,7 +546,11 @@ const UserCard = memo(function UserCard({
           <Button
             variant="ghost"
             size="icon"
-            onClick={onReset}
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              onReset();
+            }}
             className="hover:bg-blue-100"
             aria-label={`Reset password ${user.nama}`}
             title={`Reset password ${user.nama}`}
@@ -565,12 +571,12 @@ const UserCard = memo(function UserCard({
       )}
     </div>
   );
-});
+}
 
 // ============================================================
-//  Memoized Table Row
+//  Table Row
 // ============================================================
-const UserTableRow = memo(function UserTableRow({
+function UserTableRow({
   user,
   onPromote,
   onRevoke,
@@ -647,7 +653,7 @@ const UserTableRow = memo(function UserTableRow({
       </TableCell>
     </TableRow>
   );
-});
+}
 
 export default function PenggunaPage() {
   const router = useRouter();
@@ -675,6 +681,10 @@ export default function PenggunaPage() {
     aksi: async () => {},
   });
   const [sedangAksi, setSedangAksi] = useState(false);
+  const [resetTarget, setResetTarget] = useState<UserItem | null>(null);
+  const [resetTargetAdmin, setResetTargetAdmin] = useState<UserItem | null>(null);
+  const resetTargetRef = useRef<UserItem | null>(null);
+  const resetTargetAdminRef = useRef<UserItem | null>(null);
 
   // Hitung statistik dari data yang dimuat
   const jumlahAdmin = pengguna.filter(
@@ -809,26 +819,29 @@ export default function PenggunaPage() {
 
   // Reset password pengguna
   const resetPasswordPengguna = async (user: UserItem) => {
-    setDialogKonfirmasi({
-      terbuka: true,
-      judul: 'Reset Password',
-      pesan: `Reset password untuk ${user.nama}? Password baru akan direset ke: BMN@Reset123`,
-      aksi: async () => {
-        setSedangAksi(true);
-        try {
-          await userManagementService.resetPassword(user.id);
-          notify.suksess(
-            `Password ${user.nama} berhasil direset ke BMN@Reset123.`
-          );
-          await refreshData();
-        } catch (err) {
-          notify.gagal(ambilPesanError(err, 'Gagal reset password.'));
-        } finally {
-          setSedangAksi(false);
-          setDialogKonfirmasi((d) => ({ ...d, terbuka: false }));
-        }
-      },
-    });
+    resetTargetRef.current = user;
+    resetTargetAdminRef.current = user;
+    if ((user.roles || []).includes('ADMIN')) {
+      setResetTargetAdmin(user);
+    } else {
+      setResetTarget(user);
+    }
+  };
+
+  const handleResetPassword = async () => {
+    const user = resetTargetRef.current;
+    if (!user) return { passwordBaru: '' };
+    const hasil = await userManagementService.resetPassword(user.id);
+    await refreshData();
+    return hasil;
+  };
+
+  const handleResetPasswordAdmin = async () => {
+    const user = resetTargetAdminRef.current;
+    if (!user) return { passwordBaru: '' };
+    const hasil = await userManagementService.resetPassword(user.id);
+    await refreshData();
+    return hasil;
   };
 
   return (
@@ -1170,34 +1183,52 @@ export default function PenggunaPage() {
 
         {/* Pagination */}
         {!memuat && pengguna.length > 0 && (
-          <div className="flex items-center justify-between border-t p-4">
-            <p className="text-sm text-gray-500">
-              Menampilkan {pengguna.length} dari {meta.total} pengguna
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-4 border-t px-6 py-4 bg-white rounded-b-2xl shadow-[0_-2px_12px_rgba(0,0,0,0.04)]">
+            <p className="text-sm text-gray-500 order-2 sm:order-1">
+              Menampilkan{' '}
+              <span className="font-semibold text-gray-700">{pengguna.length}</span>{' '}
+              dari{' '}
+              <span className="font-semibold text-[#1e3a5f]">{meta.total}</span>{' '}
+              pengguna
             </p>
-            <div className="flex items-center gap-2">
-              <Button
-                variant="outline"
-                size="sm"
+            <div className="flex items-center gap-0 bg-gradient-to-r from-[#e8f0f7] via-white to-[#e8f0f7] rounded-2xl border border-gray-200 p-1.5 order-1 sm:order-2 shadow-sm">
+              <button
                 onClick={() => setHalaman((p) => Math.max(1, p - 1))}
                 disabled={halaman === 1}
-                className="transition-transform active:scale-95"
+                className={`
+                  flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200 cursor-pointer
+                  ${halaman === 1
+                    ? 'text-gray-300 cursor-not-allowed select-none'
+                    : 'text-[#1e3a5f] bg-white hover:bg-[#f0f6fc] border border-gray-200 hover:border-[#1e3a5f] hover:shadow-sm active:scale-95'
+                  }
+                `}
               >
                 <Icon name="chevron_left" style={{ fontSize: 16 }} />
-              </Button>
-              <span className="px-2 text-sm">
-                Halaman {halaman} / {meta.totalHalaman}
-              </span>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() =>
-                  setHalaman((p) => Math.min(meta.totalHalaman, p + 1))
-                }
+                <span className="hidden sm:inline">Previous</span>
+              </button>
+              <div className="flex items-center gap-2 px-3 py-2 min-w-[110px] justify-center">
+                <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-[#1e3a5f] text-white text-sm font-bold shadow-sm">
+                  {halaman}
+                </div>
+                <span className="text-gray-400 text-xs">/</span>
+                <span className="text-gray-500 text-sm font-medium">
+                  {meta.totalHalaman}
+                </span>
+              </div>
+              <button
+                onClick={() => setHalaman((p) => Math.min(meta.totalHalaman, p + 1))}
                 disabled={halaman >= meta.totalHalaman}
-                className="transition-transform active:scale-95"
+                className={`
+                  flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200 cursor-pointer
+                  ${halaman >= meta.totalHalaman
+                    ? 'text-gray-300 cursor-not-allowed select-none'
+                    : 'text-white bg-[#1e3a5f] hover:bg-[#2a4a73] border border-[#1e3a5f] hover:shadow-md active:scale-95'
+                  }
+                `}
               >
+                <span className="hidden sm:inline">Next</span>
                 <Icon name="chevron_right" style={{ fontSize: 16 }} />
-              </Button>
+              </button>
             </div>
           </div>
         )}
@@ -1213,6 +1244,20 @@ export default function PenggunaPage() {
         onKonfirmasi={dialogKonfirmasi.aksi}
         sedangProses={sedangAksi}
         teksKonfirmasi="Ya, Lanjutkan"
+      />
+
+      <ResetPasswordDialog
+        terbuka={!!resetTarget && !(resetTarget.roles || []).includes('ADMIN')}
+        onUbahTerbuka={(o) => !o && setResetTarget(null)}
+        user={resetTarget}
+        onKonfirmasi={handleResetPassword}
+      />
+
+      <ResetPasswordAdminDialog
+        terbuka={!!resetTargetAdmin}
+        onUbahTerbuka={(o) => !o && setResetTargetAdmin(null)}
+        user={resetTargetAdmin}
+        onKonfirmasi={handleResetPasswordAdmin}
       />
     </div>
   );
