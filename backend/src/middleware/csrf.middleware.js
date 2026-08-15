@@ -49,17 +49,25 @@ const csrfCookieOptions = {
   domain: isProduction ? undefined : undefined, // Biarkan browser atur otomatis
 };
 
-// Middleware: Generate CSRF token dan set cookie
-// Dipanggil SETELAH auth middleware (butuh userId)
+// Middleware: Ensure CSRF token exists in cookie.
+// Dipanggil SETELAH auth middleware (butuh userId).
+// Hanya generate token baru jika cookie belum ada.
+// Jika cookie csrf_token SUDAH ADA, middleware SKIP — cookie dipertahankan.
+// Ini menghindari race condition saat alur panjang (preview → retry → upload → submit)
+// di mana setiap request sebelumnya mengasikan token dan mengacaukan token untuk
+// request berikutnya.
 function generateCsrfTokenMiddleware(req, res, next) {
-  // Generate token baru untuk setiap sesi
+  const existingToken = req.cookies?.[CSRF_COOKIE_NAME];
+
+  // Jika token CSRF sudah ada di cookie, pertahankan (skip regenerate) untuk
+  // menghindari race condition saat alur request panjang/paralel.
+  if (existingToken) {
+    return next();
+  }
+
+  // Token belum ada — generate baru (terjadi saat sesi baru / cookie belum di-set)
   const token = generateCsrfToken();
-
-  // Simpan hashed version di cookie (前端 kirim token plain, backend compare)
-  // Kita simpan plain token di cookie karena httpOnly=false
   res.cookie(CSRF_COOKIE_NAME, token, csrfCookieOptions);
-
-  // Kirim juga di response body untuk convenience
   res.locals.csrfToken = token;
 
   next();

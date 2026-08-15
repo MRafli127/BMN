@@ -10,6 +10,7 @@
 // ============================================================
 
 const { prisma } = require('../config/database');
+const { Prisma } = require('@prisma/client');
 const { urlPublik } = require('../utils/apiResponse');
 const { parsePagination } = require('../utils/pagination');
 const { AppError } = require('../middleware/error.middleware');
@@ -405,39 +406,65 @@ async function create(userId, data, dokumenDataUrl, requestInfo = {}) {
 
   const tahunSurat = new Date().getFullYear();
 
-  const created = await prisma.$transaction(async (tx) => {
-    // Nomor surat berurut & unik per tahun (atomik, anti race condition).
-    const nomorSurat = await nomorSuratService.ambil(tx, nomorSuratService.JENIS.PEMINJAMAN, tahunSurat);
+  // RETRY LOGIC: wrap HANYA $transaction dengan retry loop. Kode error P2002
+  // (unique constraint violation) = ada collision nomor surat — retry transaction
+  // dari awal agar nomorSuratService.ambil() mendapat nomor baru.
+  // Operasi pasca-transaction (audit log, notifikasi, serialisasi) TIDAK di-retry
+  // karena tidak mengubah data dan tidak bisa menyebabkan duplikat.
+  const MAX_RETRIES = 3;
+  const RETRY_DELAY_MS = 100;
+  let created;
 
-    return tx.peminjaman.create({
-      data: {
-        kodeTransaksi,
-        kodePeminjaman: kodeSnapshot, // Snapshot kode barang pertama (kolom wajib)
+  for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
+    try {
+      created = await prisma.$transaction(async (tx) => {
+        // Nomor surat berurut & unik per tahun (atomik, anti race condition).
+        const nomorSurat = await nomorSuratService.ambil(tx, nomorSuratService.JENIS.PEMINJAMAN, tahunSurat);
+
+        return tx.peminjaman.create({
+          data: {
+            kodeTransaksi,
+            kodePeminjaman: kodeSnapshot, // Snapshot kode barang pertama (kolom wajib)
+            userId,
+            nomorSurat,
+            tahunSurat,
+            tanggalPinjamRencana: data.tanggalPinjamRencana || null,
+            tanggalKembaliRencana: data.tanggalKembaliRencana || null,
+            // Pengajuan langsung: waktu kirim = sekarang. Draft: belum dikirim (null),
+            // diisi nanti saat surat diunggah (unggahSurat()).
+            tanggalKirim: isDraft ? null : new Date(),
+            alasanPeminjaman: data.alasanPeminjaman || null,
+            pangkatGolongan: data.pangkatGolongan || null, // Tercantum pada surat; disimpan agar surat draft bisa diunduh menyusul
+            dokumenUrl: dokumenDataUrl, // Surat pernyataan yang sudah ditandatangani peminjam (null bila DRAFT)
+            status: isDraft ? 'DRAFT' : 'MENUNGGU',
+            detail: {
+              create: detailItems,
+            },
+          },
+          include: includeLengkap,
+        });
+      }, { timeout: 20000, maxWait: 10000 });
+      break; // Transaction berhasil — keluar dari retry loop, lanjut ke pasca-transaction.
+    } catch (err) {
+      const isUniqueViolation =
+        err instanceof Prisma.PrismaClientKnownRequestError && err.code === 'P2002';
+      if (isUniqueViolation && attempt < MAX_RETRIES) {
+        await new Promise(resolve => setTimeout(resolve, RETRY_DELAY_MS));
+        continue;
+      }
+      // Bukan P2002 atau sudah maximal retry — lempar langsung, tidak ada yang perlu di-retry.
+      logger.error('[create] Gagal setelah ' + attempt + ' percobaan', {
         userId,
-        nomorSurat,
-        tahunSurat,
-        tanggalPinjamRencana: data.tanggalPinjamRencana || null,
-        tanggalKembaliRencana: data.tanggalKembaliRencana || null,
-        // Pengajuan langsung: waktu kirim = sekarang. Draft: belum dikirim (null),
-        // diisi nanti saat surat diunggah (unggahSurat()).
-        tanggalKirim: isDraft ? null : new Date(),
-        alasanPeminjaman: data.alasanPeminjaman || null,
-        pangkatGolongan: data.pangkatGolongan || null, // Tercantum pada surat; disimpan agar surat draft bisa diunduh menyusul
-        dokumenUrl: dokumenDataUrl, // Surat pernyataan yang sudah ditandatangani peminjam (null bila DRAFT)
-        status: isDraft ? 'DRAFT' : 'MENUNGGU',
-        detail: {
-          create: detailItems,
-        },
-      },
-      include: includeLengkap,
-    });
-  }, { timeout: 20000, maxWait: 10000 });
+        lastErrorMessage: err.message,
+      });
+      throw new AppError('Gagal membuat pengajuan setelah beberapa percobaan, silakan coba lagi.', 500);
+    }
+  }
 
-  // Peminjam (user) diambil dari relasi hasil create — fungsi ini hanya menerima
-  // userId, jadi jangan mereferensikan variabel `user` yang tidak ada di scope ini.
+  // Pasca-transaction: dijalankan SATU KALI setelah $transaction berhasil.
+  // Tidak di-retry karena tidak mengubah data dan tidak bisa menyebabkan duplikat.
   const peminjam = created.peminjam;
 
-  // Audit log: catat pembuatan peminjaman baru
   auditLogService.log({
     userId,
     userEmail: peminjam?.email,
@@ -546,17 +573,47 @@ async function batalDraft(id, { userId, role } = {}, requestInfo = {}) {
 // kali dibuat, lalu DISIMPAN agar sama pada setiap unduhan berikutnya dan pada
 // surat peminjaman maupun pengembalian transaksi yang sama. Mengubah objek `p`
 // (in-place) agar surat langsung memakai nomor baru.
+//
+// RETRY LOGIC: meskipun risiko collision di fungsi ini rendah (dipanggil
+// per-record), retry defense-in-depth tetap diterapkan supaya konsisten dengan
+// create(). Kode error P2002 = unique constraint violation dari partial index
+// (bila ada proses lain yang juga menerbitkan nomor secara independent).
 async function pastikanNomorSurat(p) {
   if (p.nomorSurat) return p;
-  const { nomorSurat, tahunSurat } = await prisma.$transaction(async (tx) => {
-    const tahun = p.tahunSurat || new Date().getFullYear();
-    const nomor = await nomorSuratService.ambil(tx, nomorSuratService.JENIS.PEMINJAMAN, tahun);
-    await tx.peminjaman.update({ where: { id: p.id }, data: { nomorSurat: nomor, tahunSurat: tahun } });
-    return { nomorSurat: nomor, tahunSurat: tahun };
+
+  const MAX_RETRIES = 3;
+  const RETRY_DELAY_MS = 100;
+  let lastError;
+
+  for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
+    try {
+      const { nomorSurat, tahunSurat } = await prisma.$transaction(async (tx) => {
+        const tahun = p.tahunSurat || new Date().getFullYear();
+        const nomor = await nomorSuratService.ambil(tx, nomorSuratService.JENIS.PEMINJAMAN, tahun);
+        await tx.peminjaman.update({ where: { id: p.id }, data: { nomorSurat: nomor, tahunSurat: tahun } });
+        return { nomorSurat: nomor, tahunSurat: tahun };
+      });
+      p.nomorSurat = nomorSurat;
+      p.tahunSurat = tahunSurat;
+      return p;
+    } catch (err) {
+      lastError = err;
+      const isUniqueViolation =
+        err instanceof Prisma.PrismaClientKnownRequestError && err.code === 'P2002';
+      if (isUniqueViolation && attempt < MAX_RETRIES) {
+        await new Promise(resolve => setTimeout(resolve, RETRY_DELAY_MS));
+        continue;
+      }
+      break;
+    }
+  }
+
+  // Log hanya untuk debugging internal — error message ke user tidak bocorkan detail teknis.
+  logger.error('[pastikanNomorSurat] Gagal setelah ' + MAX_RETRIES + ' percobaan', {
+    peminjamanId: p.id,
+    lastErrorMessage: lastError?.message,
   });
-  p.nomorSurat = nomorSurat;
-  p.tahunSurat = tahunSurat;
-  return p;
+  throw new AppError('Gagal menerbitkan nomor surat setelah beberapa percobaan, silakan coba lagi.', 500);
 }
 
 // --- Hasilkan Surat Pernyataan Peminjaman (PDF) untuk pengajuan tersimpan ---

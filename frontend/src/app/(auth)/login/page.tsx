@@ -201,7 +201,7 @@ export default function LoginPage() {
                 />
                 <span className="font-label-sm text-on-surface-variant">Ingat Saya</span>
               </label>
-              <a href="#" className="font-label-sm text-primary hover:underline"> 
+              <a href="#" className="font-label-sm text-primary hover:underline">
               </a>
             </div>
 

@@ -246,7 +246,7 @@ export default function AdminPeminjamanPage() {
               name="search"
               className="absolute left-3 top-1/2 -translate-y-1/2 text-[20px] text-on-surface-variant"
             />
-            <Input value={cari} onChange={(e) => setCari(e.target.value)} placeholder="Cari kode / nama barang / merk / nama peminjam..." className="pl-10" />
+            <Input value={cari} onChange={(e) => setCari(e.target.value)} placeholder="Cari kode / nama barang / merk / nama peminjam / NIP..." className="pl-10" />
           </div>
         </div>
 

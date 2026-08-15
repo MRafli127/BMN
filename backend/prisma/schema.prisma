@@ -119,6 +119,7 @@ model Peminjaman {
   admin                    User?              @relation("PeminjamanDisetujuiAdmin", fields: [disetujuiOleh], references: [id])
   peminjam                 User               @relation("PeminjamanOlehPeminjam", fields: [userId], references: [id])
 
+  @@unique([nomorSurat, tahunSurat], name: "nomorSuratTahunSurat", map: "peminjaman_nomor_surat_tahun_surat_unique")
   @@index([userId])
   @@index([status])
   @@index([kodePeminjaman])
