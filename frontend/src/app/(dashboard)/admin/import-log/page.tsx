@@ -8,6 +8,7 @@
 import { useEffect, useState } from 'react';
 import { Icon } from '@/components/ui/icon';
 import { cn, formatTanggal } from '@/lib/utils';
+import { HapusLogImportDialog } from '@/components/import-log/HapusLogImportDialog';
 import { ambilSemuaLog, ambilStatistikImport, hapusLog, type ImportLog, type StatistikImport } from '@/services/importLog.service';
 import { notify } from '@/components/ui/toast';
 import { useRouter } from 'next/navigation';
@@ -20,6 +21,8 @@ export default function ImportLogPage() {
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [logTerpilih, setLogTerpilih] = useState<ImportLog | null>(null);
+  const [logTargetHapus, setLogTargetHapus] = useState<ImportLog | null>(null);
+  const [sedangHapus, setSedangHapus] = useState(false);
   const [tabAktif, setTabAktif] = useState<'ditambahkan' | 'diperbarui' | 'peminjaman' | 'gagal'>('gagal');
 
   useEffect(() => {
@@ -45,14 +48,18 @@ export default function ImportLogPage() {
     }
   };
 
-  const tanganiHapus = async (id: string) => {
-    if (!confirm('Yakin ingin menghapus log ini?')) return;
+  const tanganiHapus = async () => {
+    if (!logTargetHapus) return;
+    setSedangHapus(true);
     try {
-      await hapusLog(id);
+      await hapusLog(logTargetHapus.id);
       notify.suksess('Log berhasil dihapus.');
+      setLogTargetHapus(null);
       muatData();
     } catch {
       notify.gagal('Gagal menghapus log.');
+    } finally {
+      setSedangHapus(false);
     }
   };
 
@@ -201,7 +208,7 @@ export default function ImportLogPage() {
                   </div>
                   <div className="flex items-center gap-1">
                     <button
-                      onClick={() => tanganiHapus(log.id)}
+                      onClick={() => setLogTargetHapus(log)}
                       className="rounded-lg p-2 text-error transition-colors hover:bg-error/10"
                       title="Hapus log"
                     >
@@ -353,6 +360,14 @@ export default function ImportLogPage() {
           </div>
         )}
       </div>
+
+      <HapusLogImportDialog
+        terbuka={!!logTargetHapus}
+        onUbahTerbuka={(o) => !o && setLogTargetHapus(null)}
+        target={logTargetHapus}
+        sedangProses={sedangHapus}
+        onKonfirmasi={tanganiHapus}
+      />
     </div>
   );
 }
