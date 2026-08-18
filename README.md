@@ -25,9 +25,9 @@ sipp-bmn/
 | Bagian   | Teknologi                                                                                             |
 | -------- | ---------------------------------------------------------------------------------------------------- |
 | Backend  | Node.js, Express, Prisma, PostgreSQL, JWT, bcryptjs, Multer, Vercel Blob, qrcode, pdf-lib, xlsx, Zod |
-| Keamanan | helmet, express-rate-limit, CSRF token, compression, cookie-parser, token blacklist                  |
+| Keamanan | helmet, express-rate-limit, CSRF token, compression, cookie-parser, token blacklist, ETag caching      |
 | Frontend | Next.js 14, TypeScript, Tailwind CSS, shadcn/ui (Radix UI), Zustand, Axios, React Hook Form, Zod     |
-| Lainnya  | date-fns (locale ID), html5-qrcode, react-hot-toast, nextjs-toploader, lucide-react, nodemailer      |
+| Lainnya  | date-fns (locale ID), html5-qrcode, react-hot-toast, nextjsToploader, lucide-react, nodemailer, node-cron |
 
 ---
 
@@ -78,7 +78,7 @@ cp .env.example .env       # Windows (PowerShell): Copy-Item .env.example .env
 # Buat tabel di database (migrasi)
 npx prisma migrate dev --name init
 
-# Isi data awal (admin default, peminjam & barang contoh)
+# Isi data awal
 npm run seed
 
 # Jalankan server (mode pengembangan, port 5000)
@@ -112,16 +112,129 @@ Buka **http://localhost:3000** di browser.
 
 ---
 
-## 🔑 Akun Default (setelah `npm run seed`)
+## ✨ Fitur Utama
 
-| Peran    | Email                | Kata Sandi     |
-| -------- | -------------------- | -------------- |
-| Admin    | admin@bmn.go.id      | `Admin123!`    |
-| Peminjam | budi@bmn.go.id       | `Peminjam123!` |
-| Peminjam | siti@bmn.go.id       | `Peminjam123!` |
+### Autentikasi & Keamanan
 
-> Akun admin hanya dibuat melalui seeder. Registrasi publik selalu berperan **Peminjam**.
-> Registrasi wajib mengisi **Nama, NIP, Email, dan Kata Sandi**. Kata sandi minimal 8 karakter dengan huruf besar, huruf kecil, angka, dan karakter spesial.
+- **Multi-role per akun** — satu akun bisa memiliki peran ADMIN, PEMINJAM, dan/atau SUPER_ADMIN. Pengguna bisa switch peran saat login.
+- **JWT + Refresh Token** — access token (60 menit) dan refresh token via cookie httpOnly (7 hari).
+- **Session tracking** — sistem melacak aktivitas terakhir, timeout otomatis setelah 60 menit tidak aktif.
+- **Token versioning** — saat password diubah, seluruh sesi di-invalidasi.
+- **CSRF Protection** — Double Submit Cookie pattern untuk semua operasi yang mengubah data.
+- **Rate limiting** — pembatasan permintaan pada endpoint sensitif (login, register, refresh, scan QR, ganti password).
+- **Token blacklisting** — refresh token di-blacklist saat logout.
+- **Validasi input** — Zod + express-validator untuk semua input.
+
+### Manajemen Barang (BMN)
+
+- **Katalog barang lengkap** — pencarian, filter (jenis, kondisi, ketersediaan, kode satker), pagination.
+- **Pengelompokan per merk** — tampilan folder per merk barang.
+- **Manajemen stok** — `jumlahTotal` vs `jumlahTersedia`, diatur otomatis saat pinjam/kembali.
+- **Kode barang natural** — format `kodeSatker-kodeBarangBmn-NUP`, unik peritem.
+- **Bulk insert NUP** — generate urutan NUP secara otomatis dalam satu transaksi.
+- **Kode barang auto-rebuild** — saat kodeSatker/kodeBarangBmn/NUP berubah, kodeBarang diperbarui.
+- **Import Excel barang** — sinkronisasi cermin (tambah/perbarui/hapus). Proteksi barang yang sedang dipinjam tidak bisa dihapus.
+- **Export Excel barang** — export data barang lengkap ke Excel.
+- **Template download** — template Excel untuk import tersedia unduh.
+- **Autocomplete merk** — sugestão merk saat input barang.
+- **Tracking sumber** — data MANUAL vs IMPORT.
+
+### Peminjaman & Pengembalian
+
+- **Mode draft** — simpan pengajuan tanpa upload surat, lengkapi kemudian.
+- **Keranjang belanja** — pilih barang di katalog, masukkan keranjang, ajukan sekaligus. Polling stok real-time.
+- **Validasi double-booking** — barang yang sudah dipinjam (status aktif) tidak bisa dipinjam lagi.
+- **Batas peminjaman aktif** — maksimal 3 peminjaman aktif per peminjam (konfigurasi via env).
+- **Surat Pernyataan PDF otomatis** — format resmi dengan kop surat, tabel barang, pernyataan kewajiban 6 poin, blok tanda tangan.
+- **Nomor surat berurut per tahun** — format `PRN-<nomor>/BMN/PP.1/<tahun>`, reset setiap tahun.
+- **Pratinjau surat** — lihat Surat Pernyataan sebelum submit.
+- **Upload surat pernyataan** — peminjam upload surat yang sudah ditandatangani (mode draft).
+- **Status lifecycle lengkap** — `DRAFT` → `MENUNGGU` → `DISETUJUI` → `DIPINJAM` → `DIKEMBALIKAN` (atau `DITOLAK`, `TERLAMBAT`).
+- **Auto deteksi terlambat** — sistem menandai `TERLAMBAT` saat melewati tanggal rencana kembali.
+- **Admin buat peminjaman** — admin bisa membuatkan peminjaman untuk peminjam (dengan/saldo mode draft).
+- **Aksi massal** — setujui, serahkan, kembalikan, dan hapus banyak peminjaman sekaligus.
+- **QR Code** — dibuat otomatis saat persetujuan, bisa discan untuk verifikasi pengembalian.
+- **Scan QR** — gunakan kamera atau input kode manual untuk mencari transaksi.
+- **Stempel digital** — tempel stempel + tanda tangan digital ke dokumen PDF.
+- **Surat Pengembalian PDF** — dibuat otomatis saat pengembalian, tanda tangan oleh Petugas BMN.
+- **Catatan pengembalian** — admin bisa tambahkan catatan internal (tidak terlihat peminjam).
+
+### Manajemen Pengguna
+
+- **Multi-role** — satu akun bisa memiliki beberapa peran.
+- **Promosi/demosi peran** — tambah atau hapus peran pengguna (admin tidak bisa demote last admin/super_admin).
+- **Akses satker** — admin hanya bisa mengelola transaksi untuk satker yang ditugaskan.
+- **Reset password** — password direset ke default, dikirim via email, tokenVersion di-increment.
+- **Proteksi delete** — tidak bisa hapus akun yang masih punya peminjaman aktif, last admin, atau last super_admin.
+- **Bulk delete peminjam** — hapus banyak akun peminjam sekaligus, proteksi yang punya pinjaman aktif.
+- **Import pegawai** — sinkronisasi data pegawai dari Excel ke akun peminjam.
+- **Import peminjam + pinjaman** — migrasi data peminjam dan peminjaman dari sistem lama.
+- **Export Excel pengguna** — export data pengguna lengkap ke Excel.
+- **Hitung tanggal pensiun** — dihitung otomatis dari NIP (tanggal lahir tersandi dalam NIP).
+- **Notifikasi pensiun** — cron job harian memberitahu admin dan peminjam yang akan pensiun dalam 90 hari.
+
+### Dashboard
+
+- **Dashboard Admin** — statistik (total barang, stok tersedia/habis, pengajuan menunggu, peminjaman aktif, terlambat), grafik ringkasan aktivitas (filter per satker), 5 peminjaman terbaru.
+- **Dashboard Super Admin** — statistik silang satker, breakdown per satker (jumlah barang, peminjaman).
+- **Dashboard Peminjam** — ringkasan personal (total, aktif, selesai), peminjaman aktif terbaru.
+- **Halaman kategori** — data rinci per kategori: semua barang, pengajuan menunggu, peminjaman aktif, barang terlambat, daftar pengguna.
+
+### Notifikasi
+
+- **In-app notification** — notifikasi realtime per pengguna.
+- **Tipe notifikasi** — pengajuan baru, disetujui, ditolak, diserahkan, dikembalikan, terlambat, kerusakan, kehilangan, export/import selesai, sistem, pensiun mendekat.
+- **Prioritas** — TINGGI, SEDANG, RENDAH.
+- **Tandai baca** — baca satu per satu atau semua sekaligus.
+- **Hapus notifikasi** — hapus satu atau semua.
+- **Email notification** — dikirim saat perubahan status (konfigurasi SMTP).
+
+### Audit Log
+
+- **Pencatatan seluruh aksi** — CREATE, UPDATE, DELETE, STATUS_CHANGE, LOGIN, REGISTER, IMPORT, EXPORT, ROLE_CHANGE, dll.
+- **Snapshot data** — menangkap data sebelum/sesudah perubahan dalam JSON.
+- **Deskripsi human-readable** — otomatis generate deskripsi aksi dalam Bahasa Indonesia.
+- **Filter & statistik** — filter berdasarkan entitas, aksi, user, rentang tanggal. Statistik: total per entitas, top aksi, top user aktif.
+- **Metadata request** — IP address dan user agent disimpan.
+- **Join-free** — log tetap bisa dibaca meskipun data terkait sudah dihapus (karena snapshot).
+
+### Pencarian
+
+- **Pencarian global** — satu input mencari di barang, peminjaman, dan peminjam secara bersamaan (minimal 2 karakter).
+- **Hasil per kategori** — maksimal 5 hasil per kategori.
+
+### Satker (Satuan Kerja)
+
+- **CRUD satker** — tambah, edit, hapus (super admin).
+- **Sync dari barang** — generate daftar satker dari data barang yang ada.
+- **Akses scoping** — admin hanya melihat/mengelola transaksi satkernya.
+
+### Import & Export
+
+- **Import barang (Excel)** — sinkronisasi cermin: item baru ditambahkan, berubah diperbarui, hilang dihapus (proteksi barang dipinjam).
+- **Import pegawai (Excel)** — buat/-update akun peminjam dari master data pegawai.
+- **Import peminjam + pinjaman (Excel)** — migrasi akun dan peminjaman dari sistem lama (status langsung DIPINJAM).
+- **Template download** — setiap import punya template Excel yang bisa diunduh.
+- **Import log** — histori import lengkap dengan statistik (dibuat, diperbarui, dilewati, gagal).
+- **Export Excel** — peminjaman, barang, dan pengguna ke Excel.
+
+### PDF & Dokumen
+
+- **Surat Pernyataan Peminjaman** — format resmi BMN dengan kop surat, tabel barang, pernyataan kewajiban, blok tanda tangan.
+- **Surat Pengembalian** — format resmi BMN untuk pengembalian.
+- **Penomoran surat otomatis** — berurut per tahun, atomically assigned.
+- **Stempel digital** — overlay stempel & tanda tangan ke dokumen.
+- **QR Code** — generado pada persetujuan, berwarna biru gelap (#1e3a5f) di atas putih.
+
+### Tema & UI
+
+- **Light/Dark mode** — toggle tema, persist ke localStorage.
+- **Responsif** — tampilan mobile dengan bottom navigation.
+- **Service Worker / PWA** — registrasi service worker untuk pengalaman app-like.
+- **Page transition** — animasi transisi antar halaman.
+- **Loading state** — skeleton loader dan spinner di seluruh aplikasi.
+- **Toast notification** — feedback aksi menggunakan react-hot-toast.
+- **Top loader** — progress bar di atas halaman saat loading.
 
 ---
 
@@ -131,131 +244,7 @@ Buka **http://localhost:3000** di browser.
 
 **Pengembalian:** Peminjam **ajukan pengembalian** dengan mengunggah Surat Pernyataan Pengembalian yang sudah ditandatangani → Admin verifikasi (bisa via **scan QR**) → **Konfirmasi Pengembalian** (stok dikembalikan otomatis). Admin dapat menambah catatan pengembalian internal (tidak terlihat peminjam).
 
-Status: `MENUNGGU → DISETUJUI → DIPINJAM → DIKEMBALIKAN` (atau `DITOLAK`). Sistem otomatis menandai **TERLAMBAT** bila melewati tanggal rencana kembali.
-
-Admin juga dapat melakukan **aksi massal**: setujui, serahkan, kembalikan, dan hapus banyak peminjaman sekaligus.
-
----
-
-## ✨ Fitur Utama
-
-- **Katalog & keranjang barang** dengan pencarian, filter (jenis/kondisi), dan pagination.
-- **Surat Pernyataan PDF otomatis** (peminjaman & pengembalian) dengan **penomoran surat berurut per tahun** (`PRN-<no>/BMN/PP.1/<tahun>`) — otomatis reset tiap ganti tahun.
-- **Stempel & tanda tangan digital** ditempel ke PDF oleh admin.
-- **QR Code** per transaksi untuk verifikasi pengembalian (scan kamera atau input kode manual).
-- **Import Excel**: data barang (register BMN), peminjam aktif, dan master data pegawai — masing-masing dengan template unduhan & sinkronisasi (tambah/perbarui/hapus) untuk data ber-sumber IMPORT.
-- **Export Excel**: peminjaman, barang, dan pengguna.
-- **Manajemen pengguna** (admin): buat, edit, reset password, hapus (termasuk hapus massal peminjam).
-- **Notifikasi** in-app dengan prioritas & penanda sudah/belum dibaca.
-- **Audit log**: pencatatan seluruh aksi (CREATE/UPDATE/DELETE/STATUS_CHANGE/LOGIN, dll).
-- **Dashboard** terpisah untuk admin (statistik & grafik) dan peminjam (ringkasan).
-
----
-
-## 📡 Dokumentasi Endpoint API
-
-Base URL: `http://localhost:5000/api`. Semua respons berformat:
-
-```json
-{ "sukses": true, "pesan": "...", "data": {}, "meta": {} }
-```
-
-> Endpoint yang mengubah data (POST/PATCH/PUT/DELETE) memerlukan **CSRF token** — ambil lebih dulu via `GET /auth/csrf-token`.
-
-### Autentikasi — `/auth`
-
-| Method | Endpoint            | Akses  | Keterangan                          |
-| ------ | ------------------- | ------ | ----------------------------------- |
-| POST   | `/auth/register`    | Publik | Registrasi peminjam baru            |
-| POST   | `/auth/login`       | Publik | Login, mengembalikan token          |
-| POST   | `/auth/refresh`     | Publik | Perbarui access token (via cookie)  |
-| GET    | `/auth/csrf-token`  | Publik | Ambil CSRF token                    |
-| POST   | `/auth/logout`      | Login  | Hapus & blacklist refresh token     |
-| GET    | `/auth/me`          | Login  | Profil pengguna saat ini            |
-| PATCH  | `/auth/me`          | Login  | Perbarui data diri                  |
-| PATCH  | `/auth/me/password` | Login  | Ganti kata sandi                    |
-
-### Barang — `/barang`
-
-| Method | Endpoint            | Akses | Keterangan                                                     |
-| ------ | ------------------- | ----- | ------------------------------------------------------------- |
-| GET    | `/barang`           | Login | Daftar barang (query: `q`, `jenis`, `kondisi`, `page`, `limit`) |
-| GET    | `/barang/:id`       | Login | Detail barang                                                 |
-| GET    | `/barang/template`  | Admin | Unduh template Excel import barang                            |
-| POST   | `/barang/import`    | Admin | Import barang dari Excel                                      |
-| POST   | `/barang`           | Admin | Tambah barang (multipart, field `foto`)                       |
-| PUT    | `/barang/:id`       | Admin | Edit barang (multipart, field `foto`)                         |
-| DELETE | `/barang/:id`       | Admin | Hapus barang                                                  |
-
-### Peminjaman — `/peminjaman`
-
-| Method | Endpoint                              | Akses | Keterangan                                            |
-| ------ | ------------------------------------- | ----- | ---------------------------------------------------- |
-| GET    | `/peminjaman`                         | Login | Daftar Pegawaian (admin: semua; peminjam: miliknya) |
-| POST   | `/peminjaman`                         | Login | Ajukan peminjaman (multipart: `items`, `dokumen`)    |
-| POST   | `/peminjaman/preview-surat`           | Login | Pratinjau Surat Pernyataan Peminjaman (PDF)          |
-| GET    | `/peminjaman/:id`                     | Login | Detail peminjaman                                    |
-| PATCH  | `/peminjaman/:id/setujui`             | Admin | Setujui → stok berkurang + QR dibuat                 |
-| PATCH  | `/peminjaman/:id/tolak`               | Admin | Tolak (wajib `catatanAdmin`)                         |
-| PATCH  | `/peminjaman/:id/serahkan`            | Admin | Tandai barang diserahkan (DISETUJUI → DIPINJAM)      |
-| PATCH  | `/peminjaman/:id/minta-pengembalian`  | Login | Peminjam ajukan pengembalian (unggah surat `dokumen`) |
-| GET    | `/peminjaman/:id/surat-pengembalian`  | Login | Unduh Surat Pernyataan Pengembalian (PDF)            |
-| PATCH  | `/peminjaman/:id/kembalikan`          | Admin | Konfirmasi pengembalian → stok dikembalikan          |
-| POST   | `/peminjaman/:id/stempel`             | Admin | Tempel stempel + tanda tangan digital ke PDF         |
-| DELETE | `/peminjaman/:id`                     | Admin | Hapus peminjaman                                     |
-| GET    | `/peminjaman/:id/qrcode`              | Login | Ambil URL QR Code peminjaman                         |
-| POST   | `/peminjaman/scan`                    | Admin | Cari peminjaman via kode (untuk pengembalian)        |
-| POST   | `/peminjaman/setujui-massal`          | Admin | Setujui banyak peminjaman sekaligus                  |
-| POST   | `/peminjaman/serahkan-massal`         | Admin | Serahkan banyak peminjaman sekaligus                 |
-| POST   | `/peminjaman/kembalikan-massal`       | Admin | Kembalikan banyak peminjaman sekaligus               |
-| POST   | `/peminjaman/hapus-massal`            | Admin | Hapus banyak peminjaman sekaligus                    |
-
-### Dashboard — `/dashboard`
-
-| Method | Endpoint                        | Akses | Keterangan                       |
-| ------ | ------------------------------- | ----- | -------------------------------- |
-| GET    | `/dashboard/admin`              | Admin | Statistik & grafik ringkasan     |
-| GET    | `/dashboard/peminjam`           | Login | Ringkasan peminjaman peminjam    |
-| GET    | `/dashboard/kategori/:kategori` | Admin | Data rinci per kategori          |
-
-### Manajemen Pengguna — `/users` *(khusus Admin)*
-
-| Method | Endpoint                       | Keterangan                              |
-| ------ | ------------------------------ | --------------------------------------- |
-| GET    | `/users`                       | Daftar pengguna (filter & pagination)   |
-| GET    | `/users/statistik`             | Statistik pengguna                      |
-| POST   | `/users`                       | Buat pengguna baru                      |
-| GET    | `/users/:id`                   | Detail pengguna                         |
-| PATCH  | `/users/:id`                   | Edit pengguna                           |
-| POST   | `/users/:id/reset-password`    | Reset kata sandi pengguna               |
-| DELETE | `/users/:id`                   | Hapus pengguna                          |
-| POST   | `/users/peminjam/hapus-massal` | Hapus banyak peminjam sekaligus         |
-
-### Import Data *(khusus Admin)*
-
-| Method | Endpoint                    | Keterangan                                          |
-| ------ | --------------------------- | -------------------------------------------------- |
-| GET    | `/import-peminjam/template` | Template Excel peminjam aktif                       |
-| POST   | `/import-peminjam`          | Import peminjam + peminjaman aktif dari Excel       |
-| GET    | `/import-pegawai/template`  | Template Excel master pegawai                       |
-| POST   | `/import-pegawai`           | Import/sinkron data diri pegawai dari Excel         |
-
-### Export, Audit Log & Notifikasi
-
-| Method | Endpoint                       | Akses | Keterangan                              |
-| ------ | ------------------------------ | ----- | --------------------------------------- |
-| GET    | `/export/peminjaman`           | Admin | Export peminjaman (Excel)               |
-| GET    | `/export/barang`               | Admin | Export barang (Excel)                   |
-| GET    | `/export/users`                | Admin | Export pengguna (Excel)                 |
-| GET    | `/audit-logs`                  | Admin | Daftar audit log (filter & pagination)  |
-| GET    | `/audit-logs/statistik`        | Admin | Statistik audit log                     |
-| GET    | `/audit-logs/:id`              | Admin | Detail audit log                        |
-| GET    | `/notifications`               | Login | Daftar notifikasi                       |
-| GET    | `/notifications/belum-baca`    | Login | Jumlah notifikasi belum dibaca          |
-| PATCH  | `/notifications/:id/baca`      | Login | Tandai satu notifikasi sudah dibaca     |
-| PATCH  | `/notifications/baca-semua`    | Login | Tandai semua notifikasi sudah dibaca    |
-| DELETE | `/notifications/:id`           | Login | Hapus satu notifikasi                   |
-| DELETE | `/notifications`               | Login | Hapus semua notifikasi                  |
+Status: `DRAFT` → `MENUNGGU` → `DISETUJUI` → `DIPINJAM` → `DIKEMBALIKAN` (atau `DITOLAK`, `TERLAMBAT`). Sistem otomatis menandai **TERLAMBAT** bila melewati tanggal rencana kembali.
 
 ---
 
@@ -264,12 +253,14 @@ Base URL: `http://localhost:5000/api`. Semua respons berformat:
 - Password di-hash dengan **bcrypt**.
 - **JWT** access token (singkat) + refresh token via **cookie httpOnly**; logout mem-**blacklist** refresh token, dan `tokenVersion` meng-invalidasi seluruh token saat password diubah.
 - **CSRF token** untuk seluruh operasi yang mengubah data.
-- **Rate limiting** pada endpoint sensitif (login, register, refresh, ganti password).
-- Header keamanan **helmet** & kompresi **gzip**.
+- **Rate limiting** pada endpoint sensitif (login, register, refresh, ganti password, scan QR).
+- **Header keamanan** **helmet** & kompresi **gzip**.
+- **ETag caching** — caching cerdas pada GET request dengan user-scoped keys.
 - Proteksi rute berdasarkan peran: middleware backend (`authMiddleware`, `roleMiddleware`) **dan** `middleware.ts` di frontend.
 - Validasi semua input dengan **Zod**.
 - Batasan tipe & ukuran file upload (default maks **5 MB**, PDF/JPG/PNG).
 - Penanganan error terpusat dengan format respons API yang konsisten.
+- **Session timeout** — otomatis logout setelah 60 menit tidak aktif.
 
 ---
 
@@ -284,7 +275,7 @@ Base URL: `http://localhost:5000/api`. Semua respons berformat:
 | `npm run seed`          | Isi data awal                           |
 | `npm run prisma:studio` | GUI inspeksi database                   |
 | `npm run prisma:migrate`| Buat/terapkan migrasi                   |
-| `npm run prisma:generate`| Generate Prisma Client                 |
+| `npm run prisma:generate`| Generate Prisma Client                  |
 
 **Frontend**
 
@@ -313,5 +304,7 @@ Backend & frontend dapat di-deploy di **Vercel** (lihat `backend/vercel.json`). 
 - **Error 403 / CSRF** → ambil token lewat `GET /auth/csrf-token` sebelum mengirim request yang mengubah data.
 - **Kamera scan QR tidak muncul** → akses lewat `http://localhost` atau HTTPS, dan izinkan kamera di browser. Tersedia juga input kode manual.
 - **Foto/QR/dokumen tidak tampil** → pastikan `NEXT_PUBLIC_BACKEND_URL` mengarah ke origin backend (`http://localhost:5000`) dan `BLOB_READ_WRITE_TOKEN` valid.
+- **Session expired** → secara otomatis logout setelah 60 menit tidak aktif. Login ulang diperlukan.
+- **Notifikasi email tidak masuk** → pastikan `EMAIL_ENABLED=true` dan konfigurasi SMTP (`SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS`) sudah benar.
 
 Detail tambahan ada di `backend/README.md`, `backend/DATABASE.md`, dan `frontend/README.md`.
