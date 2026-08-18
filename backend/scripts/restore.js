@@ -148,33 +148,9 @@ async function runRestore(backupFilename) {
       }
 
       const modelName = table.charAt(0).toLowerCase() + table.slice(1);
-
-      // Strip nomorSurat/tahunSurat dari Peminjaman — SAMA PERSIS dengan
-      // import-data.js. Kedua field DIHAPUS dari record sebelum di-insert.
-      //
-      // ALASAN: tabel nomor_surat_counter di-backup menyimpan "urutan" terakhir.
-      // Jika backup counternya = 30 tapi record Peminjaman di backup sudah punya
-      // nomorSurat = 2,4,5... (dari era sebelumnya), maka setelah di-restore:
-      //   - counter restart dari 30
-      //   - record lama dengan nomor 2..11..20..49 TETAP ada di DB
-      //   - record baru mulai dapat nomor 30,31,32...
-      //   - tabrakan: nomor 2,4,5... yang sudah ada DIKIRIM ULANG oleh counter
-      //
-      // Record yang kehilangan nomorSurat akan mendapat nomor baru secara otomatis
-      // via fungsi pastikanNomorSurat() saat surat pertama kali dibuat/dicetak.
-      // Mekanisme ini atomik dan race-condition-safe.
-      //
-      // JANGAN hapus logika strip ini. Jika dihapus, restore akan menghasilkan
-      // duplikat nomorSurat yang sama persis dengan insiden Juli 2026.
-      // Lihat juga: docs/recovery/incident-2026-07-27-duplicate-nomor-surat.md
-      let recordsToInsert = records;
-      if (table === 'Peminjaman') {
-        recordsToInsert = records.map(({ nomorSurat: _ns, tahunSurat: _ts, ...rest }) => rest);
-      }
-
       try {
         // Sertakan id ASLI dari backup. createMany akan insert dengan UUID itu.
-        await prisma[modelName].createMany({ data: recordsToInsert });
+        await prisma[modelName].createMany({ data: records });
         console.log(`[RESTORE]   ✓ Restored ${table}: ${records.length} records`);
       } catch (e) {
         console.error(`[RESTORE]   ❌ Failed to restore ${table}: ${e.message}`);

@@ -7,28 +7,6 @@
 //  1. Pastikan DATABASE_URL di .env sudah mengarah ke Supabase
 //  2. Jalankan 'npx prisma db push' terlebih dahulu
 //  3. Pastikan folder backup_data/ ada dengan file JSON backup
-//
-// ============================================================
-//  PERHATIAN KRITIS — NOMOR SURAT:
-//  Kolom nomorSurat dan tahunSurat DIHAPUS (di-strip) saat import peminjaman
-//  dari sistem sumber. Ini disengaja dan WAJIB TIDAK DIUBAH.
-//
-//  Alasan: sistem sumber (Neon) dan target (Supabase) memiliki counter nomorSurat
-//  yang berjalan secara independen. Nomor surat "2" di Neon BUKAN nomor surat
-//  "2" di Supabase — mereka tidak terkait. Jika nomorSurat ditulis langsung
-//  dari data sumber, akan terjadi TABRAKAN dengan nomor yang di-generate oleh
-//  counter atomik (nomorSuratService.ambil()) di sistem target.
-//
-//  Record yang ter-import akan mendapat nomor surat baru secara otomatis via
-//  fungsi pastikanNomorSurat() saat surat pertama kali dibuat/diminta oleh
-//  peminjam atau admin. Proses ini aman dari race condition.
-//
-//  JANGAN hapus logika strip nomorSurat/tahunSurat ini. Jika dihapus, script
-//  ini akan menghasilkan duplikat nomorSurat saat dijalankan terhadap database
-//  yang sudah memiliki data produksi.
-//
-//  Untuk RESTORE (pulihkan database ke titik waktu tertentu), gunakan
-//  restore.js atau restore-insert-only.js — BUKAN script ini.
 // ============================================================
 
 const { PrismaClient } = require('@prisma/client');
@@ -123,13 +101,11 @@ async function importCollection(collectionKey, data) {
       }
       // Untuk peminjaman, flatten nested relations
       else if (flatCollections.includes(collectionKey)) {
-        const { detail, peminjam, nomorSurat: _ns, tahunSurat: _ts, ...peminjamanTanpaSurat } = item;
-        // nomorSurat/tahunSurat dari sistem sumber DITARIK, bukan ditimpa.
-        // Alasan: lihat komentar PERHATIAN KRITIS di bagian atas file.
+        const { detail, peminjam, ...peminjamanData } = item;
         await model.upsert({
           where: { id: item.id },
-          update: peminjamanTanpaSurat,
-          create: peminjamanTanpaSurat,
+          update: peminjamanData,
+          create: peminjamanData,
         });
       }
       else {
