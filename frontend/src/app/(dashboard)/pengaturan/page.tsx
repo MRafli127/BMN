@@ -225,8 +225,9 @@ export default function PengaturanPage() {
         </CardContent>
       </Card>
 
-      {/* Ganti Kata Sandi */}
-      <Card>
+      {/* Ganti Kata Sandi — 非 SUPER_ADMIN */}
+      {!user?.roles?.includes('SUPER_ADMIN') && (
+        <Card>
         <CardContent className="p-6">
           <div className="mb-5 flex items-center gap-3">
             <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-amber-100 text-amber-600">
@@ -274,6 +275,7 @@ export default function PengaturanPage() {
           </form>
         </CardContent>
       </Card>
+      )}
     </div>
   );
 }
