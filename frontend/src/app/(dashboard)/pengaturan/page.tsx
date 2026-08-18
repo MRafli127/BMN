@@ -13,6 +13,7 @@ import { z } from 'zod';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input, Label } from '@/components/ui/input';
+import { PasswordInput } from '@/components/ui/password-input';
 import { Icon } from '@/components/ui/icon';
 import { notify } from '@/components/ui/toast';
 import { useAuth } from '@/hooks/useAuth';
@@ -240,19 +241,19 @@ export default function PengaturanPage() {
           <form onSubmit={kirimPassword} className="space-y-4">
             <div className="space-y-1.5">
               <Label htmlFor="passwordLama">Kata Sandi Lama</Label>
-              <Input id="passwordLama" type="password" autoComplete="current-password" {...regPassword('passwordLama')} />
+              <PasswordInput id="passwordLama" autoComplete="current-password" {...regPassword('passwordLama')} />
               {errPassword.passwordLama && <p className="text-xs text-error">{errPassword.passwordLama.message}</p>}
             </div>
 
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div className="space-y-1.5">
                 <Label htmlFor="passwordBaru">Kata Sandi Baru</Label>
-                <Input id="passwordBaru" type="password" autoComplete="new-password" {...regPassword('passwordBaru')} />
+                <PasswordInput id="passwordBaru" autoComplete="new-password" {...regPassword('passwordBaru')} />
                 {errPassword.passwordBaru && <p className="text-xs text-error">{errPassword.passwordBaru.message}</p>}
               </div>
               <div className="space-y-1.5">
                 <Label htmlFor="konfirmasi">Konfirmasi Kata Sandi Baru</Label>
-                <Input id="konfirmasi" type="password" autoComplete="new-password" {...regPassword('konfirmasi')} />
+                <PasswordInput id="konfirmasi" autoComplete="new-password" {...regPassword('konfirmasi')} />
                 {errPassword.konfirmasi && <p className="text-xs text-error">{errPassword.konfirmasi.message}</p>}
               </div>
             </div>
