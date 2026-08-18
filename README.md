@@ -31,84 +31,29 @@ sipp-bmn/
 
 ---
 
-## ✅ Prasyarat
-
-- **Node.js** v18 atau lebih baru — <https://nodejs.org>
-- **PostgreSQL** (salah satu):
-  - Install lokal/native — <https://www.postgresql.org/download/>, **atau**
-  - Layanan cloud gratis: **Supabase** (<https://supabase.com>) / **Neon** (<https://neon.tech>)
-- **Vercel Blob** (untuk penyimpanan file) — buat Blob Storage di dashboard Vercel, salin `BLOB_READ_WRITE_TOKEN`.
-
 ---
 
-## 🚀 Langkah Instalasi (Lengkap)
+## 🚀 Menjalankan Program
 
-### 1) Siapkan Database PostgreSQL
-
-**Opsi A — PostgreSQL lokal**
-
-1. Install PostgreSQL, lalu buat database baru:
-   ```sql
-   CREATE DATABASE sipp_bmn;
-   ```
-2. Connection string contoh:
-   ```
-   postgresql://postgres:password@localhost:5432/sipp_bmn?schema=public
-   ```
-
-**Opsi B — Supabase / Neon (cloud, gratis)**
-
-1. Buat project baru di Supabase atau Neon.
-2. Salin **connection string** dari dashboard (Settings → Database / Connection Details).
-3. Tempel ke `DATABASE_URL` pada file `.env` backend.
-
-### 2) Backend
+### Backend
 
 ```bash
 cd backend
-
-# Install dependency (otomatis menjalankan `prisma generate`)
 npm install
-
-# Salin & sesuaikan environment
-cp .env.example .env       # Windows (PowerShell): Copy-Item .env.example .env
-#  → buka .env, isi DATABASE_URL & BLOB_READ_WRITE_TOKEN
-#    (secret JWT dibuat otomatis saat server pertama kali dijalankan)
-
-# Buat tabel di database (migrasi)
-npx prisma migrate dev --name init
-
-# Isi data awal
-npm run seed
-
-# Jalankan server (mode pengembangan, port 5000)
 npm run dev
 ```
 
-Server backend aktif di **http://localhost:5000** (API di `/api`).
+Backend aktif di **http://localhost:5000**.
 
-> **Catatan JWT:** `JWT_ACCESS_SECRET` & `JWT_REFRESH_SECRET` dibuat otomatis saat server pertama kali dijalankan dan tetap sampai di-reset manual (`node -r ./src/config/env.js reset-secrets`).
-
-### 3) Frontend
-
-Buka terminal **baru**:
+### Frontend
 
 ```bash
 cd frontend
-
-# Install dependency
 npm install
-
-# Salin & sesuaikan environment
-cp .env.example .env.local   # PowerShell: Copy-Item .env.example .env.local
-#  → pastikan NEXT_PUBLIC_API_URL = http://localhost:5000/api
-#    dan NEXT_PUBLIC_BACKEND_URL = http://localhost:5000
-
-# Jalankan aplikasi (port 3000)
 npm run dev
 ```
 
-Buka **http://localhost:3000** di browser.
+Frontend aktif di **http://localhost:3000**.
 
 ---
 
