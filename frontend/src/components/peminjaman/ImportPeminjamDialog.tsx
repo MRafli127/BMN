@@ -123,7 +123,7 @@ export function ImportPeminjamDialog({ onSelesai }: Props) {
             <code className="rounded bg-white px-1.5 py-0.5 font-mono text-xs">Dell</code> ≠{' '}
             <code className="rounded bg-white px-1.5 py-0.5 font-mono text-xs">dell</code> ≠{' '}
             <code className="rounded bg-white px-1.5 py-0.5 font-mono text-xs">DELL</code>. Jika berbeda satu
-            karakter saja, baris akan masuk tab <strong>Gagal</strong>.
+            karakter saja, baris akan masuk tab <strong>Gagal</strong>. Contoh benar : Merk 'Asus' dan Tipe 'Travelmate TMP214 Core i5' serta NUP '777'
           </p>
         </div>
 
