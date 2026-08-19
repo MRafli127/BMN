@@ -101,44 +101,96 @@ export function ImportPeminjamDialog({ onSelesai }: Props) {
       <DialogContent className="max-w-xl">
         <DialogHeader>
           <DialogTitle>Import Data Peminjam dari Excel</DialogTitle>
-          <DialogDescription>
-            Re-import akan <strong>menambah</strong> baris baru dan <strong>memperbarui</strong> data yang berubah.
-            Import <strong>tidak pernah menghapus akun</strong> — akun peminjam bersifat permanen dan hanya bisa
-            dihapus admin secara manual. Kolom <strong>Merk Laptop</strong> &amp; <strong>NUP Laptop</strong>{' '}
-            dicocokkan ke barang (dicari merk-nya dahulu, lalu NUP); bila cocok &amp; stok tersedia, dibuatkan{' '}
-            <strong>peminjaman aktif</strong>. Baris <strong>tanpa NUP</strong> tetap dibuatkan{' '}
-            <strong>akun</strong>, hanya <strong>tanpa peminjaman</strong>. Satu peminjam boleh muncul di{' '}
-            <strong>beberapa baris</strong> selama NUP-nya berbeda — tiap baris menjadi peminjaman tersendiri. Akun
-            yang dibuat manual/registrasi tidak terpengaruh.
+          <DialogDescription className="space-y-1.5 pt-1">
+            <div className="flex items-start gap-2">
+              <span className="mt-0.5 inline-block h-1.5 w-1.5 shrink-0 rounded-full bg-primary" />
+              <span>Akun <strong>email, NIP, atau NIP+Nama</strong> yang sudah ada akan <strong>diperbarui</strong>.</span>
+            </div>
+            <div className="flex items-start gap-2">
+              <span className="mt-0.5 inline-block h-1.5 w-1.5 shrink-0 rounded-full bg-primary" />
+              <span>Baris baru akan <strong>ditambahkan</strong> sebagai akun peminjam.</span>
+            </div>
+            <div className="flex items-start gap-2">
+              <span className="mt-0.5 inline-block h-1.5 w-1.5 shrink-0 rounded-full bg-primary" />
+              <span>Import <strong>tidak pernah menghapus</strong> akun yang sudah ada.</span>
+            </div>
+            <div className="flex items-start gap-2">
+              <span className="mt-0.5 inline-block h-1.5 w-1.5 shrink-0 rounded-full bg-primary" />
+              <span>Akun dari <strong>registrasi manual</strong> tidak terpengaruh.</span>
+            </div>
           </DialogDescription>
         </DialogHeader>
 
         {/* Catatan pencocokan: harus PERSIS sama (case-sensitive) */}
-        <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
-          <p className="font-semibold">Catatan pencocokan Merk &amp; NUP:</p>
-          <p className="mt-1">
-            Isian kolom <strong>Merk Laptop</strong> &amp; <strong>NUP Laptop</strong> di Excel{' '}
-            <strong>harus persis sama</strong> dengan data di sistem — termasuk{' '}
-            <strong>huruf besar/kecil (kapital)</strong>, spasi, dan karakter lain. Contoh:{' '}
-            <code className="rounded bg-white px-1.5 py-0.5 font-mono text-xs">Dell</code> ≠{' '}
-            <code className="rounded bg-white px-1.5 py-0.5 font-mono text-xs">dell</code> ≠{' '}
-            <code className="rounded bg-white px-1.5 py-0.5 font-mono text-xs">DELL</code>. Jika berbeda satu
-            karakter saja, baris akan masuk tab <strong>Gagal</strong>. Contoh benar : Merk 'Asus' dan Tipe 'Travelmate TMP214 Core i5' serta NUP '777'
-          </p>
+        <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 space-y-2">
+          <p className="font-semibold text-amber-900 text-sm">Pencocokan Merk & NUP Laptop</p>
+
+          <div className="space-y-1.5 text-xs text-amber-900">
+            <p>Kolom <strong>Merk</strong> dan <strong>NUP Laptop</strong> di Excel harus <strong>persis sama</strong> dengan data di sistem.</p>
+            <p>Termasuk: huruf besar/kecil, spasi, dan karakter lainnya.</p>
+          </div>
+
+          <div className="rounded bg-white p-2 text-xs">
+            <p className="mb-1 font-medium text-amber-900">Contoh:</p>
+            <p className="text-amber-900">
+              <code className="rounded bg-amber-100 px-1.5 py-0.5 font-mono">Dell</code>
+              {' '}&neArr;{' '}
+              <code className="rounded bg-red-100 px-1.5 py-0.5 font-mono text-red-600 line-through">dell</code>
+              {' '}&neArr;{' '}
+              <code className="rounded bg-red-100 px-1.5 py-0.5 font-mono text-red-600 line-through">DELL</code>
+            </p>
+            <p className="mt-1 text-amber-900">Jika berbeda satu karakter pun, baris masuk tab <strong>Gagal</strong>.</p>
+          </div>
+
+          <div className="rounded bg-white p-2 text-xs">
+            <p className="mb-1 font-medium text-amber-900">Contoh yang benar:</p>
+            <ul className="space-y-0.5 text-amber-900">
+              <li>Merk: <strong>Asus</strong></li>
+              <li>Tipe: <strong>Travelmate TMP214 Core i5</strong></li>
+              <li>NUP: <strong>777</strong></li>
+            </ul>
+          </div>
+
+          <div className="flex items-start gap-2 text-xs text-amber-900">
+            <span className="mt-0.5 inline-block h-1.5 w-1.5 shrink-0 rounded-full bg-amber-400" />
+            <span>Baris <strong>tanpa NUP</strong> tetap dibuatkan akun, hanya <strong>tanpa peminjaman</strong>.</span>
+          </div>
+          <div className="flex items-start gap-2 text-xs text-amber-900">
+            <span className="mt-0.5 inline-block h-1.5 w-1.5 shrink-0 rounded-full bg-amber-400" />
+            <span>Setiap baris dengan NUP berbeda = 1 peminjaman tersendiri.</span>
+          </div>
         </div>
 
-        {/* Langkah 1: template */}
+        {/* Template */}
         <div className="rounded-lg border bg-muted/40 p-3 text-sm">
-          <p className="mb-2 font-medium text-foreground">Belum punya format file?</p>
-          <Button variant="secondary" size="sm" type="button" onClick={unduhTemplate}>
-            <Download className="h-4 w-4" /> Unduh Template
-          </Button>
-          <p className="mt-2 text-xs text-muted-foreground">
-            Kolom: Email, Nama, NIP, Eselon III, Eselon IV, Merk Laptop, Tipe Laptop, NUP Laptop. Kolom{' '}
-            <strong>Email, Nama, NIP</strong> wajib diisi; <strong>Merk Laptop + NUP Laptop</strong> dipakai untuk
-            mencocokkan barang yang dipinjam. Semua akun baru memakai password default <strong>Bmn@2026</strong> —
-            sampaikan ke peminjam agar segera menggantinya.
+          <div className="mb-2 flex items-center justify-between">
+            <p className="font-medium text-foreground">Kolom Template Excel</p>
+            <Button variant="secondary" size="sm" type="button" onClick={unduhTemplate}>
+              <Download className="h-4 w-4" /> Unduh Template
+            </Button>
+          </div>
+
+          <div className="mb-2 flex flex-wrap gap-1.5">
+            {['Email', 'Nama', 'NIP', 'Eselon III', 'Eselon IV', 'Merk Laptop', 'Tipe Laptop', 'NUP Laptop'].map((k) => (
+              <span key={k} className="rounded-full bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary">
+                {k}
+              </span>
+            ))}
+          </div>
+
+          <p className="text-xs text-muted-foreground">
+            <strong>Email, Nama, NIP</strong> wajib diisi.{' '}
+            <strong>Merk, Tipe dan NUP Laptop</strong> dipakai untuk mencocokkan barang yang dipinjam.
           </p>
+
+          {/* Password default */}
+          <div className="mt-2 rounded bg-blue-50 p-2 text-xs text-blue-900">
+            <p>
+              Password default akun baru:{' '}
+              <code className="rounded bg-blue-100 px-1.5 py-0.5 font-mono font-semibold">Bmn@2026</code>
+            </p>
+            <p className="mt-0.5">Minta peminjam mengganti password setelah pertama kali login.</p>
+          </div>
         </div>
 
         {/* Langkah 2: pilih file */}
