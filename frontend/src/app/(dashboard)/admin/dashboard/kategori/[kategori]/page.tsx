@@ -181,7 +181,7 @@ export default function KategoriDashboardPage() {
   const resetPasswordPegawai = async (id: string) => {
     try {
       await userManagementService.resetPassword(id);
-      notify.suksess('Password berhasil direset ke BMN@Reset123.');
+      notify.suksess(`Password berhasil direset ke "BMN@Reset123" (tanpa tanda baca di akhir).`);
       segarkanData();
     } catch (error) {
       notify.gagal(ambilPesanError(error, 'Gagal reset password.'));

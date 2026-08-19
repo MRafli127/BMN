@@ -161,12 +161,12 @@ export default function PengaturanPage() {
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div className="space-y-1.5">
                 <Label htmlFor="nama">Nama Lengkap</Label>
-                <Input id="nama" {...regProfil('nama')} />
+                <Input id="nama" {...regProfil('nama')} disabled={user?.roles?.includes('SUPER_ADMIN')} />
                 {errProfil.nama && <p className="text-xs text-error">{errProfil.nama.message}</p>}
               </div>
               <div className="space-y-1.5">
                 <Label htmlFor="nip">NIP</Label>
-                <Input id="nip" {...regProfil('nip')} />
+                <Input id="nip" {...regProfil('nip')} disabled={user?.roles?.includes('SUPER_ADMIN')} />
                 {errProfil.nip && <p className="text-xs text-error">{errProfil.nip.message}</p>}
               </div>
             </div>
@@ -179,7 +179,7 @@ export default function PengaturanPage() {
 
             <div className="space-y-1.5">
               <Label htmlFor="email">Alamat Email</Label>
-              <Input id="email" type="email" {...regProfil('email')} />
+              <Input id="email" type="email" {...regProfil('email')} disabled={user?.roles?.includes('SUPER_ADMIN')} />
               {errProfil.email && <p className="text-xs text-error">{errProfil.email.message}</p>}
             </div>
 
@@ -209,7 +209,7 @@ export default function PengaturanPage() {
             </div>
 
             <div className="flex justify-end pt-2">
-              <Button type="submit" disabled={simpanProfil || !isDirty}>
+              <Button type="submit" disabled={simpanProfil || !isDirty || user?.roles?.includes('SUPER_ADMIN')}>
                 {simpanProfil ? (
                   <>
                     <Icon name="progress_activity" className="animate-spin" /> Menyimpan...
