@@ -411,19 +411,8 @@ export default function LoginPage() {
                   </span>
                 </button>
               </form>
-
-              <div className="mt-6 rounded-xl border border-blue-100 bg-gradient-to-br from-blue-50/80 to-cyan-50/60 p-4 text-xs text-on-surface-variant">
-                <p className="mb-2 flex items-center gap-1.5 font-bold text-on-surface">
-                  <Icon name="info" className="text-[16px] text-primary" />
-                  Akun demo
-                </p>
-                <div className="space-y-1 font-mono">
-                  <p><span className="font-semibold text-primary">Admin</span>: admin@bmn.go.id / Bmn@2026</p>
-                  <p><span className="font-semibold text-primary">Super admin</span>: superadmin@bmn.go.id / SuperAdmin123!</p>
-                  <p><span className="font-semibold text-primary">Peminjam</span>: budi@bmn.go.id / Bmn@2026</p>
-                </div>
-              </div>
             </div>
+        
           )}
         </div>
       </section>

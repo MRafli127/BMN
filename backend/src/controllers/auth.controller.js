@@ -94,7 +94,7 @@ const gantiPassword = asyncHandler(async (req, res) => {
     authService.blacklistToken(accessToken).catch(() => {});
   }
 
-  await authService.gantiPassword(req.user.id, req.body);
+  await authService.gantiPassword(req.user.id, req.user.roles, req.body);
 
   // Hapus cookie refresh token dan CSRF
   res.clearCookie('refreshToken', opsiCookie);

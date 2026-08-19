@@ -94,27 +94,63 @@ export function ImportPegawaiDialog({ onSelesai }: Props) {
       <DialogContent className="max-w-xl">
         <DialogHeader>
           <DialogTitle>Import Data Pegawai</DialogTitle>
-          <DialogDescription>
-            Mengisi &amp; menyinkronkan <strong>data diri peminjam</strong> dari file master pegawai. Field yang
-            diisi sama dengan halaman Pengaturan Akun. Data diri yang <strong>kosong akan diisi</strong> dan yang{' '}
-            <strong>berubah akan diperbarui</strong> (dicocokkan lewat NIP). Sel yang <strong>kosong di Excel tidak
-            akan menimpa</strong> data lama. NIP yang <strong>belum terdaftar dibuatkan akun peminjam baru</strong>.
-            Import <strong>tidak pernah menghapus akun</strong> — penghapusan hanya bisa dilakukan admin secara manual.
+          <DialogDescription className="space-y-1.5 pt-1">
+            <div className="flex items-start gap-2">
+              <span className="mt-0.5 inline-block h-1.5 w-1.5 shrink-0 rounded-full bg-primary" />
+              <span>Menyinkronkan <strong>data diri peminjam</strong> dari file master pegawai.</span>
+            </div>
+            <div className="flex items-start gap-2">
+              <span className="mt-0.5 inline-block h-1.5 w-1.5 shrink-0 rounded-full bg-primary" />
+              <span>Field kosong di Excel <strong>tidak menimpa</strong> data lama yang sudah ada.</span>
+            </div>
+            <div className="flex items-start gap-2">
+              <span className="mt-0.5 inline-block h-1.5 w-1.5 shrink-0 rounded-full bg-primary" />
+              <span>Data yang <strong>berubah akan diperbarui</strong> (dicocokkan lewat NIP).</span>
+            </div>
+            <div className="flex items-start gap-2">
+              <span className="mt-0.5 inline-block h-1.5 w-1.5 shrink-0 rounded-full bg-primary" />
+              <span>NIP yang <strong>belum terdaftar</strong> dibuatkan <strong>akun peminjam baru</strong>.</span>
+            </div>
+            <div className="flex items-start gap-2">
+              <span className="mt-0.5 inline-block h-1.5 w-1.5 shrink-0 rounded-full bg-amber-400" />
+              <span>Import <strong>tidak pernah menghapus</strong> akun — penghapusan hanya manual oleh admin.</span>
+            </div>
           </DialogDescription>
         </DialogHeader>
 
-        {/* Langkah 1: template */}
+        {/* Template */}
         <div className="rounded-lg border bg-muted/40 p-3 text-sm">
-          <p className="mb-2 font-medium text-foreground">Belum punya format file?</p>
-          <Button variant="secondary" size="sm" type="button" onClick={unduhTemplate}>
-            <Download className="h-4 w-4" /> Unduh Template
-          </Button>
-          <p className="mt-2 text-xs text-muted-foreground">
-            Kolom: NIP, Nama, Jabatan, Email, Unit Kerja, Eselon II, Eselon III, Eselon IV. Kolom{' '}
-            <strong>NIP, Nama, Email</strong> wajib diisi. File master pegawai (kolom{' '}
-            <strong>Jabatan1, UE2, UE3, UE4</strong>) juga langsung dikenali. Akun baru memakai password default{' '}
-            <strong>Bmn@2026</strong> — sampaikan ke peminjam agar segera menggantinya.
+          <div className="mb-2 flex items-center justify-between">
+            <p className="font-medium text-foreground">Kolom Template Excel</p>
+            <Button variant="secondary" size="sm" type="button" onClick={unduhTemplate}>
+              <Download className="h-4 w-4" /> Unduh Template
+            </Button>
+          </div>
+
+          <div className="mb-2 flex flex-wrap gap-1.5">
+            {['NIP', 'Nama', 'Jabatan', 'Email', 'Unit Kerja', 'Eselon II', 'Eselon III', 'Eselon IV'].map((k) => (
+              <span key={k} className="rounded-full bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary">
+                {k}
+              </span>
+            ))}
+          </div>
+
+          <p className="mb-2 text-xs text-muted-foreground">
+            Kolom <strong>NIP, Nama, Email</strong> wajib diisi.
           </p>
+
+          <p className="text-xs text-muted-foreground">
+            File master pegawai dengan kolom <strong>Jabatan1, UE2, UE3, UE4</strong> juga langsung dikenali.
+          </p>
+
+          {/* Password default */}
+          <div className="mt-2 rounded bg-blue-50 p-2 text-xs text-blue-900">
+            <p>
+              Akun baru memakai password default:{' '}
+              <code className="rounded bg-blue-100 px-1.5 py-0.5 font-mono font-semibold">Bmn@2026</code>
+            </p>
+            <p className="mt-0.5">Minta peminjam mengganti password setelah pertama kali login.</p>
+          </div>
         </div>
 
         {/* Langkah 2: pilih file */}

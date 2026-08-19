@@ -294,7 +294,12 @@ async function perbaruiProfil(userId, data, activeRole) {
 
 // --- Ganti kata sandi pengguna saat ini ---
 // Saat password berubah, INCREMENT tokenVersion untuk invalidate semua token lama
-async function gantiPassword(userId, { passwordLama, passwordBaru }) {
+async function gantiPassword(userId, roles, { passwordLama, passwordBaru }) {
+  // Superadmin tidak boleh mengganti kata sandi
+  if (Array.isArray(roles) && roles.includes('SUPER_ADMIN')) {
+    throw new AppError('Akun Super Admin tidak dapat mengganti kata sandi.', 403);
+  }
+
   const user = await prisma.user.findUnique({ where: { id: userId } });
   if (!user) {
     throw new AppError('Pengguna tidak ditemukan.', 404);

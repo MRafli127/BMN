@@ -100,25 +100,62 @@ export function ImportBarangDialog({ onSelesai }: Props) {
       <DialogContent className="max-w-xl">
         <DialogHeader>
           <DialogTitle>Import Barang dari Excel</DialogTitle>
-          <DialogDescription>
-            Unggah file .xlsx, .xls, atau .csv. Database akan <strong>disinkronkan</strong> dengan isi
-            file: baris baru <strong>ditambahkan</strong>, yang sudah ada <strong>diperbarui</strong>, dan
-            aset yang <strong>tidak ada lagi di file akan dihapus</strong> — kecuali unit yang sedang/pernah
-            dipinjam (otomatis dilindungi). Setiap baris = 1 unit barang.
+          <DialogDescription className="space-y-1.5 pt-1">
+            <div className="flex items-start gap-2">
+              <span className="mt-0.5 inline-block h-1.5 w-1.5 shrink-0 rounded-full bg-primary" />
+              <span>Baris baru akan <strong>ditambahkan</strong> ke database.</span>
+            </div>
+            <div className="flex items-start gap-2">
+              <span className="mt-0.5 inline-block h-1.5 w-1.5 shrink-0 rounded-full bg-primary" />
+              <span>Baris yang <strong>sudah ada</strong> akan <strong>diperbarui</strong> sesuai data di file.</span>
+            </div>
+            <div className="flex items-start gap-2">
+              <span className="mt-0.5 inline-block h-1.5 w-1.5 shrink-0 rounded-full bg-primary" />
+              <span>Baris yang <strong>tidak ada di file</strong> akan <strong>dihapus</strong>.</span>
+            </div>
+            <div className="flex items-start gap-2">
+              <span className="mt-0.5 inline-block h-1.5 w-1.5 shrink-0 rounded-full bg-amber-400" />
+              <span>Unit yang sedang/pernah dipinjam <strong>otomatis dilindungi</strong> — tidak bisa dihapus via import.</span>
+            </div>
+            <div className="flex items-start gap-2">
+              <span className="mt-0.5 inline-block h-1.5 w-1.5 shrink-0 rounded-full bg-primary" />
+              <span>Setiap baris = 1 unit barang.</span>
+            </div>
           </DialogDescription>
         </DialogHeader>
 
-        {/* Langkah 1: template */}
+        {/* Template */}
         <div className="rounded-lg border bg-muted/40 p-3 text-sm">
-          <p className="mb-2 font-medium text-foreground">Belum punya format file?</p>
-          <Button variant="secondary" size="sm" type="button" onClick={unduhTemplate}>
-            <Download className="h-4 w-4" /> Unduh Template
-          </Button>
-          <p className="mt-2 text-xs text-muted-foreground">
-            Kolom: Kode Satker, Nama Satker, Kode Barang, NUP, Nama Barang, Merk, Tipe, Jenis BMN,
-            Kondisi (Baik/Rusak Ringan/Rusak Berat), Lokasi Ruang (BU), Deskripsi. Kolom{' '}
-            <strong>NUP</strong> wajib — kode barang otomatis dibentuk dari{' '}
-            <strong>Kode Satker · Kode Barang · NUP</strong>.
+          <div className="mb-2 flex items-center justify-between">
+            <p className="font-medium text-foreground">Kolom Template Excel</p>
+            <Button variant="secondary" size="sm" type="button" onClick={unduhTemplate}>
+              <Download className="h-4 w-4" /> Unduh Template
+            </Button>
+          </div>
+
+          <div className="mb-2 flex flex-wrap gap-1.5">
+            {[
+              'Kode Satker',
+              'Nama Satker',
+              'Kode Barang',
+              'NUP',
+              'Nama Barang',
+              'Merk',
+              'Tipe',
+              'Jenis BMN',
+              'Kondisi',
+              'Lokasi Ruang',
+              'Deskripsi',
+            ].map((k) => (
+              <span key={k} className="rounded-full bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary">
+                {k}
+              </span>
+            ))}
+          </div>
+
+          <p className="text-xs text-muted-foreground">
+            Kolom <strong>NUP</strong> wajib diisi.{' '}
+            Kode barang otomatis dibentuk: <strong>Kode Satker · Kode Barang · NUP</strong>.
           </p>
         </div>
 

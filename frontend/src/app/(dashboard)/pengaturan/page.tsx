@@ -13,6 +13,7 @@ import { z } from 'zod';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input, Label } from '@/components/ui/input';
+import { PasswordInput } from '@/components/ui/password-input';
 import { Icon } from '@/components/ui/icon';
 import { notify } from '@/components/ui/toast';
 import { useAuth } from '@/hooks/useAuth';
@@ -160,12 +161,12 @@ export default function PengaturanPage() {
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div className="space-y-1.5">
                 <Label htmlFor="nama">Nama Lengkap</Label>
-                <Input id="nama" {...regProfil('nama')} />
+                <Input id="nama" {...regProfil('nama')} disabled={user?.roles?.includes('SUPER_ADMIN')} />
                 {errProfil.nama && <p className="text-xs text-error">{errProfil.nama.message}</p>}
               </div>
               <div className="space-y-1.5">
                 <Label htmlFor="nip">NIP</Label>
-                <Input id="nip" {...regProfil('nip')} />
+                <Input id="nip" {...regProfil('nip')} disabled={user?.roles?.includes('SUPER_ADMIN')} />
                 {errProfil.nip && <p className="text-xs text-error">{errProfil.nip.message}</p>}
               </div>
             </div>
@@ -178,7 +179,7 @@ export default function PengaturanPage() {
 
             <div className="space-y-1.5">
               <Label htmlFor="email">Alamat Email</Label>
-              <Input id="email" type="email" {...regProfil('email')} />
+              <Input id="email" type="email" {...regProfil('email')} disabled={user?.roles?.includes('SUPER_ADMIN')} />
               {errProfil.email && <p className="text-xs text-error">{errProfil.email.message}</p>}
             </div>
 
@@ -208,7 +209,7 @@ export default function PengaturanPage() {
             </div>
 
             <div className="flex justify-end pt-2">
-              <Button type="submit" disabled={simpanProfil || !isDirty}>
+              <Button type="submit" disabled={simpanProfil || !isDirty || user?.roles?.includes('SUPER_ADMIN')}>
                 {simpanProfil ? (
                   <>
                     <Icon name="progress_activity" className="animate-spin" /> Menyimpan...
@@ -224,8 +225,9 @@ export default function PengaturanPage() {
         </CardContent>
       </Card>
 
-      {/* Ganti Kata Sandi */}
-      <Card>
+      {/* Ganti Kata Sandi — 非 SUPER_ADMIN */}
+      {!user?.roles?.includes('SUPER_ADMIN') && (
+        <Card>
         <CardContent className="p-6">
           <div className="mb-5 flex items-center gap-3">
             <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-amber-100 text-amber-600">
@@ -240,19 +242,19 @@ export default function PengaturanPage() {
           <form onSubmit={kirimPassword} className="space-y-4">
             <div className="space-y-1.5">
               <Label htmlFor="passwordLama">Kata Sandi Lama</Label>
-              <Input id="passwordLama" type="password" autoComplete="current-password" {...regPassword('passwordLama')} />
+              <PasswordInput id="passwordLama" autoComplete="current-password" {...regPassword('passwordLama')} />
               {errPassword.passwordLama && <p className="text-xs text-error">{errPassword.passwordLama.message}</p>}
             </div>
 
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div className="space-y-1.5">
                 <Label htmlFor="passwordBaru">Kata Sandi Baru</Label>
-                <Input id="passwordBaru" type="password" autoComplete="new-password" {...regPassword('passwordBaru')} />
+                <PasswordInput id="passwordBaru" autoComplete="new-password" {...regPassword('passwordBaru')} />
                 {errPassword.passwordBaru && <p className="text-xs text-error">{errPassword.passwordBaru.message}</p>}
               </div>
               <div className="space-y-1.5">
                 <Label htmlFor="konfirmasi">Konfirmasi Kata Sandi Baru</Label>
-                <Input id="konfirmasi" type="password" autoComplete="new-password" {...regPassword('konfirmasi')} />
+                <PasswordInput id="konfirmasi" autoComplete="new-password" {...regPassword('konfirmasi')} />
                 {errPassword.konfirmasi && <p className="text-xs text-error">{errPassword.konfirmasi.message}</p>}
               </div>
             </div>
@@ -273,6 +275,7 @@ export default function PengaturanPage() {
           </form>
         </CardContent>
       </Card>
+      )}
     </div>
   );
 }

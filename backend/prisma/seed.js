@@ -20,6 +20,14 @@ const adminConfig = {
   password: process.env.ADMIN_PASSWORD || 'Admin123!',
 };
 
+// Ambil konfigurasi superadmin dari environment
+const superAdminConfig = {
+  nama: process.env.SUPER_ADMIN_NAMA || 'Super Administrator',
+  nip: process.env.SUPER_ADMIN_NIP || '999999999999999999',
+  email: process.env.SUPER_ADMIN_EMAIL || 'superadmin@bmn.go.id',
+  password: process.env.SUPER_ADMIN_PASSWORD || '@5uP3r4dm1n_k3menkeu.',
+};
+
 // Kode barang = kunci natural aset (Kode Satker - Kode Barang - NUP).
 function kodeNatural({ kodeSatker, kodeBarangBmn, nup }) {
   return [kodeSatker, kodeBarangBmn, nup].filter(Boolean).join('-');
@@ -45,6 +53,22 @@ async function main() {
     },
   });
   console.log(`✅ Admin siap: ${admin.email}`);
+
+  // --- 1b) Super Admin ---
+  const passwordSuperAdmin = await bcrypt.hash(superAdminConfig.password, 10);
+  const superAdmin = await prisma.user.upsert({
+    where: { email: superAdminConfig.email },
+    update: { roles: ['SUPER_ADMIN'] },
+    create: {
+      nama: superAdminConfig.nama,
+      nip: superAdminConfig.nip,
+      email: superAdminConfig.email,
+      password: passwordSuperAdmin,
+      roles: ['SUPER_ADMIN'],
+      tokenVersion: 1,
+    },
+  });
+  console.log(`✅ Super Admin siap: ${superAdmin.email}`);
 
   // --- 2) Peminjam contoh ---
   const peminjamContoh = [
@@ -105,8 +129,9 @@ async function main() {
 
   console.log('\n🎉 Seeder selesai!');
   console.log('--------------------------------------------------');
-  console.log(`  Login Admin    : ${adminConfig.email} / ${adminConfig.password}`);
-  console.log('  Login Peminjam : budi@bmn.go.id / Peminjam123!');
+  console.log(`  Login Admin       : ${adminConfig.email} / ${adminConfig.password}`);
+  console.log(`  Login Super Admin : ${superAdminConfig.email} / ${superAdminConfig.password}`);
+  console.log(`  Login Peminjam    : budi@bmn.go.id / Peminjam123!`);
   console.log('--------------------------------------------------');
 }
 

@@ -16,9 +16,9 @@ const jakarta = Plus_Jakarta_Sans({
 });
 
 export const metadata: Metadata = {
-  title: 'SIPP-BMN — Sistem Informasi Peminjaman & Pengembalian Barang Milik Negara',
+  title: 'BMN — Sistem Informasi Barang Milik Negara',
   description:
-    'Aplikasi peminjaman dan pengembalian Barang Milik Negara: pengajuan, persetujuan, stempel digital, QR Code, dan pelacakan status secara realtime.',
+    'Sistem Informasi Barang Milik Negara: pengelolaan BMN, peminjaman, pengembalian, dan pelacakan aset secara realtime.',
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
