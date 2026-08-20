@@ -98,7 +98,7 @@ export function ImportPeminjamDialog({ onSelesai }: Props) {
         </Button>
       </DialogTrigger>
 
-      <DialogContent className="max-w-xl">
+      <DialogContent className="max-w-2xl">
         <DialogHeader>
           <DialogTitle>Import Data Peminjam dari Excel</DialogTitle>
           <DialogDescription className="space-y-1.5 pt-1">
@@ -120,6 +120,21 @@ export function ImportPeminjamDialog({ onSelesai }: Props) {
             </div>
           </DialogDescription>
         </DialogHeader>
+
+        {/* Note: akun admin tidak bisa di-import sebagai peminjam */}
+        <div className="rounded-lg border border-red-200 bg-red-50 p-3 space-y-1.5">
+          <p className="flex items-center gap-2 font-semibold text-red-900 text-sm">
+            <AlertTriangle className="h-4 w-4 shrink-0" />
+            Akun dengan Role Admin Tidak Bisa Di-import
+          </p>
+          <p className="text-xs text-red-900">
+            Akun yang memiliki role <strong>admin</strong> tidak dapat di-import sebagai peminjam.
+          </p>
+          <p className="text-xs text-red-900">
+            <strong>Solusi:</strong> Lakukan <strong>demote</strong> terlebih dahulu menjadi role{' '}
+            <strong>peminjam</strong> melalui menu <strong>Pengaturan Akun</strong>, lalu import data dari Excel.
+          </p>
+        </div>
 
         {/* Catatan pencocokan: harus PERSIS sama (case-sensitive) */}
         <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 space-y-2">

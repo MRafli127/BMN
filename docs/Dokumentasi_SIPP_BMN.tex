@@ -1,0 +1,2208 @@
+\documentclass[
+  12pt,
+  a4paper,
+  oneside,
+  final
+]{report}
+
+% ─── Encoding & Language ────────────────────────────────────────────────────
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[indonesian]{babel}
+\usepackage{indentfirst}
+\usepackage{setspace}
+\onehalfspacing
+
+% ─── Page Layout ────────────────────────────────────────────────────────────
+\usepackage{geometry}
+\geometry{
+  left   = 3.0cm,
+  right  = 2.5cm,
+  top    = 3.0cm,
+  bottom = 2.5cm,
+  headheight = 1.2cm,
+  headsep  = 0.8cm,
+  footskip = 1.2cm
+}
+
+% ─── Fonts ───────────────────────────────────────────────────────────────────
+\usepackage{times}       % Times New Roman
+
+% ─── Colors ─────────────────────────────────────────────────────────────────
+\usepackage[table]{xcolor}
+\definecolor{navy}{RGB}{30, 58, 95}
+\definecolor{lightblue}{RGB}{219, 229, 241}
+\definecolor{accent}{RGB}{0, 100, 160}
+\definecolor{lightgray}{RGB}{245, 245, 245}
+\definecolor{darkgray}{RGB}{80, 80, 80}
+\definecolor{superadmin}{RGB}{139, 0, 0}
+\definecolor{admin}{RGB}{0, 100, 0}
+\definecolor{peminjam}{RGB}{0, 60, 130}
+
+% ─── Hyperlinks & Bookmarks ─────────────────────────────────────────────────
+\usepackage[
+  colorlinks=true,
+  linkcolor=navy,
+  urlcolor=navy,
+  citecolor=navy,
+  anchorcolor=navy,
+  pdfdisplaydoctitle=true,
+  pdftitle={Dokumentasi SIPP-BMN},
+  pdfauthor={Tim Pengembang},
+  pdfsubject={Sistem Informasi Peminjaman \& Pengembalian Barang Milik Negara}
+]{hyperref}
+\usepackage{bookmark}
+
+% ─── Tables ─────────────────────────────────────────────────────────────────
+\usepackage{longtable}
+\usepackage{booktabs}
+\usepackage{colortbl}
+\usepackage{tabularx}
+\usepackage{multirow}
+\usepackage{array}
+\newcolumntype{L}{>{\raggedright\arraybackslash}X}
+\newcolumntype{C}{>{\centering\arraybackslash}X}
+\newcolumntype{R}{>{\raggedleft\arraybackslash}X}
+
+% ─── Headers & Footers ──────────────────────────────────────────────────────
+\usepackage{fancyhdr}
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[L]{\fontsize{10}{12}\selectfont\textbf{Dokumentasi SIPP-BMN}}
+\fancyhead[R]{\fontsize{10}{12}\selectfont\textbf{\thepage}}
+\fancyfoot[C]{\fontsize{9}{11}\selectfont\thepage}
+\fancypagestyle{plain}{
+  \fancyhf{}
+  \fancyfoot[C]{\fontsize{9}{11}\selectfont\thepage}
+}
+\setlength{\headrulewidth}{0.5pt}
+\setlength{\footrulewidth}{0pt}
+
+% ─── Section Formatting ──────────────────────────────────────────────────────
+\usepackage{titlesec}
+\titleformat{\chapter}[display]
+  {\normalfont\fontsize{16}{18}\selectfont\bfseries\color{navy}}
+  {\chaptername\ \thechapter}{0.5em}{}
+\titleformat{\section}
+  {\normalfont\fontsize{14}{16}\selectfont\bfseries\color{navy}}
+  {\thesection}{0.5em}{}
+\titleformat{\subsection}
+  {\normalfont\fontsize{12}{14}\selectfont\bfseries\color{navy}}
+  {\thesubsection}{0.5em}{}
+\titleformat{\paragraph}
+  {\normalfont\fontsize{11}{13}\selectfont\bfseries\color{darkgray}}
+  {}{0em}{}
+\titlespacing*{\chapter}{0pt}{0pt}{20pt}
+\titlespacing*{\section}{0pt}{18pt}{10pt}
+\titlespacing*{\subsection}{0pt}{12pt}{8pt}
+\titlespacing*{\paragraph}{0pt}{8pt}{6pt}
+
+% ─── Captions ───────────────────────────────────────────────────────────────
+\usepackage[
+  tableposition=top,
+  figureposition=bottom
+]{caption}
+\captionsetup{
+  font=small,
+  labelfont=bf,
+  labelsep=colon,
+  justification=raggedright
+}
+\captionsetup[table]{
+  font={small,bf},
+  skip=6pt,
+  aboveskip=8pt
+}
+
+% ─── Lists ─────────────────────────────────────────────────────────────────
+\usepackage{enumitem}
+\setlist{
+  topsep=4pt,
+  itemsep=3pt,
+  parsep=2pt,
+  labelsep=0.4cm
+}
+\setlist[itemize,1]{label={\textbullet}}
+\setlist[itemize,2]{label={--}}
+\setlist[itemize,3]{label={\textendash}}
+
+% ─── Graphics ───────────────────────────────────────────────────────────────
+\usepackage{graphicx}
+\graphicspath{{./assets/}}
+
+% ─── Misc ───────────────────────────────────────────────────────────────────
+\usepackage{pdfpages}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{etoolbox}
+\usepackage{ifthen}
+\usepackage{xstring}
+
+% ─── Document Begins ────────────────────────────────────────────────────────
+\begin{document}
+
+% ─── Cover Page ────────────────────────────────────────────────────────────
+\pagenumbering{alph}
+\thispagestyle{empty}
+
+\begin{center}
+  \vspace*{1.5cm}
+
+  % Logo placeholder
+  \IfFileExists{./assets/logo.png}{%
+    \includegraphics[width=5cm]{./assets/logo.png}\\[1.5cm]
+  }{%
+    % Decorative top line
+    \vspace*{1.5cm}
+  }
+
+  \LARGE\textbf{\textls{DOKUMENTASI SISTEM}}\\[0.3cm]
+  \LARGE\textbf{SIPP-BMN}\\[0.5cm]
+
+  \HRule\\[0.3cm]
+
+  {\LARGE\textbf{Sistem Informasi Peminjaman \&}}
+  \\[0.3cm]
+  {\LARGE\textbf{Pengembalian Barang Milik Negara}}\\[0.5cm]
+
+  \HRule\\[1.5cm]
+
+  \begin{tabular}{rl}
+    \textbf{Versi}      & : 1.0.0 \\[4pt]
+    \textbf{Tanggal}     & : \today \\[4pt]
+    \textbf{Status}      & : Final
+  \end{tabular}\\[2cm]
+
+  \vfill
+
+  {\large\textbf{Tim Pengembang SIPP-BMN}}
+
+  \vspace{1cm}
+\end{center}
+
+\newpage
+\thispagestyle{empty}
+~
+\newpage
+
+\pagenumbering{roman}
+\pagestyle{fancy}
+
+% ─── Table of Contents ──────────────────────────────────────────────────────
+\tableofcontents
+\newpage
+\listoffigures
+\addcontentsline{toc}{chapter}{Daftar Gambar}
+\newpage
+\listoftables
+\addcontentsline{toc}{chapter}{Daftar Tabel}
+\newpage
+
+\pagenumbering{arabic}
+\pagestyle{fancy}
+
+% ─── Chapter 1: Pendahuluan ─────────────────────────────────────────────────
+\chapter{Pendahuluan}
+
+\section{Latar Belakang}
+\index{latar belakang}
+Perkembangan teknologi informasi di lingkungan instansi pemerintah menuntut
+adanya sistem yang efisien, transparan, dan akuntabel dalam pengelolaan
+Barang Milik Negara (BMN). Selama ini, proses peminjaman dan pengembalian
+barang milik negara masih mengandalkan dokumen fisik dan pencatatan manual
+yang memiliki berbagai keterbatasan, antara lain:
+\begin{itemize}
+  \item sulitnya menjaga konsistensi data antar unit kerja;
+  \item tidak adanya informasi stok secara {\it real-time};
+  \item risiko kehilangan atau kerusakan dokumen;
+  \item sulitnya melakukan pelacakan dan audit terhadap transaksi
+        peminjaman; dan
+  \item proses persetujuan yang memakan waktu lama karena ketergantungan
+        pada kehadiran fisik pihak yang berwenang.
+\end{itemize}
+
+Untuk menjawab tantangan tersebut, dikembangkanlah {\bfseries SIPP-BMN}
+({\it Sistem Informasi Peminjaman \& Pengembalian Barang Milik Negara}),
+sebuah aplikasi berbasis web yang menyediakan pengelolaan peminjaman dan
+pengembalian BMN secara {\it end-to-end}, mulai dari pengajuan oleh
+peminjam, persetujuan oleh administrator, hingga generasi dokumen resmi
+berupa Surat Pernyataan Peminjaman dan Surat Pengembalian secara otomatis.
+
+\section{Tujuan Dokumentasi}
+\index{tujuan dokumentasi}
+Dokumentasi ini dirancang untuk:
+\begin{itemize}
+  \item memberikan gambaran menyeluruh tentang arsitektur dan fitur sistem;
+  \item menjadi panduan bagi setiap jenis pengguna ({\it role}) dalam
+        mengoperasikan aplikasi sesuai dengan hak akses masing-masing;
+  \item mendokumentasikan entitas basis data dan alur kerja utama;
+  \item memudahkan proses pengembangan, pemeliharaan, dan transisi
+        pengetahuan ({\it knowledge transfer}) bagi tim teknis; dan
+  \item Serve sebagai acuan dalam proses pelatihan ({\it training}) dan
+        {\it user acceptance testing} (UAT).
+\end{itemize}
+
+\section{Ruang Lingkup}
+\index{ruang lingkup}
+Dokumentasi ini mencakup tiga kategori utama, yaitu:
+\begin{enumerate}
+  \item {\bfseries Fitur dan Halaman} --- daftar lengkap halaman yang
+        tersedia untuk setiap peran pengguna.
+  \item {\bfseries Alur Kerja} --- penjelasan proses bisnis dari awal
+        pengajuan hingga pengembalian barang.
+  \item {\bfseries Arsitektur Sistem} --- entitas basis data, teknologi
+        yang digunakan, serta mekanisme keamanan.
+\end{enumerate}
+
+Dokumentasi ini {\bfseries tidak} mencakup panduan instalasi lokal
+({\it local development setup}), konfigurasi variabel lingkungan
+({\it environment variables}) pada level infrastruktur, serta kode
+sumber program ({\it source code}).
+
+\section{Acuan Dokumen}
+\index{acuan dokumen}
+Dokumen ini disusun berdasarkan analisis kode sumber dan struktur basis
+data aplikasi SIPP-BMN versi terkini.
+
+% ─── Chapter 2: Gambaran Sistem ─────────────────────────────────────────────
+\chapter{Gambaran Sistem}
+
+\section{Deskripsi Sistem}
+\index{deskripsi sistem}
+SIPP-BMN adalah aplikasi {\it full-stack} berbasis web yang dirancang
+untuk mengelola seluruh aspek siklus hidup peminjaman dan pengembalian
+Barang Milik Negara. Sistem ini menyediakan fungsi-fungsi utama berikut:
+
+\begin{itemize}
+  \item {\bfseries Manajemen Katalog Barang}: Penambahan, pengeditan,
+        pencarian, dan penyaringan barang BMN berdasarkan kategori,
+        kondisi, lokasi penyimpanan, dan Satuan Kerja (Satker).
+  \item {\bfseries Manajemen Peminjaman}: Pengajuan, persetujuan,
+        penolakan, penandoveran, dan pengembalian barang dengan
+        pelacakan status secara {\it real-time}.
+  \item {\bfseries Manajemen Pengguna}: Registrasi, autentikasi,
+        otorisasi berbasis peran (RBAC), dan pengelolaan sesi.
+  \item {\bfseries Generasi Dokumen Otomatis}: Pembuatan Surat
+        Pernyataan Peminjaman dan Surat Pengembalian secara otomatis
+        dengan nomor urut, perangko digital ({\it digital stamp}),
+        dan tanda tangan digital.
+  \item {\bfseries Verifikasi QR Code}: Pembangkitan dan pemindaian
+        kode QR untuk verifikasi transaksi pengembalian.
+  \item {\bfseries Impor dan Ekspor Data}: Impor dan ekspor data barang,
+        pegawai, dan peminjaman dalam format Microsoft Excel.
+  \item {\bfseries Sistem Notifikasi}: Pemberitahuan dalam aplikasi
+        kepada pengguna terkait status pengajuan dan jadwal pengembalian.
+  \item {\bfseries Log Audit}: Pencatatan seluruh aktivitas pengguna
+        untuk keperluan audit dan akuntabilitas.
+\end{itemize}
+
+\section{Stack Teknologi}
+\index{stack teknologi}
+Sistem ini dibangun menggunakan teknologi modern yang dipilih berdasarkan
+pertimbangan performa, keamanan, skalabilitas, dan kemudahan pemeliharaan.
+
+\begin{table}[!htbp]
+  \centering
+  \caption{Stack Teknologi SIPP-BMN}
+  \label{tab:tech-stack}
+  \rowcolors{1}{white}{white}
+  \begin{tabularx}{\textwidth}{L L}
+    \toprule
+    \textbf{Lapisan} & \textbf{Teknologi} \\
+    \midrule
+    {\bfseries Frontend}  & Next.js 14 (App Router), TypeScript, Tailwind CSS,
+                           shadcn/ui (Radix UI), Zustand (state management),
+                           Axios, React Hook Form, Zod, date-fns (locale ID),
+                           html5-qrcode, lucide-react \\
+    {\bfseries Backend}   & Node.js, Express.js, Prisma ORM, PostgreSQL,
+                           bcryptjs (password hashing), Multer (file upload),
+                           Vercel Blob (penyimpanan file), qrcode,
+                           pdf-lib (generasi PDF), xlsx (impor/ekspor Excel),
+                           Zod (validasi), helmet (keamanan header),
+                           express-rate-limit (rate limiting),
+                           nodemailer (email), node-cron (penjadwal) \\
+    {\bfseries Penyimpanan} & Vercel Blob (foto, QR code, dokumen PDF) \\
+    {\bfseries Autentikasi} & JWT Access Token (60 menit) +
+                              Refresh Token via httpOnly cookie (7 hari),
+                              CSRF Protection (Double Submit Cookie),
+                              Token Versioning, Token Blacklisting \\
+    \bottomrule
+  \end{tabularx}
+\end{table}
+
+\section{Model Arsitektur}
+\index{model arsitektur}
+SIPP-BMN mengadopsi arsitektur {\it client-server} dengan pola
+RESTful API. Arsitektur ini memisahkan concerns antara frontend
+dan backend secara jelas, memungkinkan pengembangan dan penskalaan
+masing-masing secara independen.
+
+Arsitektur sistem dapat digambarkan sebagai berikut:
+
+\begin{figure}[htbp]
+  \centering
+  \IfFileExists{./assets/arsitektur.png}%
+    {\includegraphics[width=0.85\textwidth]{./assets/arsitektur.png}}%
+    {%
+      \begin{tabular}{|p{3cm}|p{9cm}|}
+        \hline
+        \textbf{Lapisan} & \textbf{Komponen} \\
+        \hline
+        Client & Browser / Next.js 14 (React) \\
+        \hline
+        API Layer & Express.js (Routing, Middleware, Validasi) \\
+        \hline
+        Business Logic & Controller, Service, Workflow \\
+        \hline
+        Data Access & Prisma ORM / PostgreSQL \\
+        \hline
+        External Services & Vercel Blob, Email Server \\
+        \hline
+      \end{tabular}
+    }
+  \caption{Arsitektur Sistem SIPP-BMN}
+  \label{fig:arsitektur}
+\end{figure}
+
+Klien berkomunikasi dengan backend melalui API REST dengan format
+JSON. File statis (foto barang, dokumen PDF, QR code) disimpan di
+layanan Vercel Blob dan disajikan melalui URL yang aman.
+
+% ─── Chapter 3: Peran dan Hak Akses ─────────────────────────────────────────
+\chapter{Peran dan Hak Akses}
+
+\index{peran pengguna}
+\index{hak akses}
+\index{role-based access control}
+Sistem SIPP-BMN menerapkan model {\it Role-Based Access Control} (RBAC)
+dengan tiga peran utama. Setiap akun dapatAssigned lebih dari satu peran
+secara bersamaan ({\it multi-role}), yang memungkinkan fleksibilitas
+dalam Pendelegasian tugas.
+
+\section{Daftar Peran}
+\index{daftar peran}
+
+\begin{longtable}[!htbp]{p{3.5cm} p{4cm} p{6.5cm}}
+  \caption{Daftar Peran dalam Sistem}
+  \label{tab:roles} \\
+
+  \toprule
+  \textbf{Kode Peran} & \textbf{Nama} & \textbf{Deskripsi} \\
+  \midrule
+  \endfirsthead
+
+  \caption[]{Daftar Peran dalam Sistem (sambungan)} \\
+  \toprule
+  \textbf{Kode Peran} & \textbf{Nama} & \textbf{Deskripsi} \\
+  \midrule
+  \endhead
+
+  \bottomrule
+  \endfoot
+
+  \rowcolor{lightblue}\textbf{SUPER\_ADMIN} & Super Admin &
+  Akses penuh ke seluruh data dan fungsi sistem tanpa batasan
+  Satker. Mampu mengelola akun admin, seluruh barang, seluruh
+  transaksi, seluruh pengguna, seluruh Satker, dan seluruh log. \\
+  \rowcolor{white}\textbf{ADMIN} & Administrator &
+  Mengelola barang untuk Satker yang ditugaskan, menyetujui/menolak/
+  mengembalikan peminjaman di lingkup Satker-nya, mengelola akun
+  peminjam di Satker-nya, serta melihat log aktivitas. \\
+  \rowcolor{white}\textbf{PEMINJAM} & Peminjam &
+  Mengakses katalog barang, menambahkan barang ke keranjang,
+  mengajukan permintaan peminjaman, mengunggah surat pernyataan
+  yang ditandatangani, meminta pengembalian, serta melihat
+  riwayat pribadi. \\
+\end{longtable}
+
+\section{Sistem Multi-Peran}
+\index{multi-role system}
+\index{role switching}
+Sistem ini mendukung {\it multi-role assignment}, di mana satu akun
+dapat memiliki kombinasi peran secara bersamaan, misalnya seorang
+pengguna sekaligus berperan sebagai {\roleAdmin} dan {\rolePeminjam}.
+Pengaturan ini memberikan fleksibilitas operasional yang tinggi
+bagiinstansi yang memiliki jumlah pengguna terbatas.
+
+\begin{itemize}
+  \item {\bfseries Pemilihan Peran saat Login}: Pengguna dengan beberapa
+        peran akan diminta memilih peran yang ingin digunakan saat masuk
+        ke sistem.
+  \item {\bfseries Pengalihan Peran ({\it Role Switching})}: Pengguna
+        dapat beralih antar-peran melalui {\it header switcher} tanpa
+        harus keluar dan masuk kembali ke sistem.
+  \item {\bfseries Logika Peran Efektif}: Peran {\roleAdmin}
+        secara otomatis mencakup kemampuan {\rolePeminjam},
+        dan peran {\roleSuperAdmin} mencakup kemampuan {\roleAdmin}
+        maupun {\rolePeminjam}.
+\end{itemize}
+
+\section{Matriks Hak Akses}
+\index{matriks hak akses}
+
+\begin{longtable}[!htbp]{p{5cm} p{1.8cm} p{1.8cm} p{1.8cm}}
+  \caption{Matriks Hak Akses per Peran}
+  \label{tab:access-matrix} \\
+
+  \toprule
+  \multirow{2}{\textbf{Fitur}} &
+    \multicolumn{1}{c}{\rotatebox{90}{\textbf{SUPER ADMIN}}} &
+    \multicolumn{1}{c}{\rotatebox{90}{\textbf{ADMIN}}} &
+    \multicolumn{1}{c}{\rotatebox{90}{\textbf{PEMINJAM}}} \\
+  \cmidrule{2-4}
+  & \centering \textbf{\roleSuperAdmin} &
+    \centering \textbf{\roleAdmin} &
+    \centering \textbf{\rolePeminjam} \\
+  \midrule
+  \endfirsthead
+
+  \caption[]{Matriks Hak Akses per Peran (sambungan)} \\
+  \toprule
+  \multirow{2}{\textbf{Fitur}} &
+    \multicolumn{1}{c}{\rotatebox{90}{\textbf{SUPER ADMIN}}} &
+    \multicolumn{1}{c}{\rotatebox{90}{\textbf{ADMIN}}} &
+    \multicolumn{1}{c}{\rotatebox{90}{\textbf{PEMINJAM}}} \\
+  \cmidrule{2-4}
+  & \centering \textbf{\roleSuperAdmin} &
+    \centering \textbf{\roleAdmin} &
+    \centering \textbf{\rolePeminjam} \\
+  \midrule
+  \endhead
+
+  \bottomrule
+  \endfoot
+
+  % ── Manajemen Pengguna ──
+  \rowcolor{lightblue}\multicolumn{4}{l}{\textbf{A. Manajemen Pengguna}} \\[4pt]
+  Mengelola akun Super Admin       & \cmark & \textendash & \textendash \\[4pt]
+  Mengelola akun Admin             & \cmark & \textendash & \textendash \\[4pt]
+  Mengelola akun Peminjam          & \cmark & \cmark      & \textendash \\[4pt]
+  Menetapkan akses Satker admin   & \cmark & \textendash & \textendash \\[4pt]
+  Mengubah informasi profil sendiri& \cmark & \cmark      & \cmark \\[4pt]
+  Mengubah kata sandi sendiri      & \textendash$^\dagger$ & \cmark & \cmark \\[4pt]
+
+  % ── Manajemen Barang ──
+  \rowcolor{lightblue}\multicolumn{4}{l}{\textbf{B. Manajemen Barang}} \\[4pt]
+  Menambah barang                  & \cmark & \cmark      & \textendash \\[4pt]
+  Mengedit barang                  & \cmark & \cmark      & \textendash \\[4pt]
+  Menghapus barang                 & \cmark & \cmark      & \textendash \\[4pt]
+  Impor barang dari Excel          & \cmark & \cmark      & \textendash \\[4pt]
+  Ekspor barang ke Excel           & \cmark & \cmark      & \textendash \\[4pt]
+  Melihat katalog barang           & \cmark & \cmark      & \cmark \\[4pt]
+
+  % ── Manajemen Peminjaman ──
+  \rowcolor{lightblue}\multicolumn{4}{l}{\textbf{C. Manajemen Peminjaman}} \\[4pt]
+  Mengajukan peminjaman            & \cmark$^\ddagger$ & \cmark$^\ddagger$ & \cmark \\[4pt]
+  Menyetujui peminjaman            & \cmark & \cmark      & \textendash \\[4pt]
+  Menolak peminjaman               & \cmark & \cmark      & \textendash \\[4pt]
+  Menandoveran barang              & \cmark & \cmark      & \textendash \\[4pt]
+  Memproses pengembalian           & \cmark & \cmark      & \textendash \\[4pt]
+  Membuat peminjaman atas nama     & \cmark & \cmark      & \textendash \\[4pt]
+  Melihat seluruh peminjaman       & \cmark & \cmark      & \textendash \\[4pt]
+  Melihat riwayat pribadi          & \cmark & \cmark      & \cmark \\[4pt]
+  Memindai QR Code                 & \cmark & \cmark      & \textendash \\[4pt]
+
+  % ── Manajemen Satker ──
+  \rowcolor{lightblue}\multicolumn{4}{l}{\textbf{D. Manajemen Satker}} \\[4pt]
+  CRUD Satker                      & \cmark & \textendash & \textendash \\[4pt]
+
+  % ── Log & Audit ──
+  \rowcolor{lightblue}\multicolumn{4}{l}{\textbf{E. Log \& Audit}} \\[4pt]
+  Melihat log audit                & \cmark & \cmark      & \textendash \\[4pt]
+  Melihat riwayat impor             & \cmark & \cmark      & \textendash \\[4pt]
+
+  % ── Notifikasi ──
+  \rowcolor{lightblue}\multicolumn{4}{l}{\textbf{F. Notifikasi}} \\[4pt]
+  Menerima notifikasi              & \cmark & \cmark      & \cmark \\[4pt]
+  Mengelola notifikasi             & \cmark & \cmark      & \cmark \\[4pt]
+
+  % ── Lingkup Akses ──
+  \rowcolor{lightblue}\multicolumn{4}{l}{\textbf{G. Lingkup Akses}} \\[4pt]
+  Akses lintas Satker              & \cmark & \textendash & \textendash \\[4pt]
+  Akses terbatas pada Satker tugas& \textendash & \cmark & \textendash \\[4pt]
+  Akses data pribadi saja          & \textendash & \textendash & \cmark \\[4pt]
+\end{longtable}
+
+\vspace{6pt}
+\small
+\noindent\textbf{Keterangan}:
+\begin{itemize}
+  \item[\cmark] \ Akses penuh
+  \item[\textendash] \ Tidak memiliki akses
+  \item[$^\dagger$] Super Admin dikecualikan dari operasi perubahan
+        kata sandi diri sendiri karena alasan keamanan.
+  \item[$^\ddagger$] Super Admin dan Admin yang memiliki peran
+        {\rolePeminjam} juga dapat mengajukan peminjaman.
+\end{itemize}
+\normalsize
+
+\section{Cakupan Akses Berdasarkan Satker}
+\index{satker scoping}
+\index{satuan kerja}
+\index{satker access}
+Sistem menggunakan konsep {\it Satker} (Satuan Kerja) sebagai unit
+pembatasan akses data:
+
+\begin{itemize}
+  \item {\roleSuperAdmin} memiliki akses tanpa batasan Satker ({\it
+        cross-Satker}). Semua data dari seluruh Satker dapat dilihat
+        dan dikelola.
+  \item {\roleAdmin} hanya dapat mengakses dan mengelola data yang
+        terkait dengan Satker yang tercantum dalam kolom
+        \texttt{satkerAkses} pada akunnya. Data Satker lain tidak
+        dapat dilihat.
+  \item {\rolePeminjam} hanya dapat melihat dan berinteraksi dengan
+        data barang dan transaksi yang berasal dari Satker yang sama
+        dengan profilnya.
+\end{itemize}
+
+% ─── Chapter 4: Fitur Super Admin ───────────────────────────────────────────
+\chapter{Fitur dan Halaman --- Super Admin}
+
+\index{super admin}
+\index{halaman super admin}
+\verb|/super-admin| --- Lingkup akses: seluruh Satker (tanpa batasan).
+
+\section{Dashboard}
+\index{dashboard super admin}
+\textbf{Rute}: \texttt{/super-admin/dashboard}
+
+Halaman utama yang menyajikan statistik lintas Satker, meliputi:
+\begin{itemize}
+  \item Total jumlah barang keseluruhan;
+  \item Rincian stok barang berdasarkan kondisi (Baik, Rusak Ringan,
+        Rusak Berat);
+  \item Jumlah peminjaman berdasarkan status (Menunggu, Disetujui,
+        Aktif/Dipinjam, Terlambat, Selesai);
+  \item Perincian statistik per-Satker; dan
+  \item Visualisasi data dalam bentuk grafik dan diagram.
+\end{itemize}
+
+\section{Manajemen Admin}
+\index{manajemen admin}
+\textbf{Rute}: \texttt{/super-admin/admin}
+
+Halaman untuk mengelola seluruh akun Administrator, dengan kemampuan:
+\begin{itemize}
+  \item {\bfseries Membuat} akun admin baru;
+  \item {\bfseries Mengaktifkan/Menonaktifkan} akun;
+  \item {\bfseries Mengubah peran} (menaikkan ke Super Admin atau
+        menurunkan ke Peminjam);
+  \item {\bfseries Menetapkan akses Satker} untuk setiap admin,
+        sehingga admin hanya dapat mengelola data di Satker
+        yang telah ditentukan; dan
+  \item {\bfseries Mereset kata sandi} akun admin.
+\end{itemize}
+
+\section{Katalog Barang (Lintas Satker)}
+\index{katalog barang super admin}
+\textbf{Rute}: \texttt{/super-admin/barang}
+
+Menampilkan seluruh data barang BMN dari semua Satker. Super Admin
+dapat melihat, mencari, dan menyaring barang berdasarkan:
+kode Satker, kategori barang, kondisi, lokasi penyimpanan,
+dan kata kunci pencarian. Navigasi detail barang tersedia di
+\texttt{/super-admin/barang/[id]}.
+
+\section{Manajemen Pengguna (Peminjam)}
+\index{manajemen pengguna}
+\index{peminjam}
+\textbf{Rute}: \texttt{/super-admin/pengguna}
+
+Mengelola seluruh akun Peminjam di seluruh Satker, meliputi:
+\begin{itemize}
+  \item Melihat daftar pengguna dan informasi profil;
+  \item Menonaktifkan atau mengaktifkan akun;
+  \item Mereset kata sandi; dan
+  \item Mengelola peran pengguna.
+\end{itemize}
+
+\section{Daftar Peminjaman (Lintas Satker)}
+\index{daftar peminjaman}
+\textbf{Rute}: \texttt{/super-admin/peminjaman}
+
+Tabel lengkap seluruh transaksi peminjaman dari semua Satker
+dengan fitur:
+\begin{itemize}
+  \item Penyaringan ({\it filter}) berdasarkan status peminjaman;
+  \item Pencarian berdasarkan kode transaksi, nama peminjam,
+        atau nama barang;
+  \item Navigasi ke halaman detail masing-masing transaksi; dan
+  \item Tindakan massal ({\it bulk actions}) seperti persetujuan
+      secara massal, penandoveran secara massal, dan pengembalian secara massal.
+\end{itemize}
+
+Detail transaksi dapat dilihat di
+\texttt{/super-admin/peminjaman/[id]}.
+
+\section{Manajemen Satker}
+\index{manajemen satker}
+\index{satuan kerja}
+\textbf{Rute}: \texttt{/super-admin/satker}
+
+Laman untuk melakukan operasi CRUD ({\it Create, Read, Update, Delete})
+terhadap entitas Satker (Satuan Kerja), meliputi:
+\begin{itemize}
+  \item {\bfseries Membuat} Satker baru dengan mengisi kode unik,
+        nama lengkap, nama singkat, dan status aktif;
+  \item {\bfseries Mengubah} informasi Satker;
+  \item {\bfseries Mengaktifkan/Menonaktifkan} Satker; dan
+  \item {\bfseries Menghapus} Satker yang tidak diperlukan
+        (dengan validasi tidak ada data terkait).
+\end{itemize}
+
+\section{Log Audit}
+\index{log audit}
+\index{audit trail}
+\textbf{Rute}: \texttt{/super-admin/logs}
+
+Halaman untuk melihat seluruh riwayat aktivitas pengguna dalam sistem,
+yang mencakup:
+\begin{itemize}
+  \item {\bfseries Aktivitas yang dicatat}: login/logout, pembuatan
+        data, perubahan data (dengan snapshot data lama dan baru),
+        penghapusan data, perubahan status peminjaman, impor data,
+        dan lain-lain;
+  \item {\bfseries Informasi chaque log}: timestamp kejadian, alamat
+        IP sumber, {\it user agent} browser, dan pengguna yang
+        melakukan tindakan;
+  \item {\bfseries Penyaringan}: berdasarkan tipe aktivitas, entitas
+        yang terlibat, rentang tanggal, dan pengguna tertentu; dan
+  \item {\bfseries Statistik}: ringkasan jumlah aktivitas per kategori.
+\end{itemize}
+
+Data log audit disimpan dengan pendekatan {\it snapshot-free join},
+yaitu seluruh informasi yang diperlukan dicatat langsung pada saat
+kejadian ({\it denormalized}) untuk menjamin akurasi historis
+meskipun data utama berubah atau dihapus.
+
+% ─── Chapter 5: Fitur Admin ──────────────────────────────────────────────────
+\chapter{Fitur dan Halaman --- Administrator}
+
+\index{admin}
+\index{halaman admin}
+\index{manajemen barang}
+\verb|/admin| --- Lingkup akses: terbatas pada Satker yang diberikan.
+
+\section{Dashboard}
+\index{dashboard admin}
+\textbf{Rute}: \texttt{/admin/dashboard}
+
+Halaman utama Administrator yang menampilkan ringkasan statistik
+berbasis Satker yang dikelolanya:
+\begin{itemize}
+  \item Jumlah total barang dan rincian stok;
+  \item Jumlah pengajuan yang menunggu persetujuan;
+  \item Jumlah peminjaman aktif;
+  \item Jumlah barang yang terlambat dikembalikan;
+  \item Lima transaksi terakhir; dan
+  \item Visualisasi data dalam bentuk grafik.
+\end{itemize}
+
+Navigasi ke detail kategori spesifik tersedia di
+\texttt{/admin/dashboard/kategori/[kategori]}, dengan opsi
+kategori: {\it barang}, {\it pengajuan\_menunggu},
+{\it peminjaman\_aktif}, {\it barang\_terlambat},
+dan {\it peminjam}.
+
+\section{Katalog Barang}
+\index{katalog barang admin}
+\textbf{Rute}: \texttt{/admin/barang}
+
+Menampilkan daftar barang BMN yang dimiliki oleh Satker Administrator.
+Fitur pencarian dan penyaringan tersedia berdasarkan kategori,
+kondisi, lokasi penyimpanan, dan kata kunci.
+
+\subsection{Tambah Barang Tunggal}
+\index{tambah barang}
+\textbf{Rute}: \texttt{/admin/barang/tambah}
+
+Formulir untuk menambahkan satu item barang baru secara manual
+dengan mengisi seluruh field yang diperlukan.
+
+\subsection{Tambah Barang Massal (Bulk)}
+\index{tambah barang massal}
+\index{bulk insert}
+\textbf{Rute}: \texttt{/admin/barang/bulk}
+
+Formulir untuk menambahkan beberapa barang sekaligus secara massal.
+Sistem secara otomatis menghasilkan nomor NUP (Nomor Urut Barang)
+yang berurutan sesuai dengan jumlah yang ditentukan oleh pengguna.
+
+\subsection{Detail Barang}
+\index{detail barang}
+\textbf{Rute}: \texttt{/admin/barang/[id]}
+
+Halaman informasi lengkap satu item barang yang juga menyediakan
+fungsi {\it Edit} untuk memperbarui data barang.
+
+\section{Daftar Peminjaman}
+\index{daftar peminjaman admin}
+\index{persetujuan}
+\index{pengembalian}
+\textbf{Rute}: \texttt{/admin/peminjaman}
+
+Tabel seluruh transaksi peminjaman di lingkup Satker Administrator
+dengan fitur {\it filter} berdasarkan status. Tindakan yang tersedia
+meliputi:
+\begin{itemize}
+  \item {\bfseries Persetujuan} pengajuan (\texttt{MENUNGGU} $\rightarrow$
+        \texttt{DISETUJUI});
+  \item {\bfseries Penolakan} pengajuan (\texttt{MENUNGGU} $\rightarrow$
+        \texttt{DITOLAK}) dengan kolom catatan;
+  \item {\bfseries Penandoveran} barang secara fisik (\texttt{DISETUJUI}
+        $\rightarrow$ \texttt{DIPINJAM});
+  \item {\bfseries Konfirmasi pengembalian} (\texttt{DIPINJAM}/
+        \texttt{TERLAMBAT} $\rightarrow$ \texttt{DIKEMBALIKAN});
+  \item {\bfseries Pembuatan peminjaman} atas nama borrower tertentu
+        (\texttt{/admin/peminjaman/buat}); dan
+  \item {\bfseries Tindakan massal} ({\it bulk approve, handover, return,
+        delete}) untuk efisiensi operasional.
+\end{itemize}
+
+Detail transaksi dapat dilihat di
+\texttt{/admin/peminjaman/[id]}.
+
+\section{Pemindaian QR Code}
+\index{qr code scanner}
+\index{scan qr}
+\textbf{Rute}: \texttt{/admin/scan}
+
+Halaman khusus untuk Administrator memindai kode QR pada dokumen
+Surat Pernyataan Peminjaman borrower. Pemindaian dapat dilakukan
+melalui:
+\begin{itemize}
+  \item {\bfseries Kamera} perangkat (pemindaian {\it real-time}
+        menggunakan pustaka {\it html5-qrcode}); atau
+  \item {\bfseries Masukan manual} kode QR jika kamera tidak tersedia.
+\end{itemize}
+
+Hasil pemindaian akan langsung menavigasi Administrator ke halaman
+detail transaksi terkait untuk mempercepat proses verifikasi dan
+pengembalian.
+
+\section{Riwayat Impor}
+\index{riwayat impor}
+\index{import log}
+\textbf{Rute}: \texttt{/admin/import-log}
+
+Halaman yang menampilkan daftar seluruh riwayat operasi impor data
+Excel yang pernah dilakukan oleh Administrator di Satkernya,
+disertai statistik rinci yang mencakup:
+\begin{itemize}
+  \item Jumlah data yang berhasil ditambahkan;
+  \item Jumlah data yang diperbarui;
+  \item Jumlah data yang dilewati ({\it skipped}); dan
+  \item Jumlah data yang gagal beserta alasan kegagalan per item.
+\end{itemize}
+
+% ─── Chapter 6: Fitur Peminjam ──────────────────────────────────────────────
+\chapter{Fitur dan Halaman --- Peminjam}
+
+\index{peminjam}
+\index{halaman peminjam}
+\index{borrower}
+\verb|/peminjam| --- Lingkup akses: data pribadi dan transaksi sendiri.
+
+\section{Dashboard}
+\index{dashboard peminjam}
+\textbf{Rute}: \texttt{/peminjam/dashboard}
+
+Halaman utama Borrower yang menyajikan ringkasan pribadi:
+\begin{itemize}
+  \item Total jumlah pengajuan peminjaman;
+  \item Jumlah peminjaman aktif ({\it on loan});
+  \item Jumlah peminjaman yang telah selesai;
+  \item Daftar peminjaman aktif terbaru; dan
+  \item Informasi penting terkait batas maksimal peminjaman aktif.
+\end{itemize}
+
+\section{Katalog Barang}
+\index{katalog barang peminjam}
+\index{browse catalog}
+\textbf{Rute}: \texttt{/peminjam/katalog}
+
+Halaman penjelajahan ({\it browse}) seluruh barang BMN yang tersedia
+untuk Satker borrower, dengan fitur:
+\begin{itemize}
+  \item Pencarian berdasarkan nama, merk, atau tipe barang;
+  \item Penyaringan berdasarkan kategori barang; dan
+  \item Navigasi ke halaman detail barang.
+\end{itemize}
+
+Detail barang dapat dilihat di \texttt{/peminjam/katalog/[id]},
+termasuk informasi ketersediaan stok terkini.
+
+\section{Keranjang}
+\index{keranjang}
+\index{cart}
+\index{shopping cart}
+\textbf{Rute}: \texttt{/peminjam/keranjang}
+
+Sistem keranjang belanja ({\it shopping cart}) yang memungkinkan
+borrower memilih beberapa barang sebelum mengajukan peminjaman.
+Fitur utama meliputi:
+\begin{itemize}
+  \item {\bfseries Penambahan/penghapusan} barang dari keranjang;
+  \item {\bfseries Penyesuaian jumlah} barang yang ingin dipinjam;
+  \item {\bfseries {\it Real-time stock polling}}: sistem secara berkala
+        memperbarui informasi stok untuk mencegah pemesanan ganda
+        ({\it double-booking}) selama sesi keranjang berlangsung; dan
+  \item {\bfseries Validasi otomatis} --- barang yang stoknya tidak
+        tersedia akan ditandai atau dihapus secara otomatis dari
+        keranjang.
+\end{itemize}
+
+\section{Pengajuan Peminjaman}
+\index{pengajuan peminjaman}
+\index{submit borrowing request}
+\index{draft mode}
+\index{mode konsep}
+\textbf{Rute}: \texttt{/peminjam/ajukan}
+
+Formulir utama untuk mengajukan permintaan peminjaman. Proses ini
+mendukung dua mode:
+
+\begin{enumerate}
+  \item {\bfseries Mode Konsep ({\it Draft Mode})}: Borrower dapat
+        menyimpan pengajuan {\it tanpa} mengunggah Surat Pernyataan
+        yang sudah ditandatangani. Item barang dikunci
+        (tidak bisa dipinjam oleh pengguna lain) namun belum ada
+        pengurangan stok. Pengajuan konsep dapat dilanjutkan dan
+        diselesaikan kapan saja sebelum batas waktu berlaku.
+
+  \item {\bfseries Mode Lengkap}: Borrower melengkapi seluruh
+        informasi pengajuan termasuk:
+        \begin{itemize}
+          \item tanggal rencana pinjam dan tanggal rencana kembali;
+          \item alasan/alasan peminjaman;
+          \item pangkat dan golongan; dan
+          \item {\it upload} Surat Pernyataan yang telah dicetak,
+                ditandatangani, distempel, dan diunggah
+                ({\it scan}/\it{foto} PDF).
+        \end{itemize}
+        Pada mode ini, status pengajuan berubah menjadi
+        \texttt{MENUNGGU} dan notifikasi dikirimkan kepada seluruh
+        Administrator terkait.
+\end{enumerate}
+
+Sistem membatasi setiap borrower maksimal 3 (tiga) peminjaman aktif
+({\it maximum 3 active borrowings}) pada satu waktu. Batas ini
+dapat dikonfigurasi melalui variabel lingkungan
+\texttt{MAX\_PEMINJAMAN\_AKTIF}.
+
+\section{Riwayat Peminjaman}
+\index{riwayat peminjaman}
+\index{borrowing history}
+\textbf{Rute}: \texttt{/peminjam/riwayat}
+
+Daftar seluruh riwayat pengajuan dan peminjaman borrower secara
+pribadi, dengan fitur {\it filter} berdasarkan status:
+{\it Menunggu}, {\it Disetujui}, {\it Dipinjam}, {\it Terlambat},
+dan {\it Selesai}.
+
+Detail setiap transaksi dapat dilihat di
+\texttt{/peminjam/riwayat/[id]}, yang menyediakan:
+\begin{itemize}
+  \item {\bfseries Timeline} lengkap status pengajuan;
+  \item {\bfseries Unduhan Surat Pernyataan} Peminjaman (PDF);
+  \item {\bfseries Unduhan Surat Pengembalian} (jika sudah dikembalikan);
+  \item {\bfseries Form ulasan/review} barang setelah pengembalian
+        (\texttt{/peminjam/riwayat/[id]/review}).
+\end{itemize}
+
+% ─── Chapter 7: Fitur Bersama ───────────────────────────────────────────────
+\chapter{Halaman dan Fitur Bersama}
+
+\index{halaman bersama}
+\index{shared pages}
+\index{autentikasi}
+Seluruh halaman di bawah ini dapat diakses oleh semua peran yang
+telah {\it login} ke dalam sistem.
+
+\section{Halaman Publik}
+\index{halaman publik}
+
+\subsection{Landing Page}
+\index{landing page}
+\textbf{Rute}: \texttt{/}
+
+Halaman muka ({\it hero page}) yang menyambut pengunjung dengan
+informasi singkat sistem dan tombol navigasi ke halaman login
+maupun registrasi.
+
+\subsection{Login}
+\index{halaman login}
+\textbf{Rute}: \texttt{/login}
+
+Halaman autentikasi pengguna. Pengguna dengan {\it multi-role}
+akan melihat pilihan peran sebelum masuk ke sistem. {\it Flow}
+login meliputi:
+\begin{enumerate}
+  \item Masukan email dan kata sandi;
+  \item {\it CSRF token} divalidasi;
+  \item JWT Access Token (berlaku 60 menit) dan Refresh Token
+        (via httpOnly cookie, berlaku 7 hari) diterbitkan;
+  \item {\it Token versioning} diperbarui untuk menginvalidasi
+        sesi sebelumnya secara otomatis; dan
+  \item Pengalihan ke halaman sesuai peran.
+\end{enumerate}
+
+\subsection{Registrasi}
+\index{halaman registrasi}
+\textbf{Rute}: \texttt{/register}
+
+Formulir pendaftaran untuk pengguna baru. Registrasi publik
+secara {\it default} menghasilkan akun dengan peran
+{\rolePeminjam} saja. Admin dan Super Admin harus dibuatkan
+akunnya oleh administrator yang berwenang melalui halaman
+manajemen pengguna masing-masing.
+
+\subsection{Panduan}
+\index{panduan}
+\index{user guide}
+\textbf{Rute}: \texttt{/panduan}
+
+Halaman bantuan berisi panduan penggunaan sistem bagi pengguna
+akhir (end-user), yang menjelaskan langkah-langkah pengajuan
+peminjaman hingga pengembalian barang secara ringkas dan mudah
+dipahami.
+
+\section{Halaman Pengaturan}
+\index{pengaturan}
+\index{settings}
+\index{profil}
+\textbf{Rute}: \texttt{/pengaturan}
+
+Halaman pengelolaan profil pengguna yang dapat diakses oleh
+seluruh peran. Informasi yang dapat diubah meliputi:
+\begin{itemize}
+  \item Nama lengkap;
+  \item Alamat email;
+  \item NIP (Nomor Induk Pegawai);
+  \item Jabatan;
+  \item Unit Kerja;
+  \item Eselon II, III, dan IV; dan
+  \item Tipe laptop (apabila diperlukan).
+\end{itemize}
+
+Catatan: {\roleSuperAdmin} dikecualikan dari operasi perubahan
+kata sandi sendiri karena alasan keamanan --- perubahan kata
+sandi Super Admin harus dilakukan melalui mekanisme yang
+terpisah dan lebih ketat.
+
+\section{Halaman Notifikasi}
+\index{notifikasi}
+\index{notifications}
+\textbf{Rute}: \texttt{/notifikasi}
+
+Pusat pemberitahuan dalam aplikasi yang menyimpan seluruh notifikasi
+pengguna. Setiap notifikasi memiliki:
+\begin{itemize}
+  \item {\bfseries Judul} dan {\bfseries Isi pesan};
+  \item {\bfseries Prioritas}: Tinggi, Sedang, atau Rendah;
+  \item {\bfseries Status}: Sudah dibaca atau belum;
+  \item {\bfseries Tautan referensi} ke halaman terkait.
+\end{itemize}
+
+Pengguna dapat menandai notifikasi sebagai sudah dibaca,
+menghapus notifikasi, dan mengakses halaman terkait dengan
+satu klik.
+
+\section{Halaman Bantuan}
+\index{bantuan}
+\index{help}
+\textbf{Rute}: \texttt{/bantuan}
+
+Halaman bantuan umum ({\it help center}) yang memuat:
+\begin{itemize}
+  \item Pertanyaan yang sering diajukan ({\it FAQ});
+  \item Penjelasan alur kerja sistem; dan
+  \item Informasi kontak teknis untuk pelaporan masalah.
+\end{itemize}
+
+% ─── Chapter 8: Alur Kerja Peminjaman ────────────────────────────────────────
+\chapter{Alur Kerja Peminjaman}
+
+\index{alur kerja}
+\index{borrowing workflow}
+\index{siklus hidup peminjaman}
+\index{status peminjaman}
+
+\section{Daftar Status Peminjaman}
+\index{status peminjaman}
+
+\begin{longtable}[!htbp]{p{3.5cm} p{4cm} p{6cm}}
+  \caption{Daftar Status Peminjaman}
+  \label{tab:status-peminjaman} \\
+
+  \toprule
+  \textbf{Status} & \textbf{Alias} & \textbf{Deskripsi} \\
+  \midrule
+  \endfirsthead
+
+  \caption[]{Daftar Status Peminjaman (sambungan)} \\
+  \toprule
+  \textbf{Status} & \textbf{Alias} & \textbf{Deskripsi} \\
+  \midrule
+  \endhead
+
+  \bottomrule
+  \endfoot
+
+  DRAFT           & Konsep      & Pengajuan disimpan tanpa surat
+                   ditandatangani. Barang dikunci namun stok belum
+                   dikurangi. Dapat dilanjutkan kapan saja. \\[4pt]
+  MENUNGGU        & Menunggu    & Pengajuan lengkap telah disubmit.
+                   Menunggu persetujuan Administrator. \\[4pt]
+  DISETUJUI       & Disetujui   & Administrator menyetujui pengajuan.
+                   Stok dikurangi, QR Code dibangkitkan. \\[4pt]
+  DITOLAK         & Ditolak     & Administrator menolak pengajuan
+                   dengan alasan tertentu. \\[4pt]
+  DIPINJAM        & Dipinjam    & Barang secara fisik telah handed over
+                   kepada borrower. \\[4pt]
+  TERLAMBAT       & Terlambat   & Tanggal kembali rencana telah melewati
+                   batas tanpa pengembalian. \\[4pt]
+  DIKEMBALIKAN   & Selesai     & Barang telah dikembalikan dan
+                   diverifikasi oleh Administrator. \\
+\end{longtable}
+
+\section{Diagram Alur Status}
+\index{diagram alur}
+\index{state diagram}
+
+Diagram transisi status peminjaman digambarkan pada
+Gambar~\ref{fig:status-flow}.
+
+\begin{figure}[!htbp]
+  \centering
+  % Since we can't draw actual graphics, we'll describe the flow textually
+  % and create a simple text-based representation
+  \IfFileExists{./assets/status-flow.png}
+    {\includegraphics[width=0.85\textwidth]{./assets/status-flow.png}}
+    {%
+      \begin{tabularx}{0.85\textwidth}{C C C}
+        \toprule
+        \multicolumn{3}{c}{\textbf{Draft}} \\[8pt]
+        \downarrow{\small submit} &
+        \multicolumn{2}{c}{} \\[4pt]
+        \multicolumn{3}{c}{\textbf{Menunggu}} \\[8pt]
+        \begin{tabular}{c}
+          approve \\ \hline
+          \downarrow \\ reject \\ \end{tabular} &
+        \begin{tabular}{c}
+          \rightarrow \\ reject \\ \end{tabular} \\[14pt]
+        \textbf{Disetujui} &
+        \textbf{Ditolak} &
+        \\[8pt]
+        handover \downarrow &
+        \multicolumn{2}{c}{} \\[4pt]
+        \multicolumn{2}{c}{\textbf{Dipinjam}} \\[8pt]
+        return \downarrow &
+        late \downarrow \\[4pt]
+        \textbf{Dikembalikan} &
+        \textbf{Terlambat} \\[8pt]
+      \end{tabularx}
+    }
+  \caption{Diagram Alur Transisi Status Peminjaman}
+  \label{fig:status-flow}
+\end{figure}
+
+\section{Penjelasan Tahapan Proses}
+\index{tahapan proses}
+\index{process stages}
+
+\subsection{Tahap 1: Konsep (Draft)}
+\index{draft mode}
+Borrower menyusun pengajuan peminjaman di halaman
+\texttt{/peminjam/ajukan}. Pada tahap ini:
+\begin{itemize}
+  \item Informasi barang, tanggal rencana, alasan, dan data
+        lainnya dapat disimpan tanpa mengunggah Surat Pernyataan;
+  \item Barang yang ditambahkan ke pengajuan {\it dikunci}
+        ({\it soft lock}) agar tidak bisa diajukan oleh borrower
+        lain. Namun, {\it stock count} belum dikurangi;
+  \item Pengajuan konsep dapat diedit, dilengkapi, atau
+        dibatalkan kapan saja.
+\end{itemize}
+
+\subsection{Tahap 2: Pengajuan (Menunggu)}
+\index{menunggu persetujuan}
+Setelah borrower melengkapi seluruh informasi dan mengunggah
+Surat Pernyataan yang telah ditandatangani, status berubah
+menjadi \texttt{MENUNGGU}. Sistem secara otomatis:
+\begin{itemize}
+  \item Mengirim {\bfseries notifikasi} kepada seluruh Administrator
+        di Satker terkait;
+  \item {\bfseries Mematikan tombol batal} untuk pengajuan
+        pada sisi borrower (pengajuan tidak bisa dibatalkan
+        lagi setelah disubmit).
+\end{itemize}
+
+\subsection{Tahap 3: Persetujuan (Disetujui / Ditolak)}
+\index{persetujuan}
+\index{penolakan}
+Administrator di Satker terkait meninjau pengajuan. Terdapat
+dua kemungkinan hasil:
+
+\begin{itemize}
+  \item {\bfseries Disetujui} (\texttt{MENUNGGU} $\rightarrow$
+        \texttt{DISETUJUI}):
+        \begin{itemize}
+          \item Stok barang dikurangi secara atomik;
+          \item {\it QR Code} dibangkitkan dalam warna biru tua
+                (\#1e3a5f) pada latar putih dan diunggah ke Vercel Blob;
+          \item Nomor Surat Pernyataan dibuat secara berurutan
+                dengan format \texttt{PRN-<nomor>/BMN/PP.1/<tahun>};
+          \item Notifikasi dikirimkan kepada borrower.
+        \end{itemize}
+  \item {\bfseries Ditolak} (\texttt{MENUNGGU} $\rightarrow$
+        \texttt{DITOLAK}):
+        \begin{itemize}
+          \item Kunci pada barang dilepaskan (stok tidak berubah);
+          \item Catatan penolakan dari Administrator dicatat;
+          \item Notifikasi penolakan dikirimkan kepada borrower.
+        \end{itemize}
+\end{itemize}
+
+\subsection{Tahap 4: Penandoveran (Dipinjam)}
+\index{penandoveran}
+\index{handover}
+Borrower yang pengajuannya disetujui mengambil barang secara
+fisik di lokasi penyimpanan. Administrator mengonfirmasi
+penandoveran (\texttt{DISETUJUI} $\rightarrow$ \texttt{DIPINJAM}).
+
+\subsection{Tahap 5: Pengembalian}
+\index{pengembalian}
+\index{return process}
+
+Proses pengembalian terdiri dari dua langkah:
+
+\begin{enumerate}
+  \item {\bfseries Borrower meminta pengembalian}: Borrower
+        mengunggah Surat Pengembalian yang telah ditandatangani
+        melalui halaman riwayat (\texttt{/peminjam/riwayat/[id]}).
+        Notifikasi dikirim kepada Administrator.
+
+  \item {\bfseries Administrator mengonfirmasi pengembalian}:
+        (\texttt{DIPINJAM}/\texttt{TERLAMBAT} $\rightarrow$
+        \texttt{DIKEMBALIKAN}):
+        \begin{itemize}
+          \item Stok barang dipulihkan;
+          \item {\it Catatan pengembalian} dicatat oleh Administrator;
+          \item Surat Pengembalian dengan nomor urut, perangko
+                digital, dan tanda tangan digital Administrator
+                dibangkitkan; dan
+          \item Borrower dapat memberikan {\it review} untuk
+                barang yang dikembalikan
+                (\texttt{/peminjam/riwayat/[id]/review}).
+        \end{itemize}
+\end{enumerate}
+
+\section{Pencegahan Pemesanan Ganda}
+\index{double-booking prevention}
+\index{pemesanan ganda}
+\index{stock lock}
+
+Sistem menerapkan mekanisme {\it pessimistic locking} untuk
+mencegah {\it double-booking}:
+
+\begin{itemize}
+  \item Barang yang berada dalam status \texttt{DRAFT},
+        \texttt{MENUNGGU}, \texttt{DISETUJUI}, \texttt{DIPINJAM},
+        atau \texttt{TERLAMBAT} tidak dapat disertakan dalam
+        pengajuan baru;
+  \item {\it Real-time stock polling} pada halaman keranjang
+        memastikan borrower selalu melihat informasi stok terkini;
+  \item Setiap operasi pengurangan dan pemulihan stok dilakukan
+        secara {\it atomik} dalam transaksi basis data
+        menggunakan Prisma ORM.
+\end{itemize}
+
+\section{Deteksi Terlambat Otomatis}
+\index{detection otomatis}
+\index{auto late detection}
+\index{terlambat}
+\index{overdue}
+
+Sistem secara otomatis menandai peminjaman sebagai \texttt{TERLAMBAT}
+ketika tanggal kembali rencana (\texttt{tanggalKembaliRencana})
+telah dilewati. Deteksi ini dilakukan secara {\it throttled}
+(maksimal sekali per menit per {\it dashboard load}) untuk
+menghindari {\it performance overhead} pada basis data.
+
+\section{Batas Maksimum Peminjaman Aktif}
+\index{maksimum peminjaman aktif}
+\index{max active borrowings}
+\index{active loan limit}
+
+Setiap borrower dibatasi maksimal 3 (tiga) peminjaman aktif
+({\it active borrowings}) secara bersamaan. Batas ini
+dapat dikonfigurasi melalui variabel lingkungan
+\texttt{MAX\_PEMINJAMAN\_AKTIF}. Apabila batas telah tercapai,
+borrower tidak dapat mengajukan peminjaman baru sebelum ada
+yang ditandai selesai.
+
+% ─── Chapter 9: Entitas Basis Data ─────────────────────────────────────────
+\chapter{Entitas Basis Data}
+
+\index{basis data}
+\index{database entities}
+\index{schema}
+\index{prisma}
+
+Sistem menggunakan Prisma ORM dengan basis data PostgreSQL.
+Berikut adalah entitas utama yang menyusun skema basis data.
+
+\section{ERD Singkat}
+\index{ERD}
+\index{entity relationship diagram}
+
+Model hubungan antar-entitas utama digambarkan pada
+Gambar~\ref{fig:erd}.
+
+\begin{figure}[htbp]
+  \centering
+  \IfFileExists{./assets/erd.png}
+    {\includegraphics[width=0.9\textwidth]{./assets/erd.png}}
+    {%
+      \begin{tabular}{|p{2.5cm}|p{2.5cm}|p{2.5cm}|p{2.5cm}|}
+        \hline
+        \textbf{Satker} & \textbf{User} & \textbf{Barang} & \textbf{Peminjaman} \\
+        \hline
+        kode (PK) & id (PK) & kodeBarang (PK) & id (PK) \\
+        nama & nip & nama & kodeTransaksi \\
+        singkat & email & merk & userId (FK) \\
+        aktif & roles & jenis & status \\
+        & satkerAkses & jumlahTotal & tanggalPengajuan \\
+        & & jumlahTersedia & tanggalPinjamRencana \\
+        & & kondisi & disetujuiOleh (FK) \\
+        & & kodeSatker (FK) & dikembalikanOleh (FK) \\
+        \hline
+        \multicolumn{4}{|c|}{\textbf{DetailPeminjaman}} \\
+        \hline
+        \multicolumn{4}{|c|}{id, peminjamanId, barangKode, jumlahPinjam, statusItem} \\
+        \hline
+        \textbf{Notifikasi} & \textbf{AuditLog} & \textbf{ImportLog} & \textbf{NomorSuratCounter} \\
+        \hline
+        id, tipe, judul, pesan, prioritas, isBaca, referenceId &
+        id, aksi, entitas, entitasId, dataLama, dataBaru, IP, userAgent, timestamp &
+        id, jenis, statistik, adminId &
+        jenis, tahun, counter \\
+        \hline
+      \end{tabular}
+    }
+  \caption{Hubungan Antar-Entitas Utama}
+  \label{fig:erd}
+\end{figure}
+
+\section{Deskripsi Entitas}
+\index{deskripsi entitas}
+
+\subsection{Satker (Satuan Kerja)}
+\index{entitas!Satker}
+\index{satuan kerja}
+\index{cost center}
+
+\begin{longtable}[!htbp]{p{3.5cm} p{9cm}}
+  \caption{Entitas Satker}
+  \label{tab:entitas-satker} \\
+  \toprule
+  \textbf{Atribut} & \textbf{Deskripsi} \\
+  \midrule
+  \endfirsthead
+  \caption[]{Entitas Satker (sambungan)} \\
+  \toprule
+  \textbf{Atribut} & \textbf{Deskripsi} \\
+  \midrule
+  \endhead
+  \bottomrule
+  \endfoot
+
+  \texttt{kode}    & Kode unik Satker (Primary Key). \\
+  \texttt{nama}    & Nama lengkap Satuan Kerja. \\
+  \texttt{singkat}& Nama singkat/gelar Satker. \\
+  \texttt{aktif}  & Status aktif Satker (boolean).\\
+\end{longtable}
+
+\subsection{User (Pengguna)}
+\index{entitas!User}
+\index{pengguna}
+\index{user account}
+
+\begin{longtable}[!htbp]{p{3.5cm} p{9cm}}
+  \caption{Entitas User}
+  \label{tab:entitas-user} \\
+  \toprule
+  \textbf{Atribut} & \textbf{Deskripsi} \\
+  \midrule
+  \endfirsthead
+  \caption[]{Entitas User (sambungan)} \\
+  \toprule
+  \textbf{Atribut} & \textbf{Deskripsi} \\
+  \midrule
+  \endhead
+  \bottomrule
+  \endfoot
+
+  \texttt{id}                & ID unik pengguna (Primary Key, auto-increment). \\
+  \texttt{nama}             & Nama lengkap pengguna. \\
+  \texttt{nip}              & Nomor Induk Pegawai. \\
+  \texttt{email}            & Alamat email (unik). \\
+  \texttt{password}         & Hash kata sandi (bcrypt). \\
+  \texttt{jabatan}          & Jabatan pengguna. \\
+  \texttt{unitKerja}        & Unit kerja pengguna. \\
+  \texttt{eselon2/3/4}      & Pengelompokan eselon. \\
+  \texttt{tipeLaptop}       & Tipe laptop (opsional). \\
+  \texttt{roles}            & Array enum peran: \texttt{[SUPER\_ADMIN, ADMIN, PEMINJAM]}.
+                              Satu akun dapat memiliki beberapa peran. \\
+  \texttt{sumber}           & Asal data: \texttt{MANUAL} atau \texttt{IMPORT}. \\
+  \texttt{tokenVersion}     & Nomor versi token untuk invalidasi sesi. \\
+  \texttt{retirementDate}   & Tanggal pensiun (dihitung otomatis dari NIP). \\
+  \texttt{satkerAkses}      & Array kode Satker yang boleh diakses oleh Admin.
+                              Super Admin mengabaikan batasan ini. \\
+  \texttt{lastActivityAt}   & Timestamp aktivitas terakhir. \\
+  \texttt{sessionInvalidatedAt} & Timestamp invalidasi sesi terakhir.
+                              Semua sesi dengan timestamp lebih lama
+                              dari nilai ini dianggap tidak valid. \\
+\end{longtable}
+
+\subsection{Barang}
+\index{entitas!Barang}
+\index{barang}
+\index{barang milik negara}
+\index{BMN}
+
+\begin{longtable}[!htbp]{p{3.5cm} p{9cm}}
+  \caption{Entitas Barang}
+  \label{tab:entitas-barang} \\
+  \toprule
+  \textbf{Atribut} & \textbf{Deskripsi} \\
+  \midrule
+  \endfirsthead
+  \caption[]{Entitas Barang (sambungan)} \\
+  \toprule
+  \textbf{Atribut} & \textbf{Deskripsi} \\
+  \midrule
+  \endhead
+  \bottomrule
+  \endfoot
+
+  \texttt{kodeBarang}       & Kode unik barang = \texttt{<kodeSatker>-<kodeBarangBMN>-<NUP>}.
+                              Kunci unik komposit \texttt{(kodeSatker,
+                              kodeBarangBmn, nup)}. \\
+  \texttt{nama}             & Nama barang. \\
+  \texttt{merk}             & Merk/type/model barang. \\
+  \texttt{tipe}             & Tipe/sub-tipe barang (field baru). \\
+  \texttt{jenis}            & Kategori: \texttt{ELEKTRONIK}, \texttt{FURNITUR},
+                              \texttt{KENDARAAN}, \texttt{ATK}, \texttt{LAINNYA}. \\
+  \texttt{jumlahTotal}      & Total jumlah unit barang. \\
+  \texttt{jumlahTersedia}   & Jumlah unit yang sedang tersedia (belum dipinjam). \\
+  \texttt{kondisi}          & Kondisi barang: \texttt{BAIK}, \texttt{RUSAK\_RINGAN},
+                              \texttt{RUSAK\_BERAT}. \\
+  \texttt{lokasiPenyimpanan}& Lokasi penyimpanan barang. \\
+  \texttt{deskripsi}        & Deskripsi/uraian barang. \\
+  \texttt{fotoUrl}          & URL foto barang di Vercel Blob. \\
+  \texttt{sumber}           & Asal data: \texttt{MANUAL} atau \texttt{IMPORT}. \\
+  \texttt{kodeSatker}       & Kode Satker pemilik barang (FK). \\
+  \texttt{namaSatker}       & Nama Satker (snapshot denormalisasi). \\
+  \texttt{kodeBarangBmn}    & Kode barang menurut daftar BMN. \\
+  \texttt{nup}              & Nomor Urut barang (bagian dari Primary Key). \\
+\end{longtable}
+
+\subsection{Peminjaman}
+\index{entitas!Peminjaman}
+\index{peminjaman}
+\index{loan transaction}
+
+\begin{longtable}[!htbp]{p{3.5cm} p{9cm}}
+  \caption{Entitas Peminjaman}
+  \label{tab:entitas-peminjaman} \\
+  \toprule
+  \textbf{Atribut} & \textbf{Deskripsi} \\
+  \midrule
+  \endfirsthead
+  \caption[]{Entitas Peminjaman (sambungan)} \\
+  \toprule
+  \textbf{Atribut} & \textbf{Deskripsi} \\
+  \midrule
+  \endhead
+  \bottomrule
+  \endfoot
+
+  \texttt{id}                        & ID unik transaksi (Primary Key). \\
+  \texttt{kodeTransaksi}             & Kode unik transaksi (unique). \\
+  \texttt{kodePeminjaman}            & Snapshot kode barang pada saat pengajuan. \\
+  \texttt{userId}                    & ID borrower/peminjam (FK). \\
+  \texttt{tanggalPengajuan}          & Tanggal pengajuan dibuat. \\
+  \texttt{tanggalKirim}             & Tanggal submit (upload surat). \\
+  \texttt{tanggalPinjamRencana}     & Tanggal rencana pinjam dimulai. \\
+  \texttt{tanggalKembaliRencana}    & Batas tanggal pengembalian. \\
+  \texttt{tanggalKembaliAktual}     & Tanggal pengembalian sesungguhnya. \\
+  \texttt{tanggalPermintaanKembali} & Tanggal borrower meminta pengembalian. \\
+  \texttt{status}                   & Status saat ini. \\
+  \texttt{alasanPeminjaman}         & Alasan/tujuan peminjaman. \\
+  \texttt{pangkatGolongan}          & Pangkat dan golongan borrower. \\
+  \texttt{dokumenUrl}               & URL Surat Pernyataan ( borrower). \\
+  \texttt{dokumenStempelUrl}        & URL Surat dengan perangko digital. \\
+  \texttt{dokumenPengembalianUrl}   & URL Surat Pengembalian. \\
+  \texttt{qrCodeUrl}               & URL QR Code transaksi. \\
+  \texttt{catatanAdmin}             & Catatan dari Administrator (saat penolakan/approval). \\
+  \texttt{catatanPengembalian}      & Catatan saat pengembalian. \\
+  \texttt{disetujuiOleh}            & ID Admin yang menyetujui (FK, nullable). \\
+  \texttt{dikembalikanOleh}         & ID Admin yang memproses pengembalian (FK, nullable). \\
+  \texttt{nomorSurat}               & Nomor Surat Pernyataan (\texttt{PRN-<no>/BMN/PP.1/<tahun>}). \\
+  \texttt{tahunSurat}               & Tahun surat. \\
+\end{longtable}
+
+\subsection{DetailPeminjaman}
+\index{entitas!DetailPeminjaman}
+\index{detil peminjaman}
+\index{junction table}
+
+\begin{longtable}[!htbp]{p{3.5cm} p{9cm}}
+  \caption{Entitas DetailPeminjaman}
+  \label{tab:entitas-detail-peminjaman} \\
+  \toprule
+  \textbf{Atribut} & \textbf{Deskripsi} \\
+  \midrule
+  \endfirsthead
+  \caption[]{Entitas DetailPeminjaman (sambungan)} \\
+  \toprule
+  \textbf{Atribut} & \textbf{Deskripsi} \\
+  \midrule
+  \endhead
+  \bottomrule
+  \endfoot
+
+  \texttt{id}            & ID unik (Primary Key). \\
+  \texttt{peminjamanId}  & ID transaksi peminjaman (FK, cascade delete). \\
+  \texttt{barangKode}   & Kode barang yang dipinjam (snapshot saat pengajuan). \\
+  \texttt{jumlahPinjam} & Jumlah unit yang dipinjam. \\
+  \texttt{statusItem}   & Status per-item: \texttt{DIPINJAM} atau
+                          \texttt{DIKEMBALIKAN} (untuk pengembalian sebagian). \\
+\end{longtable}
+
+\subsection{Entitas Pendukung}
+\index{entitas pendukung}
+
+\begin{longtable}[!htbp]{p{3.5cm} p{3.5cm} p{5.5cm}}
+  \caption{Entitas Pendukung}
+  \label{tab:entitas-pendukung} \\
+  \toprule
+  \textbf{Entitas} & \textbf{Jumlah} & \textbf{Fungsi} \\
+  \midrule
+  \endfirsthead
+  \caption[]{Entitas Pendukung (sambungan)} \\
+  \toprule
+  \textbf{Entitas} & \textbf{Jumlah} & \textbf{Fungsi} \\
+  \midrule
+  \endhead
+  \bottomrule
+  \endfoot
+
+  NomoroSuratCounter & 1 & Counter atomik untuk nomor surat.
+  Menjamin keunikan dan urutan nomor surat per jenis per tahun. \\[6pt]
+  Notifikasi         & N & Pemberitahuan dalam aplikasi
+  per pengguna dengan tipe, prioritas, dan tautan referensi. \\[6pt]
+  AuditLog           & N & Pencatatan aktivitas: aksi, entitas,
+  entitasId, dataLama, dataBaru, IP, user agent, timestamp. \\[6pt]
+  ImportLog          & N & Riwayat operasi impor Excel
+  dengan statistik per-item. \\[6pt]
+  BlacklistedToken   & N & Refresh token yang telah
+  diinvalidasi dengan timestamp kadaluarsa. \\
+\end{longtable}
+
+% ─── Chapter 10: API Routes ─────────────────────────────────────────────────
+\chapter{Rute API}
+
+\index{API}
+\index{rest api}
+\index{endpoint}
+\index{api routes}
+
+\section{Daftar Endpoint API}
+\index{daftar endpoint}
+
+Seluruh endpoint API berada di bawah prefix \texttt{/api}.
+Berikut adalah ringkasan endpoint utama yang dikelompokkan
+berdasarkan fungsinya.
+
+\begin{longtable}[!htbp]{p{4cm} p{5cm} p{3cm} p{2.5cm}}
+  \caption{Daftar Endpoint API}
+  \label{tab:api-routes} \\
+
+  \toprule
+  \textbf{Grup} & \textbf{Rute} & \textbf{Metode} & \textbf{Akses} \\
+  \midrule
+  \endfirsthead
+
+  \caption[]{Daftar Endpoint API (sambungan)} \\
+  \toprule
+  \textbf{Grup} & \textbf{Rute} & \textbf{Metode} & \textbf{Akses} \\
+  \midrule
+  \endhead
+
+  \bottomrule
+  \endfoot
+
+  % ── Auth ──
+  \rowcolor{lightblue}\multicolumn{4}{l}{\textbf{Autentikasi}} \\[4pt]
+                   & \texttt{/api/auth/login}         & POST   & Publik \\
+                   & \texttt{/api/auth/register}     & POST   & Publik \\
+                   & \texttt{/api/auth/logout}       & POST   & Auth \\
+                   & \texttt{/api/auth/refresh}      & POST   & Auth \\
+                   & \texttt{/api/auth/switch-role}   & POST   & Auth \\
+                   & \texttt{/api/auth/me}           & GET    & Auth \\
+                   & \texttt{/api/auth/password}      & PUT    & Auth \\
+                   & \texttt{/api/auth/csrf-token}   & GET    & Publik \\
+
+  % ── Barang ──
+  \rowcolor{lightblue}\multicolumn{4}{l}{\textbf{Barang}} \\[4pt]
+                   & \texttt{/api/barang}             & GET    & Auth \\
+                   & \texttt{/api/barang}             & POST   & Admin+ \\
+                   & \texttt{/api/barang/[id]}        & GET    & Auth \\
+                   & \texttt{/api/barang/[id]}        & PUT    & Admin+ \\
+                   & \texttt{/api/barang/[id]}        & DELETE & Admin+ \\
+                   & \texttt{/api/barang/import}      & POST   & Admin+ \\
+                   & \texttt{/api/barang/template}    & GET    & Admin+ \\
+                   & \texttt{/api/barang/stock}      & POST   & Auth \\
+                   & \texttt{/api/barang/merk}       & GET    & Admin+ \\
+                   & \texttt{/api/barang/nup-preview} & GET    & Admin+ \\
+
+  % ── Peminjaman ──
+  \rowcolor{lightblue}\multicolumn{4}{l}{\textbf{Peminjaman}} \\[4pt]
+                   & \texttt{/api/peminjaman}        & GET    & Admin+ \\
+                   & \texttt{/api/peminjaman}         & POST   & Auth \\
+                   & \texttt{/api/peminjaman/bulk}    & POST   & Admin+ \\
+                   & \texttt{/api/peminjaman/[id]}    & GET    & Auth \\
+                   & \texttt{/api/peminjaman/[id]}    & PUT    & Auth \\
+                   & \texttt{/api/peminjaman/[id]}    & DELETE & Admin+ \\
+                   & \texttt{/api/peminjaman/[id]/approve}    & POST & Admin+ \\
+                   & \texttt{/api/peminjaman/[id]/reject}     & POST & Admin+ \\
+                   & \texttt{/api/peminjaman/[id]/handover}   & POST & Admin+ \\
+                   & \texttt{/api/peminjaman/[id]/return}     & POST & Admin+ \\
+                   & \texttt{/api/peminjaman/[id]/pdf}        & GET  & Auth \\
+                   & \texttt{/api/peminjaman/[id]/stempel}    & POST & Admin+ \\
+                   & \texttt{/api/peminjaman/[id]/request-return} & POST & Auth \\
+                   & \texttt{/api/peminjaman/scan}             & POST & Admin+ \\
+
+  % ── Dashboard ──
+  \rowcolor{lightblue}\multicolumn{4}{l}{\textbf{Dashboard}} \\[4pt]
+                   & \texttt{/api/dashboard}             & GET & Admin+ \\
+                   & \texttt{/api/dashboard/user}        & GET & Auth \\
+                   & \texttt{/api/dashboard/super}       & GET & Super \\
+                   & \texttt{/api/dashboard/kategori}    & GET & Admin+ \\
+
+  % ── Users ──
+  \rowcolor{lightblue}\multicolumn{4}{l}{\textbf{Manajemen User}} \\[4pt]
+                   & \texttt{/api/users}            & GET    & Admin+ \\
+                   & \texttt{/api/users}            & POST   & Admin+ \\
+                   & \texttt{/api/users/[id]}      & GET    & Admin+ \\
+                   & \texttt{/api/users/[id]}      & PUT    & Admin+ \\
+                   & \texttt{/api/users/[id]}      & DELETE & Admin+ \\
+                   & \texttt{/api/users/[id]/reset-password} & POST & Admin+ \\
+                   & \texttt{/api/users/promote}   & POST   & Super \\
+
+  % ── Satker ──
+  \rowcolor{lightblue}\multicolumn{4}{l}{\textbf{Satker}} \\[4pt]
+                   & \texttt{/api/satker}           & GET    & Admin+ \\
+                   & \texttt{/api/satker}           & POST   & Super \\
+                   & \texttt{/api/satker/[id]}      & PUT    & Super \\
+                   & \texttt{/api/satker/[id]}      & DELETE & Super \\
+
+  % ── Notifications ──
+  \rowcolor{lightblue}\multicolumn{4}{l}{\textbf{Notifikasi}} \\[4pt]
+                   & \texttt{/api/notifikasi}       & GET    & Auth \\
+                   & \texttt{/api/notifikasi/[id]}  & PUT    & Auth \\
+                   & \texttt{/api/notifikasi/[id]}  & DELETE & Auth \\
+
+  % ── Audit Logs ──
+  \rowcolor{lightblue}\multicolumn{4}{l}{\textbf{Log Audit}} \\[4pt]
+                   & \texttt{/api/audit-logs}       & GET    & Admin+ \\
+
+  % ── Export ──
+  \rowcolor{lightblue}\multicolumn{4}{l}{\textbf{Ekspor}} \\[4pt]
+                   & \texttt{/api/export/barang}    & GET    & Admin+ \\
+                   & \texttt{/api/export/peminjaman}& GET    & Admin+ \\
+                   & \texttt{/api/export/users}     & GET    & Admin+ \\
+
+  % ── Import ──
+  \rowcolor{lightblue}\multicolumn{4}{l}{\textbf{Impor}} \\[4pt]
+                   & \texttt{/api/import-log}      & GET    & Admin+ \\
+                   & \texttt{/api/import-pegawai}  & POST   & Admin+ \\
+                   & \texttt{/api/import-peminjam} & POST  & Admin+ \\
+\end{longtable}
+
+\vspace{6pt}
+\small
+\noindent\textbf{Keterangan kolom \textit{Akses}}:
+\begin{itemize}
+  \item[\texttt{Publik}] --- Tidak memerlukan autentikasi.
+  \item[\texttt{Auth}] --- Memerlukan Access Token JWT yang valid.
+  \item[\texttt{Admin+}] --- Memerlukan peran {\roleAdmin} atau
+        {\roleSuperAdmin}.
+  \item[\texttt{Super}] --- Memerlukan peran {\roleSuperAdmin}.
+\end{itemize}
+\normalsize
+
+% ─── Chapter 11: Fitur Keamanan ────────────────────────────────────────────
+\chapter{Fitur Keamanan}
+
+\index{keamanan}
+\index{security}
+\index{autentikasi}
+\index{otorisasi}
+
+\section{Mekanisme Autentikasi}
+\index{mekanisme autentikasi}
+\index{JWT}
+\index{token}
+
+Sistem menerapkan {\it multi-layered authentication}:
+
+\begin{itemize}
+  \item {\bfseries JWT Access Token}: Berlaku 60 menit, disimpan
+        di memori aplikasi (state management). Berfungsi sebagai
+        {\it bearer token} pada setiap request API.
+
+  \item {\bfseries Refresh Token}: Berlaku 7 hari, disimpan dalam
+        cookie httpOnly yang tidak dapat diakses oleh JavaScript
+        ({\it XSS protection}).
+
+  \item {\bfseries CSRF Protection}: Setiap request state-changing
+        ({\it POST, PUT, DELETE}) divalidasi menggunakan pola
+        {\it Double Submit Cookie}.
+
+  \item {\bfseries Token Versioning}: Setiap akun memiliki
+        \texttt{tokenVersion} yang diperbarui setiap kali
+        kata sandi berubah atau sesi diinvalidasi. Token lama
+        secara otomatis menjadi tidak valid.
+
+  \item {\bfseries Token Blacklisting}: Refresh token yang di-revoke
+        dicatat dalam tabel \texttt{BlacklistedToken} dengan
+        timestamp kadaluarsa. Setiap {\it refresh} divalidasi
+        terhadap daftar hitam ini.
+
+  \item {\bfseries Session Invalidation}: Kolom
+        \texttt{sessionInvalidatedAt} pada tabel {\it User}
+        memungkinkan invalidasi masif seluruh sesi milik satu
+        pengguna secara instan (berguna saat terjadi insiden
+        keamanan).
+\end{itemize}
+
+\section{Mekanisme Otorisasi}
+\index{mekanisme otorisasi}
+\index{RBAC}
+\index{middleware}
+
+Semua rute API dilindungi oleh {\it middleware otorisasi} yang:
+\begin{enumerate}
+  \item Mengekstrak dan memvalidasi Access Token dari {\it header}
+        Authorization;
+  \item Memverifikasi peran ({\it role}) pengguna terhadap
+        requirement rute yang diminta; dan
+  \item Menerapkan {\it scope checking} berbasis Satker untuk
+        role {\roleAdmin}.
+\end{enumerate}
+
+\section{Proteksi Tambahan}
+\index{proteksi keamanan}
+\index{rate limiting}
+\index{helmet}
+\index{file upload}
+
+\begin{itemize}
+  \item {\bfseries Rate Limiting}: Batasan jumlah request per IP
+        menggunakan {\it express-rate-limit} untuk mencegah
+        serangan brute-force dan DoS.
+  \item {\bfseries Security Headers}: {\it helmet} digunakan
+        untuk menetapkan {\it HTTP security headers} yang
+        direkomendasikan (HSTS, X-Frame-Options, CSP, dll.).
+  \item {\bfseries Validasi Input}: Seluruh input divalidasi
+        menggunakan skema Zod pada level {\it controller},
+        sebelum diproses lebih lanjut.
+  \item {\bfseries Validasi File Upload}: {\it Multer}
+        membatasi tipe file dan ukuran upload untuk mencegah
+        {\it malicious file upload}.
+\end{itemize}
+
+% ─── Chapter 12: Fitur Tambahan ────────────────────────────────────────────
+\chapter{Fitur Tambahan}
+
+\index{fitur tambahan}
+
+\section{Generasi Dokumen Otomatis}
+\index{generasi dokumen}
+\index{pdf generation}
+\index{surat pernyataan}
+\index{surat pengembalian}
+
+\subsection{Surat Pernyataan Peminjaman}
+\index{surat pernyataan}
+\index{borrowing statement}
+\index{PRN}
+Dihasilkan secara otomatis saat Administrator {\it approve}
+pengajuan. Dokumen mencakup:
+\begin{itemize}
+  \item {\it Header} resmi/leterkop instansi;
+  \item {\bfseries Nomor surat} dengan format
+        \texttt{PRN-<nomor>/BMN/PP.1/<tahun>};
+  \item {\bfseries Tabel barang} yang dipinjam;
+  \item {\bfseries Pernyataan kewajiban} borrower (6 butir);
+  \item {\bfseries Blok tanda tangan} borrower; dan
+  \item {\bfseries QR Code} transaksi.
+\end{itemize}
+
+Sistem menyediakan {\it preview} PDF sebelum borrower
+mengunggah hasil scan/tanda tangan.
+
+\subsection{Surat Pengembalian}
+\index{surat pengembalian}
+\index{return letter}
+\index{return statement}
+Dihasilkan saat Administrator mengonfirmasi pengembalian.
+Dokumen mencakup:
+\begin{itemize}
+  \item {\it Header} resmi/leterkop instansi;
+  \item {\bfseries Nomor surat pengembalian};
+  \item {\bfseries Daftar barang} yang dikembalikan beserta kondisi;
+  \item {\bfseries Catatan pengembalian} dari Administrator;
+  \item {\bfseries Tanda tangan digital} Petugas BMN; dan
+  \item {\bfseries Perangko digital}.
+\end{itemize}
+
+\subsection{Perangko Digital dan Tanda Tangan Digital}
+\index{perangko digital}
+\index{digital stamp}
+\index{tanda tangan digital}
+\index{digital signature}
+\index{stempel}
+Setelah borrower mengunggah Surat Pernyataan yang telah
+ditandatangani dan distempel basah secara fisik, Administrator
+dapat menambahkan {\bfseries perangko digital} dan
+{\bfseries tanda tangan digital} ke dokumen. Proses ini
+dilakukan secara terprogram menggunakan pustaka {\it pdf-lib}
+yang memanipulasi dokumen PDF langsung di {\it server-side}.
+
+\section{QR Code Verification}
+\index{qr code verification}
+\index{qr verification}
+\index{qr scan}
+
+Setiap transaksi yang disetujui dibangkitankan QR Code berisi
+tautan verifikasi ke halaman detail transaksi. QR Code:
+\begin{itemize}
+  \item Dihasilkan dalam warna biru tua (\#1e3a5f) pada latar putih;
+  \item Diunggah ke Vercel Blob dan disimpan URL-nya
+        di basis data; dan
+  \item Dapat dipindai menggunakan kamera atau dimasukkan secara
+        manual oleh Administrator.
+\end{itemize}
+
+Hasil pemindaian langsung mengarahkan Administrator ke halaman
+detail transaksi untuk mempercepat proses verifikasi dan
+pengembalian.
+
+\section{Impor dan Ekspor Data}
+\index{impor data}
+\index{ekspor data}
+\index{excel}
+\index{xlsx}
+
+\subsection{Impor Barang}
+\index{impor barang}
+\index{import barang}
+Importer barang dari file Excel mendukung strategi
+{\it mirror sync}:
+\begin{itemize}
+  \item Barang baru {\bfseries ditambahkan};
+  \item Barang yang ada {\bfseries diperbarui} informasinya;
+  \item Barang yang tidak ada di file Excel {\bfseries dihapus}
+        (dengan validasi tidak sedang dalam peminjaman aktif).
+\end{itemize}
+
+Importer juga mendukung field \texttt{tipe} yang baru ditambahkan
+ke skema.
+
+\subsection{Impor Pegawai}
+\index{impor pegawai}
+\index{import pegawai}
+Importer data pegawai ({\it employee master}) dari Excel
+untuk {\it seeding} atau pembaruan data akun Peminjam.
+
+\subsection{Impor Peminjam + Pinjaman}
+\index{impor peminjaman}
+\index{import loan}
+Importer untuk memigrasikan data dari sistem lama
+({\it legacy system}) secara {\it batch}.
+
+\subsection{Ekspor}
+\index{ekspor}
+\index{export}
+Ekspor data ke format Excel tersedia untuk:
+\begin{itemize}
+  \item {\bfseries Barang}: seluruh data barang di lingkup akses;
+  \item {\bfseries Peminjaman}: seluruh transaksi peminjaman
+        dengan {\it filter} status; dan
+  \item {\bfseries Pengguna}: seluruh data akun pengguna.
+\end{itemize}
+
+\section{Sistem Notifikasi}
+\index{sistem notifikasi}
+\index{notifications}
+\index{in-app notification}
+
+Notifikasi dalam aplikasi ({\it in-app notifications}) mencakup:
+\begin{itemize}
+  \item {\bfseries Pengajuan baru}: notifikasi ke Administrator
+        saat borrower submits pengajuan;
+  \item {\bfseries Status perubahan}: notifikasi ke borrower
+        saat pengajuan disetujui, ditolak, atau diminta
+        pengembalian;
+  \item {\bfseries {\it Reminder} pengembalian}: notifikasi
+        pengingat beberapa hari sebelum tanggal kembali
+        rencana; dan
+  \item {\bfseries Notifikasi pensiun}: Cron job harian
+        yang mengirimkan notifikasi kepada Administrator
+        dan borrower yang akan pensiun dalam 90 hari ke depan.
+\end{itemize}
+
+Notifikasi dapat ditandai sebagai dibaca, dihapus, dan
+dapat diklik untuk navigasi langsung ke halaman terkait.
+
+\section{Log Audit}
+\index{audit log}
+\index{activity log}
+\index{audit trail}
+\index{history}
+
+Seluruh aktivitas penting dalam sistem dicatat ke tabel
+{\it AuditLog}, meliputi:
+\begin{itemize}
+  \item Login dan logout;
+  \item Pembuatan, pembaruan, dan penghapusan data;
+  \item Perubahan status peminjaman;
+  \item Impor dan ekspor data;
+  \item Perubahan kata sandi; dan
+  \item Pengalihan peran.
+\end{itemize}
+
+Setiap {\it log entry} menyimpan:
+\begin{itemize}
+  \item Timestamp kejadian;
+  \item {\it User ID} yang melakukan;
+  \item {\it Action} yang dilakukan;
+  \item {\it Entity} dan {\it Entity ID} yang terlibat;
+  \item {\it Snapshot} data sebelum perubahan (\texttt{dataLama})
+        dan setelah perubahan (\texttt{dataBaru}) dalam format JSON;
+  \item {\it IP address} sumber; dan
+  \item {\it User agent} browser.
+\end{itemize}
+
+Pendekatan {\it denormalized snapshot} (tanpa {\it JOIN})
+dipilih untuk menjamin keakuratan data historis meskipun
+data utama kemudian diubah atau dihapus.
+
+% ─── Chapter 13: Penjadwalan Otomatis ─────────────────────────────────────
+\chapter{Penjadwalan Otomatis (Cron Jobs)}
+
+\index{cron job}
+\index{scheduled task}
+\index{node-cron}
+\index{automated task}
+
+Sistem menjalankan beberapa tugas terjadwal secara otomatis
+menggunakan pustaka {\it node-cron}:
+
+\begin{longtable}[!htbp]{p{4cm} p{3cm} p{5.5cm}}
+  \caption{Tugas Terjadwal}
+  \label{tab:cron-jobs} \\
+  \toprule
+  \textbf{Tugas} & \textbf{Jadwal} & \textbf{Deskripsi} \\
+  \midrule
+  \endfirsthead
+  \caption[]{Tugas Terjadwal (sambungan)} \\
+  \toprule
+  \textbf{Tugas} & \textbf{Jadwal} & \textbf{Deskripsi} \\
+  \midrule
+  \endhead
+  \bottomrule
+  \endfoot
+
+  Notifikasi Pensiun       & Harian (00:00) & Memeriksa seluruh
+                            pengguna dan mengirim notifikasi kepada
+                            Administrator dan borrower yang akan
+                            pensiun dalam 90 hari ke depan. Tanggal
+                            pensiun dihitung secara otomatis dari NIP.
+                            \\[6pt]
+  Perhitungan Stok        & Saat diperlukan & Pengurangan dan
+                            pemulihan stok barang dilakukan secara
+                            atomik setiap kali status peminjaman
+                            berubah (persetujuan, handover, atau
+                            pengembalian). \\[6pt]
+  Deteksi Terlambat        & Per request    & Setiap kali halaman
+                            dashboard dimuat, sistem memeriksa
+                            apakah ada peminjaman aktif yang telah
+                            melewati batas tanggal kembali.
+                            {\it Throttled} maksimal sekali per menit
+                            per pemuatan. \\[6pt]
+  Hapus Token Kadaluarsa   & Periodik        & {\it Cleanup} otomatis
+                            untuk token yang telah kadaluarsa
+                            pada tabel \texttt{BlacklistedToken}. \\
+\end{longtable}
+
+% ─── Chapter 14: Penutup ─────────────────────────────────────────────────────
+\chapter{Penutup}
+
+\section{Ringkasan}
+\index{ringkasan}
+\index{summary}
+
+SIPP-BMN ({\it Sistem Informasi Peminjaman \& Pengembalian Barang
+Milik Negara}) adalah aplikasi berbasis web yang komprehensif
+untuk mengelola seluruh siklus hidup peminjaman dan pengembalian
+Barang Milik Negara. Sistem ini menyediakan tiga peran utama:
+
+\begin{enumerate}
+  \item {\roleSuperAdmin} --- Akses penuh lintas Satker,
+        pengelolaan admin, seluruh barang, seluruh transaksi,
+        seluruh pengguna, seluruh Satker, dan log audit.
+
+  \item {\roleAdmin} --- Pengelolaan barang di Satker tugas,
+        persetujuan dan penolakan peminjaman, penandoveran
+        dan pengembalian barang, pengelolaan peminjam di Satker,
+        serta pemindaian QR Code.
+
+  \item {\rolePeminjam} --- Akses katalog barang, pengajuan
+        peminjaman (termasuk mode konsep), upload surat
+        pernyataan, permintaan pengembalian, dan pelacakan
+        riwayat pribadi.
+\end{enumerate}
+
+Fitur utama meliputi generasi dokumen otomatis (Surat Pernyataan
+Peminjaman dan Surat Pengembalian) dengan perangko digital dan
+tanda tangan digital, verifikasi QR Code, impor/ekspor data Excel,
+pencegahan pemesanan ganda ({\it double-booking prevention}),
+sistem notifikasi dalam aplikasi, log audit lengkap, penjadwalan
+otomatis, serta mekanisme keamanan berlapis (JWT, Refresh Token,
+CSRF Protection, Token Versioning, Rate Limiting, dan Security
+Headers).
+
+\section{Pengembang}
+\index{pengembang}
+\index{developer}
+\index{credits}
+
+Dokumentasi ini disusun berdasarkan kode sumber dan skema
+basis data aplikasi SIPP-BMN. Untuk informasi lebih lanjut,
+silakan merujuk pada dokumentasi teknis yang tersedia di
+repositori proyek.
+
+\begin{flushright}
+  \textit{Tim Pengembang SIPP-BMN} \\[4pt]
+  \today
+\end{flushright}
+
+% ─── Bibliography ───────────────────────────────────────────────────────────
+\clearpage
+\addcontentsline{toc}{chapter}{Daftar Pustaka}
+\markboth{Daftar Pustaka}{Daftar Pustaka}
+
+\begin{thebibliography}{9}
+  \bibitem{nextjs}
+    Vercel. \textit{Next.js Documentation}.
+    \url{https://nextjs.org/docs}, 2024.
+
+  \bibitem{prisma}
+    Prisma. \textit{Prisma ORM Documentation}.
+    \url{https://www.prisma.io/docs}, 2024.
+
+  \bibitem{express}
+    Express.js Team. \textit{Express.js Guide}.
+    \url{https://expressjs.com}, 2024.
+
+  \bibitem{jwt}
+    IETF. \textit{JSON Web Token (JWT)}.
+    RFC 7519. \url{https://tools.ietf.org/html/rfc7519}, 2015.
+
+  \bibitem{rbac}
+    NIST. \textit{Role-Based Access Control (RBAC)}.
+    \url{https://csrc.nist.gov/projects/role-based-access-control}, 2024.
+
+  \bibitem{pdf-lib}
+    PDF-lib. \textit{PDF-lib: Create and modify PDF documents in the browser and Node.js}.
+    \url{https://pdf-lib.js.org}, 2024.
+
+  \bibitem{zod}
+    Zod Team. \textit{Zod: TypeScript-first schema validation}.
+    \url{https://zod.dev}, 2024.
+
+  \bibitem{tailwind}
+    Tailwind Labs. \textit{Tailwind CSS Documentation}.
+    \url{https://tailwindcss.com/docs}, 2024.
+\end{thebibliography}
+
+% ─── Appendix A: Glossary ────────────────────────────────────────────────────
+\clearpage
+\addcontentsline{toc}{chapter}{Lampiran A --- Daftar Singkatan dan Istilah}
+\markboth{Lampiran A: Daftar Singkatan dan Istilah}{Lampiran A: Daftar Singkatan dan Istilah}
+
+\chapter*{Lampiran A: Daftar Singkatan dan Istilah}
+\index{singkatan}
+\index{glossary}
+
+\begin{longtable}[!htbp]{p{3.5cm} p{9cm}}
+  \caption{Daftar Singkatan dan Istilah}
+  \label{tab:glossary} \\
+
+  \toprule
+  \textbf{Singkatan/Istilah} & \textbf{Definisi} \\
+  \midrule
+  \endfirsthead
+
+  \caption[]{Daftar Singkatan dan Istilah (sambungan)} \\
+  \toprule
+  \textbf{Singkatan/Istilah} & \textbf{Definisi} \\
+  \midrule
+  \endhead
+
+  \bottomrule
+  \endfoot
+
+  API        & Application Programming Interface \\
+  BMN        & Barang Milik Negara (State-Owned Goods) \\
+  CSRF       & Cross-Site Request Forgery \\
+  CRUD       & Create, Read, Update, Delete \\
+  ERD        & Entity Relationship Diagram \\
+  FK         & Foreign Key (Kunci Tamu) \\
+  HMN        & Barang Milik Negara (lihat BMN) \\
+  HTTP       & Hypertext Transfer Protocol \\
+  JWT        & JSON Web Token \\
+  NIP        & Nomor Induk Pegawai (Employee Identification Number) \\
+  NUP        & Nomor Urut (Item Serial Number) \\
+  ORM        & Object-Relational Mapping \\
+  RBAC       & Role-Based Access Control \\
+  REST       & Representational State Transfer \\
+  Satker     & Satuan Kerja (Work Unit / Cost Center) \\
+  SIPP-BMN   & Sistem Informasi Peminjaman \& Pengembalian BMN \\
+  SQL        & Structured Query Language \\
+  UAT        & User Acceptance Testing \\
+  URL        & Uniform Resource Locator \\
+  XSS        & Cross-Site Scripting \\
+\end{longtable}
+
+% ─── Appendix B: Diagram ────────────────────────────────────────────────────
+\clearpage
+\addcontentsline{toc}{chapter}{Lampiran B --- Diagram Tambahan}
+\markboth{Lampiran B: Diagram Tambahan}{Lampiran B: Diagram Tambahan}
+
+\chapter*{Lampiran B: Diagram Tambahan}
+
+\section*{Diagram Alur Pengajuan Peminjaman}
+\index{diagram pengajuan}
+
+\begin{figure}[htbp]
+  \centering
+  \IfFileExists{./assets/flow-pengajuan.png}
+    {\includegraphics[width=0.8\textwidth]{./assets/flow-pengajuan.png}}
+    {%
+      \begin{tabular}{|p{3.5cm}|p{3.5cm}|p{3cm}|}
+        \hline
+        \textbf{Aktor} & \textbf{Tahap} & \textbf{Status} \\
+        \hline
+        Borrower & Pilih barang & --- \\
+        Borrower & Tambah ke Keranjang & --- \\
+        Borrower & Isi Formulir Ajukan & --- \\
+        Borrower & Pilih Mode & Draft / Lengkap \\
+        Borrower & Submit (mode Lengkap) & MENUNGGU \\
+        Admin & Tinjauan & MENUNGGU \\
+        Admin & Setuju & DISETUJUI \\
+        Admin & Tolak & DITOLAK \\
+        \hline
+      \end{tabular}
+    }
+  \caption{Alur Pengajuan dan Persetujuan Peminjaman}
+  \label{fig:flow-pengajuan}
+\end{figure}
+
+\section*{Diagram Alur Pengembalian}
+\index{diagram pengembalian}
+
+\begin{figure}[htbp]
+  \centering
+  \IfFileExists{./assets/flow-pengembalian.png}
+    {\includegraphics[width=0.8\textwidth]{./assets/flow-pengembalian.png}}
+    {%
+      \begin{tabular}{|p{3.5cm}|p{3.5cm}|p{3cm}|}
+        \hline
+        \textbf{Aktor} & \textbf{Aksi} & \textbf{Hasil} \\
+        \hline
+        Borrower & --- & DIPINJAM / TERLAMBAT \\
+        Borrower & Upload Surat Pengembalian & --- \\
+        Admin & Terima notifikasi & --- \\
+        Admin & Verifikasi barang & --- \\
+        Admin & Konfirmasi Pengembalian & --- \\
+        Borrower & --- & DIKEMBALIKAN (stok dipulihkan) \\
+        Borrower & Berikan review & Selesai \\
+        \hline
+      \end{tabular}
+    }
+  \caption{Alur Pengembalian Barang}
+  \label{fig:flow-pengembalian}
+\end{figure}
+
+% ─── Appendix C: Kode Status HTTP ───────────────────────────────────────────
+\clearpage
+\addcontentsline{toc}{chapter}{Lampiran C --- Kode Status HTTP}
+\markboth{Lampiran C: Kode Status HTTP}{Lampiran C: Kode Status HTTP}
+
+\chapter*{Lampiran C: Kode Status HTTP yang Digunakan}
+\index{kode status HTTP}
+\index{HTTP status codes}
+
+\begin{longtable}[!htbp]{p{3cm} p{4cm} p{5.5cm}}
+  \caption{Kode Status HTTP API}
+  \label{tab:http-status} \\
+  \toprule
+  \textbf{Kode} & \textbf{Status} & \textbf{Penggunaan} \\
+  \midrule
+  \endfirsthead
+  \caption[]{Kode Status HTTP API (sambungan)} \\
+  \toprule
+  \textbf{Kode} & \textbf{Status} & \textbf{Penggunaan} \\
+  \midrule
+  \endhead
+  \bottomrule
+  \endfoot
+
+  200 & OK           & Request berhasil, data dikembalikan \\
+  201 & Created      & Data berhasil dibuat \\
+  204 & No Content   & Request berhasil, tidak ada body \\
+  400 & Bad Request  & Input tidak valid atau request malformed \\
+  401 & Unauthorized & Token tidak valid atau tidak ada \\
+  403 & Forbidden    & Pengguna tidak memiliki izin \\
+  404 & Not Found    & Data yang diminta tidak ditemukan \\
+  409 & Conflict     & Konflik data (misalnya: double-booking) \\
+  422 & Unprocessable Entity & Validasi gagal \\
+  429 & Too Many Requests & Rate limit tercapai \\
+  500 & Internal Server Error & Kesalahan server \\
+\end{longtable}
+
+% ─── Back Matter ────────────────────────────────────────────────────────────
+\clearpage
+\thispagestyle{empty}
+\vspace*{2cm}
+\begin{center}
+  \HRule\\[0.3cm]
+  {\LARGE\textbf{\textls{--- Akhir Dokumen ---}}}\\[0.3cm]
+  \HRule\\[1cm]
+  \begin{tabular}{c}
+    \textbf{SIPP-BMN} \\
+    \textit{Sistem Informasi Peminjaman \& Pengembalian} \\
+    \textit{Barang Milik Negara} \\
+    Versi 1.0.0
+  \end{tabular}
+\end{center}
+
+\end{document}

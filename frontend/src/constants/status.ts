@@ -83,15 +83,15 @@ export const OPSI_KONDISI = Object.entries(KONDISI_BARANG).map(([value, info]) =
   value,
   label: info.label,
 }));
-// Opsi untuk dropdown filter - berdasarkan kode barang
+// Opsi untuk dropdown filter - berdasarkan kode satker
 export const OPSI_FILTER_BARANG = [
-  { value: '015110199411868000KP', label: 'Sekretariat Badan Pendidikan dan Pelatihan Keuangan' },
-  { value: '015110199411868001KP', label: 'Pusat Pembinaan Jabatan Fungsional dan Peminjaman Mutu' },
-  { value: '015110199411868002KP', label: 'Pusat Pendidikan dan Pelatihan Anggaran dan Pembendaharaan' },
-  { value: '015110199411868003KP', label: 'Pusat Pendidikan dan Pelatihan Pajak' },
-  { value: '015110199411868004KP', label: 'Pusat Pendidikan dan Pelatihan Bea dan Cukai' },
-  { value: '015110199411868005KP', label: 'Pusat Pendidikan dan Pelatihan Keuangan Publik' },
-  { value: '015110199411868006KP', label: 'Pusat Pendidikan dan Pelatihan Kepemimpinan dan Manajemen' },
+  { value: '015110199411868000KP', label: '0KP — Sekretariat Badan Pendidikan dan Pelatihan Keuangan' },
+  { value: '015110199411868001KP', label: '1KP — Pusat Pembinaan Jabatan Fungsional dan Peminjaman Mutu' },
+  { value: '015110199411868002KP', label: '2KP — Pusat Pendidikan dan Pelatihan Anggaran dan Pembendaharaan' },
+  { value: '015110199411868003KP', label: '3KP — Pusat Pendidikan dan Pelatihan Pajak' },
+  { value: '015110199411868004KP', label: '4KP — Pusat Pendidikan dan Pelatihan Bea dan Cukai' },
+  { value: '015110199411868005KP', label: '5KP — Pusat Pendidikan dan Pelatihan Keuangan Publik' },
+  { value: '015110199411868006KP', label: '6KP — Pusat Pendidikan dan Pelatihan Kepemimpinan dan Manajemen' },
 ];
 
 // DRAFT: admin bisa lihat draft yang dia sendiri yang buat.
