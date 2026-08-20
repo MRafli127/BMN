@@ -386,28 +386,6 @@ export default function AdminDashboardPage() {
               </button>
             </div>
 
-            {/* Total Peminjam - Full Width */}
-            <button
-              onClick={() => router.push(RUTE.adminKategori('peminjam'))}
-              className="group relative mt-2 w-full"
-            >
-              <div className="absolute inset-0 rounded-2xl bg-gradient-to-r from-violet-500/20 to-purple-600/20 opacity-0 blur-lg transition-opacity duration-500 group-hover:opacity-100" />
-              <div className="relative flex items-center justify-between rounded-2xl border-2 border-slate-200/50 bg-white p-4 shadow-md transition-all duration-300 hover:border-violet-300/50 hover:shadow-xl hover:-translate-y-1 active:scale-[0.98]">
-                <div className="flex items-center gap-4">
-                  <div className="absolute inset-x-0 top-0 h-1 rounded-t-xl bg-gradient-to-r from-violet-500 to-purple-600 opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
-                  <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-violet-500 to-purple-600 shadow-lg shadow-violet-500/30 transition-transform duration-300 group-hover:scale-110 group-hover:shadow-xl">
-                    <Icon name="group" className="h-6 w-6 text-white" />
-                  </div>
-                  <div className="text-left">
-                    <span className="text-xs font-medium text-slate-500">Total Peminjam</span>
-                    <p className="font-jakarta text-xl font-bold text-violet-600">{s.totalPeminjam}</p>
-                  </div>
-                </div>
-                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-slate-100 transition-all duration-300 group-hover:translate-x-1 group-hover:bg-violet-100 opacity-0 group-hover:opacity-100">
-                  <Icon name="chevron_right" className="h-5 w-5 text-violet-500" />
-                </div>
-              </div>
-            </button>
           </div>
 
           {/* Kolom Kanan: Inventaris Barang */}
@@ -485,6 +463,29 @@ export default function AdminDashboardPage() {
                   </div>
                   <div className="flex h-8 w-8 items-center justify-center rounded-full bg-slate-100 transition-all duration-300 group-hover:translate-x-1 group-hover:bg-red-100 opacity-0 group-hover:opacity-100">
                     <Icon name="chevron_right" className="h-5 w-5 text-red-500" />
+                  </div>
+                </div>
+              </button>
+
+              {/* Total Peminjam */}
+              <button
+                onClick={() => router.push(RUTE.adminKategori('peminjam'))}
+                className="group relative w-full"
+              >
+                <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-violet-500/20 to-purple-600/20 opacity-0 blur-lg transition-opacity duration-500 group-hover:opacity-100" />
+                <div className="relative flex items-center justify-between rounded-2xl border-2 border-slate-200/50 bg-white p-4 shadow-md transition-all duration-300 hover:border-violet-300/50 hover:shadow-xl hover:-translate-y-1 active:scale-[0.98]">
+                  <div className="absolute inset-x-0 top-0 h-1 rounded-t-xl bg-gradient-to-r from-violet-500 to-purple-600 opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
+                  <div className="flex items-center gap-4">
+                    <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-violet-500 to-purple-600 shadow-lg shadow-violet-500/30 transition-transform duration-300 group-hover:scale-110 group-hover:shadow-xl">
+                      <Icon name="group" className="h-6 w-6 text-white" />
+                    </div>
+                    <div className="text-left">
+                      <span className="text-sm font-semibold text-slate-500">Total Peminjam</span>
+                      <p className="font-jakarta text-2xl font-bold text-violet-600">{s.totalPeminjam}</p>
+                    </div>
+                  </div>
+                  <div className="flex h-8 w-8 items-center justify-center rounded-full bg-slate-100 transition-all duration-300 group-hover:translate-x-1 group-hover:bg-violet-100 opacity-0 group-hover:opacity-100">
+                    <Icon name="chevron_right" className="h-5 w-5 text-violet-500" />
                   </div>
                 </div>
               </button>
